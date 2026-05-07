@@ -1,0 +1,6 @@
+import { Schema, model } from 'mongoose';
+const money = { type: Number, default: 0, min: 0 };
+export const AccountingType = model('AccountingType', new Schema({ name: { type: String, required: true }, kind: { type: String, enum: ['receipt', 'payment'], required: true }, description: String }, { timestamps: true }));
+export const PayPerson = model('PayPerson', new Schema({ name: { type: String, required: true }, phone: String, email: String, address: String, note: String }, { timestamps: true }));
+export const Receipt = model('Receipt', new Schema({ code: { type: String, required: true, unique: true }, typeId: { type: Schema.Types.ObjectId, ref: 'AccountingType' }, customerId: { type: Schema.Types.ObjectId, ref: 'Customer' }, value: money, date: Date, note: String, userId: { type: Schema.Types.ObjectId, ref: 'User' } }, { timestamps: true }));
+export const ExpensePayment = model('ExpensePayment', new Schema({ code: { type: String, required: true, unique: true }, typeId: { type: Schema.Types.ObjectId, ref: 'AccountingType' }, payPersonId: { type: Schema.Types.ObjectId, ref: 'PayPerson' }, value: money, date: Date, note: String, userId: { type: Schema.Types.ObjectId, ref: 'User' } }, { timestamps: true }));

@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { crudRoutes } from '../../core/utils/routeFactory.js';
+import { Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer } from './vendor.models.js';
+const router = Router();
+router.use('/vendors', crudRoutes(Vendor));
+router.use('/groups', crudRoutes(VendorGroup));
+router.use('/purchases', crudRoutes(VendorPurchase));
+router.use('/refunds', crudRoutes(VendorRefund));
+router.use('/transfers', crudRoutes(VendorTransfer));
+export default router;

@@ -1,0 +1,13 @@
+{
+  "name": "my-erp-mern",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "seed": "npm run seed -w server",
+    "load": "npm run load -w server"
+  },
+  "devDependencies": {"concurrently": "^9.1.2"}
+}
