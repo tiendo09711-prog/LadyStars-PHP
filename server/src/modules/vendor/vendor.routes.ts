@@ -1,10 +1,14 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
 import { Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer } from './vendor.models.js';
+import { completeVendorPurchase, completeVendorRefund, completeVendorTransfer } from './vendor.service.js';
 const router = Router();
 router.use('/vendors', crudRoutes(Vendor));
 router.use('/groups', crudRoutes(VendorGroup));
 router.use('/purchases', crudRoutes(VendorPurchase));
 router.use('/refunds', crudRoutes(VendorRefund));
 router.use('/transfers', crudRoutes(VendorTransfer));
+router.post('/purchases/:id/complete', async (req, res) => res.json(await completeVendorPurchase(req.params.id)));
+router.post('/refunds/:id/complete', async (req, res) => res.json(await completeVendorRefund(req.params.id)));
+router.post('/transfers/:id/complete', async (req, res) => res.json(await completeVendorTransfer(req.params.id)));
 export default router;

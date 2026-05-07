@@ -2,7 +2,8 @@ import { Schema, model } from 'mongoose';
 
 export const CustomerGroup = model('CustomerGroup', new Schema({
   name: { type: String, required: true, unique: true },
-  description: String,
+  type: { type: String, enum: ['1', '2', '3'], default: '1' },
+  note: String,
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true }));
 
@@ -11,13 +12,20 @@ const CustomerSchema = new Schema({
   name: { type: String, required: true },
   code: { type: String, required: true, unique: true },
   phone: String,
+  phone2: String,
   email: String,
   birthday: Date,
+  sex: { type: String, enum: ['female', 'male', 'other'], default: 'female' },
   address: String,
   provinceId: String,
   districtId: String,
   wardId: String,
+  company: String,
+  vat: String,
+  facebook: String,
   note: String,
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   groups: [{ type: Schema.Types.ObjectId, ref: 'CustomerGroup' }],
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });

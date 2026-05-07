@@ -1,39 +1,155 @@
-import { ShoppingCart } from 'lucide-react';
-import { DataModulePage } from '../../core/components/DataModulePage';
+import { CreditCard, History, RotateCcw, ShoppingCart, Store, Truck } from 'lucide-react';
+import { TabbedModulePage } from '../../core/components/TabbedModulePage';
 
 export function SalesPage() {
   return (
-    <DataModulePage
-      title="Bán hàng"
-      subtitle="Phiếu bán, thanh toán, kênh bán và trạng thái giao hàng"
-      endpoint="/products/sales"
-      icon={<ShoppingCart size={24} />}
-      primaryActionLabel="Tạo đơn bán"
-      fields={[
-        { key: 'code', label: 'Mã đơn' },
-        { key: 'status', label: 'Trạng thái', type: 'status' },
-        { key: 'amountProducts', label: 'SL hàng', type: 'number' },
-        { key: 'value', label: 'Tổng tiền', type: 'money' },
-        { key: 'valuePayment', label: 'Đã thanh toán', type: 'money' },
-        { key: 'createdAt', label: 'Ngày tạo', type: 'date' },
-      ]}
-      formFields={[
-        { key: 'code', label: 'Mã đơn', required: true },
-        { key: 'amountProducts', label: 'Số lượng hàng', type: 'number' },
-        { key: 'totalCost', label: 'Tổng vốn', type: 'number' },
-        { key: 'value', label: 'Tổng tiền', type: 'number' },
-        { key: 'valuePayment', label: 'Đã thanh toán', type: 'number' },
-        { key: 'status', label: 'Trạng thái', type: 'select', options: [
-          { label: 'Nháp', value: 'draft' },
-          { label: 'Hoàn thành', value: 'completed' },
-          { label: 'Đã hủy', value: 'cancelled' },
-        ] },
-        { key: 'note', label: 'Ghi chú', type: 'textarea' },
-      ]}
-      createDefaults={{ code: '', amountProducts: 0, totalCost: 0, value: 0, valuePayment: 0, status: 'draft', note: '' }}
-      quickFilters={[
-        { label: 'Nháp', value: 'draft' },
-        { label: 'Hoàn thành', value: 'completed' },
+    <TabbedModulePage
+      tabs={[
+        {
+          key: 'sales',
+          label: 'Bán hàng',
+          title: 'Bán hàng',
+          subtitle: 'Phiếu bán, thanh toán, kênh bán và trạng thái giao hàng',
+          endpoint: '/products/sales',
+          icon: <ShoppingCart size={24} />,
+          primaryActionLabel: 'Tạo đơn bán',
+          fields: [
+            { key: 'code', label: 'Mã đơn' },
+            { key: 'status', label: 'Trạng thái', type: 'status' },
+            { key: 'amountProducts', label: 'SL hàng', type: 'number' },
+            { key: 'value', label: 'Tổng tiền', type: 'money' },
+            { key: 'valuePayment', label: 'Đã thanh toán', type: 'money' },
+            { key: 'createdAt', label: 'Ngày tạo', type: 'date' },
+          ],
+          formFields: [
+            { key: 'code', label: 'Mã đơn', required: true },
+            { key: 'amountProducts', label: 'Số lượng hàng', type: 'number' },
+            { key: 'totalCost', label: 'Tổng vốn', type: 'number' },
+            { key: 'value', label: 'Tổng tiền', type: 'number' },
+            { key: 'valuePayment', label: 'Đã thanh toán', type: 'number' },
+            { key: 'status', label: 'Trạng thái', type: 'select', options: [
+              { label: 'Nháp', value: 'draft' },
+              { label: 'Hoàn thành', value: 'completed' },
+              { label: 'Đã hoàn', value: 'refunded' },
+              { label: 'Đã hủy', value: 'cancelled' },
+            ] },
+            { key: 'note', label: 'Ghi chú', type: 'textarea' },
+          ],
+          createDefaults: { code: '', amountProducts: 0, totalCost: 0, value: 0, valuePayment: 0, status: 'draft', note: '' },
+          quickFilters: [
+            { label: 'Nháp', value: 'draft' },
+            { label: 'Hoàn thành', value: 'completed' },
+            { label: 'Đã hoàn', value: 'refunded' },
+          ],
+          actions: [{ label: 'Hoàn tất', endpointSuffix: 'complete', confirm: 'Hoàn tất đơn bán và trừ tồn kho?' }],
+        },
+        {
+          key: 'refunds',
+          label: 'Trả hàng bán',
+          title: 'Trả hàng bán',
+          subtitle: 'Phiếu hoàn hàng bán và nhập lại tồn kho',
+          endpoint: '/products/refunds',
+          icon: <RotateCcw size={24} />,
+          primaryActionLabel: 'Tạo phiếu trả',
+          fields: [
+            { key: 'code', label: 'Mã phiếu' },
+            { key: 'status', label: 'Trạng thái', type: 'status' },
+            { key: 'amount', label: 'Số lượng', type: 'number' },
+            { key: 'value', label: 'Tiền trả', type: 'money' },
+            { key: 'createdAt', label: 'Ngày tạo', type: 'date' },
+          ],
+          formFields: [
+            { key: 'code', label: 'Mã phiếu', required: true },
+            { key: 'paymentId', label: 'ID đơn bán', required: true },
+            { key: 'amount', label: 'Số lượng', type: 'number' },
+            { key: 'value', label: 'Tiền trả', type: 'number' },
+            { key: 'status', label: 'Trạng thái', type: 'select', options: [
+              { label: 'Nháp', value: 'draft' },
+              { label: 'Hoàn thành', value: 'completed' },
+              { label: 'Hủy', value: 'cancelled' },
+            ] },
+            { key: 'note', label: 'Ghi chú', type: 'textarea' },
+          ],
+          createDefaults: { code: '', paymentId: '', amount: 0, value: 0, status: 'draft', note: '' },
+          actions: [{ label: 'Hoàn tất', endpointSuffix: 'complete', confirm: 'Hoàn tất phiếu trả và nhập lại tồn?' }],
+        },
+        {
+          key: 'methods',
+          label: 'Thanh toán',
+          title: 'Phương thức thanh toán',
+          subtitle: 'Tiền mặt, thẻ, chuyển khoản và trạng thái đích',
+          endpoint: '/products/payment-methods',
+          icon: <CreditCard size={24} />,
+          primaryActionLabel: 'Thêm phương thức',
+          fields: [
+            { key: 'code', label: 'Mã' },
+            { key: 'name', label: 'Tên' },
+            { key: 'targetPaymentStatus', label: 'Trạng thái đích', type: 'status' },
+            { key: 'isActive', label: 'Hoạt động', type: 'status' },
+          ],
+          formFields: [
+            { key: 'code', label: 'Mã', required: true },
+            { key: 'name', label: 'Tên', required: true },
+            { key: 'targetPaymentStatus', label: 'Trạng thái đích' },
+            { key: 'sortOrder', label: 'Thứ tự', type: 'number' },
+          ],
+          createDefaults: { code: '', name: '', targetPaymentStatus: 'paid', sortOrder: 0 },
+        },
+        {
+          key: 'channels',
+          label: 'Kênh bán',
+          title: 'Kênh bán',
+          subtitle: 'Cửa hàng, online, sàn thương mại hoặc nguồn bán khác',
+          endpoint: '/products/sale-channels',
+          icon: <Store size={24} />,
+          primaryActionLabel: 'Thêm kênh bán',
+          fields: [{ key: 'name', label: 'Tên kênh' }, { key: 'isDefault', label: 'Mặc định', type: 'status' }, { key: 'isActive', label: 'Hoạt động', type: 'status' }],
+          formFields: [{ key: 'name', label: 'Tên kênh', required: true }, { key: 'description', label: 'Mô tả', type: 'textarea' }, { key: 'sortOrder', label: 'Thứ tự', type: 'number' }],
+          createDefaults: { name: '', description: '', sortOrder: 0 },
+        },
+        {
+          key: 'delivery',
+          label: 'Giao hàng',
+          title: 'Đối tác giao hàng',
+          subtitle: 'Đối tác vận chuyển, phí, liên hệ và trạng thái',
+          endpoint: '/products/delivery-partners',
+          icon: <Truck size={24} />,
+          primaryActionLabel: 'Thêm đối tác',
+          fields: [{ key: 'code', label: 'Mã' }, { key: 'name', label: 'Tên' }, { key: 'type', label: 'Loại', type: 'status' }, { key: 'phone', label: 'SĐT' }, { key: 'isActive', label: 'Hoạt động', type: 'status' }],
+          formFields: [
+            { key: 'code', label: 'Mã', required: true },
+            { key: 'name', label: 'Tên', required: true },
+            { key: 'type', label: 'Loại', type: 'select', options: [{ label: 'Cá nhân', value: 'person' }, { label: 'Công ty', value: 'company' }] },
+            { key: 'phone', label: 'Số điện thoại' },
+            { key: 'email', label: 'Email', type: 'email' },
+            { key: 'address', label: 'Địa chỉ' },
+            { key: 'note', label: 'Ghi chú', type: 'textarea' },
+          ],
+          createDefaults: { code: '', name: '', type: 'company', phone: '', email: '', address: '', note: '' },
+        },
+        {
+          key: 'logs',
+          label: 'Log tồn',
+          title: 'Log tồn kho',
+          subtitle: 'Lịch sử biến động tồn từ bán, hoàn, nhập, trả và chuyển kho',
+          endpoint: '/products/logs',
+          icon: <History size={24} />,
+          primaryActionLabel: 'Ghi log thủ công',
+          fields: [
+            { key: 'sourceType', label: 'Nguồn' },
+            { key: 'amount', label: 'Số lượng', type: 'number' },
+            { key: 'amountBefore', label: 'Trước', type: 'number' },
+            { key: 'amountAfter', label: 'Sau', type: 'number' },
+            { key: 'createdAt', label: 'Ngày', type: 'date' },
+          ],
+          formFields: [
+            { key: 'productId', label: 'ID hàng hóa', required: true },
+            { key: 'sourceType', label: 'Nguồn', required: true },
+            { key: 'sourceId', label: 'ID nguồn', required: true },
+            { key: 'amount', label: 'Số lượng', type: 'number' },
+          ],
+          createDefaults: { productId: '', sourceType: 'Manual', sourceId: '', amount: 0 },
+        },
       ]}
     />
   );

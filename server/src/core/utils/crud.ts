@@ -1,6 +1,14 @@
 import type { Model } from 'mongoose';
 import type { Request, Response } from 'express';
 
+function cleanPayload(value: any): any {
+  if (Array.isArray(value)) return value.map(cleanPayload);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key, item]) => !(item === '' && (key.endsWith('Id') || key.endsWith('Ids'))))
+    .map(([key, item]) => [key, cleanPayload(item)]));
+}
+
 export function crudController<T>(model: Model<T>) {
   return {
     async list(req: Request, res: Response) {
@@ -20,11 +28,11 @@ export function crudController<T>(model: Model<T>) {
       res.json(item);
     },
     async create(req: Request, res: Response) {
-      const item = await model.create(req.body);
+      const item = await model.create(cleanPayload(req.body));
       res.status(201).json(item);
     },
     async update(req: Request, res: Response) {
-      const item = await model.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+      const item = await model.findByIdAndUpdate(req.params.id, cleanPayload(req.body), { new: true, runValidators: true });
       if (!item) return res.status(404).json({ message: 'Not found' });
       res.json(item);
     },

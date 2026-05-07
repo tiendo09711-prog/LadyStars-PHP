@@ -6,6 +6,7 @@ import { connectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import authRoutes from './core/auth/auth.routes.js';
 import { requireAuth } from './core/middleware/auth.js';
+import systemRoutes from './core/system/system.routes.js';
 import productRoutes from './modules/product/product.routes.js';
 import customerRoutes from './modules/customer/customer.routes.js';
 import vendorRoutes from './modules/vendor/vendor.routes.js';
@@ -29,6 +30,7 @@ app.use(morgan('dev'));
 
 app.get('/health', (_, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
+app.use('/api/system', requireAuth, systemRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/products', requireAuth, productRoutes);
 app.use('/api/customers', requireAuth, customerRoutes);

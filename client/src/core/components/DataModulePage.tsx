@@ -22,7 +22,14 @@ type ModuleMetric = {
   tone?: 'primary' | 'success' | 'warning' | 'danger' | 'neutral';
 };
 
-type DataModulePageProps = {
+export type RowAction = {
+  label: string;
+  endpointSuffix: string;
+  method?: 'post' | 'patch';
+  confirm?: string;
+};
+
+export type DataModulePageProps = {
   title: string;
   subtitle: string;
   endpoint: string;
@@ -34,6 +41,7 @@ type DataModulePageProps = {
   quickFilters?: { label: string; value: string }[];
   metrics?: ModuleMetric[];
   normalizePayload?: (payload: Record<string, unknown>) => Record<string, unknown>;
+  actions?: RowAction[];
 };
 
 function getValue(item: Record<string, any>, key: string) {
@@ -51,7 +59,7 @@ function formatValue(value: unknown, type: DataField['type']) {
 function statusClass(value: unknown) {
   const status = String(value ?? '').toLowerCase();
   if (['completed', 'success', 'done', 'paid', 'active'].includes(status)) return 'success';
-  if (['draft', 'todo', 'temp', 'wait'].includes(status)) return 'warning';
+  if (['draft', 'temp', 'todo', 'backlog', 'planning', 'wait', 'delivery', 'in_progress', 'doing', 'review'].includes(status)) return 'warning';
   if (['cancelled', 'cancel', 'fail', 'inactive'].includes(status)) return 'danger';
   return 'primary';
 }
@@ -68,12 +76,14 @@ export function DataModulePage({
   quickFilters = [],
   metrics = [],
   normalizePayload,
+  actions = [],
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>(createDefaults);
   const [error, setError] = useState('');
 
@@ -117,8 +127,11 @@ export function DataModulePage({
     }));
 
     try {
-      await http.post(endpoint, normalizePayload ? normalizePayload(payload) : payload);
+      const finalPayload = normalizePayload ? normalizePayload(payload) : payload;
+      if (editingId) await http.patch(`${endpoint}/${editingId}`, finalPayload);
+      else await http.post(endpoint, finalPayload);
       setShowModal(false);
+      setEditingId(null);
       setForm(createDefaults);
       await load();
     } catch (err: any) {
@@ -126,10 +139,47 @@ export function DataModulePage({
     }
   };
 
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(createDefaults);
+    setShowModal(true);
+  };
+
+  const openEdit = (item: Record<string, any>) => {
+    const nextForm = { ...createDefaults };
+    formFields.forEach((field) => {
+      const value = getValue(item, field.key);
+      nextForm[field.key] = field.type === 'date' && value ? String(value).slice(0, 10) : (value ?? createDefaults[field.key] ?? '');
+    });
+    setEditingId(item._id);
+    setForm(nextForm);
+    setShowModal(true);
+  };
+
   const remove = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) return;
     await http.delete(`${endpoint}/${id}`);
     await load();
+  };
+
+  const runAction = async (item: Record<string, any>, action: RowAction) => {
+    if (action.confirm && !window.confirm(action.confirm)) return;
+    await http[action.method ?? 'post'](`${endpoint}/${item._id}/${action.endpointSuffix}`);
+    await load();
+  };
+
+  const exportCsv = () => {
+    const csv = [
+      fields.map((field) => `"${field.label.replace(/"/g, '""')}"`).join(','),
+      ...filteredItems.map((item) => fields.map((field) => `"${String(getValue(item, field.key) ?? '').replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.toLowerCase().replace(/\s+/g, '-')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -143,16 +193,16 @@ export function DataModulePage({
           </div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-light" type="button" onClick={load}>
+          <button className="btn btn-light" type="button" onClick={load} title="Làm mới">
             <RefreshCw size={16} /> Làm mới
           </button>
-          <button className="btn btn-success" type="button">
-            <FileDown size={16} /> Xuất Excel
+          <button className="btn btn-success" type="button" onClick={exportCsv} title="Xuất CSV">
+            <FileDown size={16} /> Xuất CSV
           </button>
-          <button className="btn btn-outline" type="button">
-            <FileUp size={16} /> Nhập Excel
+          <button className="btn btn-outline" type="button" onClick={() => alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.')} title="Nhập dữ liệu">
+            <FileUp size={16} /> Nhập
           </button>
-          <button className="btn btn-primary" type="button" onClick={() => setShowModal(true)}>
+          <button className="btn btn-primary" type="button" onClick={openCreate}>
             <Plus size={16} /> {primaryActionLabel}
           </button>
         </div>
@@ -195,7 +245,7 @@ export function DataModulePage({
           )}
           <div className="quick-actions">
             <span>Thao tác nhanh</span>
-            <button className="btn btn-primary full" type="button" onClick={() => setShowModal(true)}>
+            <button className="btn btn-primary full" type="button" onClick={openCreate}>
               <Plus size={16} /> Tạo mới
             </button>
           </div>
@@ -244,6 +294,14 @@ export function DataModulePage({
                       );
                     })}
                     <td className="action-cell">
+                      {actions.map((action) => (
+                        <button className="mini-action" type="button" key={action.label} onClick={() => runAction(item, action)}>
+                          {action.label}
+                        </button>
+                      ))}
+                      <button className="mini-action" type="button" onClick={() => openEdit(item)}>
+                        Sửa
+                      </button>
                       <button className="icon-button danger" type="button" onClick={() => remove(item._id)} title="Xóa">
                         <Trash2 size={16} />
                       </button>
@@ -261,8 +319,8 @@ export function DataModulePage({
           <form className="modal-card" onSubmit={submit}>
             <div className="modal-header">
               <div>
-                <h2>{primaryActionLabel}</h2>
-                <p>{title}</p>
+                <h2>{editingId ? 'Cập nhật' : primaryActionLabel}</h2>
+                <p>{editingId ? 'Cập nhật bản ghi' : title}</p>
               </div>
               <button className="icon-button" type="button" onClick={() => setShowModal(false)} title="Đóng">
                 <X size={18} />

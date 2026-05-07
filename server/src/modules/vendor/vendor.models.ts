@@ -3,26 +3,42 @@ const money = { type: Number, default: 0, min: 0 };
 
 export const VendorGroup = model('VendorGroup', new Schema({
   name: { type: String, required: true, unique: true },
-  description: String,
+  note: String,
+  userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true }));
 
-export const Vendor = model('Vendor', new Schema({
+const VendorSchema = new Schema({
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   type: { type: String, enum: ['person', 'company'], default: 'company' },
   name: { type: String, required: true },
   code: { type: String, required: true, unique: true },
+  vat: String,
+  company: String,
   phone: String,
   email: String,
   address: String,
+  provinceId: String,
+  districtId: String,
+  wardId: String,
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  total: money,
+  debt: money,
+  totalPurchase: money,
   note: String,
   groups: [{ type: Schema.Types.ObjectId, ref: 'VendorGroup' }],
-}, { timestamps: true }));
+  userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
+}, { timestamps: true });
+VendorSchema.index({ name: 'text', code: 'text', phone: 'text', email: 'text' });
+export const Vendor = model('Vendor', VendorSchema);
 
 const PurchaseItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   amount: { type: Number, default: 0 },
-  value: money,
+  price: money,
   discountValue: money,
   discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
+  value: money,
   total: money,
   note: String,
 }, { _id: false });
@@ -31,31 +47,49 @@ export const VendorPurchase = model('VendorPurchase', new Schema({
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
   code: { type: String, required: true, unique: true },
-  totalCost: money,
   discountValue: money,
+  discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
+  total: money,
+  needPay: money,
   value: money,
   valuePayment: money,
-  status: { type: String, default: 'draft' },
+  status: { type: String, enum: ['temp', 'success', 'refund', 'cancel', 'draft'], default: 'temp' },
   note: String,
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
   items: [PurchaseItemSchema],
 }, { timestamps: true }));
 
 export const VendorRefund = model('VendorRefund', new Schema({
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   purchaseId: { type: Schema.Types.ObjectId, ref: 'VendorPurchase' },
   vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
   code: { type: String, required: true, unique: true },
+  total: money,
+  discountValue: money,
   value: money,
-  status: { type: String, default: 'draft' },
+  discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
+  status: { type: String, enum: ['temp', 'success', 'cancel', 'draft'], default: 'temp' },
   note: String,
+  userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
   items: [PurchaseItemSchema],
 }, { timestamps: true }));
 
 export const VendorTransfer = model('VendorTransfer', new Schema({
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   fromBranchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   toBranchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   code: { type: String, required: true, unique: true },
-  status: { type: String, default: 'draft' },
+  status: { type: String, enum: ['temp', 'delivery', 'success', 'fail', 'draft'], default: 'temp' },
+  dateSend: Date,
+  dateTake: Date,
   note: String,
-  items: [{ productId: { type: Schema.Types.ObjectId, ref: 'Product' }, amount: Number, note: String }],
+  userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
+  items: [{
+    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
+    amount: { type: Number, default: 0 },
+    price: money,
+    value: money,
+    note: String,
+  }],
 }, { timestamps: true }));

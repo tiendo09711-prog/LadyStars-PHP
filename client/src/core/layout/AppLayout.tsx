@@ -21,10 +21,10 @@ const menuGroups = [
     items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }],
   },
   {
-    label: 'Hàng hóa',
+    label: 'Hàng hóa và bán hàng',
     items: [
-      { to: '/products', label: 'Danh mục', icon: Boxes },
-      { to: '/sales', label: 'Bán hàng', icon: ShoppingCart },
+      { to: '/products', label: 'Hàng hóa - kho', icon: Boxes },
+      { to: '/sales', label: 'Bán hàng - thanh toán', icon: ShoppingCart },
     ],
   },
   {
@@ -37,8 +37,8 @@ const menuGroups = [
   {
     label: 'Vận hành',
     items: [
-      { to: '/accounting', label: 'Kế toán', icon: WalletCards },
-      { to: '/tasks', label: 'Công việc', icon: ClipboardList },
+      { to: '/accounting', label: 'Kế toán - báo cáo', icon: WalletCards },
+      { to: '/tasks', label: 'Dự án - công việc', icon: ClipboardList },
       { to: '/print-forms', label: 'Mẫu in', icon: Printer },
     ],
   },
@@ -80,7 +80,7 @@ export function AppLayout() {
           <div className="brand-mark">LS</div>
           <div>
             <strong>LadyStars</strong>
-            <span>Polirium ERP</span>
+            <span>Polirium ERP on MERN</span>
           </div>
         </div>
 
@@ -106,7 +106,7 @@ export function AppLayout() {
 
         <button className="sidebar-setting" type="button">
           <Settings size={17} />
-          <span>Cài đặt hệ thống</span>
+          <span>Vai trò, quyền, menu</span>
         </button>
       </aside>
 

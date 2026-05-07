@@ -139,6 +139,31 @@ export const SalePayment = model('SalePayment', new Schema({
   items: [SaleItemSchema],
 }, { timestamps: true }));
 
+export const ProductRefund = model('ProductRefund', new Schema({
+  paymentId: { type: Schema.Types.ObjectId, ref: 'SalePayment', required: true },
+  code: { type: String, required: true, unique: true },
+  discountValue: money,
+  discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
+  refundFee: money,
+  refundFeeType: { type: String, enum: ['percent', 'number'], default: 'number' },
+  amount: { type: Number, default: 0 },
+  originalTotalAmount: money,
+  totalPayableAmount: money,
+  value: money,
+  status: { type: String, enum: ['draft', 'completed', 'cancelled'], default: 'draft' },
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
+  note: String,
+  items: [{
+    productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+    amount: { type: Number, default: 1 },
+    price: money,
+    discountValue: money,
+    discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
+    value: money,
+  }],
+}, { timestamps: true }));
+
 export const ProductLog = model('ProductLog', new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   sourceType: { type: String, required: true },
@@ -153,7 +178,23 @@ export const ProductLog = model('ProductLog', new Schema({
 export const StockAdjustment = model('StockAdjustment', new Schema({
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   code: { type: String, required: true, unique: true },
+  balanceDate: Date,
+  amount: { type: Number, default: 0 },
+  increaseDeviation: { type: Number, default: 0 },
+  decreaseDeviation: { type: Number, default: 0 },
+  deviation: { type: Number, default: 0 },
+  value: money,
+  status: { type: String, enum: ['draft', 'completed', 'cancelled'], default: 'draft' },
   note: String,
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  items: [{ productId: { type: Schema.Types.ObjectId, ref: 'Product' }, amount: Number, note: String }],
+  userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
+  items: [{
+    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
+    amount: { type: Number, default: 0 },
+    actualStock: { type: Number, default: 0 },
+    quantityDifference: { type: Number, default: 0 },
+    value: money,
+    valueDifference: money,
+    note: String,
+  }],
 }, { timestamps: true }));

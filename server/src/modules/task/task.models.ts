@@ -1,3 +1,57 @@
 import { Schema, model } from 'mongoose';
-export const Project = model('Project', new Schema({ name: { type: String, required: true }, code: { type: String, unique: true }, description: String, status: { type: String, default: 'active' }, startDate: Date, dueDate: Date, ownerId: { type: Schema.Types.ObjectId, ref: 'User' } }, { timestamps: true }));
-export const Task = model('Task', new Schema({ projectId: { type: Schema.Types.ObjectId, ref: 'Project' }, title: { type: String, required: true }, description: String, status: { type: String, enum: ['todo', 'doing', 'review', 'done', 'cancelled'], default: 'todo' }, priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' }, assigneeId: { type: Schema.Types.ObjectId, ref: 'User' }, dueDate: Date, dependencies: [{ type: Schema.Types.ObjectId, ref: 'Task' }], comments: [{ userId: { type: Schema.Types.ObjectId, ref: 'User' }, body: String, createdAt: { type: Date, default: Date.now } }], timeLogs: [{ userId: { type: Schema.Types.ObjectId, ref: 'User' }, minutes: Number, note: String, loggedAt: Date }], attachments: [{ name: String, url: String, mimeType: String, size: Number }] }, { timestamps: true }));
+const money = { type: Number, default: 0, min: 0 };
+
+export const Project = model('Project', new Schema({
+  name: { type: String, required: true },
+  code: { type: String, unique: true },
+  description: String,
+  clientId: { type: Schema.Types.ObjectId, ref: 'Customer' },
+  status: { type: String, enum: ['planning', 'active', 'on_hold', 'completed', 'cancelled'], default: 'planning' },
+  priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
+  plannedStartDate: Date,
+  plannedEndDate: Date,
+  actualStartDate: Date,
+  actualEndDate: Date,
+  budget: money,
+  progressPercentage: { type: Number, default: 0, min: 0, max: 100 },
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  ownerId: { type: Schema.Types.ObjectId, ref: 'User' },
+  note: String,
+}, { timestamps: true }));
+
+export const Task = model('Task', new Schema({
+  projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
+  parentId: { type: Schema.Types.ObjectId, ref: 'Task' },
+  code: { type: String, unique: true, sparse: true },
+  name: { type: String, required: true },
+  title: String,
+  description: String,
+  status: { type: String, enum: ['backlog', 'todo', 'in_progress', 'doing', 'review', 'done', 'cancelled'], default: 'backlog' },
+  priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
+  assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
+  assigneeId: { type: Schema.Types.ObjectId, ref: 'User' },
+  plannedStartDate: Date,
+  plannedEndDate: Date,
+  actualStartDate: Date,
+  actualEndDate: Date,
+  dueDate: Date,
+  estimatedHours: { type: Number, default: 0 },
+  actualHours: { type: Number, default: 0 },
+  progressPercentage: { type: Number, default: 0, min: 0, max: 100 },
+  sortOrder: { type: Number, default: 0 },
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  note: String,
+  dependencies: [{
+    predecessorId: { type: Schema.Types.ObjectId, ref: 'Task' },
+    successorId: { type: Schema.Types.ObjectId, ref: 'Task' },
+    dependencyType: { type: String, enum: ['finish_to_start', 'start_to_start', 'finish_to_finish', 'start_to_finish'], default: 'finish_to_start' },
+    lagDays: { type: Number, default: 0 },
+  }],
+  comments: [{ userId: { type: Schema.Types.ObjectId, ref: 'User' }, content: String, body: String, createdAt: { type: Date, default: Date.now } }],
+  timeLogs: [{ userId: { type: Schema.Types.ObjectId, ref: 'User' }, hours: Number, minutes: Number, description: String, note: String, logDate: Date, loggedAt: Date }],
+  attachments: [{ name: String, url: String, mimeType: String, size: Number }],
+}, { timestamps: true }));

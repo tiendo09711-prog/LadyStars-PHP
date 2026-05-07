@@ -1,38 +1,124 @@
-import { Building2 } from 'lucide-react';
-import { DataModulePage } from '../../core/components/DataModulePage';
+import { Building2, PackagePlus, Repeat2, RotateCcw, Users } from 'lucide-react';
+import { TabbedModulePage } from '../../core/components/TabbedModulePage';
 
 export function VendorPage() {
   return (
-    <DataModulePage
-      title="Nhà cung cấp"
-      subtitle="Nhà cung cấp, nhập hàng, trả hàng nhập và chuyển kho"
-      endpoint="/vendors/vendors"
-      icon={<Building2 size={24} />}
-      primaryActionLabel="Thêm nhà cung cấp"
-      fields={[
-        { key: 'code', label: 'Mã NCC' },
-        { key: 'name', label: 'Tên nhà cung cấp' },
-        { key: 'type', label: 'Loại', type: 'status' },
-        { key: 'phone', label: 'Số điện thoại' },
-        { key: 'email', label: 'Email' },
-        { key: 'address', label: 'Địa chỉ' },
-      ]}
-      formFields={[
-        { key: 'code', label: 'Mã NCC', required: true },
-        { key: 'name', label: 'Tên nhà cung cấp', required: true },
-        { key: 'type', label: 'Loại', type: 'select', options: [
-          { label: 'Cá nhân', value: 'person' },
-          { label: 'Công ty', value: 'company' },
-        ] },
-        { key: 'phone', label: 'Số điện thoại' },
-        { key: 'email', label: 'Email', type: 'email' },
-        { key: 'address', label: 'Địa chỉ' },
-        { key: 'note', label: 'Ghi chú', type: 'textarea' },
-      ]}
-      createDefaults={{ code: '', name: '', type: 'company', phone: '', email: '', address: '', note: '' }}
-      quickFilters={[
-        { label: 'Cá nhân', value: 'person' },
-        { label: 'Công ty', value: 'company' },
+    <TabbedModulePage
+      tabs={[
+        {
+          key: 'vendors',
+          label: 'Nhà cung cấp',
+          title: 'Nhà cung cấp',
+          subtitle: 'Thông tin NCC, nhóm, công nợ và tổng mua',
+          endpoint: '/vendors/vendors',
+          icon: <Building2 size={24} />,
+          primaryActionLabel: 'Thêm nhà cung cấp',
+          fields: [
+            { key: 'code', label: 'Mã NCC' },
+            { key: 'name', label: 'Tên nhà cung cấp' },
+            { key: 'status', label: 'Trạng thái', type: 'status' },
+            { key: 'phone', label: 'Số điện thoại' },
+            { key: 'debt', label: 'Công nợ', type: 'money' },
+            { key: 'totalPurchase', label: 'Tổng mua', type: 'money' },
+          ],
+          formFields: [
+            { key: 'code', label: 'Mã NCC', required: true },
+            { key: 'name', label: 'Tên nhà cung cấp', required: true },
+            { key: 'type', label: 'Loại', type: 'select', options: [{ label: 'Cá nhân', value: 'person' }, { label: 'Công ty', value: 'company' }] },
+            { key: 'vat', label: 'Mã số thuế' },
+            { key: 'company', label: 'Công ty' },
+            { key: 'phone', label: 'Số điện thoại' },
+            { key: 'email', label: 'Email', type: 'email' },
+            { key: 'address', label: 'Địa chỉ' },
+            { key: 'note', label: 'Ghi chú', type: 'textarea' },
+          ],
+          createDefaults: { code: '', name: '', type: 'company', vat: '', company: '', phone: '', email: '', address: '', note: '' },
+          quickFilters: [{ label: 'Đang hoạt động', value: 'active' }, { label: 'Ngưng', value: 'inactive' }],
+        },
+        {
+          key: 'groups',
+          label: 'Nhóm NCC',
+          title: 'Nhóm nhà cung cấp',
+          subtitle: 'Phân nhóm nhà cung cấp',
+          endpoint: '/vendors/groups',
+          icon: <Users size={24} />,
+          primaryActionLabel: 'Thêm nhóm NCC',
+          fields: [{ key: 'name', label: 'Tên nhóm' }, { key: 'note', label: 'Ghi chú' }],
+          formFields: [{ key: 'name', label: 'Tên nhóm', required: true }, { key: 'note', label: 'Ghi chú', type: 'textarea' }],
+          createDefaults: { name: '', note: '' },
+        },
+        {
+          key: 'purchases',
+          label: 'Nhập hàng',
+          title: 'Nhập hàng',
+          subtitle: 'Phiếu nhập NCC, chiết khấu và cập nhật tồn khi hoàn tất',
+          endpoint: '/vendors/purchases',
+          icon: <PackagePlus size={24} />,
+          primaryActionLabel: 'Tạo phiếu nhập',
+          fields: [
+            { key: 'code', label: 'Mã phiếu' },
+            { key: 'status', label: 'Trạng thái', type: 'status' },
+            { key: 'total', label: 'Tiền hàng', type: 'money' },
+            { key: 'needPay', label: 'Cần trả', type: 'money' },
+            { key: 'value', label: 'Đã trả', type: 'money' },
+          ],
+          formFields: [
+            { key: 'code', label: 'Mã phiếu', required: true },
+            { key: 'vendorId', label: 'ID NCC' },
+            { key: 'total', label: 'Tiền hàng', type: 'number' },
+            { key: 'needPay', label: 'Cần trả', type: 'number' },
+            { key: 'value', label: 'Đã trả', type: 'number' },
+            { key: 'status', label: 'Trạng thái', type: 'select', options: [
+              { label: 'Tạm', value: 'temp' },
+              { label: 'Hoàn thành', value: 'success' },
+              { label: 'Trả hàng', value: 'refund' },
+              { label: 'Hủy', value: 'cancel' },
+            ] },
+            { key: 'note', label: 'Ghi chú', type: 'textarea' },
+          ],
+          createDefaults: { code: '', vendorId: '', total: 0, needPay: 0, value: 0, status: 'temp', note: '' },
+          actions: [{ label: 'Hoàn tất', endpointSuffix: 'complete', confirm: 'Hoàn tất phiếu nhập và cộng tồn?' }],
+        },
+        {
+          key: 'refunds',
+          label: 'Trả hàng nhập',
+          title: 'Trả hàng nhập',
+          subtitle: 'Phiếu trả NCC và trừ tồn kho',
+          endpoint: '/vendors/refunds',
+          icon: <RotateCcw size={24} />,
+          primaryActionLabel: 'Tạo phiếu trả',
+          fields: [{ key: 'code', label: 'Mã phiếu' }, { key: 'status', label: 'Trạng thái', type: 'status' }, { key: 'total', label: 'Tiền hàng', type: 'money' }, { key: 'value', label: 'Giá trị', type: 'money' }],
+          formFields: [
+            { key: 'code', label: 'Mã phiếu', required: true },
+            { key: 'purchaseId', label: 'ID phiếu nhập' },
+            { key: 'vendorId', label: 'ID NCC' },
+            { key: 'total', label: 'Tiền hàng', type: 'number' },
+            { key: 'value', label: 'Giá trị', type: 'number' },
+            { key: 'note', label: 'Ghi chú', type: 'textarea' },
+          ],
+          createDefaults: { code: '', purchaseId: '', vendorId: '', total: 0, value: 0, note: '' },
+          actions: [{ label: 'Hoàn tất', endpointSuffix: 'complete', confirm: 'Hoàn tất trả hàng nhập và trừ tồn?' }],
+        },
+        {
+          key: 'transfers',
+          label: 'Chuyển kho',
+          title: 'Chuyển kho',
+          subtitle: 'Phiếu chuyển hàng giữa chi nhánh',
+          endpoint: '/vendors/transfers',
+          icon: <Repeat2 size={24} />,
+          primaryActionLabel: 'Tạo phiếu chuyển',
+          fields: [{ key: 'code', label: 'Mã phiếu' }, { key: 'status', label: 'Trạng thái', type: 'status' }, { key: 'dateSend', label: 'Ngày gửi', type: 'date' }, { key: 'dateTake', label: 'Ngày nhận', type: 'date' }],
+          formFields: [
+            { key: 'code', label: 'Mã phiếu', required: true },
+            { key: 'fromBranchId', label: 'ID chi nhánh gửi' },
+            { key: 'toBranchId', label: 'ID chi nhánh nhận' },
+            { key: 'dateSend', label: 'Ngày gửi', type: 'date' },
+            { key: 'dateTake', label: 'Ngày nhận', type: 'date' },
+            { key: 'note', label: 'Ghi chú', type: 'textarea' },
+          ],
+          createDefaults: { code: '', fromBranchId: '', toBranchId: '', dateSend: '', dateTake: '', note: '' },
+          actions: [{ label: 'Hoàn tất', endpointSuffix: 'complete', confirm: 'Hoàn tất chuyển kho?' }],
+        },
       ]}
     />
   );

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
-import { Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark } from './product.models.js';
-import { completeSalePayment } from './product.service.js';
+import { Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark } from './product.models.js';
+import { completeProductRefund, completeSalePayment, completeStockAdjustment } from './product.service.js';
 
 const router = Router();
 router.use('/categories', crudRoutes(Category));
@@ -14,5 +14,9 @@ router.use('/delivery-partners', crudRoutes(DeliveryPartner));
 router.use('/payment-methods', crudRoutes(PaymentMethod));
 router.use('/stock-adjustments', crudRoutes(StockAdjustment));
 router.use('/sales', crudRoutes(SalePayment));
+router.use('/refunds', crudRoutes(ProductRefund));
+router.use('/logs', crudRoutes(ProductLog));
 router.post('/sales/:id/complete', async (req, res) => res.json(await completeSalePayment(req.params.id)));
+router.post('/refunds/:id/complete', async (req, res) => res.json(await completeProductRefund(req.params.id)));
+router.post('/stock-adjustments/:id/complete', async (req, res) => res.json(await completeStockAdjustment(req.params.id)));
 export default router;
