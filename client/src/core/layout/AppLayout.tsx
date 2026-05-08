@@ -116,6 +116,14 @@ export function AppLayout() {
     return () => window.removeEventListener('store-settings-updated', updateStoreSettings);
   }, []);
 
+  useEffect(() => {
+    const updateOwnerAccount = (event: Event) => {
+      setUser((event as CustomEvent<CurrentUser>).detail);
+    };
+    window.addEventListener('owner-account-updated', updateOwnerAccount);
+    return () => window.removeEventListener('owner-account-updated', updateOwnerAccount);
+  }, []);
+
   const logout = () => {
     localStorage.removeItem('token');
     navigate('/login');

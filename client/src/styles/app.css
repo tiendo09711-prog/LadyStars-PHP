@@ -299,6 +299,7 @@ h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: grid; place-items: center; padding: 24px; z-index: 50; }
 .modal-card { width: min(760px, 100%); background: #fff; border-radius: 12px; box-shadow: 0 24px 60px rgba(15, 23, 42, .25); overflow: hidden; }
+.modal-card-wide { width: min(1040px, 100%); }
 .modal-header, .modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .modal-header h2 { margin: 0 0 4px; font-size: 20px; }
 .modal-header p { margin: 0; color: var(--muted); }
@@ -318,6 +319,32 @@ h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
 }
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px var(--primary-soft); }
 .form-error { margin: 0 18px 16px; color: #b91c1c; background: var(--danger-soft); padding: 10px 12px; border-radius: 8px; font-weight: 700; }
+.line-editor { padding: 0 18px 16px; }
+.line-editor-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.line-editor .data-table input, .line-editor .data-table select {
+  min-width: 120px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  outline: 0;
+  background: #fff;
+  color: #1e293b;
+}
+.line-editor .data-table select { min-width: 260px; }
+.summary-strip {
+  margin: 0 18px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fafc;
+  display: flex;
+  gap: 18px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-weight: 700;
+}
+.summary-strip strong { color: #0f172a; }
 
 .login-page { min-height: 100vh; display: grid; place-items: center; background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%); padding: 24px; }
 .login-card { width: min(420px, 100%); background: #fff; border-radius: 14px; padding: 28px; box-shadow: var(--shadow); border: 1px solid var(--border); }

@@ -5,7 +5,7 @@ import { http } from '../../core/api/http';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@myerp.local');
+  const [email, setEmail] = useState(() => localStorage.getItem('lastLoginEmail') ?? 'admin@myerp.local');
   const [password, setPassword] = useState('123456789');
   const [error, setError] = useState('');
 
@@ -15,6 +15,7 @@ export function LoginPage() {
     try {
       const response = await http.post('/auth/login', { email, password });
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('lastLoginEmail', response.data.user?.email ?? email);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Đăng nhập thất bại.');

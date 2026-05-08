@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react';
-import { AlertTriangle, History, LockKeyhole, RefreshCw, Save, Settings, Shield, Store } from 'lucide-react';
+import { AlertTriangle, History, Mail, RefreshCw, Save, Settings, Shield, Store } from 'lucide-react';
 import { http } from '../../core/api/http';
 
 type StaffAccount = {
@@ -17,6 +17,12 @@ type StoreForm = {
   taxCode: string;
 };
 
+type OwnerAccountForm = {
+  currentPassword: string;
+  newEmail: string;
+  newPassword: string;
+};
+
 const tabs = [
   { key: 'store', label: 'Cửa hàng', icon: Store },
   { key: 'security', label: 'Bảo mật', icon: Shield },
@@ -29,7 +35,8 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState('store');
   const [message, setMessage] = useState('');
   const [storeForm, setStoreForm] = useState<StoreForm>({ shopName: 'LadyStars', logoUrl: '', address: '', phone: '', taxCode: '' });
-  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '' });
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [ownerAccountForm, setOwnerAccountForm] = useState<OwnerAccountForm>({ currentPassword: '', newEmail: '', newPassword: '' });
   const [staff, setStaff] = useState<StaffAccount[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [staffPassword, setStaffPassword] = useState('');
@@ -56,6 +63,11 @@ export function SettingsPage() {
     if (!selectedStaffId && items[0]?._id) setSelectedStaffId(items[0]._id);
   };
 
+  const loadOwnerAccount = async () => {
+    const response = await http.get('/auth/me');
+    setOwnerEmail(response.data.email ?? '');
+  };
+
   const loadSystem = async () => {
     const [permissionResponse, roleResponse, menuResponse] = await Promise.all([
       http.get('/system/permissions'),
@@ -74,6 +86,7 @@ export function SettingsPage() {
 
   useEffect(() => {
     loadStore();
+    loadOwnerAccount();
     loadStaff();
   }, []);
 
@@ -89,11 +102,32 @@ export function SettingsPage() {
     setMessage('Đã lưu cấu hình cửa hàng.');
   };
 
-  const changeOwnerPassword = async (event: FormEvent) => {
+  const changeOwnerAccount = async (event: FormEvent) => {
     event.preventDefault();
-    await http.post('/settings/security/change-password', passwordForm);
-    setPasswordForm({ currentPassword: '', newPassword: '' });
-    setMessage('Đã đổi mật khẩu Owner. Các phiên đăng nhập cũ đã hết hiệu lực.');
+    if (!ownerAccountForm.newEmail && !ownerAccountForm.newPassword) {
+      setMessage('Nhập email mới hoặc mật khẩu mới để cập nhật tài khoản Owner.');
+      return;
+    }
+    try {
+      const response = await http.post('/settings/security/change-owner-account', ownerAccountForm);
+      if (response.data.token) localStorage.setItem('token', response.data.token);
+      if (response.data.user) {
+        setOwnerEmail(response.data.user.email ?? '');
+        localStorage.setItem('lastLoginEmail', response.data.user.email ?? '');
+        window.dispatchEvent(new CustomEvent('owner-account-updated', { detail: response.data.user }));
+      }
+      setOwnerAccountForm({ currentPassword: '', newEmail: '', newPassword: '' });
+      setMessage('Đã cập nhật tài khoản Owner. Lần đăng nhập sau hãy dùng email mới.');
+    } catch (err: any) {
+      const apiMessage = err.response?.data?.message;
+      if (apiMessage === 'Current password is incorrect') {
+        setMessage('Mật khẩu hiện tại không đúng.');
+      } else if (apiMessage === 'Email already exists') {
+        setMessage('Email này đã được sử dụng bởi tài khoản khác.');
+      } else {
+        setMessage(apiMessage ?? 'Không thể cập nhật tài khoản Owner.');
+      }
+    }
   };
 
   const resetStaffPassword = async () => {
@@ -134,7 +168,7 @@ export function SettingsPage() {
               <p>Khu vực Owner-only cho cấu hình cửa hàng, bảo mật, quyền, menu và nhật ký hệ thống.</p>
             </div>
           </div>
-          <button className="btn btn-light" type="button" onClick={() => { loadStore(); loadStaff(); }}>
+          <button className="btn btn-light" type="button" onClick={() => { loadStore(); loadOwnerAccount(); loadStaff(); }}>
             <RefreshCw size={16} /> Làm mới
           </button>
         </div>
@@ -179,20 +213,29 @@ export function SettingsPage() {
 
         {activeTab === 'security' && (
           <div className="dashboard-columns">
-            <form className="data-card" onSubmit={changeOwnerPassword}>
-              <div className="data-card-header"><h2>Đổi mật khẩu Owner</h2></div>
+            <form className="data-card" onSubmit={changeOwnerAccount}>
+              <div className="data-card-header">
+                <div>
+                  <h2>Đổi email & mật khẩu Owner</h2>
+                  <span className="record-badge">{ownerEmail || 'Owner'}</span>
+                </div>
+              </div>
               <div className="form-grid">
                 <label className="form-field wide">
                   <span>Mật khẩu hiện tại</span>
-                  <input type="password" required value={passwordForm.currentPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))} />
+                  <input type="password" required value={ownerAccountForm.currentPassword} onChange={(event) => setOwnerAccountForm((current) => ({ ...current, currentPassword: event.target.value }))} />
+                </label>
+                <label className="form-field wide">
+                  <span>Email Owner mới</span>
+                  <input type="email" placeholder={ownerEmail || 'admin@myerp.local'} value={ownerAccountForm.newEmail} onChange={(event) => setOwnerAccountForm((current) => ({ ...current, newEmail: event.target.value }))} />
                 </label>
                 <label className="form-field wide">
                   <span>Mật khẩu mới</span>
-                  <input type="password" required minLength={6} value={passwordForm.newPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))} />
+                  <input type="password" minLength={6} value={ownerAccountForm.newPassword} onChange={(event) => setOwnerAccountForm((current) => ({ ...current, newPassword: event.target.value }))} />
                 </label>
               </div>
               <div className="modal-footer">
-                <button className="btn btn-primary" type="submit"><LockKeyhole size={16} /> Đổi mật khẩu</button>
+                <button className="btn btn-primary" type="submit"><Mail size={16} /> Lưu tài khoản Owner</button>
               </div>
             </form>
 

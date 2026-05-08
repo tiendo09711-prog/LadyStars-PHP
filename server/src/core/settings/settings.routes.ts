@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { env } from '../../config/env.js';
 import { requireOwner } from '../middleware/auth.js';
 import { User } from '../auth/user.model.js';
 import { writeAuditLog } from '../audit/audit.service.js';
@@ -22,12 +24,47 @@ const ChangePasswordInput = z.object({
   userId: z.string().optional(),
 });
 
+const ChangeOwnerAccountInput = z.object({
+  currentPassword: z.string().min(6),
+  newEmail: z.string().email().optional().or(z.literal('')),
+  newPassword: z.string().min(6).optional().or(z.literal('')),
+}).refine((input) => Boolean(input.newEmail || input.newPassword), {
+  message: 'Enter a new email or a new password',
+});
+
 async function getStoreSetting() {
   return StoreSetting.findOneAndUpdate(
     { singletonKey: 'store' },
     { $setOnInsert: { singletonKey: 'store', shopName: 'LadyStars' } },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
+}
+
+function authPayload(user: any) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+  };
+}
+
+function signToken(user: any) {
+  return jwt.sign(
+    { sub: user.id, role: user.role, tokenVersion: user.tokenVersion ?? 0 },
+    env.jwtSecret,
+    { expiresIn: '7d' },
+  );
+}
+
+async function ensureEmailAvailable(email: string, ignoreId: string) {
+  const existing = await User.findOne({ email: email.toLowerCase() });
+  if (existing && existing.id !== ignoreId) {
+    const error = new Error('Email already exists');
+    (error as any).status = 409;
+    throw error;
+  }
 }
 
 router.get('/store', async (_req, res) => {
@@ -76,6 +113,44 @@ router.post('/security/change-password', requireOwner, async (req, res) => {
     metadata: { targetEmail: user.email },
   });
   res.json({ ok: true });
+});
+
+router.post('/security/change-owner-account', requireOwner, async (req, res) => {
+  const input = ChangeOwnerAccountInput.parse(req.body);
+  const requesterId = (req as any).user?.sub;
+  const user = await User.findById(requesterId);
+  if (!user || user.deletedAt) return res.status(404).json({ message: 'User not found' });
+
+  const ok = await bcrypt.compare(input.currentPassword, user.passwordHash);
+  if (!ok) return res.status(422).json({ message: 'Current password is incorrect' });
+
+  const before = authPayload(user);
+  const nextEmail = input.newEmail?.trim().toLowerCase();
+  if (nextEmail && nextEmail !== user.email) {
+    await ensureEmailAvailable(nextEmail, user.id);
+    user.email = nextEmail;
+  }
+  if (input.newPassword) {
+    user.passwordHash = await bcrypt.hash(input.newPassword, 10);
+  }
+
+  user.tokenVersion = Number(user.tokenVersion ?? 0) + 1;
+  await user.save();
+
+  await writeAuditLog(req, {
+    action: 'settings.change_owner_account',
+    module: 'settings',
+    resource: 'User',
+    resourceId: user.id,
+    before,
+    after: authPayload(user),
+    metadata: {
+      changedEmail: Boolean(nextEmail && nextEmail !== before.email),
+      changedPassword: Boolean(input.newPassword),
+    },
+  });
+
+  res.json({ ok: true, token: signToken(user), user: authPayload(user) });
 });
 
 router.post('/security/logout-user-sessions', requireOwner, async (req, res) => {
