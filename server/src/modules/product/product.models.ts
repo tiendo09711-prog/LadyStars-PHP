@@ -53,7 +53,14 @@ const ProductSchema = new Schema({
   units: [ProductUnitSchema],
   elements: [ProductElementSchema],
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-}, { timestamps: true });
+  status: String,
+  categoryName: String,
+  trademarkName: String,
+  supplierName: String,
+  origin: String,
+  color: String,
+  size: String,
+}, { timestamps: true, strict: false });
 ProductSchema.index({ name: 'text', code: 'text' });
 export const Product = model('Product', ProductSchema);
 

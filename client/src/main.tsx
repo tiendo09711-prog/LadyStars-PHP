@@ -4,7 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppLayout } from './core/layout/AppLayout';
 import { LoginPage } from './modules/auth/LoginPage';
 import { DashboardPage } from './modules/dashboard/DashboardPage';
-import { ProductListPage } from './modules/product/ListPage';
+import { ProductMainPage } from './modules/product/ProductMainPage';
 import { SalesPage } from './modules/product/SalesPage';
 import { CustomerPage } from './modules/customer/CustomerPage';
 import { VendorPage } from './modules/vendor/VendorPage';
@@ -22,7 +22,7 @@ const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: 'products', element: <ProductListPage /> },
+      { path: 'products', element: <ProductMainPage /> },
       { path: 'sales', element: <SalesPage /> },
       { path: 'customers', element: <CustomerPage /> },
       { path: 'vendors', element: <VendorPage /> },
