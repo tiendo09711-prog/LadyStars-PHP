@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs';
 import mongoose, { type Model } from 'mongoose';
+import fs from 'fs';
+import path from 'path';
+import csv from 'csv-parser';
 import { connectDatabase } from './config/database.js';
 import { User } from './core/auth/user.model.js';
-import { AuditLog } from './core/audit/audit.model.js';
 import { Branch } from './core/org/branch.model.js';
 import { StoreSetting } from './core/settings/settings.model.js';
 import { MenuItem, Permission, Role } from './core/system/system.models.js';
@@ -26,6 +28,66 @@ import { PrintForm } from './modules/printForms/printForms.models.js';
 import { Project, Task } from './modules/task/task.models.js';
 import { Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer } from './modules/vendor/vendor.models.js';
 
+function detectSeparator(filePath: string) {
+    if (!fs.existsSync(filePath)) return ',';
+    const content = fs.readFileSync(filePath, 'utf8');
+    const firstLine = content.split('\n')[0] || '';
+    const commas = (firstLine.match(/,/g) || []).length;
+    const semicolons = (firstLine.match(/;/g) || []).length;
+    const tabs = (firstLine.match(/\t/g) || []).length;
+
+    if (semicolons > commas && semicolons > tabs) return ';';
+    if (tabs > commas && tabs > semicolons) return '\t';
+    return ',';
+}
+
+function readCSV(filePath: string): Promise<any[]> {
+    const sep = detectSeparator(filePath);
+    return new Promise((resolve, reject) => {
+        const results: any[] = [];
+        if (!fs.existsSync(filePath)) {
+            console.log(`❌ LỖI: Không tìm thấy file "${filePath}"!`);
+            return resolve([]);
+        }
+        fs.createReadStream(filePath)
+            .pipe(csv({
+                separator: sep,
+                mapHeaders: ({ header }) => header.replace(/[\uFEFF\u200B"']/g, '').trim()
+            }))
+            .on('data', (data) => results.push(data))
+            .on('end', () => resolve(results))
+            .on('error', (err) => reject(err));
+    });
+}
+
+function getFlexVal(row: any, includeKeywords: string | string[], excludeKeywords: string | string[] = []): string | null {
+    if (!Array.isArray(includeKeywords)) includeKeywords = [includeKeywords];
+    if (!Array.isArray(excludeKeywords)) excludeKeywords = [excludeKeywords];
+
+    const normalizedRowKeys = Object.keys(row).map(k => ({
+        original: k,
+        norm: k.toLowerCase().trim().normalize('NFC').replace(/[\uFEFF\u200B"']/g, '')
+    }));
+
+    const normIncludes = includeKeywords.map(k => k.toLowerCase().trim().normalize('NFC'));
+    const normExcludes = excludeKeywords.map(k => k.toLowerCase().trim().normalize('NFC'));
+
+    // 1. ƯU TIÊN 1: Khớp chính xác 100%
+    for (const target of normIncludes) {
+        const exactMatch = normalizedRowKeys.find(k => k.norm === target);
+        if (exactMatch) return row[exactMatch.original] ? String(row[exactMatch.original]).trim() : null;
+    }
+
+    // 2. ƯU TIÊN 2: Quét linh hoạt có chứa từ khóa và loại trừ từ rác
+    const matchedKey = normalizedRowKeys.find(k => {
+        const matchesInclude = normIncludes.some(kw => k.norm.includes(kw));
+        const matchesExclude = normExcludes.some(kw => k.norm.includes(kw));
+        return matchesInclude && !matchesExclude;
+    });
+
+    return matchedKey && row[matchedKey.original] ? String(row[matchedKey.original]).trim() : null;
+}
+
 async function upsert<T>(model: Model<T>, filter: Record<string, unknown>, data: Record<string, unknown>) {
   return model.findOneAndUpdate(
     filter,
@@ -38,7 +100,6 @@ async function load() {
   await connectDatabase();
 
   const passwordHash = await bcrypt.hash('123456789', 10);
-  void AuditLog;
   const admin = await upsert(User, { email: 'admin@myerp.local' }, {
     name: 'Admin',
     email: 'admin@myerp.local',
@@ -49,12 +110,20 @@ async function load() {
     isActive: true,
   });
 
-  const branch = await upsert(Branch, { code: 'CN001' }, {
-    name: 'Chi nhánh trung tâm',
-    code: 'CN001',
+  const branchHN = await upsert(Branch, { code: 'HN' }, {
+    name: 'Kho Hà Nội',
+    code: 'HN',
     phone: '0900000000',
-    address: 'LadyStars Store',
+    address: 'LadyStars Store HN',
     isDefault: true,
+    isActive: true,
+  });
+
+  const branchHCM = await upsert(Branch, { code: 'HCM' }, {
+    name: 'Kho HCM',
+    code: 'HCM',
+    phone: '0900000000',
+    address: 'LadyStars Store HCM',
     isActive: true,
   });
 
@@ -65,35 +134,6 @@ async function load() {
     phone: '0900000000',
     taxCode: '',
     updatedBy: admin._id,
-  });
-
-  const category = await upsert(Category, { name: 'Hàng hóa' }, { name: 'Hàng hóa', userId: admin._id });
-  const trademark = await upsert(Trademark, { name: 'LadyStars' }, { name: 'LadyStars', userId: admin._id });
-  const shelf = await upsert(Shelf, { name: 'Kệ A1' }, { name: 'Kệ A1', userId: admin._id });
-
-  const product = await upsert(Product, { code: 'SP001' }, {
-    name: 'Sản phẩm mẫu',
-    code: 'SP001',
-    categoryId: category._id,
-    trademarkId: trademark._id,
-    shelfId: shelf._id,
-    cost: 50000,
-    price: 90000,
-    qty: 99,
-    unit: 'cái',
-    minQuantity: 5,
-    maxQuantity: 1000,
-    type: 'product',
-    userId: admin._id,
-    units: [{ name: 'Hộp', code: 'HOP', conversionValue: 10, price: 850000, allowsSale: true }],
-  });
-
-  await upsert(ProductBranchStock, { productId: product._id, branchId: branch._id }, {
-    productId: product._id,
-    branchId: branch._id,
-    qty: 99,
-    minQuantity: 5,
-    maxQuantity: 1000,
   });
 
   const paymentMethod = await upsert(PaymentMethod, { code: 'cash' }, {
@@ -114,7 +154,7 @@ async function load() {
 
   await upsert(DeliveryPartner, { code: 'SHIP001' }, {
     type: 'company',
-    name: 'Đối tác giao hàng mẫu',
+    name: 'Giao hàng tiêu chuẩn',
     code: 'SHIP001',
     phone: '0911111111',
     isActive: true,
@@ -127,145 +167,10 @@ async function load() {
     userId: admin._id,
   });
 
-  const customer = await upsert(Customer, { code: 'KH001' }, {
-    type: 'person',
-    name: 'Khách hàng mẫu',
-    code: 'KH001',
-    phone: '0922222222',
-    phone2: '0922222223',
-    email: 'customer@example.com',
-    address: 'Hồ Chí Minh',
-    status: 'active',
-    groups: [customerGroup._id],
-    userId: admin._id,
-    branchId: branch._id,
-  });
-
-  const sale = await upsert(SalePayment, { code: 'BH001' }, {
-    branchId: branch._id,
-    customerId: customer._id,
-    code: 'BH001',
-    amountProducts: 1,
-    totalCost: 50000,
-    discountValue: 0,
-    discountType: 'number',
-    value: 90000,
-    valuePayment: 90000,
-    typePayment: [{ methodId: paymentMethod._id, amount: 90000 }],
-    isDelivery: false,
-    saleChannelId: saleChannel._id,
-    isCod: false,
-    userId: admin._id,
-    authorId: admin._id,
-    status: 'completed',
-    completedAt: new Date(),
-    items: [{ productId: product._id, amount: 1, value: 90000, discountValue: 0, discountType: 'number', total: 90000 }],
-  });
-
-  await upsert(ProductRefund, { code: 'THB001' }, {
-    paymentId: sale._id,
-    code: 'THB001',
-    amount: 1,
-    originalTotalAmount: 90000,
-    totalPayableAmount: 90000,
-    value: 90000,
-    status: 'draft',
-    userId: admin._id,
-    userCreatedId: admin._id,
-    note: 'Phiếu trả hàng bán mẫu',
-    items: [{ productId: product._id, amount: 1, price: 90000, discountValue: 0, discountType: 'number', value: 90000 }],
-  });
-
-  await upsert(ProductLog, { productId: product._id, sourceType: 'LoadScript', sourceId: sale._id }, {
-    productId: product._id,
-    sourceType: 'LoadScript',
-    sourceId: sale._id,
-    amount: 99,
-    valueBefore: 0,
-    valueAfter: product.price,
-    amountBefore: 0,
-    amountAfter: product.qty,
-  });
-
-  await upsert(StockAdjustment, { code: 'KK001' }, {
-    branchId: branch._id,
-    code: 'KK001',
-    balanceDate: new Date(),
-    amount: 99,
-    increaseDeviation: 0,
-    decreaseDeviation: 0,
-    deviation: 0,
-    value: 4950000,
-    status: 'draft',
-    note: 'Phiếu kiểm kho mẫu',
-    userId: admin._id,
-    userCreatedId: admin._id,
-    items: [{ productId: product._id, amount: 99, actualStock: 99, quantityDifference: 0, value: 4950000, valueDifference: 0, note: 'Tồn sau bán mẫu' }],
-  });
-
   const vendorGroup = await upsert(VendorGroup, { name: 'Nhà cung cấp mặc định' }, {
     name: 'Nhà cung cấp mặc định',
     note: 'Nhóm nhà cung cấp mẫu',
     userCreatedId: admin._id,
-  });
-
-  const vendor = await upsert(Vendor, { code: 'NCC001' }, {
-    type: 'company',
-    branchId: branch._id,
-    name: 'Nhà cung cấp mẫu',
-    code: 'NCC001',
-    vat: '0312345678',
-    phone: '0933333333',
-    email: 'vendor@example.com',
-    address: 'Hà Nội',
-    status: 'active',
-    total: 500000,
-    debt: 0,
-    totalPurchase: 500000,
-    groups: [vendorGroup._id],
-    userCreatedId: admin._id,
-  });
-
-  const purchase = await upsert(VendorPurchase, { code: 'NH001' }, {
-    branchId: branch._id,
-    vendorId: vendor._id,
-    code: 'NH001',
-    discountValue: 0,
-    discountType: 'number',
-    total: 500000,
-    needPay: 500000,
-    value: 500000,
-    valuePayment: 500000,
-    status: 'temp',
-    note: 'Phiếu nhập mẫu',
-    userId: admin._id,
-    userCreatedId: admin._id,
-    items: [{ branchId: branch._id, productId: product._id, amount: 10, price: 50000, value: 500000, discountValue: 0, discountType: 'number', total: 500000 }],
-  });
-
-  await upsert(VendorRefund, { code: 'TNH001' }, {
-    branchId: branch._id,
-    purchaseId: purchase._id,
-    vendorId: vendor._id,
-    code: 'TNH001',
-    total: 50000,
-    value: 50000,
-    status: 'temp',
-    note: 'Phiếu trả hàng nhập mẫu',
-    userCreatedId: admin._id,
-    items: [{ productId: product._id, amount: 1, price: 50000, value: 50000, discountValue: 0, discountType: 'number', total: 50000 }],
-  });
-
-  await upsert(VendorTransfer, { code: 'CK001' }, {
-    branchId: branch._id,
-    fromBranchId: branch._id,
-    toBranchId: branch._id,
-    code: 'CK001',
-    status: 'temp',
-    dateSend: new Date(),
-    note: 'Phiếu chuyển kho mẫu',
-    userCreatedId: admin._id,
-    items: [{ productId: product._id, amount: 1, price: 50000, value: 50000, note: 'Dòng chuyển kho mẫu' }],
   });
 
   const receiptType = await upsert(AccountingType, { name: 'Thu bán hàng', kind: 'receipt' }, {
@@ -282,98 +187,6 @@ async function load() {
     description: 'Loại phiếu chi mặc định',
   });
 
-  const payPerson = await upsert(PayPerson, { name: 'Người nhận chi mẫu' }, {
-    name: 'Người nhận chi mẫu',
-    phone: '0944444444',
-    email: 'payperson@example.com',
-    address: 'Đà Nẵng',
-  });
-
-  await upsert(Receipt, { code: 'PT001' }, {
-    branchId: branch._id,
-    code: 'PT001',
-    typeId: receiptType._id,
-    customerId: customer._id,
-    value: 90000,
-    date: new Date(),
-    financeType: 'SalePayment',
-    financeId: sale._id,
-    businessResult: true,
-    note: 'Phiếu thu mẫu',
-    userId: admin._id,
-    userCreatedId: admin._id,
-  });
-
-  await upsert(ExpensePayment, { code: 'PC001' }, {
-    branchId: branch._id,
-    code: 'PC001',
-    typeId: paymentType._id,
-    payPersonId: payPerson._id,
-    value: 50000,
-    date: new Date(),
-    financeType: 'VendorPurchase',
-    financeId: purchase._id,
-    businessResult: true,
-    note: 'Phiếu chi mẫu',
-    userId: admin._id,
-    userCreatedId: admin._id,
-  });
-
-  const project = await upsert(Project, { code: 'PRJ001' }, {
-    name: 'Dự án mẫu',
-    code: 'PRJ001',
-    description: 'Dự án vận hành LadyStars',
-    status: 'active',
-    priority: 'medium',
-    plannedStartDate: new Date(),
-    budget: 20000000,
-    progressPercentage: 25,
-    branchId: branch._id,
-    createdBy: admin._id,
-    ownerId: admin._id,
-  });
-
-  await upsert(Task, { code: 'TASK001' }, {
-    projectId: project._id,
-    code: 'TASK001',
-    name: 'Kiểm tra dữ liệu mẫu',
-    title: 'Kiểm tra dữ liệu mẫu',
-    description: 'Task mẫu được tạo bởi npm run load',
-    status: 'todo',
-    priority: 'medium',
-    plannedStartDate: new Date(),
-    plannedEndDate: new Date(),
-    estimatedHours: 2,
-    actualHours: 0.5,
-    progressPercentage: 20,
-    branchId: branch._id,
-    createdBy: admin._id,
-    assigneeId: admin._id,
-    assignedTo: admin._id,
-    comments: [{ userId: admin._id, content: 'Dữ liệu mẫu đã sẵn sàng.', body: 'Dữ liệu mẫu đã sẵn sàng.' }],
-    timeLogs: [{ userId: admin._id, hours: 0.5, minutes: 30, description: 'Khởi tạo dữ liệu', note: 'Khởi tạo dữ liệu', logDate: new Date(), loggedAt: new Date() }],
-  });
-
-  await upsert(PrintForm, { code: 'INVOICE_A4' }, {
-    name: 'Hóa đơn A4',
-    code: 'INVOICE_A4',
-    type: 'sale_invoice',
-    paperSize: 'A4',
-    templateHtml: '<h1>{{companyName}}</h1><p>Mã hóa đơn: {{code}}</p>',
-    templateData: { companyName: 'LadyStars' },
-    isActive: true,
-  });
-
-  await upsert(PrintForm, { code: 'RECEIPT_A5' }, {
-    name: 'Phiếu thu A5',
-    code: 'RECEIPT_A5',
-    type: 'receipt',
-    paperSize: 'A5',
-    templateHtml: '<h1>Phiếu thu {{code}}</h1><p>{{value}}</p>',
-    templateData: {},
-    isActive: true,
-  });
-
   const permissionKeys = [
     'products.index', 'products.stock.index', 'products.price-setting', 'products.sale-channel', 'products.delivery-partner',
     'sales.payment.index', 'sales.payment.refund', 'sales.print', 'customers.index', 'customers.groups',
@@ -388,7 +201,7 @@ async function load() {
 
   await upsert(Role, { name: 'Admin' }, {
     name: 'Admin',
-    description: 'Toàn quyền theo permission Polirium đã port',
+    description: 'Toàn quyền',
     permissions: permissionKeys,
     isSystem: true,
   });
@@ -407,16 +220,255 @@ async function load() {
     await upsert(MenuItem, { path }, { label, path, module, permission: `${module}.index`, isActive: true });
   }
 
+  // -------------------------------------------------------------
+  // BẮT ĐẦU MIGRATION DỮ LIỆU TỪ MIGRATION-TOOL
+  // -------------------------------------------------------------
+  const collectionsToDrop = [
+      'products', 'productbranchstocks', 'categories',
+      'vendors', 'stockadjustments', 'vendortransfers', 'salepayments', 'vendorpurchases'
+  ];
+
+  console.log("🧹 Đang tự động dọn sạch tàn dư cũ trên Atlas...");
+  for (const colName of collectionsToDrop) {
+      try {
+          const collections = await mongoose.connection.db.listCollections({ name: colName }).toArray();
+          if (collections.length > 0) {
+              await mongoose.connection.db.collection(colName).drop();
+          }
+      } catch (err) { }
+  }
+  
+  const migrationToolDir = path.join(process.cwd(), '../migration-tool');
+  
+  console.log("⏳ ĐANG TÌM VÀ ĐỌC FILE CSV...");
+  const rawCategories = await readCSV(path.join(migrationToolDir, 'categories.csv'));
+  const rawVendors = await readCSV(path.join(migrationToolDir, 'vendors.csv'));
+  const rawProducts = await readCSV(path.join(migrationToolDir, 'products.csv'));
+  const rawProductsStock = await readCSV(path.join(migrationToolDir, 'products - Bản đọc để thêm số lương.csv'));
+  const rawInventory = await readCSV(path.join(migrationToolDir, 'inventory.csv'));
+  const rawChecks = await readCSV(path.join(migrationToolDir, 'inventory_checks.csv'));
+  const rawTransfers = await readCSV(path.join(migrationToolDir, 'inventory_transfers.csv'));
+  const rawImexBills = await readCSV(path.join(migrationToolDir, 'imex_bills.csv'));
+
+  console.log(`📊 KẾT QUẢ ĐỌC FILE VÀO BỘ NHỚ:`);
+  console.log(`   - Danh mục: ${rawCategories.length} dòng`);
+  console.log(`   - Nhà cung cấp: ${rawVendors.length} dòng`);
+  console.log(`   - Sản phẩm: ${rawProducts.length} dòng`);
+  console.log(`   - Sản phẩm (file số lượng): ${rawProductsStock.length} dòng`);
+  console.log(`   - Tồn kho: ${rawInventory.length} dòng`);
+  console.log(`   - Kiểm kho: ${rawChecks.length} dòng`);
+  console.log(`   - Chuyển kho: ${rawTransfers.length} dòng`);
+  console.log(`   - Hóa đơn XNK: ${rawImexBills.length} dòng\n`);
+
+  // 1. DANH MỤC
+  const categoryMap = new Map();
+  let catCount = 0;
+  for (const row of rawCategories) {
+      const name = getFlexVal(row, ['name', 'tên danh mục', 'danh mục']);
+      if (!name) continue;
+      const cat = await upsert(Category, { name: name }, { name: name, userId: admin._id });
+      categoryMap.set(name.toLowerCase(), cat._id);
+      const code = getFlexVal(row, ['code', 'mã danh mục']);
+      if (code) categoryMap.set(code.toLowerCase(), cat._id);
+      catCount++;
+  }
+  console.log(`✅ DANH MỤC: Up thành công ${catCount} bản ghi.`);
+
+  // 2. NHÀ CUNG CẤP
+  let venCount = 0;
+  for (const row of rawVendors) {
+      const name = getFlexVal(row, ['tên nhà cung cấp', 'nhà cung cấp']);
+      const id = getFlexVal(row, ['mã nhà cung cấp', 'id']);
+      if (!name && !id) continue;
+
+      const code = id || name;
+      await upsert(Vendor, { code: code }, {
+          code: code,
+          name: name || 'Chưa rõ',
+          address: getFlexVal(row, ['địa chỉ', 'address']) || '',
+          phone: getFlexVal(row, ['điện thoại', 'phone']) || '',
+          email: getFlexVal(row, ['email']) || '',
+          type: getFlexVal(row, ['loại', 'type'])?.toLowerCase().includes('cá nhân') ? 'person' : 'company',
+          status: getFlexVal(row, ['trạng thái', 'status'])?.includes('giao dịch') ? 'active' : 'inactive',
+          groups: [vendorGroup._id],
+          userCreatedId: admin._id,
+      });
+      venCount++;
+  }
+  console.log(`✅ NHÀ CUNG CẤP: Up thành công ${venCount} bản ghi.`);
+
+  // 3. SẢN PHẨM & TỒN KHO
+  let prodCount = 0;
+  let stockCount = 0;
+  const productMap = new Map();
+  const stockMap = new Map();
+  for (const row of rawProductsStock) {
+      const sku = getFlexVal(row, ['mã sản phẩm', 'sku'], ['cha']);
+      if (sku) {
+          stockMap.set(sku.toLowerCase(), parseInt(getFlexVal(row, ['tồn', 'tổng tồn']) || '0') || 0);
+      }
+  }
+
+  for (const row of rawProducts) {
+      const sku = getFlexVal(row, ['mã sản phẩm', 'sku'], ['cha']);
+      if (!sku) continue;
+
+      const categoryName = getFlexVal(row, ['danh mục', 'category'], ['mã', 'nội bộ']) || '';
+      const categoryId = categoryMap.get(categoryName.toLowerCase());
+
+      const qtyFromNewFile = stockMap.get(sku.toLowerCase()) || 0;
+      const qtyFromOldFile = parseInt(getFlexVal(row, ['tổng tồn', 'tồn']) || '0') || 0;
+      const finalQty = qtyFromNewFile > 0 ? qtyFromNewFile : qtyFromOldFile;
+
+      const p = await upsert(Product, { code: sku }, {
+          name: getFlexVal(row, ['tên sản phẩm', 'name'], ['cha']) || 'Sản phẩm không tên',
+          code: sku,
+          categoryId: categoryId || null,
+          cost: parseInt(getFlexVal(row, ['giá nhập', 'purchase'], ['vat', '+', 'mode']) || '0') || 0,
+          price: parseInt(getFlexVal(row, ['giá bán', 'sale'], ['vat', '+', 'mode', 'sỉ', 'chi nhánh']) || '0') || 0,
+          qty: finalQty,
+          unit: getFlexVal(row, ['đơn vị tính', 'unit']) || 'Cái',
+          weight: parseFloat(getFlexVal(row, ['cân nặng', 'khối lượng']) || '0') || 0,
+          weightType: 'gram',
+          status: getFlexVal(row, ['trạng thái', 'status'])?.includes('Mới') ? 'active' : 'inactive',
+          userId: admin._id,
+          categoryName: categoryName,
+      });
+      productMap.set(sku.toLowerCase(), p._id);
+      prodCount++;
+
+      const invRow = rawInventory.find(i => getFlexVal(i, ['mã sản phẩm', 'sku'], ['cha']) === sku);
+      if (invRow) {
+          const stockHN = parseInt(getFlexVal(invRow, ['kho hà nội', 'hà nội']) || '0') || 0;
+          const stockHCM = parseInt(getFlexVal(invRow, ['kho hcm', 'hcm']) || '0') || 0;
+          
+          if (stockHN > 0) {
+              await upsert(ProductBranchStock, { productId: p._id, branchId: branchHN._id }, {
+                  productId: p._id, branchId: branchHN._id, qty: stockHN
+              });
+              stockCount++;
+          }
+          if (stockHCM > 0) {
+              await upsert(ProductBranchStock, { productId: p._id, branchId: branchHCM._id }, {
+                  productId: p._id, branchId: branchHCM._id, qty: stockHCM
+              });
+              stockCount++;
+          }
+      }
+  }
+  console.log(`✅ SẢN PHẨM: Up thành công ${prodCount} bản ghi.`);
+  console.log(`✅ TỒN KHO CHI NHÁNH: Phân bổ ${stockCount} bản ghi.`);
+
+  // 4. KIỂM KHO
+  let checkCount = 0;
+  for (const row of rawChecks) {
+      const id = getFlexVal(row, ['id']);
+      if (!id) continue;
+      
+      const branchName = getFlexVal(row, ['kho', 'branch']) || '';
+      const bId = branchName.toLowerCase().includes('hcm') ? branchHCM._id : branchHN._id;
+      
+      let balanceDateStr = getFlexVal(row, ['ngày', 'date']);
+      // Handle dd/mm/yyyy
+      if (balanceDateStr && balanceDateStr.includes('/')) {
+        const parts = balanceDateStr.split('/');
+        if (parts.length === 3) balanceDateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+
+      await upsert(StockAdjustment, { code: id }, {
+          branchId: bId,
+          code: id,
+          balanceDate: balanceDateStr ? new Date(balanceDateStr) : new Date(),
+          note: getFlexVal(row, ['ghi chú', 'note']) || '',
+          status: 'completed',
+          userCreatedId: admin._id,
+          userId: admin._id
+      });
+      checkCount++;
+  }
+  console.log(`✅ PHIẾU KIỂM KHO: Up thành công ${checkCount} bản ghi.`);
+
+  // 5. CHUYỂN KHO
+  let transferCount = 0;
+  for (const row of rawTransfers) {
+      const id = getFlexVal(row, ['id']);
+      if (!id) continue;
+
+      const branchRoute = getFlexVal(row, ['kho', 'branch']) || '';
+      let fromBranchId = branchHN._id;
+      let toBranchId = branchHCM._id;
+      if (branchRoute.toLowerCase().includes('hcm - kho hà nội')) {
+          fromBranchId = branchHCM._id;
+          toBranchId = branchHN._id;
+      }
+
+      let dateSendStr = getFlexVal(row, ['ngày', 'date']);
+      // Handle dd/mm/yyyy
+      if (dateSendStr && dateSendStr.includes('/')) {
+        const parts = dateSendStr.split('/');
+        if (parts.length === 3) dateSendStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+
+      await upsert(VendorTransfer, { code: id }, {
+          fromBranchId: fromBranchId,
+          toBranchId: toBranchId,
+          code: id,
+          dateSend: dateSendStr ? new Date(dateSendStr) : new Date(),
+          status: 'success',
+          note: getFlexVal(row, ['mô tả', 'note']) || '',
+          userCreatedId: admin._id
+      });
+      transferCount++;
+  }
+  console.log(`✅ PHIẾU CHUYỂN KHO: Up thành công ${transferCount} bản ghi.`);
+
+  // 6. HÓA ĐƠN XNK
+  let billCount = 0;
+  for (const row of rawImexBills) {
+      const id = getFlexVal(row, ['id']);
+      if (!id) continue;
+      
+      const type = getFlexVal(row, ['kiểu', 'type']) || '';
+      const branchName = getFlexVal(row, ['kho hàng', 'kho']) || '';
+      const bId = branchName.toLowerCase().includes('hcm') ? branchHCM._id : branchHN._id;
+      
+      const isExport = type.toLowerCase().includes('xuất') || type.toLowerCase().includes('bán');
+      
+      if (isExport) {
+          await upsert(SalePayment, { code: id }, {
+              branchId: bId,
+              code: id,
+              amountProducts: parseInt(getFlexVal(row, ['số sp', 'sp']) || '0') || 0,
+              value: parseInt(getFlexVal(row, ['tổng tiền', 'amount']) || '0') || 0,
+              discountValue: parseInt(getFlexVal(row, ['chiết khấu', 'discount']) || '0') || 0,
+              status: 'completed',
+              userId: admin._id,
+              authorId: admin._id
+          });
+      } else {
+          await upsert(VendorPurchase, { code: id }, {
+              branchId: bId,
+              code: id,
+              total: parseInt(getFlexVal(row, ['tổng tiền', 'amount']) || '0') || 0,
+              discountValue: parseInt(getFlexVal(row, ['chiết khấu', 'discount']) || '0') || 0,
+              status: 'success',
+              userId: admin._id,
+              userCreatedId: admin._id
+          });
+      }
+      billCount++;
+  }
+  console.log(`✅ HÓA ĐƠN XNK: Up thành công ${billCount} bản ghi.`);
+
   await Promise.all(Object.values(mongoose.models).map((model) => model.createCollection().catch(() => undefined)));
   await Promise.all(Object.values(mongoose.models).map((model) => model.syncIndexes().catch(() => undefined)));
 
-  console.log('Loaded Polirium-style sample collections into MongoDB database.');
-  console.log('Admin login: admin@myerp.local / 123456789');
+  console.log("\n🎉 TOÀN BỘ DỮ LIỆU TỪ MIGRATION-TOOL ĐÃ ĐƯỢC CHẠY XONG VÀ KHỚP VỚI CẤU TRÚC CODE MỚI!");
 }
 
 load()
   .catch((error) => {
-    console.error(error);
+    console.error("❌ Lỗi hệ thống:", error);
     process.exitCode = 1;
   })
   .finally(async () => {
