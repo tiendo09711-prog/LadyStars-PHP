@@ -32,8 +32,10 @@ export function crudController<T>(model: Model<T>) {
       const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
       const q = String(req.query.q ?? '').trim();
       const filter = q ? { $text: { $search: q } } : {};
+      const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
+      const sortOrder = req.query.order === 'asc' ? 1 : -1;
       const [items, total] = await Promise.all([
-        model.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+        model.find(filter).sort({ [sortField]: sortOrder }).skip((page - 1) * limit).limit(limit),
         model.countDocuments(filter),
       ]);
       res.json({ items, total, page, limit });

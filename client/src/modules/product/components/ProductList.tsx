@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileDown, FileUp, Filter, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, FileUp, Filter, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { productApi } from '../../../core/api/product.api';
 import type { IProduct } from '../../../types/product.type';
 import { Pagination } from '../../../core/components/Pagination';
@@ -10,6 +10,9 @@ export function ProductList() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -23,7 +26,9 @@ export function ProductList() {
         limit, 
         q: search,
         categoryName: filterCategory || undefined,
-        status: filterStatus || undefined
+        status: filterStatus || undefined,
+        sort: sortField,
+        order: sortOrder
       });
       setItems(res.items);
       setTotal(res.total);
@@ -36,7 +41,16 @@ export function ProductList() {
 
   useEffect(() => {
     load();
-  }, [page, filterCategory, filterStatus]);
+  }, [page, filterCategory, filterStatus, sortField, sortOrder]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc'); // Default new sort to descending
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,13 +135,48 @@ export function ProductList() {
               <thead>
                 <tr>
                   <th className="check-cell"><input type="checkbox" /></th>
-                  <th>Mã SP</th>
-                  <th>Tên sản phẩm</th>
-                  <th>ĐVT</th>
-                  <th>Giá nhập (Vốn)</th>
-                  <th>Giá bán</th>
-                  <th>Tổng tồn</th>
-                  <th>Trạng thái</th>
+                  <th onClick={() => handleSort('code')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {sortField === 'code' ? (sortOrder === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : <ArrowUpDown size={14} style={{opacity: 0.3}}/>}
+                      Mã SP
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {sortField === 'name' ? (sortOrder === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : <ArrowUpDown size={14} style={{opacity: 0.3}}/>}
+                      Tên sản phẩm
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('barcode')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {sortField === 'barcode' ? (sortOrder === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : <ArrowUpDown size={14} style={{opacity: 0.3}}/>}
+                      Mã vạch
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('cost')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {sortField === 'cost' ? (sortOrder === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : <ArrowUpDown size={14} style={{opacity: 0.3}}/>}
+                      Giá nhập (Vốn)
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('price')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {sortField === 'price' ? (sortOrder === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : <ArrowUpDown size={14} style={{opacity: 0.3}}/>}
+                      Giá bán
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('qty')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {sortField === 'qty' ? (sortOrder === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : <ArrowUpDown size={14} style={{opacity: 0.3}}/>}
+                      Tổng tồn
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {sortField === 'status' ? (sortOrder === 'asc' ? <ArrowUp size={14}/> : <ArrowDown size={14}/>) : <ArrowUpDown size={14} style={{opacity: 0.3}}/>}
+                      Trạng thái
+                    </div>
+                  </th>
                   <th className="action-cell">Thao tác</th>
                 </tr>
               </thead>
@@ -144,7 +193,7 @@ export function ProductList() {
                       </div>
                       {item.categoryName && <small style={{ color: '#666' }}>{item.categoryName}</small>}
                     </td>
-                    <td>{item.unit || '-'}</td>
+                    <td>{item.barcode || '-'}</td>
                     <td>{formatMoney(item.cost)}</td>
                     <td>{formatMoney(item.price)}</td>
                     <td>{Number(item.qty || 0).toLocaleString('vi-VN')}</td>
