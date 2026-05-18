@@ -31,15 +31,31 @@ export function crudController<T>(model: Model<T>) {
       const page = Math.max(Number(req.query.page ?? 1), 1);
       const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
       const q = String(req.query.q ?? '').trim();
-      const filter = q ? { $text: { $search: q } } : {};
       const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
       const sortOrder = req.query.order === 'asc' ? 1 : -1;
+
+      // Reserved params that are NOT field filters
+      const RESERVED = new Set(['page', 'limit', 'q', 'sort', 'order']);
+
+      // Build filter: start with text search if q provided
+      const filter: Record<string, any> = q ? { $text: { $search: q } } : {};
+
+      // Add any extra query params as field filters
+      for (const [key, val] of Object.entries(req.query)) {
+        if (RESERVED.has(key)) continue;
+        const strVal = String(val ?? '').trim();
+        if (!strVal) continue;
+        // Use case-insensitive exact match for string fields
+        filter[key] = { $regex: `^${strVal}$`, $options: 'i' };
+      }
+
       const [items, total] = await Promise.all([
         model.find(filter).sort({ [sortField]: sortOrder }).skip((page - 1) * limit).limit(limit),
         model.countDocuments(filter),
       ]);
       res.json({ items, total, page, limit });
     },
+
     async detail(req: Request, res: Response) {
       const item = await model.findById(req.params.id);
       if (!item) return res.status(404).json({ message: 'Not found' });

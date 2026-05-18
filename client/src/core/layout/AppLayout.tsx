@@ -1,16 +1,25 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
+  ArrowLeftRight,
   Boxes,
   Building2,
   ChevronDown,
+  ClipboardCheck,
   ClipboardList,
+  Clock,
+  FileEdit,
+  History,
   LayoutDashboard,
+  Layers,
   LogOut,
   Menu,
+  Package,
   Printer,
   Settings,
   ShoppingCart,
+  Shuffle,
+  Tag,
   UserCog,
   Users,
   WalletCards,
@@ -24,17 +33,32 @@ const baseMenuGroups = [
     items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }],
   },
   {
-    label: 'Hàng hóa và bán hàng',
+    label: 'Sản phẩm',
     items: [
-      { to: '/products', label: 'Hàng hóa - kho', icon: Boxes },
-      { to: '/sales', label: 'Bán hàng - thanh toán', icon: ShoppingCart },
+      { to: '/products', label: 'Sản phẩm', icon: Boxes },
+      { to: '/products/batches', label: 'Lô sản phẩm', icon: Layers },
+      { to: '/products/storage-duration', label: 'Thời gian lưu kho', icon: Clock },
+      { to: '/products/inventory', label: 'Tồn kho', icon: Package },
+      { to: '/products/categories', label: 'Danh mục', icon: ClipboardList },
+      { to: '/products/attributes', label: 'Thuộc tính', icon: Tag },
+      { to: '/vendors', label: 'Nhà cung cấp', icon: Building2 },
     ],
   },
   {
-    label: 'Đối tác',
+    label: 'Kho hàng',
     items: [
+      { to: '/warehouse/transactions', label: 'Xuất nhập kho', icon: ArrowLeftRight },
+      { to: '/warehouse/transfers', label: 'Chuyển kho', icon: Shuffle },
+      { to: '/warehouse/audit', label: 'Kiểm kho', icon: ClipboardCheck },
+      { to: '/warehouse/drafts', label: 'Phiếu nháp', icon: FileEdit },
+      { to: '/warehouse/history', label: 'Lịch sử sửa xóa', icon: History },
+    ],
+  },
+  {
+    label: 'Bán hàng',
+    items: [
+      { to: '/sales', label: 'Bán hàng - thanh toán', icon: ShoppingCart },
       { to: '/customers', label: 'Khách hàng', icon: Users },
-      { to: '/vendors', label: 'Nhà cung cấp', icon: Building2 },
     ],
   },
   {

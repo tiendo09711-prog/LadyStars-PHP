@@ -14,6 +14,31 @@ export const productApi = {
     return response.data;
   },
 
+  getProduct: async (id: string) => {
+    const response = await http.get<IProduct>(`/products/products/${id}`);
+    return response.data;
+  },
+
+  createProduct: async (data: Partial<IProduct>) => {
+    const response = await http.post<IProduct>('/products/products', data);
+    return response.data;
+  },
+
+  updateProduct: async (id: string, data: Partial<IProduct>) => {
+    const response = await http.put<IProduct>(`/products/products/${id}`, data);
+    return response.data;
+  },
+
+  deleteProduct: async (id: string) => {
+    const response = await http.delete<{ message: string }>(`/products/products/${id}`);
+    return response.data;
+  },
+
+  exportProducts: async (params?: { [key: string]: any }) => {
+    const response = await http.get('/products/products/export', { params, responseType: 'blob' });
+    return response.data;
+  },
+
   getCategories: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
     const response = await http.get<PaginatedResponse<ICategory>>('/products/categories', { params });
     return response.data;

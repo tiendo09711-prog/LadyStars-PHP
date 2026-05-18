@@ -263,14 +263,14 @@ h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
 .data-table.compact td { white-space: normal; }
 .data-table small { display: block; color: var(--muted); margin-top: 3px; }
 .check-cell { width: 40px; }
-.action-cell { width: 86px; text-align: right !important; }
+.action-cell { width: 120px; text-align: right !important; white-space: nowrap; }
 .empty-cell { color: var(--muted); text-align: center !important; padding: 36px !important; }
 
 .status-badge { display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 0 10px; font-size: 12px; font-weight: 800; background: var(--primary-soft); color: var(--primary); }
 .status-badge.success { background: var(--success-soft); color: #047857; }
 .status-badge.warning { background: var(--warning-soft); color: #b45309; }
 .status-badge.danger { background: var(--danger-soft); color: #b91c1c; }
-.icon-button { width: 34px; height: 34px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: #475569; }
+.icon-button { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: #475569; }
 .icon-button:hover { color: var(--primary); border-color: #bfdbfe; }
 .icon-button.danger:hover { color: var(--danger); border-color: #fecaca; background: var(--danger-soft); }
 .mini-action {
