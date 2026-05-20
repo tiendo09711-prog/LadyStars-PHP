@@ -1,5 +1,5 @@
 import { http } from './http';
-import type { ICategory, IProduct, IInventory, IProductHistory } from '../../types/product.type';
+import type { ICategory, IProduct, IInventory, IProductHistory, IBatch, ITrademark, IStorageDuration } from '../../types/product.type';
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -25,7 +25,7 @@ export const productApi = {
   },
 
   updateProduct: async (id: string, data: Partial<IProduct>) => {
-    const response = await http.put<IProduct>(`/products/products/${id}`, data);
+    const response = await http.patch<IProduct>(`/products/products/${id}`, data);
     return response.data;
   },
 
@@ -47,35 +47,48 @@ export const productApi = {
   // Note: Backend might not have exact endpoints for inventories and logs matching these formats perfectly,
   // but we build the interface as requested and target logical endpoint names. 
   // In reality, getInventories might need to query branch-stocks or similar.
-  getInventories: async (params?: { page?: number; limit?: number; q?: string; branchId?: string; [key: string]: any }) => {
-    // If there is no specific inventory aggregation, we mock it by fetching products and mapping to IInventory
-    const response = await http.get<PaginatedResponse<IProduct>>('/products/products', { params });
-    const items: IInventory[] = response.data.items.map(p => ({
-      _id: p._id,
-      code: p.code,
-      name: p.name,
-      barcode: p.barcode,
-      parentCode: p.parentCode,
-      parentName: p.parentName,
-      weight: p.weight,
-      price: p.price,
-      cost: p.cost,
-      importPrice: p.cost, // Mock
-      wholesalePrice: p.wholesalePrice,
-      totalStock: p.qty,
-      stockHanoi: Math.floor((p.qty || 0) * 0.6), // Mock as we don't have aggregated branch stock API yet
-      stockHCM: Math.ceil((p.qty || 0) * 0.4),    // Mock as we don't have aggregated branch stock API yet
-    }));
-    return { ...response.data, items };
+  getInventories: async (params?: { page?: number; limit?: number; q?: string; branchId?: string; sort?: string; order?: 'asc' | 'desc'; [key: string]: any }) => {
+    const response = await http.get<PaginatedResponse<IInventory>>('/products/inventories', { params });
+    return response.data;
   },
 
   getProductLogs: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
-    // Fallback if logs endpoint is not standard
-    try {
-      const response = await http.get<PaginatedResponse<IProductHistory>>('/products/logs', { params });
-      return response.data;
-    } catch {
-      return { items: [], total: 0, page: 1, limit: params?.limit || 20 };
-    }
+    const response = await http.get<PaginatedResponse<IProductHistory>>('/products/edit-logs', { params });
+    return response.data;
+  },
+
+  getBatches: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+    const response = await http.get<PaginatedResponse<IBatch>>('/products/batches', { params });
+    return response.data;
+  },
+
+  getBatch: async (id: string) => {
+    const response = await http.get<IBatch>(`/products/batches/${id}`);
+    return response.data;
+  },
+
+  createBatch: async (data: Partial<IBatch>) => {
+    const response = await http.post<IBatch>('/products/batches', data);
+    return response.data;
+  },
+
+  updateBatch: async (id: string, data: Partial<IBatch>) => {
+    const response = await http.patch<IBatch>(`/products/batches/${id}`, data);
+    return response.data;
+  },
+
+  deleteBatch: async (id: string) => {
+    const response = await http.delete<{ message: string }>(`/products/batches/${id}`);
+    return response.data;
+  },
+
+  getStorageDuration: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+    const response = await http.get<PaginatedResponse<IStorageDuration> & { kpis?: { totalProducts: number; unsoldLong: number; slowSelling: number; totalValue: number } }>('/products/storage-duration', { params });
+    return response.data;
+  },
+
+  getTrademarks: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+    const response = await http.get<PaginatedResponse<ITrademark>>('/products/trademarks', { params });
+    return response.data;
   }
 };

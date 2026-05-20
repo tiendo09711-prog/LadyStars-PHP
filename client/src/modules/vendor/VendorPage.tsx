@@ -14,12 +14,12 @@ export function VendorPage() {
           icon: <Building2 size={24} />,
           primaryActionLabel: 'Thêm nhà cung cấp',
           fields: [
-            { key: 'code', label: 'Mã NCC' },
-            { key: 'name', label: 'Tên nhà cung cấp' },
-            { key: 'status', label: 'Trạng thái', type: 'status' },
-            { key: 'phone', label: 'Số điện thoại' },
-            { key: 'debt', label: 'Công nợ', type: 'money' },
-            { key: 'totalPurchase', label: 'Tổng mua', type: 'money' },
+            { key: 'code', label: 'Mã' },
+            { key: 'name', label: 'Tên' },
+            { key: 'type', label: 'Loại' },
+            { key: 'phone', label: 'Điện thoại' },
+            { key: 'userCreatedId.name', label: 'Người tạo' },
+            { key: 'note', label: 'Ghi chú' },
           ],
           formFields: [
             { key: 'code', label: 'Mã NCC', required: true },

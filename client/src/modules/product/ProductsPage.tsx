@@ -1,9 +1,7 @@
-import { ProductList } from './components/ProductList';
+import { ProductMainPage } from './ProductMainPage';
 
 export function ProductsPage() {
   return (
-    <div className="workspace-page">
-      <ProductList />
-    </div>
+    <ProductMainPage />
   );
 }

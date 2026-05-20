@@ -229,13 +229,15 @@ async function load() {
   ];
 
   console.log("🧹 Đang tự động dọn sạch tàn dư cũ trên Atlas...");
-  for (const colName of collectionsToDrop) {
-      try {
-          const collections = await mongoose.connection.db.listCollections({ name: colName }).toArray();
-          if (collections.length > 0) {
-              await mongoose.connection.db.collection(colName).drop();
-          }
-      } catch (err) { }
+  if (mongoose.connection.db) {
+    for (const colName of collectionsToDrop) {
+        try {
+            const collections = await mongoose.connection.db.listCollections({ name: colName }).toArray();
+            if (collections.length > 0) {
+                await mongoose.connection.db.collection(colName).drop();
+            }
+        } catch (err) { }
+    }
   }
   
   const migrationToolDir = path.join(process.cwd(), '../migration-tool');

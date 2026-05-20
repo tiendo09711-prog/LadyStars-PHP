@@ -9,7 +9,6 @@ import { BatchPage } from './modules/product/BatchPage';
 import { StorageDurationPage } from './modules/product/StorageDurationPage';
 import { InventoryPage } from './modules/product/InventoryPage';
 import { CategoriesPage } from './modules/product/CategoriesPage';
-import { AttributesPage } from './modules/product/AttributesPage';
 import { SalesPage } from './modules/product/SalesPage';
 import { CustomerPage } from './modules/customer/CustomerPage';
 import { VendorPage } from './modules/vendor/VendorPage';
@@ -39,7 +38,6 @@ const router = createBrowserRouter([
       { path: 'products/storage-duration', element: <StorageDurationPage /> },
       { path: 'products/inventory', element: <InventoryPage /> },
       { path: 'products/categories', element: <CategoriesPage /> },
-      { path: 'products/attributes', element: <AttributesPage /> },
 
       // ── Kho hàng ───────────────────────────────────────────────
       { path: 'warehouse/transactions', element: <WarehouseTransactionPage /> },

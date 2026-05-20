@@ -6,7 +6,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/app.js",
     "seed": "tsx src/seed.ts",
-    "load": "tsx src/scripts/load-csv.ts"
+    "load": "tsx src/scripts/load-csv.ts",
+    "load-edit-logs": "tsx src/scripts/load-edit-logs.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

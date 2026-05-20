@@ -5,8 +5,8 @@ import { http } from '../../core/api/http';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState(() => localStorage.getItem('lastLoginEmail') ?? 'admin@myerp.local');
-  const [password, setPassword] = useState('123456789');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const submit = async (event: FormEvent) => {
@@ -24,17 +24,17 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <form className="login-card" onSubmit={submit}>
+      <form className="login-card" onSubmit={submit} autoComplete="off">
         <div className="login-logo"><LockKeyhole size={26} /></div>
         <h1>LadyStars ERP</h1>
         <p>Đăng nhập hệ thống quản trị</p>
         <label className="form-field wide">
           <span>Email</span>
-          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="off" />
         </label>
         <label className="form-field wide">
           <span>Mật khẩu</span>
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" />
         </label>
         {error && <div className="form-error">{error}</div>}
         <button className="btn btn-primary full" type="submit">

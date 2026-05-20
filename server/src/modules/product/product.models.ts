@@ -4,8 +4,13 @@ const money = { type: Number, default: 0, min: 0 };
 
 export const Category = model('Category', new Schema({
   name: { type: String, required: true, unique: true },
+  code: String,
   parentId: { type: Schema.Types.ObjectId, ref: 'Category' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
+  isActive: { type: Boolean, default: true },
+  isVisible: { type: Boolean, default: true },
+  productCount: { type: Number, default: 0 },
+  url: String,
 }, { timestamps: true }));
 
 export const Trademark = model('Trademark', new Schema({
@@ -53,7 +58,7 @@ const ProductSchema = new Schema({
   units: [ProductUnitSchema],
   elements: [ProductElementSchema],
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
-  status: String,
+  status: { type: String, default: 'Mới' },
   categoryName: String,
   trademarkName: String,
   supplierName: String,
@@ -205,3 +210,44 @@ export const StockAdjustment = model('StockAdjustment', new Schema({
     note: String,
   }],
 }, { timestamps: true }));
+
+const BatchSchema = new Schema({
+  batchNumber: { type: String, required: true, unique: true },
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  cost: money,
+  qty: { type: Number, default: 0 },
+  manufactureDate: Date,
+  expiryDate: Date,
+  status: { type: String, default: 'Còn hạn' },
+  note: String,
+  userId: { type: Schema.Types.ObjectId, ref: 'User' },
+}, { timestamps: true });
+
+BatchSchema.index({ batchNumber: 'text', note: 'text' });
+
+BatchSchema.pre('find', function(next) {
+  this.populate('productId', 'code name price cost qty unit type allowsSale');
+  next();
+});
+BatchSchema.pre('findOne', function(next) {
+  this.populate('productId', 'code name price cost qty unit type allowsSale');
+  next();
+});
+
+export const Batch = model('Batch', BatchSchema);
+
+const ProductEditLogSchema = new Schema({
+  productCode: { type: String, required: true },
+  productName: { type: String, required: true },
+  logType: { type: String, required: true },
+  logAction: { type: String, required: true },
+  createdBy: { type: String, required: true },
+}, { timestamps: true });
+
+ProductEditLogSchema.index({ productCode: 1 });
+ProductEditLogSchema.index({ productName: 1 });
+ProductEditLogSchema.index({ createdBy: 1 });
+ProductEditLogSchema.index({ createdAt: -1 });
+
+export const ProductEditLog = model('ProductEditLog', ProductEditLogSchema);
+

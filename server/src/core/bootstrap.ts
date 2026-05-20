@@ -4,6 +4,7 @@ import { StoreSetting } from './settings/settings.model.js';
 import { Customer, CustomerGroup } from '../modules/customer/customer.models.js';
 import { AccountingType, ExpensePayment, PayPerson, Receipt } from '../modules/accounting/accounting.models.js';
 import {
+  Batch,
   Category,
   DeliveryPartner,
   PaymentMethod,
@@ -43,7 +44,7 @@ export async function bootstrapSystem() {
   );
 
   const models = [
-    Category, Trademark, Shelf, Product, SalePayment, ProductRefund, StockAdjustment,
+    Batch, Category, Trademark, Shelf, Product, SalePayment, ProductRefund, StockAdjustment,
     SaleChannel, DeliveryPartner, PaymentMethod, Customer, CustomerGroup,
     Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer,
     AccountingType, Receipt, ExpensePayment, PayPerson, Project, Task, PrintForm,
@@ -56,4 +57,10 @@ export async function bootstrapSystem() {
     await backfillOwnerField(model, 'authorId', owner._id);
     await backfillOwnerField(model, 'ownerId', owner._id);
   }
+
+  // Backfill Product status field to 'Mới' if it's missing or empty
+  await Product.updateMany(
+    { $or: [{ status: { $exists: false } }, { status: null }, { status: '' }] },
+    { $set: { status: 'Mới' } },
+  );
 }

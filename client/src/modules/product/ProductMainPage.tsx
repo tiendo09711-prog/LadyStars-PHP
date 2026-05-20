@@ -43,7 +43,7 @@ export function ProductMainPage() {
       
       {/* Container to prevent flickering on tab switch */}
       <div style={{ display: activeTab === 'products' ? 'block' : 'none' }}>
-        <ProductList />
+        <ProductList onShowHistory={() => setActiveTab('history')} />
       </div>
       <div style={{ display: activeTab === 'inventory' ? 'block' : 'none' }}>
         <InventoryList />

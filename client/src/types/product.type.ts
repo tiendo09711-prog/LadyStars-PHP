@@ -78,3 +78,40 @@ export interface IProductHistory {
   createdBy: string;
   createdAt: string;
 }
+
+export interface IBatch {
+  _id: string;
+  batchNumber: string;
+  productId: IProduct | string | null;
+  cost?: number;
+  qty?: number;
+  manufactureDate?: string;
+  expiryDate?: string;
+  status?: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface ITrademark {
+  _id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface IStorageDuration {
+  _id: string;
+  code: string;
+  name: string;
+  supplierName?: string;
+  categoryName?: string;
+  cost?: number;
+  price?: number;
+  qty?: number;
+  firstTransactionDate?: string;
+  lastTransactionDate?: string;
+  lastSoldDate?: string;
+  daysFromStart: number;
+  daysFromLast: number;
+  daysFromLastSold: number | null;
+}
+

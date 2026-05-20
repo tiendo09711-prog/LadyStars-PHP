@@ -1,27 +1,34 @@
-import { useEffect, useState } from 'react';
-import { FileDown, Filter, RefreshCw, Search } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, Filter, RefreshCw, Search } from 'lucide-react';
 import { productApi } from '../../../core/api/product.api';
 import type { IInventory } from '../../../types/product.type';
 import { Pagination } from '../../../core/components/Pagination';
-
+import * as XLSX from 'xlsx';
+import { ExportExcelModal, ColumnOption } from './ExportExcelModal';
+ 
 export function InventoryList() {
   const [items, setItems] = useState<IInventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 20;
-
+ 
   const load = async () => {
     setLoading(true);
     try {
       const res = await productApi.getInventories({ 
         page, 
         limit, 
-        q: search,
-        branchId: filterWarehouse || undefined
+        q: search || undefined,
+        branchId: filterWarehouse || undefined,
+        sort: sortField,
+        order: sortOrder
       });
       setItems(res.items);
       setTotal(res.total);
@@ -31,10 +38,87 @@ export function InventoryList() {
       setLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     load();
-  }, [page, filterWarehouse]);
+  }, [page, filterWarehouse, sortField, sortOrder]);
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const exportColumns: ColumnOption[] = useMemo(() => [
+    { label: 'Mã SP', key: 'code', getValue: (item: IInventory) => item.code },
+    { label: 'Tên sản phẩm', key: 'name', getValue: (item: IInventory) => item.name },
+    { label: 'Giá nhập (Vốn)', key: 'cost', getValue: (item: IInventory) => item.cost ?? 0 },
+    { label: 'Giá bán', key: 'price', getValue: (item: IInventory) => item.price ?? 0 },
+    { label: 'Kho Hà Nội', key: 'stockHanoi', getValue: (item: IInventory) => item.stockHanoi ?? 0 },
+    { label: 'Kho HCM', key: 'stockHCM', getValue: (item: IInventory) => item.stockHCM ?? 0 },
+    { label: 'Tổng tồn', key: 'totalStock', getValue: (item: IInventory) => item.totalStock ?? 0 },
+  ], []);
+
+  const handleExcelExport = async (
+    exportType: 'current' | 'all',
+    filename: string,
+    sheetName: string,
+    selectedCols: { key: string; customLabel: string }[]
+  ) => {
+    setExportLoading(true);
+    try {
+      let dataToExport: IInventory[] = [];
+      if (exportType === 'current') {
+        dataToExport = items;
+      } else {
+        const fetchPage = async (p: number, l: number) => {
+          return await productApi.getInventories({
+            page: p,
+            limit: l,
+            q: search || undefined,
+            branchId: filterWarehouse || undefined,
+            sort: sortField,
+            order: sortOrder,
+          });
+        };
+
+        const pageSize = 100;
+        const firstPage = await fetchPage(1, pageSize);
+        let allItems = [...firstPage.items];
+        const totalItems = firstPage.total;
+
+        if (totalItems > pageSize) {
+          const pagesToFetch = Math.ceil(totalItems / pageSize);
+          const promises = [];
+          for (let pageNum = 2; pageNum <= pagesToFetch; pageNum++) {
+            promises.push(fetchPage(pageNum, pageSize));
+          }
+          const results = await Promise.all(promises);
+          results.forEach(res => {
+            allItems = allItems.concat(res.items);
+          });
+        }
+        dataToExport = allItems;
+      }
+
+      const mappedData = dataToExport.map(item => {
+        const row: Record<string, any> = {};
+        selectedCols.forEach(col => {
+          const matchingCol = exportColumns.find(c => c.key === col.key);
+          row[col.customLabel] = matchingCol ? matchingCol.getValue(item) : '';
+        });
+        return row;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(mappedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+      setShowExportModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('Xuất file thất bại!');
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +129,24 @@ export function InventoryList() {
   const formatMoney = (val?: number) => {
     return `${Number(val || 0).toLocaleString('vi-VN')} đ`;
   };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) return <ArrowUpDown size={13} style={{ opacity: 0.3 }} />;
+    return sortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />;
+  };
+
+  const thStyle = { cursor: 'pointer', userSelect: 'none' as const };
+  const thInner = { display: 'flex', alignItems: 'center', gap: '4px' };
 
   return (
     <div className="page-stack">
@@ -68,15 +170,15 @@ export function InventoryList() {
 
             <label className="field-label" style={{ marginTop: '16px' }}>Lọc theo kho</label>
             <div className="quick-filter-list">
-              <button type="button" className={!filterWarehouse ? 'active' : ''} onClick={() => setFilterWarehouse('')}>Tất cả</button>
-              <button type="button" className={filterWarehouse === 'hanoi' ? 'active' : ''} onClick={() => setFilterWarehouse('hanoi')}>Kho Hà Nội</button>
-              <button type="button" className={filterWarehouse === 'hcm' ? 'active' : ''} onClick={() => setFilterWarehouse('hcm')}>Kho HCM</button>
+              <button type="button" className={!filterWarehouse ? 'active' : ''} onClick={() => { setFilterWarehouse(''); setPage(1); }}>Tất cả</button>
+              <button type="button" className={filterWarehouse === 'hanoi' ? 'active' : ''} onClick={() => { setFilterWarehouse('hanoi'); setPage(1); }}>Kho Hà Nội</button>
+              <button type="button" className={filterWarehouse === 'hcm' ? 'active' : ''} onClick={() => { setFilterWarehouse('hcm'); setPage(1); }}>Kho HCM</button>
             </div>
-
+ 
             <button type="submit" style={{ display: 'none' }}>Tìm</button>
           </form>
         </aside>
-
+ 
         <section className="data-card">
           <div className="data-card-header">
             <div>
@@ -87,8 +189,8 @@ export function InventoryList() {
               <button className="btn btn-light" type="button" onClick={load} title="Làm mới">
                 <RefreshCw size={16} /> Làm mới
               </button>
-              <button className="btn btn-success" type="button">
-                <FileDown size={16} /> Xuất file
+              <button className="btn btn-success" type="button" onClick={() => setShowExportModal(true)}>
+                <FileDown size={16} /> Xuất Excel
               </button>
             </div>
           </div>
@@ -97,13 +199,13 @@ export function InventoryList() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Mã SP</th>
-                  <th>Tên sản phẩm</th>
-                  <th>Giá nhập (Vốn)</th>
-                  <th>Giá bán</th>
-                  <th>Kho Hà Nội</th>
-                  <th>Kho HCM</th>
-                  <th>Tổng tồn</th>
+                  <th style={thStyle} onClick={() => handleSort('code')}><div style={thInner}><SortIcon field="code" />Mã SP</div></th>
+                  <th style={thStyle} onClick={() => handleSort('name')}><div style={thInner}><SortIcon field="name" />Tên sản phẩm</div></th>
+                  <th style={thStyle} onClick={() => handleSort('cost')}><div style={thInner}><SortIcon field="cost" />Giá nhập (Vốn)</div></th>
+                  <th style={thStyle} onClick={() => handleSort('price')}><div style={thInner}><SortIcon field="price" />Giá bán</div></th>
+                  <th style={thStyle} onClick={() => handleSort('stockHanoi')}><div style={thInner}><SortIcon field="stockHanoi" />Kho Hà Nội</div></th>
+                  <th style={thStyle} onClick={() => handleSort('stockHCM')}><div style={thInner}><SortIcon field="stockHCM" />Kho HCM</div></th>
+                  <th style={thStyle} onClick={() => handleSort('totalStock')}><div style={thInner}><SortIcon field="totalStock" />Tổng tồn</div></th>
                 </tr>
               </thead>
               <tbody>
@@ -130,6 +232,17 @@ export function InventoryList() {
           <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
         </section>
       </div>
+      {showExportModal && (
+        <ExportExcelModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          title="Xuất Excel - Tồn kho chi tiết"
+          defaultFilename={`ton-kho-chi-tiet-${new Date().toISOString().slice(0, 10)}`}
+          columns={exportColumns}
+          onExport={handleExcelExport}
+          loading={exportLoading}
+        />
+      )}
     </div>
   );
 }

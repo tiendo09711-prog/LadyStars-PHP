@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, Eye, FileDown, FileUp, Filter, Pencil, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, FileDown, FileUp, Filter, Pencil, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { productApi } from '../../../core/api/product.api';
 import type { IProduct } from '../../../types/product.type';
+import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
+import { ExportExcelModal, ColumnOption } from './ExportExcelModal';
 
 // ─── Delete Confirm Dialog ───────────────────────────────────────────────────
 function DeleteConfirm({ product, onConfirm, onCancel }: { product: IProduct; onConfirm: () => void; onCancel: () => void }) {
@@ -108,17 +110,33 @@ interface ProductFormProps {
 
 function ProductForm({ product, onSave, onClose, saving, error }: ProductFormProps) {
   const isEdit = !!product;
-  const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'Sản phẩm', status: 'Mới' });
+  const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'product', status: 'Mới' });
 
   const set = (k: keyof IProduct, v: string | number) => setForm(f => ({ ...f, [k]: v }));
 
-  const fields: { key: keyof IProduct; label: string; type?: string; options?: string[] }[] = [
+  const fields: { key: keyof IProduct; label: string; type?: string; options?: { value: string; label: string }[] }[] = [
     { key: 'code', label: 'Mã sản phẩm *' },
     { key: 'name', label: 'Tên sản phẩm *' },
     { key: 'barcode', label: 'Mã vạch' },
-    { key: 'type', label: 'Loại sản phẩm', options: ['Sản phẩm', 'Dịch vụ', 'Combo'] },
+    { 
+      key: 'type', 
+      label: 'Loại sản phẩm', 
+      options: [
+        { value: 'product', label: 'Sản phẩm' },
+        { value: 'service', label: 'Dịch vụ' },
+        { value: 'combo', label: 'Combo' }
+      ] 
+    },
     { key: 'unit', label: 'Đơn vị' },
-    { key: 'status', label: 'Trạng thái', options: ['Mới', 'Đang giao', 'Ngừng'] },
+    { 
+      key: 'status', 
+      label: 'Trạng thái', 
+      options: [
+        { value: 'Mới', label: 'Mới' },
+        { value: 'Đang giao', label: 'Đang giao' },
+        { value: 'Ngừng', label: 'Ngừng' }
+      ] 
+    },
     { key: 'cost', label: 'Giá vốn', type: 'number' },
     { key: 'price', label: 'Giá bán', type: 'number' },
     { key: 'wholesalePrice', label: 'Giá sỉ', type: 'number' },
@@ -151,7 +169,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
               {f.options ? (
                 <select value={String(form[f.key] ?? '')} onChange={e => set(f.key, e.target.value)}>
                   <option value="">-- Chọn --</option>
-                  {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+                  {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               ) : (
                 <input
@@ -222,7 +240,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export function ProductList() {
+export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
   const [items, setItems] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -242,6 +260,24 @@ export function ProductList() {
   const [showImport, setShowImport] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const exportColumns: ColumnOption[] = useMemo(() => [
+    { label: 'Mã SP', key: 'code', getValue: (p: IProduct) => p.code },
+    { label: 'Tên sản phẩm', key: 'name', getValue: (p: IProduct) => p.name },
+    { label: 'Mã vạch', key: 'barcode', getValue: (p: IProduct) => p.barcode || '' },
+    { label: 'Danh mục', key: 'categoryName', getValue: (p: IProduct) => p.categoryName || '' },
+    { label: 'Nhà cung cấp', key: 'supplierName', getValue: (p: IProduct) => p.supplierName || '' },
+    { label: 'Đơn vị', key: 'unit', getValue: (p: IProduct) => p.unit || '' },
+    { label: 'Giá vốn', key: 'cost', getValue: (p: IProduct) => p.cost || 0 },
+    { label: 'Giá bán', key: 'price', getValue: (p: IProduct) => p.price || 0 },
+    { label: 'Giá sỉ', key: 'wholesalePrice', getValue: (p: IProduct) => p.wholesalePrice || 0 },
+    { label: 'Tổng tồn', key: 'qty', getValue: (p: IProduct) => p.qty || 0 },
+    { label: 'Trạng thái', key: 'status', getValue: (p: IProduct) => p.status || 'Mới' },
+    { label: 'Ngày tạo', key: 'createdAt', getValue: (p: IProduct) => new Date(p.createdAt).toLocaleDateString('vi-VN') },
+  ], []);
 
   const load = async () => {
     setLoading(true);
@@ -303,56 +339,69 @@ export function ProductList() {
     }
   };
 
-  const handleExport = useCallback(async () => {
+  const handleExcelExport = useCallback(async (
+    exportType: 'current' | 'all',
+    filename: string,
+    sheetName: string,
+    selectedCols: { key: string; customLabel: string }[]
+  ) => {
+    setExportLoading(true);
     try {
-      // Fetch all matching products (up to 5000) without pagination
-      const res = await productApi.getProducts({
-        page: 1,
-        limit: 5000,
-        q: search || undefined,
-        status: filterStatus || undefined,
-        sort: sortField,
-        order: sortOrder,
+      let dataToExport: IProduct[] = [];
+      if (exportType === 'current') {
+        dataToExport = items;
+      } else {
+        const fetchPage = async (p: number, l: number) => {
+          return await productApi.getProducts({
+            page: p,
+            limit: l,
+            q: search || undefined,
+            status: filterStatus || undefined,
+            sort: sortField,
+            order: sortOrder,
+          });
+        };
+
+        const pageSize = 100;
+        const firstPage = await fetchPage(1, pageSize);
+        let allItems = [...firstPage.items];
+        const totalItems = firstPage.total;
+
+        if (totalItems > pageSize) {
+          const pagesToFetch = Math.ceil(totalItems / pageSize);
+          const promises = [];
+          for (let pageNum = 2; pageNum <= pagesToFetch; pageNum++) {
+            promises.push(fetchPage(pageNum, pageSize));
+          }
+          const results = await Promise.all(promises);
+          results.forEach(res => {
+            allItems = allItems.concat(res.items);
+          });
+        }
+        dataToExport = allItems;
+      }
+
+      const mappedData = dataToExport.map(p => {
+        const row: Record<string, any> = {};
+        selectedCols.forEach(col => {
+          const matchingCol = exportColumns.find(c => c.key === col.key);
+          row[col.customLabel] = matchingCol ? matchingCol.getValue(p) : '';
+        });
+        return row;
       });
 
-      const headers = ['Mã SP', 'Tên sản phẩm', 'Mã vạch', 'Danh mục', 'Nhà cung cấp', 'Đơn vị', 'Giá vốn', 'Giá bán', 'Giá sỉ', 'Tổng tồn', 'Trạng thái', 'Ngày tạo'];
-      const rows = res.items.map(p => [
-        p.code,
-        p.name,
-        p.barcode ?? '',
-        p.categoryName ?? '',
-        p.supplierName ?? '',
-        p.unit ?? '',
-        p.cost ?? 0,
-        p.price ?? 0,
-        p.wholesalePrice ?? 0,
-        p.qty ?? 0,
-        p.status ?? 'Mới',
-        new Date(p.createdAt).toLocaleDateString('vi-VN'),
-      ]);
-
-      const escape = (v: string | number) => {
-        const s = String(v);
-        return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-      };
-
-      const csvContent = '\uFEFF' + // BOM for Excel UTF-8
-        [headers, ...rows].map(row => row.map(escape).join(',')).join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `san-pham-${new Date().toISOString().slice(0,10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const ws = XLSX.utils.json_to_sheet(mappedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+      setShowExportModal(false);
     } catch (err) {
       console.error(err);
       alert('Xuất file thất bại!');
+    } finally {
+      setExportLoading(false);
     }
-  }, [search, filterStatus, sortField, sortOrder]);
+  }, [items, search, filterStatus, sortField, sortOrder, exportColumns]);
 
   const fmt = (v?: number) => `${Number(v || 0).toLocaleString('vi-VN')} đ`;
 
@@ -412,8 +461,9 @@ export function ProductList() {
             </div>
             <div className="page-actions">
               <button className="btn btn-light" onClick={load} title="Làm mới"><RefreshCw size={15} /> Làm mới</button>
-              <button className="btn btn-outline" onClick={() => setShowImport(true)}><FileUp size={15} /> Import</button>
-              <button className="btn btn-light" style={{ borderColor: '#bbf7d0', color: '#047857' }} onClick={handleExport}><FileDown size={15} /> Xuất Excel</button>
+              <button className="btn btn-light" onClick={onShowHistory} title="Lịch sử"><Clock size={15} /> Lịch sử</button>
+              <button className="btn-outline btn" onClick={() => setShowImport(true)}><FileUp size={15} /> Import</button>
+              <button className="btn btn-light" style={{ borderColor: '#bbf7d0', color: '#047857' }} onClick={() => setShowExportModal(true)}><FileDown size={15} /> Xuất Excel</button>
               <button className="btn btn-primary" onClick={() => { setSaveError(''); setEditItem(null); }}><Plus size={15} /> Thêm sản phẩm</button>
             </div>
           </div>
@@ -480,6 +530,17 @@ export function ProductList() {
       )}
       {deleteItem && <DeleteConfirm product={deleteItem} onConfirm={handleDelete} onCancel={() => setDeleteItem(null)} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      {showExportModal && (
+        <ExportExcelModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          title="Xuất Excel - Danh sách sản phẩm"
+          defaultFilename={`danh-sach-san-pham-${new Date().toISOString().slice(0, 10)}`}
+          columns={exportColumns}
+          onExport={handleExcelExport}
+          loading={exportLoading}
+        />
+      )}
     </div>
   );
 }

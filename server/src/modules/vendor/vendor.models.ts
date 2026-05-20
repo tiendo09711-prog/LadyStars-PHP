@@ -28,8 +28,19 @@ const VendorSchema = new Schema({
   groups: [{ type: Schema.Types.ObjectId, ref: 'VendorGroup' }],
   userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
+
+VendorSchema.pre('find', function(next) {
+  this.populate('userCreatedId', 'name');
+  next();
+});
+VendorSchema.pre('findOne', function(next) {
+  this.populate('userCreatedId', 'name');
+  next();
+});
+
 VendorSchema.index({ name: 'text', code: 'text', phone: 'text', email: 'text' });
 export const Vendor = model('Vendor', VendorSchema);
+
 
 const PurchaseItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },

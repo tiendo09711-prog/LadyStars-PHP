@@ -53,8 +53,12 @@ function formatValue(value: unknown, type: DataField['type']) {
   if (type === 'money') return `${Number(value).toLocaleString('vi-VN')} đ`;
   if (type === 'date') return new Date(String(value)).toLocaleDateString('vi-VN');
   if (type === 'number') return Number(value).toLocaleString('vi-VN');
-  return String(value);
+  const strVal = String(value);
+  if (strVal === 'person') return 'Cá nhân';
+  if (strVal === 'company') return 'Công ty';
+  return strVal;
 }
+
 
 function statusClass(value: unknown) {
   const status = String(value ?? '').toLowerCase();
