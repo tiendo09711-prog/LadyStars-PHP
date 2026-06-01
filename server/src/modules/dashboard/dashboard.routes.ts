@@ -4,6 +4,7 @@ import { AccountingType, ExpensePayment, Receipt } from '../accounting/accountin
 import { Customer } from '../customer/customer.models.js';
 import { Product, ProductBranchStock, RetailInvoice, SalePayment, WholesaleInvoice } from '../product/product.models.js';
 import { Project, Task } from '../task/task.models.js';
+import { Wallet } from '../../core/system/system.models.js';
 import { Vendor, VendorPurchase } from '../vendor/vendor.models.js';
 
 const router = Router();
@@ -85,6 +86,8 @@ router.get('/', async (req, res) => {
     totalInventory,
     // ── Số đơn SalePayment tổng ──
     totalSaleCount,
+    // ── Lấy thông tin Ví ──
+    fetchedWallets,
   ] = await Promise.all([
     Product.countDocuments(),
     ProductBranchStock.countDocuments({ $expr: { $lte: ['$qty', '$minQuantity'] }, ...branchMatch }).catch(() => 0),
@@ -224,6 +227,9 @@ router.get('/', async (req, res) => {
 
     // Đếm SalePayment
     SalePayment.countDocuments({ createdAt: dateFilter, ...branchMatch }),
+
+    // Lấy thông tin Ví
+    Wallet.find(),
   ]);
 
   const revenue = receipts[0]?.total ?? 0;
@@ -422,6 +428,21 @@ router.get('/', async (req, res) => {
     };
   });
 
+  // Build wallets object from Wallet collection
+  const walletsData = {
+    zaloOA: 0,
+    shopeeWallet: 0,
+    zaloWallet: 0,
+    adsWallet: 0,
+  };
+  const walletsList = fetchedWallets || [];
+  for (const w of walletsList) {
+    if (w.code === 'ZALO_OA') walletsData.zaloOA = w.balance;
+    if (w.code === 'SHOPEE') walletsData.shopeeWallet = w.balance;
+    if (w.code === 'ZALO_WALLET') walletsData.zaloWallet = w.balance;
+    if (w.code === 'ADS') walletsData.adsWallet = w.balance;
+  }
+
   res.json({
     totals: {
       products,
@@ -446,12 +467,7 @@ router.get('/', async (req, res) => {
     },
     topProducts: topProductsList,
     chartData,
-    wallets: {
-      zaloOA: 0,
-      shopeeWallet: 0,
-      zaloWallet: 0,
-      adsWallet: 0,
-    },
+    wallets: walletsData,
     availableStores,
   });
 });

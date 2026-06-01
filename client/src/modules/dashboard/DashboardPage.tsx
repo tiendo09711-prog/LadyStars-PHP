@@ -172,7 +172,7 @@ export function DashboardPage() {
     try {
       const storesParam = selectedStores.length > 0 ? selectedStores.join(',') : '';
       const res = await http.get(`/dashboard/daily-products?date=${encodeURIComponent(item.fullDate)}&stores=${encodeURIComponent(storesParam)}`);
-      setDailyProducts(res.products || []);
+      setDailyProducts(res.data.products || []);
     } catch (err) {
       console.error(err);
       setDailyProducts([]);
@@ -270,12 +270,12 @@ export function DashboardPage() {
               return (
                 <tr key={i} className={isTotal ? 'row-total' : 'row-bold'}>
                   {cols.kenh_ban && <td style={{ fontWeight: isTotal ? 700 : 400 }}>{ch.label}</td>}
-                  {cols.doanh_thu && <td>{ch.revenue > 0 ? fmt(ch.revenue) : <span className="txt-red">-100%</span>}</td>}
-                  {cols.so_don && <td>{ch.orders > 0 ? ch.orders : <span className="txt-red">-100%</span>}</td>}
-                  {cols.gttb && <td>{ch.avgOrderValue > 0 ? fmt(ch.avgOrderValue) : <span className="txt-red">-100%</span>}</td>}
+                  {cols.doanh_thu && <td>{fmt(ch.revenue)}</td>}
+                  {cols.so_don && <td>{ch.orders}</td>}
+                  {cols.gttb && <td>{fmt(ch.avgOrderValue)}</td>}
                   {cols.slsptb && <td></td>}
                   {cols.ads && <td></td>}
-                  {cols.loi_nhuan && <td>{ch.profit !== 0 ? fmt(ch.profit) : <span className="txt-red">-100%</span>}</td>}
+                  {cols.loi_nhuan && <td>{fmt(ch.profit)}</td>}
                   {cols.pct_loi_nhuan && <td></td>}
                 </tr>
               );
@@ -468,9 +468,28 @@ export function DashboardPage() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td colSpan={6} className="dv2-empty">Chưa có dữ liệu</td>
-            </tr>
+            {orderChannels.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="dv2-empty">Chưa có dữ liệu</td>
+              </tr>
+            ) : (
+              orderChannels.map((ch, i) => {
+                const ic = CHANNEL_ICON[ch.icon] ?? { cls: 'admin', text: ch.label[0] };
+                return (
+                  <tr key={i}>
+                    <td>
+                      <span className={`ch-icon ${ic.cls}`}>{ic.text}</span>
+                      <span className="txt-blue">{ch.label}</span>
+                    </td>
+                    <td>{ch.newOrders || 0}</td>
+                    <td>{ch.packing || 0}</td>
+                    <td>{ch.shipping || 0}</td>
+                    <td>{ch.cancelled || 0}</td>
+                    <td>{ch.returned || 0}</td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -499,15 +518,6 @@ export function DashboardPage() {
             </div>
             <div className="dv2-wallet-info">
               <p>Ví doanh thu</p>
-              <strong>{fmt(wallets.shopeeWallet)}</strong>
-            </div>
-          </div>
-          <div className="dv2-wallet-item">
-            <div className="dv2-wallet-icon" style={{ background: '#FFF0F0' }}>
-              <span style={{ fontSize: 16, filter: 'sepia(1) saturate(3) hue-rotate(320deg)' }}>🛍</span>
-            </div>
-            <div className="dv2-wallet-info">
-              <p>Ví doanh thu</p>
               <strong>{fmt(wallets.zaloWallet)}</strong>
             </div>
           </div>
@@ -531,7 +541,9 @@ export function DashboardPage() {
           </thead>
           <tbody>
             <tr>
-              <td colSpan={3} className="dv2-empty">Chưa có dữ liệu</td>
+              <td>Tổng cộng</td>
+              <td className="txt-blue">{fmt(wallets.zaloWallet)}</td>
+              <td className="txt-red">{fmt(wallets.adsWallet)}</td>
             </tr>
           </tbody>
         </table>

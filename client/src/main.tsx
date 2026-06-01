@@ -11,6 +11,13 @@ import { InventoryPage } from './modules/product/InventoryPage';
 import { CategoriesPage } from './modules/product/CategoriesPage';
 import { SalesPage } from './modules/product/SalesPage';
 import { CustomerPage } from './modules/customer/CustomerPage';
+import { CustomerListPage } from './modules/customer/CustomerListPage';
+import { CustomerCardPage } from './modules/customer/CustomerCardPage';
+import { CustomerCarePage } from './modules/customer/CustomerCarePage';
+import { CustomerLevelPage } from './modules/customer/CustomerLevelPage';
+import { CustomerGroupPage } from './modules/customer/CustomerGroupPage';
+import { CustomerCareTypePage } from './modules/customer/CustomerCareTypePage';
+import { CustomerCareReasonPage } from './modules/customer/CustomerCareReasonPage';
 import { VendorPage } from './modules/vendor/VendorPage';
 import { AccountingPage } from './modules/accounting/AccountingPage';
 import { TaskPage } from './modules/task/TaskPage';
@@ -76,6 +83,13 @@ const router = createBrowserRouter([
       // ── Bán hàng & Đối tác ─────────────────────────────────────
       { path: 'sales', element: <SalesPage /> },
       { path: 'customers', element: <CustomerPage /> },
+      { path: 'customers/list', element: <CustomerListPage /> },
+      { path: 'customers/cards', element: <CustomerCardPage /> },
+      { path: 'customers/care', element: <CustomerCarePage /> },
+      { path: 'customers/levels', element: <CustomerLevelPage /> },
+      { path: 'customers/groups', element: <CustomerGroupPage /> },
+      { path: 'customers/care-types', element: <CustomerCareTypePage /> },
+      { path: 'customers/care-reasons', element: <CustomerCareReasonPage /> },
       { path: 'vendors', element: <VendorPage /> },
 
       // ── Kênh bán ───────────────────────────────────────────────
