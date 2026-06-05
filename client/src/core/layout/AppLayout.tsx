@@ -93,20 +93,177 @@ const baseMenuGroups = [
     label: 'Khách hàng',
     items: [
       { to: '/customers/list', label: 'Danh sách khách hàng', icon: List },
-      { to: '/customers/cards', label: 'Thẻ khách hàng', icon: CreditCard },
       { to: '/customers/care', label: 'Chăm sóc khách hàng', icon: HeartHandshake },
-      { to: '/customers/levels', label: 'Cấp độ', icon: Layers },
-      { to: '/customers/groups', label: 'Nhóm khách hàng', icon: Network },
-      { to: '/customers/care-types', label: 'Hình thức chăm sóc', icon: BriefcaseMedical },
-      { to: '/customers/care-reasons', label: 'Lý do chăm sóc', icon: MessageSquareHeart },
+    ],
+  },
+  {
+    label: 'Kế toán',
+    items: [
+      { to: '/accounting/cash', label: 'Thu chi tiền mặt', icon: WalletCards },
+      { to: '/accounting/bank', label: 'Thu chi ngân hàng', icon: Building2 },
+      { to: '/accounting/summary', label: 'Tổng hợp thu chi', icon: ClipboardList },
+      { 
+        label: 'Công nợ', 
+        icon: Users,
+        subItems: [
+          { to: '/accounting/debt/customers', label: 'Khách hàng', icon: Users },
+          { to: '/accounting/debt/staff', label: 'Nhân viên bán hàng', icon: Users },
+          { to: '/accounting/debt/vendors', label: 'Nhà cung cấp', icon: Users },
+          { to: '/accounting/debt/initial', label: 'Nhập công nợ đầu kì', icon: Users },
+        ]
+      },
+      { 
+        label: 'Bút toán', 
+        icon: FileEdit,
+        subItems: [
+          { to: '/accounting/entries', label: 'Bút toán', icon: List },
+          { to: '/accounting/journal', label: 'Nhật ký chung', icon: List },
+          { to: '/accounting/installment-collection', label: 'Thu hộ trả góp', icon: List },
+          { to: '/accounting/history', label: 'Lịch sử', icon: History },
+        ]
+      },
+      { to: '/accounting/accounts', label: 'Tài khoản kế toán', icon: FileText },
+      { to: '/accounting/installment', label: 'Dịch vụ trả góp', icon: CreditCard },
     ],
   },
   {
     label: 'Vận hành',
     items: [
-      { to: '/accounting', label: 'Kế toán - báo cáo', icon: WalletCards },
       { to: '/tasks', label: 'Dự án - công việc', icon: ClipboardList },
       { to: '/print-forms', label: 'Mẫu in', icon: Printer },
+    ],
+  },
+  {
+    label: 'Báo Cáo',
+    items: [
+      {
+        label: 'Doanh thu',
+        icon: FileText,
+        subItems: [
+          { to: '/reports/revenue/time', label: 'Theo thời gian', icon: List },
+          { to: '/reports/revenue/store', label: 'Theo cửa hàng', icon: List },
+          { to: '/reports/revenue/brand', label: 'Theo thương hiệu', icon: List },
+          { to: '/reports/revenue/staff', label: 'Theo nhân viên', icon: List },
+          { to: '/reports/revenue/department', label: 'Theo phòng ban', icon: List },
+          { to: '/reports/revenue/category', label: 'Theo danh mục sản phẩm', icon: List },
+          { to: '/reports/revenue/internal-category', label: 'Theo danh mục nội bộ', icon: List },
+          { to: '/reports/revenue/product', label: 'Theo sản phẩm', icon: List },
+          { to: '/reports/revenue/vendor', label: 'Theo nhà cung cấp', icon: List },
+          { to: '/reports/revenue/customer', label: 'Theo khách hàng', icon: List },
+          { to: '/reports/revenue/inventory-ratio', label: 'Tỷ suất doanh thu / tồn kho', icon: List }
+        ]
+      },
+      {
+        label: 'Đơn hàng',
+        icon: ShoppingCart,
+        subItems: [
+          { to: '/reports/orders/channel', label: 'Theo kênh bán', icon: List },
+          { to: '/reports/orders/created', label: 'Đơn tạo', icon: List },
+          { to: '/reports/orders/success', label: 'Đơn thành công', icon: List },
+          { to: '/reports/orders/value', label: 'Theo giá trị đơn hàng', icon: List },
+          { to: '/reports/orders/category', label: 'Theo danh mục sản phẩm', icon: List },
+          { to: '/reports/orders/product', label: 'Theo sản phẩm', icon: List },
+          { to: '/reports/orders/status', label: 'Theo trạng thái', icon: List },
+          { to: '/reports/orders/address', label: 'Theo địa chỉ', icon: List },
+          { to: '/reports/orders/reason', label: 'Lý do xử lý đơn hàng', icon: List },
+          { to: '/reports/orders/staff', label: 'Nhân viên xử lý', icon: List },
+          { to: '/reports/orders/ads', label: 'Theo quảng cáo', icon: List },
+          { to: '/reports/orders/cod-reconciliation', label: 'Tiền đối soát', icon: List },
+          { to: '/reports/orders/carrier', label: 'Theo hãng vận chuyển', icon: List }
+        ]
+      },
+      {
+        label: 'Bán lẻ',
+        icon: ShoppingBag,
+        subItems: [
+          { to: '/reports/retail/overview', label: 'Tổng quan', icon: List },
+          { to: '/reports/retail/customer-source', label: 'Theo nguồn khách hàng', icon: List },
+          { to: '/reports/retail/staff', label: 'Theo nhân viên', icon: List },
+          { to: '/reports/retail/store', label: 'Theo cửa hàng', icon: List },
+          { to: '/reports/retail/card-swipe', label: 'Chi tiết quẹt thẻ', icon: List },
+          { to: '/reports/retail/invoice-value', label: 'Theo giá trị hóa đơn', icon: List },
+          { to: '/reports/retail/invoice-visitor-ratio', label: 'Báo cáo tỷ lệ hóa đơn/ khách vào cửa hàng', icon: List },
+          { to: '/reports/retail/shift-end', label: 'Báo cáo kết ca', icon: List }
+        ]
+      },
+      {
+        label: 'Bán sỉ',
+        icon: ShoppingBag,
+        subItems: [
+          { to: '/reports/wholesale/overview', label: 'Tổng quan', icon: List },
+          { to: '/reports/wholesale/staff', label: 'Theo nhân viên bán hàng', icon: List }
+        ]
+      },
+      {
+        label: 'Kho hàng',
+        icon: Package,
+        subItems: [
+          { to: '/reports/inventory/inout-product', label: 'Xuất nhập tồn theo sản phẩm', icon: List },
+          { to: '/reports/inventory/inout-details', label: 'Chi tiết sản phẩm XNK', icon: List },
+          { to: '/reports/inventory/inout-total', label: 'Tổng XNK', icon: List },
+          { to: '/reports/inventory/inout-store', label: 'Tổng XNK theo cửa hàng', icon: List },
+          { to: '/reports/inventory/vendor', label: 'Theo nhà cung cấp', icon: List },
+          { to: '/reports/inventory/product-category', label: 'Danh mục sản phẩm', icon: List },
+          { to: '/reports/inventory/stock-quantity', label: 'Số lượng hàng tồn kho', icon: List },
+          { to: '/reports/inventory/unconfirmed-transfers', label: 'Chuyển kho chưa xác nhận', icon: List },
+          { to: '/reports/inventory/store-status', label: 'Theo trạng thái từng cửa hàng', icon: List },
+          { to: '/reports/inventory/product-status', label: 'Theo trạng thái từng sản phẩm', icon: List },
+          { to: '/reports/inventory/batch', label: 'Theo lô hàng', icon: List },
+          { to: '/reports/inventory/transfers-product', label: 'Chuyển kho theo sản phẩm', icon: List }
+        ]
+      },
+      {
+        label: 'Sản phẩm',
+        icon: Boxes,
+        subItems: [
+          { to: '/reports/products/best-selling', label: 'Bán chạy nhất', icon: List },
+          { to: '/reports/products/best-selling-store', label: 'Bán chạy theo cửa hàng', icon: List },
+          { to: '/reports/products/sales-speed', label: 'Tốc độ bán hàng', icon: List },
+          { to: '/reports/products/channel', label: 'Theo kênh bán', icon: List },
+          { to: '/reports/products/category-store', label: 'Theo danh mục và cửa hàng', icon: List },
+          { to: '/reports/products/price-range', label: 'Theo khoảng giá', icon: List },
+          { to: '/reports/products/date', label: 'Theo ngày', icon: List },
+          { to: '/reports/products/imei', label: 'Bán hàng theo IMEI', icon: List },
+          { to: '/reports/products/attribute', label: 'Theo thuộc tính', icon: List }
+        ]
+      },
+      {
+        label: 'Kế toán',
+        icon: WalletCards,
+        subItems: [
+          { to: '/reports/accounting/summary-store', label: 'Tổng hợp thu chi theo cửa hàng', icon: List },
+          { to: '/reports/accounting/summary-account', label: 'Tổng hợp theo tài khoản', icon: List },
+          { to: '/reports/accounting/retail-daily-store', label: 'Tổng hợp tiền bán lẻ hàng ngày theo cửa hàng', icon: List },
+          { to: '/reports/accounting/summary-date', label: 'Tổng hợp thu chi theo ngày', icon: List },
+          { to: '/reports/accounting/business-results', label: 'Tổng hợp kết quả kinh doanh', icon: List },
+          { to: '/reports/accounting/balance-sheet', label: 'Bảng cân đối kế toán', icon: List }
+        ]
+      },
+      {
+        label: 'Sổ kế toán',
+        icon: ClipboardList,
+        subItems: [
+          { to: '/reports/ledger/s1a-hkd', label: 'Mẫu số S1a-HKD (Doanh thu từ 1 tỷ trở xuống)', icon: List },
+          { to: '/reports/ledger/s2a-hkd', label: 'Mẫu số S2a-HKD (Doanh thu trên 1 tỷ đến 3 tỷ)', icon: List },
+          { to: '/reports/ledger/s2b-hkd', label: 'Mẫu số S2b-HKD (Doanh thu trên 3 tỷ)', icon: List },
+          { to: '/reports/ledger/s2c-hkd', label: 'Mẫu số S2c-HKD (Sổ chi tiết doanh thu, chi phí)', icon: List },
+          { to: '/reports/ledger/s2d-hkd', label: 'Mẫu số S2d-HKD (Sổ chi tiết vật liệu, dụng cụ, sản phẩm, hàng hóa)', icon: List }
+        ]
+      },
+      {
+        label: 'Khách hàng',
+        icon: Users,
+        subItems: [
+          { to: '/reports/customers/overview', label: 'Tổng quan', icon: List },
+          { to: '/reports/customers/product', label: 'Theo sản phẩm', icon: List },
+          { to: '/reports/customers/return-rate', label: 'Tỷ lệ khách quay lại', icon: List },
+          { to: '/reports/customers/level', label: 'Cấp độ khách hàng', icon: List },
+          { to: '/reports/customers/group', label: 'Nhóm khách hàng', icon: List },
+          { to: '/reports/customers/new-store', label: 'Khách hàng tạo mới theo cửa hàng', icon: List },
+          { to: '/reports/customers/purchase-cycle', label: 'Chu kỳ mua hàng', icon: List },
+          { to: '/reports/customers/birthday', label: 'Sinh nhật khách hàng', icon: List }
+        ]
+      }
     ],
   },
 ];
@@ -243,6 +400,51 @@ export function AppLayout() {
                 </button>
                 {isGroupOpen && group.items.map((item) => {
                   const Icon = item.icon;
+                  if (item.subItems) {
+                    const isSubGroupOpen = openMenuGroups[item.label] ?? false;
+                    return (
+                      <div key={item.label}>
+                        <button
+                          type="button"
+                          aria-expanded={isSubGroupOpen}
+                          onClick={() => toggleMenuGroup(item.label)}
+                          style={{
+                            display: 'flex', alignItems: 'center', width: '100%',
+                            padding: '8px 16px', background: 'transparent', border: 'none',
+                            color: '#94a3b8', fontSize: '14px', cursor: 'pointer', fontWeight: 500
+                          }}
+                        >
+                          <Icon size={18} style={{ marginRight: '12px' }} />
+                          <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                          <ChevronDown size={14} style={{ transform: isSubGroupOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                        </button>
+                        {isSubGroupOpen && (
+                          <div style={{ background: '#0f172a', padding: '4px 0' }}>
+                            {item.subItems.map(subItem => {
+                              const SubIcon = subItem.icon;
+                              return (
+                                <NavLink 
+                                  key={subItem.to} 
+                                  to={subItem.to} 
+                                  onClick={() => setSidebarOpen(false)}
+                                  style={({isActive}) => ({
+                                    padding: '8px 16px 8px 46px', display: 'flex', alignItems: 'center',
+                                    textDecoration: 'none', color: isActive ? '#fff' : '#94a3b8',
+                                    fontSize: '14px', background: isActive ? '#1e293b' : 'transparent',
+                                    fontWeight: isActive ? 600 : 400
+                                  })}
+                                >
+                                  <SubIcon size={16} style={{ marginRight: '12px' }} />
+                                  <span>{subItem.label}</span>
+                                </NavLink>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  
                   return (
                     <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => setSidebarOpen(false)}>
                       <Icon size={18} />

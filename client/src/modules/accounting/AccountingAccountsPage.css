@@ -1,0 +1,164 @@
+.accounts-page {
+  background-color: #eef2f5;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  color: #333;
+}
+
+.accounts-card {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.accounts-header {
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.header-left {
+  display: flex;
+  gap: 10px;
+}
+
+.header-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-add {
+  background-color: #5cb85c;
+  color: white;
+  border: 1px solid #4cae4c;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-add:hover {
+  background-color: #449d44;
+}
+
+.btn-actions {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-actions:hover {
+  background-color: #e6e6e6;
+  border-color: #adadad;
+}
+
+.filter-input, .filter-select {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  height: 32px;
+  outline: none;
+}
+.filter-input {
+  width: 150px;
+}
+.filter-select {
+  width: 120px;
+}
+
+.btn-filter {
+  background-color: #17a2b8;
+  color: white;
+  border: 1px solid #117a8b;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  height: 32px;
+}
+.btn-filter:hover {
+  background-color: #138496;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid #ddd;
+}
+
+.accounts-table th, .accounts-table td {
+  border: 1px solid #f0f0f0;
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.accounts-table th {
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.accounts-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-success {
+  color: #28a745;
+}
+
+.badge-warehouse {
+  background-color: #17a2b8;
+  color: white;
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.btn-gear, .btn-row-action {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-row-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0 auto;
+}
+
+.child-icon {
+  color: #6c757d;
+  margin-right: 5px;
+  font-size: 12px;
+}

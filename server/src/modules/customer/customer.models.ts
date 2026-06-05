@@ -37,3 +37,17 @@ const CustomerSchema = new Schema({
 }, { timestamps: true });
 CustomerSchema.index({ name: 'text', code: 'text', phone: 'text', email: 'text' });
 export const Customer = model('Customer', CustomerSchema);
+
+const CustomerCareSchema = new Schema({
+  code: { type: String, required: true },
+  customerCode: { type: String },
+  customerName: { type: String },
+  customerPhone: { type: String },
+  details: { type: String },
+  reason: { type: String },
+  description: { type: String },
+  creator: { type: String },
+  recordDate: { type: Date },
+}, { timestamps: true });
+CustomerCareSchema.index({ code: 'text', customerName: 'text', customerPhone: 'text' });
+export const CustomerCare = model('CustomerCare', CustomerCareSchema);

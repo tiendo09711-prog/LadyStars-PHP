@@ -1,12 +1,45 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
 import { SalePayment } from '../product/product.models.js';
-import { AccountingType, ExpensePayment, PayPerson, Receipt } from './accounting.models.js';
+import { AccountingType, CashTransaction, BankTransaction, SummaryTransaction, ExpensePayment, PayPerson, Receipt, CustomerDebtSummary, CustomerDebtRecord, StaffDebtSummary, VendorDebtSummary, VendorDebtRecord, LogBookEntry, InstallmentCollection, AccountingTransactionLog, AccountingAccount, InstallmentService } from './accounting.models.js';
 const router = Router();
 router.use('/types', crudRoutes(AccountingType));
 router.use('/pay-persons', crudRoutes(PayPerson));
 router.use('/receipts', crudRoutes(Receipt));
 router.use('/payments', crudRoutes(ExpensePayment));
+router.use('/cash-transactions', crudRoutes(CashTransaction));
+router.use('/logbooks', crudRoutes(LogBookEntry));
+router.use('/bank-transactions', crudRoutes(BankTransaction));
+router.use('/summary-transactions', crudRoutes(SummaryTransaction));
+router.use('/installment-collections', crudRoutes(InstallmentCollection));
+router.use('/transaction-logs', crudRoutes(AccountingTransactionLog));
+router.use('/accounts', crudRoutes(AccountingAccount));
+router.use('/installment-services-crud', crudRoutes(InstallmentService));
+
+router.get('/installment-services', async (req, res) => {
+  const { id, name, targetCode, phone, address } = req.query;
+  const query: any = {};
+  if (id) query.id = new RegExp(String(id), 'i');
+  if (name) query.name = new RegExp(String(name), 'i');
+  if (targetCode) query.targetCode = new RegExp(String(targetCode), 'i');
+  if (phone) query.phone = new RegExp(String(phone), 'i');
+  if (address) query.address = new RegExp(String(address), 'i');
+
+  const items = await InstallmentService.find(query).sort({ createdAt: -1 });
+  res.json({ items, total: items.length });
+});
+
+router.get('/accounts-list', async (req, res) => {
+  const { code, name, status, accountId } = req.query;
+  const query: any = {};
+  if (code) query.code = new RegExp(String(code), 'i');
+  if (name) query.name = new RegExp(String(name), 'i');
+  if (status) query.status = status;
+  if (accountId) query.id = accountId;
+
+  const items = await AccountingAccount.find(query).sort({ code: 1 });
+  res.json({ items, total: items.length });
+});
 router.get('/invoices', async (_req, res) => {
   const items = await SalePayment.find({ status: { $in: ['completed', 'refunded'] } }).sort({ createdAt: -1 }).limit(100);
   res.json({ items, total: items.length, page: 1, limit: 100 });
@@ -28,4 +61,355 @@ router.get('/reports/sales', async (_req, res) => {
     },
   });
 });
+router.get('/debt/customers/stats', async (req, res) => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  
+  const endOf7Days = new Date(now);
+  endOf7Days.setDate(endOf7Days.getDate() + 7);
+  endOf7Days.setHours(23, 59, 59, 999);
+
+  const [all, overdue, today, next_7_days, over_7_days] = await Promise.all([
+    CustomerDebtSummary.countDocuments(),
+    CustomerDebtRecord.distinct('customerCode', { dueDate: { $lt: now } }),
+    CustomerDebtRecord.distinct('customerCode', { dueDate: { $gte: now, $lte: endOfToday } }),
+    CustomerDebtRecord.distinct('customerCode', { dueDate: { $gt: endOfToday, $lte: endOf7Days } }),
+    CustomerDebtRecord.distinct('customerCode', { dueDate: { $gt: endOf7Days } })
+  ]);
+
+  res.json({
+    all,
+    due_date: overdue.length + today.length + next_7_days.length + over_7_days.length,
+    overdue: overdue.length,
+    today: today.length,
+    next_7_days: next_7_days.length,
+    over_7_days: over_7_days.length
+  });
+});
+
+router.get('/debt/customers/summary', async (req, res) => {
+  const { tab, page = 1, limit = 50 } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+  
+  let query: any = {};
+  
+  if (tab && tab !== 'all') {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    
+    const endOf7Days = new Date(now);
+    endOf7Days.setDate(endOf7Days.getDate() + 7);
+    endOf7Days.setHours(23, 59, 59, 999);
+
+    let recordQuery: any = {};
+    switch (tab) {
+      case 'overdue': recordQuery = { dueDate: { $lt: now } }; break;
+      case 'today': recordQuery = { dueDate: { $gte: now, $lte: endOfToday } }; break;
+      case 'next_7_days': recordQuery = { dueDate: { $gt: endOfToday, $lte: endOf7Days } }; break;
+      case 'over_7_days': recordQuery = { dueDate: { $gt: endOf7Days } }; break;
+      case 'due_date': recordQuery = {}; break; // all that have due dates
+    }
+    
+    const customerCodes = await CustomerDebtRecord.distinct('customerCode', recordQuery);
+    query = { code: { $in: customerCodes } };
+  }
+
+  const items = await CustomerDebtSummary.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit));
+  const total = await CustomerDebtSummary.countDocuments(query);
+  
+  res.json({ items, total, page: Number(page), limit: Number(limit) });
+});
+
+router.get('/debt/customers/records', async (req, res) => {
+  const { tab } = req.query;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); // start of today
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  
+  const endOf7Days = new Date(now);
+  endOf7Days.setDate(endOf7Days.getDate() + 7);
+  endOf7Days.setHours(23, 59, 59, 999);
+
+  let query: any = {};
+  
+  switch (tab) {
+    case 'overdue':
+      query = { dueDate: { $lt: now } };
+      break;
+    case 'today':
+      query = { dueDate: { $gte: now, $lte: endOfToday } };
+      break;
+    case 'next_7_days':
+      query = { dueDate: { $gt: endOfToday, $lte: endOf7Days } };
+      break;
+    case 'over_7_days':
+      query = { dueDate: { $gt: endOf7Days } };
+      break;
+    case 'due_date': // meaning all records with a due date (essentially all in this context)
+    case 'all':
+    default:
+      query = {}; 
+      break;
+  }
+  
+  const items = await CustomerDebtRecord.find(query).sort({ dueDate: 1 });
+  res.json({ items, total: items.length });
+});
+
+router.get('/debt/staff/summary', async (req, res) => {
+  const { page = 1, limit = 50 } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+  const items = await StaffDebtSummary.find().sort({ createdAt: -1 }).skip(skip).limit(Number(limit));
+  const total = await StaffDebtSummary.countDocuments();
+  res.json({ items, total, page: Number(page), limit: Number(limit) });
+});
+
+router.get('/debt/vendors/stats', async (req, res) => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  
+  const endOf7Days = new Date(now);
+  endOf7Days.setDate(endOf7Days.getDate() + 7);
+  endOf7Days.setHours(23, 59, 59, 999);
+
+  const [all, overdue, today, next_7_days, over_7_days] = await Promise.all([
+    VendorDebtSummary.countDocuments(),
+    VendorDebtRecord.distinct('vendorCode', { dueDate: { $lt: now } }),
+    VendorDebtRecord.distinct('vendorCode', { dueDate: { $gte: now, $lte: endOfToday } }),
+    VendorDebtRecord.distinct('vendorCode', { dueDate: { $gt: endOfToday, $lte: endOf7Days } }),
+    VendorDebtRecord.distinct('vendorCode', { dueDate: { $gt: endOf7Days } })
+  ]);
+
+  res.json({
+    all,
+    due_date: overdue.length + today.length + next_7_days.length + over_7_days.length,
+    overdue: overdue.length,
+    today: today.length,
+    next_7_days: next_7_days.length,
+    over_7_days: over_7_days.length
+  });
+});
+
+router.get('/debt/vendors/summary', async (req, res) => {
+  const { tab, page = 1, limit = 50 } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+  
+  let query: any = {};
+  
+  if (tab && tab !== 'all') {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    
+    const endOf7Days = new Date(now);
+    endOf7Days.setDate(endOf7Days.getDate() + 7);
+    endOf7Days.setHours(23, 59, 59, 999);
+
+    let recordQuery: any = {};
+    switch (tab) {
+      case 'overdue': recordQuery = { dueDate: { $lt: now } }; break;
+      case 'today': recordQuery = { dueDate: { $gte: now, $lte: endOfToday } }; break;
+      case 'next_7_days': recordQuery = { dueDate: { $gt: endOfToday, $lte: endOf7Days } }; break;
+      case 'over_7_days': recordQuery = { dueDate: { $gt: endOf7Days } }; break;
+      case 'due_date': recordQuery = {}; break; 
+    }
+    
+    const vendorCodes = await VendorDebtRecord.distinct('vendorCode', recordQuery);
+    query = { code: { $in: vendorCodes } };
+  }
+
+  const items = await VendorDebtSummary.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit));
+  const total = await VendorDebtSummary.countDocuments(query);
+  
+  res.json({ items, total, page: Number(page), limit: Number(limit) });
+});
+
+router.post('/debt/opening', async (req, res) => {
+  const { date, type, amount, note, targetType, targetCode } = req.body;
+  
+  if (!targetCode || !amount) {
+    return res.status(400).json({ message: 'Missing targetCode or amount' });
+  }
+
+  const numAmount = Number(amount);
+
+  try {
+    if (targetType === 'vendor') {
+      const summary = await VendorDebtSummary.findOne({ code: targetCode });
+      if (summary) {
+        if (type === 'payable') {
+          summary.initialPayable = (summary.initialPayable || 0) + numAmount;
+          summary.finalPayable = (summary.finalPayable || 0) + numAmount;
+        } else {
+          summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
+          summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
+        }
+        await summary.save();
+      }
+    } else if (targetType === 'customer') {
+      const summary = await CustomerDebtSummary.findOne({ code: targetCode });
+      if (summary) {
+        if (type === 'payable') {
+          summary.initialPayable = (summary.initialPayable || 0) + numAmount;
+          summary.finalPayable = (summary.finalPayable || 0) + numAmount;
+        } else {
+          summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
+          summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
+        }
+        await summary.save();
+      }
+    } else if (targetType === 'staff') {
+      const summary = await StaffDebtSummary.findOne({ staffName: targetCode });
+      if (summary) {
+        // Staff logic if needed, currently they have collectedRetail, collectedOrders, remainingDebt.
+        summary.remainingDebt = (summary.remainingDebt || 0) + numAmount;
+        await summary.save();
+      }
+    }
+    
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/debt/opening/bulk', async (req, res) => {
+  const { items } = req.body;
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ message: 'Invalid items array' });
+  }
+
+  let successCount = 0;
+
+  for (const item of items) {
+    const { type, amount, targetType, targetCode } = item;
+    if (!targetCode || !amount) continue;
+
+    const numAmount = Number(amount);
+
+    if (targetType === 'vendor') {
+      const summary = await VendorDebtSummary.findOne({ code: targetCode });
+      if (summary) {
+        if (type === 'payable') {
+          summary.initialPayable = (summary.initialPayable || 0) + numAmount;
+          summary.finalPayable = (summary.finalPayable || 0) + numAmount;
+        } else {
+          summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
+          summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
+        }
+        await summary.save();
+        successCount++;
+      }
+    } else if (targetType === 'customer') {
+      const summary = await CustomerDebtSummary.findOne({ code: targetCode });
+      if (summary) {
+        if (type === 'payable') {
+          summary.initialPayable = (summary.initialPayable || 0) + numAmount;
+          summary.finalPayable = (summary.finalPayable || 0) + numAmount;
+        } else {
+          summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
+          summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
+        }
+        await summary.save();
+        successCount++;
+      }
+    }
+  }
+
+  res.json({ success: true, processed: successCount, total: items.length });
+});
+
+router.post('/cash-transactions/bulk', async (req, res) => {
+  const { items } = req.body;
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ message: 'Invalid items array' });
+  }
+
+  try {
+    const validItems = items.filter((item: any) => item.transactionId);
+    
+    for (const item of validItems) {
+      await CashTransaction.findOneAndUpdate(
+        { transactionId: item.transactionId },
+        { $set: item },
+        { upsert: true }
+      );
+    }
+    res.json({ success: true, processed: validItems.length });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/logbooks/bulk', async (req, res) => {
+  const { items } = req.body;
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ message: 'Invalid items array' });
+  }
+
+  try {
+    // Clear all to ensure clean import, or just insert
+    await LogBookEntry.deleteMany({});
+    
+    // items should match schema precisely
+    await LogBookEntry.insertMany(items);
+    
+    res.json({ success: true, processed: items.length });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/installment-collections/bulk', async (req, res) => {
+  const { items } = req.body;
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ message: 'Invalid items array' });
+  }
+
+  try {
+    const validItems = items.filter((item: any) => item.transactionId);
+    
+    for (const item of validItems) {
+      await InstallmentCollection.findOneAndUpdate(
+        { transactionId: item.transactionId },
+        { $set: item },
+        { upsert: true }
+      );
+    }
+    res.json({ success: true, processed: validItems.length });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/transaction-logs/bulk', async (req, res) => {
+  const { items } = req.body;
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ message: 'Invalid items array' });
+  }
+
+  try {
+    const validItems = items.filter((item: any) => item.logId);
+    
+    for (const item of validItems) {
+      await AccountingTransactionLog.findOneAndUpdate(
+        { logId: item.logId },
+        { $set: item },
+        { upsert: true }
+      );
+    }
+    res.json({ success: true, processed: validItems.length });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
