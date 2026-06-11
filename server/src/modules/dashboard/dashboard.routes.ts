@@ -2,7 +2,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import { AccountingType, ExpensePayment, Receipt } from '../accounting/accounting.models.js';
 import { Customer } from '../customer/customer.models.js';
-import { Product, ProductBranchStock, RetailInvoice, SalePayment, WholesaleInvoice } from '../product/product.models.js';
+import { Product, ProductBranchStock, SalePayment } from '../product/product.models.js';
 import { Project, Task } from '../task/task.models.js';
 import { Wallet } from '../../core/system/system.models.js';
 import { Vendor, VendorPurchase } from '../vendor/vendor.models.js';
@@ -76,10 +76,8 @@ router.get('/', async (req, res) => {
     projects,
     tasks,
     accountingTypes,
-    // ── Kênh bán lẻ (RetailInvoice) ──
+    // ── Doanh thu thật từ SalePayment (status = completed) ──
     retailAgg,
-    // ── Kênh bán sỉ (WholesaleInvoice) ──
-    wholesaleAgg,
     // ── Sản phẩm bán chạy từ items của SalePayment ──
     topProductsAgg,
     // ── Tồn kho ──
@@ -106,61 +104,21 @@ router.get('/', async (req, res) => {
     Task.countDocuments(),
     AccountingType.countDocuments(),
 
-    // Bán lẻ: tổng từ RetailInvoice
-    // field 'date' là string "dd/mm/yyyy" — dùng $addFields để parse thành Date
-    RetailInvoice.aggregate([
-      {
-        $addFields: {
-          parsedDate: {
-            $dateFromString: {
-              dateString: '$date',
-              format: '%d/%m/%Y',
-              onError: null,
-              onNull: null,
-            },
-          },
-        },
-      },
+    // Doanh thu thật: tổng từ SalePayment hoàn tất, theo thời gian và chi nhánh
+    SalePayment.aggregate([
       {
         $match: {
-          parsedDate: dateFilter,
-          status: { $nin: ['Hủy', 'Cancelled', 'cancelled'] },
+          createdAt: dateFilter,
+          status: 'completed',
+          ...branchMatch,
         },
       },
       {
         $group: {
           _id: null,
-          revenue: { $sum: '$totalAmount' },
+          revenue: { $sum: '$value' },
           orders: { $sum: 1 },
-        },
-      },
-    ]).catch(() => []),
-
-    // Bán sỉ: tổng từ WholesaleInvoice (cũng dùng field 'date' string)
-    WholesaleInvoice.aggregate([
-      {
-        $addFields: {
-          parsedDate: {
-            $dateFromString: {
-              dateString: '$date',
-              format: '%d/%m/%Y',
-              onError: null,
-              onNull: null,
-            },
-          },
-        },
-      },
-      {
-        $match: {
-          parsedDate: dateFilter,
-          status: { $nin: ['Hủy', 'Cancelled', 'cancelled'] },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          revenue: { $sum: '$totalAmount' },
-          orders: { $sum: 1 },
+          totalCost: { $sum: '$totalCost' },
         },
       },
     ]).catch(() => []),
@@ -238,9 +196,9 @@ router.get('/', async (req, res) => {
 
   const retailRevenue = retailAgg[0]?.revenue ?? 0;
   const retailOrders = retailAgg[0]?.orders ?? 0;
-  const wholesaleRevenue = wholesaleAgg[0]?.revenue ?? 0;
-  const wholesaleOrders = wholesaleAgg[0]?.orders ?? 0;
-  const totalRevenue = retailRevenue + wholesaleRevenue;
+  const wholesaleRevenue = 0;
+  const wholesaleOrders = 0;
+  const totalRevenue = retailRevenue;
 
   // ── Bảng Kênh bán ──
   const salesChannels = [
@@ -355,58 +313,45 @@ router.get('/', async (req, res) => {
   const prevStart = new Date(chartStart.getTime() - periodMs);
   const prevEnd = new Date(chartStart);
 
-  // Query doanh thu kỳ này + kỳ trước từ RetailInvoice và WholesaleInvoice
-  // (dùng field 'date' string "dd/mm/yyyy" — parse bằng $dateFromString trong pipeline)
+  // Query doanh thu kỳ này + kỳ trước từ SalePayment (status=completed)
   const buildChartAgg = (start: Date, end: Date) => [
     {
-      $addFields: {
-        parsedDate: {
-          $dateFromString: {
-            dateString: '$date',
-            format: '%d/%m/%Y',
-            onError: null,
-            onNull: null,
-          },
-        },
-      },
-    },
-    {
       $match: {
-        parsedDate: { $gte: start, $lt: end },
-        status: { $nin: ['Hủy', 'Cancelled', 'cancelled'] },
+        createdAt: { $gte: start, $lt: end },
+        status: 'completed',
+        ...branchMatch,
       },
     },
+    { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
     {
       $group: {
         _id: {
-          day: { $dayOfMonth: '$parsedDate' },
-          month: { $month: '$parsedDate' },
-          year: { $year: '$parsedDate' },
+          day: { $dayOfMonth: { $toDate: '$createdAt' } },
+          month: { $month: { $toDate: '$createdAt' } },
+          year: { $year: { $toDate: '$createdAt' } },
         },
-        total: { $sum: '$totalAmount' },
+        total: { $sum: '$items.total' },
       },
     },
   ];
 
-  const [retailCurrent, wholesaleCurrent, retailPrev, wholesalePrev] = await Promise.all([
-    RetailInvoice.aggregate(buildChartAgg(chartStart, chartEnd)).catch(() => []),
-    WholesaleInvoice.aggregate(buildChartAgg(chartStart, chartEnd)).catch(() => []),
-    RetailInvoice.aggregate(buildChartAgg(prevStart, prevEnd)).catch(() => []),
-    WholesaleInvoice.aggregate(buildChartAgg(prevStart, prevEnd)).catch(() => []),
+  const [currentChartData, prevChartData] = await Promise.all([
+    SalePayment.aggregate(buildChartAgg(chartStart, chartEnd)).catch(() => []),
+    SalePayment.aggregate(buildChartAgg(prevStart, prevEnd)).catch(() => []),
   ]);
 
-  // Gộp retail + wholesale theo từng ngày
-  const mergeByDay = (a: any[], b: any[]) => {
+  // Map theo ngày
+  const mergeByDay = (a: any[]) => {
     const map = new Map<string, number>();
-    for (const row of [...a, ...b]) {
+    for (const row of a) {
       const key = `${row._id.day}/${row._id.month}`;
-      map.set(key, (map.get(key) ?? 0) + row.total);
+      map.set(key, (map.get(key) ?? 0) + (row.total || 0));
     }
     return map;
   };
 
-  const currentMap = mergeByDay(retailCurrent, wholesaleCurrent);
-  const prevMap = mergeByDay(retailPrev, wholesalePrev);
+  const currentMap = mergeByDay(currentChartData);
+  const prevMap = mergeByDay(prevChartData);
 
   const chartDays: Date[] = [];
   const cur = new Date(chartStart);
@@ -471,73 +416,67 @@ router.get('/', async (req, res) => {
     availableStores,
   });
 });
-// GET /dashboard/daily-products — Lấy danh sách sản phẩm bán trong 1 ngày cụ thể
+// GET /dashboard/daily-products — Sản phẩm bán ra trong 1 ngày (từ SalePayment)
 router.get('/daily-products', async (req, res) => {
   const { date, stores } = req.query; // date format: "dd/mm/yyyy"
   if (!date) return res.status(400).json({ message: 'Thiếu tham số date' });
 
+  // Parse date string "dd/mm/yyyy" to Date range
+  const parts = String(date).split('/');
+  if (parts.length !== 3) return res.status(400).json({ message: 'Định dạng ngày không hợp lệ (dd/mm/yyyy)' });
+  const dayStart = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayStart.getDate() + 1);
+
   let branchMatch: any = {};
   if (stores) {
     const allBranches = await mongoose.connection.db.collection('branches').find({ isActive: true }).project({ _id: 1, name: 1 }).toArray();
-    const storeNames = String(stores).split(',');
-    const selectedBranches = allBranches.filter(b => storeNames.includes((b as any).name));
-    const branchIds = selectedBranches.map((b: any) => b._id);
-    if (branchIds.length > 0) {
-      branchMatch = { branchId: { $in: branchIds } };
+    const storeNames = String(stores).split(',').filter(Boolean);
+    if (storeNames.length > 0) {
+      const selectedBranches = allBranches.filter(b => storeNames.includes((b as any).name));
+      const branchIds = selectedBranches.map((b: any) => b._id);
+      if (branchIds.length > 0) branchMatch = { branchId: { $in: branchIds } };
     }
   }
 
-  // 1. Lấy từ RetailInvoice
-  const retailAgg = await RetailInvoice.aggregate([
-    { $match: { date: String(date), status: { $nin: ['Hủy', 'Cancelled', 'cancelled'] }, ...branchMatch } },
+  // Aggregate from SalePayment → unwind items → lookup product name
+  const result = await SalePayment.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: dayStart, $lt: dayEnd },
+        status: 'completed',
+        ...branchMatch,
+      },
+    },
+    { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'products',
+        localField: 'items.productId',
+        foreignField: '_id',
+        as: 'productInfo',
+      },
+    },
+    { $unwind: { path: '$productInfo', preserveNullAndEmptyArrays: true } },
     {
       $group: {
-        _id: { code: '$productCode', name: '$productName' },
-        qty: { $sum: 1 }, // Hóa đơn lẻ thường 1 dòng là 1 sp, hoặc có thể lấy số lượng nếu có. Mặc định 1.
-        revenue: { $sum: '$totalAmount' },
-      }
-    }
+        _id: { productId: '$items.productId' },
+        name: { $first: { $ifNull: ['$productInfo.name', 'Không rõ'] } },
+        code: { $first: { $ifNull: ['$productInfo.code', ''] } },
+        qty: { $sum: { $ifNull: ['$items.amount', 1] } },
+        revenue: { $sum: { $ifNull: ['$items.total', 0] } },
+      },
+    },
+    { $sort: { revenue: -1 } },
   ]).catch(() => []);
 
-  // 2. Lấy từ WholesaleInvoice
-  const wholesaleAgg = await WholesaleInvoice.aggregate([
-    { $match: { date: String(date), status: { $nin: ['Hủy', 'Cancelled', 'cancelled'] }, ...branchMatch } },
-    {
-      $group: {
-        _id: { code: '$productCode', name: '$productName' },
-        qty: { $sum: { $ifNull: ['$quantity', 1] } },
-        revenue: { $sum: '$totalAmount' },
-      }
-    }
-  ]).catch(() => []);
-
-  // Gộp kết quả
-  const productMap = new Map<string, any>();
-  
-  const mergeItem = (item: any) => {
-    const code = item._id.code || 'UNKNOWN';
-    const name = item._id.name || 'Sản phẩm không tên';
-    const key = `${code}-${name}`;
-    
-    if (productMap.has(key)) {
-      const existing = productMap.get(key);
-      existing.qty += item.qty;
-      existing.revenue += item.revenue;
-    } else {
-      productMap.set(key, { code, name, qty: item.qty, revenue: item.revenue });
-    }
-  };
-
-  retailAgg.forEach(mergeItem);
-  wholesaleAgg.forEach(mergeItem);
-
-  const resultList = Array.from(productMap.values()).map(p => ({
-    ...p,
-    price: p.qty > 0 ? Math.round(p.revenue / p.qty) : 0
+  const resultList = result.map((p: any) => ({
+    code: p.code,
+    name: p.name,
+    qty: p.qty,
+    revenue: p.revenue,
+    price: p.qty > 0 ? Math.round(p.revenue / p.qty) : 0,
   }));
-
-  // Sắp xếp theo doanh thu giảm dần
-  resultList.sort((a, b) => b.revenue - a.revenue);
 
   res.json({ date, products: resultList });
 });

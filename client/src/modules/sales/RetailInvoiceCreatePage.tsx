@@ -108,7 +108,7 @@ export function RetailInvoiceCreatePage() {
       http.get('/auth/me'),
       http.get('/staff'),
       http.get('/customers/customers'),
-      http.get('/products/inventories', { params: { limit: 500 } })
+      http.get('/products/inventories', { params: { limit: 5000 } })
     ]).then(([meRes, staffRes, custRes, prodRes]) => {
       setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
       setDbStaffs(staffRes.data?.items || []);
@@ -144,26 +144,33 @@ export function RetailInvoiceCreatePage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
     if (!form.customerName.trim()) {
       setErrorMessage('Vui lòng nhập tên khách hàng');
       return;
     }
     if (!form.productCode.trim()) {
-      setErrorMessage('Vui lòng nhập mã sản phẩm');
-      return;
-    }
-    if (!form.productName.trim()) {
-      setErrorMessage('Vui lòng nhập tên sản phẩm');
+      setErrorMessage('Vui lòng chọn sản phẩm');
       return;
     }
 
-    setErrorMessage('');
+    // Find productId from selected productCode
+    const selectedProduct = dbProducts.find((p: any) => p.code === form.productCode);
+    if (!selectedProduct) {
+      setErrorMessage('Sản phẩm không tồn tại trong hệ thống. Vui lòng chọn lại.');
+      return;
+    }
+    if (quantity <= 0) {
+      setErrorMessage('Số lượng phải lớn hơn 0');
+      return;
+    }
+
     setIsSaving(true);
-
     try {
-      // Auto-save new customer if not found in dbCustomers
+      // 1. Auto-save new customer if not found
       const isExistingCustomer = dbCustomers.some(
-        c => c.name?.toLowerCase() === form.customerName.toLowerCase() && (c.phone === form.phone || !form.phone)
+        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase() && (c.phone === form.phone || !form.phone)
       );
       if (!isExistingCustomer) {
         await http.post('/customers/customers', {
@@ -176,33 +183,53 @@ export function RetailInvoiceCreatePage() {
           customerLevel: form.customerLevel,
           addressLocation: form.addressLocation,
           address: form.address,
-        }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
+        }).catch(e => console.log('Lỗi tạo khách hàng tự động:', e));
       }
 
-      const payload = {
-        ...form,
-        tabs: ['all'],
-        branchId,
-        branchName: branch?.name,
-        branchCode: branch?.code,
-        metadata: {
-          price,
-          quantity,
-          autoCalculated: useAutoCalculate
-        }
+      // 2. Find customerId if exists
+      const existingCustomer = dbCustomers.find(
+        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
+      );
+
+      // 3. Build SalePayment payload with proper ObjectId references
+      const salePayload = {
+        branchId: branchId,
+        customerId: existingCustomer?._id ?? null,
+        note: form.note,
+        salesperson: form.salesperson,
+        orderSource: form.orderSource,
+        paymentMethod: form.paymentMethod,
+        discountValue: Number(form.discount) || 0,
+        discountType: 'number' as const,
+        status: 'draft',
+        // items drives inventory deduction in completeSalePayment()
+        items: [{
+          productId: selectedProduct._id,
+          amount: quantity,
+          value: price,
+          discountValue: 0,
+          discountType: 'number',
+        }],
       };
 
-      await http.post('/products/retail-invoices', payload);
-      setSuccessMessage('Hóa đơn bán lẻ đã được lưu thành công!');
+      // 4. Create the sale (draft - no inventory change yet)
+      const createRes = await http.post('/products/sales', salePayload);
+      const saleId = createRes.data._id;
+
+      // 5. Complete it immediately → deducts inventory + records in salepayments
+      await http.post(`/products/sales/${saleId}/complete`);
+
+      setSuccessMessage(`✅ Hóa đơn đã được lưu & tồn kho đã được trừ tự động! Mã: ${createRes.data.code}`);
       setTimeout(() => {
         navigate(`/sales-channels/${channel}/retail`);
-      }, 1500);
+      }, 1800);
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.response?.data?.message ?? 'Đã xảy ra lỗi khi lưu hóa đơn.');
       setIsSaving(false);
     }
   };
+
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px', fontFamily: 'Inter, system-ui, sans-serif' }}>
