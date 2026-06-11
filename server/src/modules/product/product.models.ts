@@ -2,7 +2,7 @@ import { Schema, model } from 'mongoose';
 
 const money = { type: Number, default: 0, min: 0 };
 
-export const Category = model('Category', new Schema({
+const CategorySchema = new Schema({
   name: { type: String, required: true, unique: true },
   code: String,
   parentId: { type: Schema.Types.ObjectId, ref: 'Category' },
@@ -11,7 +11,10 @@ export const Category = model('Category', new Schema({
   isVisible: { type: Boolean, default: true },
   productCount: { type: Number, default: 0 },
   url: String,
-}, { timestamps: true }));
+}, { timestamps: true });
+
+CategorySchema.index({ name: 'text', code: 'text' });
+export const Category = model('Category', CategorySchema);
 
 export const Trademark = model('Trademark', new Schema({
   name: { type: String, required: true, unique: true },

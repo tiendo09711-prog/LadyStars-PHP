@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
 import { writeAuditLog } from '../../core/audit/audit.service.js';
-import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark, ProductEditLog, RetailInvoice, WholesaleInvoice, RefundInvoice } from './product.models.js';
+import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark, ProductEditLog, RetailInvoice, WholesaleInvoice } from './product.models.js';
 import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
@@ -33,9 +33,6 @@ router.use('/payment-methods', crudRoutes(PaymentMethod));
 router.use('/stock-adjustments', crudRoutes(StockAdjustment));
 router.use('/logs', crudRoutes(ProductLog));
 router.use('/batches', crudRoutes(Batch));
-router.use('/retail-invoices', crudRoutes(RetailInvoice));
-router.use('/wholesale-invoices', crudRoutes(WholesaleInvoice));
-router.use('/refund-invoices', crudRoutes(RefundInvoice));
 
 
 
@@ -475,7 +472,7 @@ router.get('/storage-duration', async (req, res) => {
 router.get('/inventories', async (req, res) => {
   try {
     const page = Math.max(Number(req.query.page ?? 1), 1);
-    const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 5000);
     const q = req.query.q ? String(req.query.q).trim() : '';
     const branchId = req.query.branchId ? String(req.query.branchId).trim() : '';
     const categoryId = req.query.categoryId ? String(req.query.categoryId).trim() : '';

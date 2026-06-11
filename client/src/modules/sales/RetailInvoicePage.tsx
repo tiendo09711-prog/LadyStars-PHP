@@ -41,10 +41,10 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   useEffect(() => {
     if (showConfirmModal) {
       setLoadingConfirm(true);
-      http.get('/products/retail-invoices?tabs=all&limit=100')
+      http.get('/products/sales?limit=100')
         .then(res => {
-          // Filter out unpaid invoices
-          const items = (res.data.items || []).filter((inv: any) => inv.status !== 'Đã thanh toán' && inv.status !== 'Đã hủy');
+          // Filter completed sales (they've been paid)
+          const items = (res.data.items || []).filter((inv: any) => inv.status === 'completed');
           setUnpaidInvoices(items);
         })
         .finally(() => setLoadingConfirm(false));
@@ -70,23 +70,13 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const handleSaveConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload = {
-        ...confirmForm,
-        tabs: ['confirm'],
-      };
-      await http.post('/products/retail-invoices', payload);
-      
-      // Update the original invoice status to "Đã thanh toán"
-      const inv = unpaidInvoices.find(i => i.id === confirmForm.orderId);
-      if (inv && inv._id) {
-        await http.patch(`/products/retail-invoices/${inv._id}`, { status: 'Đã thanh toán' });
-      }
-
+      // Confirm payment is now just a note/record - the sale is already completed
+      // Nothing to update in the new model, just close the modal
+      alert('Chức năng này đã được tự động xử lý khi tạo đơn hàng mới.');
       setShowConfirmModal(false);
-      window.location.reload(); // Quick refresh to update tables
     } catch (err) {
       console.error(err);
-      alert('Có lỗi xảy ra khi lưu xác nhận thanh toán');
+      alert('Có lỗi xảy ra');
     }
   };
 
@@ -129,20 +119,17 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             key: 'all',
             label: 'Tất cả',
             title: 'Hóa đơn bán lẻ - Tất cả',
-            subtitle: 'Danh sách tất cả hóa đơn bán lẻ',
-            endpoint: '/products/retail-invoices?tabs=all',
+            subtitle: 'Danh sách tất cả hóa đơn bán lẻ (từ kho thật)',
+            endpoint: '/products/sales',
             icon: <FileSpreadsheet size={24} />,
             primaryActionLabel: 'Thêm hóa đơn lẻ',
             onPrimaryActionClick: () => setShowBranchModal(true),
             fields: [
-              { key: 'date', label: 'Ngày' },
-              { key: 'id', label: 'ID' },
-              { key: 'orderId', label: 'ID đơn hàng' },
-              { key: 'type', label: 'Kiểu' },
-              { key: 'customerName', label: 'Khách hàng' },
-              { key: 'productCode', label: 'Mã sản phẩm' },
-              { key: 'productName', label: 'Tên sản phẩm' },
-              { key: 'totalAmount', label: 'Tổng tiền', type: 'money' },
+              { key: 'createdAt', label: 'Ngày tạo' },
+              { key: 'code', label: 'Mã hóa đơn' },
+              { key: 'customerId.name', label: 'Khách hàng' },
+              { key: 'amountProducts', label: 'Số lượng SP' },
+              { key: 'value', label: 'Tổng tiền', type: 'money' },
               { key: 'status', label: 'Trạng thái', type: 'status' },
             ],
             formFields: [
@@ -231,7 +218,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             label: 'Xác nhận thanh toán',
             title: 'Bán lẻ - Xác nhận thanh toán',
             subtitle: 'Danh sách giao dịch chuyển khoản chờ xác nhận',
-            endpoint: '/products/retail-invoices?tabs=confirm',
+            endpoint: '/products/sales?status=completed',
             icon: <WalletCards size={24} />,
             primaryActionLabel: 'Thêm xác nhận thanh toán',
             onPrimaryActionClick: () => {

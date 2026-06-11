@@ -1,24 +1,34 @@
-import { connectDatabase } from '../config/database.js';
-import { Branch } from '../core/org/branch.model.js';
-import { Order } from '../modules/orders/orders.models.js';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-async function main() {
-  await connectDatabase();
-  const branches = await Branch.find().lean();
-  console.log('--- Branches ---');
-  console.log(branches);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') }); // Desktop/LadyStars/.env
 
-  const orders = await Order.find().limit(5).lean();
-  console.log('--- Orders (limit 5) ---');
-  console.log(orders.map(o => ({
-    _id: o._id,
-    orderCode: o.orderCode,
-    customerName: o.customerName,
-    warehouse: o.warehouse,
-    status: o.status
-  })));
+async function check() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI as string);
+    const db = mongoose.connection.db;
+    
+    const retail = await db.collection('retailinvoices').findOne();
+    const wholesale = await db.collection('wholesaleinvoices').findOne();
+    const sale = await db.collection('salepayments').findOne();
+    const order = await db.collection('orders').findOne();
+    
+    console.log('RetailInvoice fields:', retail ? Object.keys(retail).filter(k => k!=='tabs') : 'null');
+    if (retail) console.log('Retail branchId?', retail.branchId, 'categoryId?', retail.categoryId);
 
-  process.exit(0);
+    console.log('SalePayment fields:', sale ? Object.keys(sale) : 'null');
+    if (sale) console.log('SalePayment items:', sale.items ? sale.items.length : 0);
+
+    console.log('Order fields:', order ? Object.keys(order) : 'null');
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    await mongoose.disconnect();
+  }
 }
-
-main().catch(console.error);
+check();

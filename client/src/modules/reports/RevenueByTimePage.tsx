@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { http } from '../../core/api/http';
 import {
   BarChart,
   Bar,
@@ -13,6 +13,7 @@ import {
   ComposedChart
 } from 'recharts';
 import { FileDown, Printer, LayoutGrid } from 'lucide-react';
+import { DateRangePicker } from '../../core/components/ui/DateRangePicker';
 import './RevenueByTimePage.css';
 
 interface RevenueData {
@@ -38,22 +39,58 @@ interface RevenueData {
 export function RevenueByTimePage() {
   const [data, setData] = useState<RevenueData[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [displayType, setDisplayType] = useState('Theo ngày');
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [warehouseId, setWarehouseId] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
+    fetchOptions();
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchOptions = async () => {
     try {
-      const response = await axios.get('http://localhost:4000/api/reports/revenue-time', {
-        withCredentials: true
-      });
+      const [whRes, catRes] = await Promise.all([
+        http.get('/system/branches'),
+        http.get('/products/categories')
+      ]);
+      setWarehouses(whRes.data.items || whRes.data || []);
+      setCategories(catRes.data.items || catRes.data || []);
+    } catch (error) {
+      console.error('Error fetching options:', error);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('displayType', displayType);
+      if (dateRange.start) {
+        params.append('fromDate', dateRange.start.toISOString());
+      }
+      if (dateRange.end) {
+        params.append('toDate', dateRange.end.toISOString());
+      }
+      if (warehouseId) params.append('branchId', warehouseId);
+      if (categoryId) params.append('categoryId', categoryId);
+
+      const response = await http.get(`/reports/revenue-time?${params.toString()}`);
       setData(response.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilter = () => {
+    fetchData();
   };
 
   const formatCurrency = (value: number) => {
@@ -109,6 +146,42 @@ export function RevenueByTimePage() {
     profit: data.length ? Math.round(totals.profit / data.length) : 0
   };
 
+  const handleExportData = () => {
+    if (!data || data.length === 0) {
+      alert('Không có dữ liệu để xuất!');
+      return;
+    }
+    const headers = ['Thời gian', 'Đơn thành công', 'Bán lẻ', 'Bán sỉ', 'Phí trả hàng', 'Chiết khấu', 'Tiêu điểm', 'Doanh thu', 'Giá vốn', 'Lợi nhuận'];
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => [
+        row.time,
+        row.successfulOrders,
+        row.retail,
+        row.wholesale,
+        row.returnFee,
+        row.discount,
+        row.focus,
+        row.revenue,
+        row.cost,
+        row.profit
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `bao_cao_doanh_thu_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (loading) {
     return <div className="revenue-time-container">Đang tải dữ liệu...</div>;
   }
@@ -116,37 +189,36 @@ export function RevenueByTimePage() {
   return (
     <div className="revenue-time-container">
       {/* Filters */}
-      <div className="filter-bar">
+      <div className="filter-bar" style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
         <div className="filter-group">
           <label>Hiển thị</label>
-          <select defaultValue="Theo ngày">
-            <option>Theo ngày</option>
-            <option>Theo tháng</option>
+          <select value={displayType} onChange={(e) => setDisplayType(e.target.value)}>
+            <option value="Theo ngày">Theo ngày</option>
+            <option value="Theo tháng">Theo tháng</option>
           </select>
         </div>
-        <div className="filter-group">
-          <label>Khoảng ngày</label>
-          <input type="text" defaultValue="01/06/2026 - 05/06/2026" />
+        <div className="filter-group" style={{ position: 'relative', width: '250px' }}>
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
         <div className="filter-group">
           <label>Kho hàng</label>
-          <select defaultValue="">
+          <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
             <option value="">Kho hàng</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Thương hiệu</label>
-          <select defaultValue="">
-            <option value="">Thương hiệu</option>
+            {warehouses.map(w => (
+              <option key={w._id} value={w._id}>{w.name}</option>
+            ))}
           </select>
         </div>
         <div className="filter-group">
           <label>Danh mục</label>
-          <select defaultValue="">
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
             <option value="">Danh mục</option>
+            {categories.map(c => (
+              <option key={c._id} value={c._id}>{c.name}</option>
+            ))}
           </select>
         </div>
-        <button className="btn-filter">Lọc</button>
+        <button className="btn-filter" onClick={handleFilter} style={{ marginBottom: '0' }}>Lọc</button>
       </div>
 
       {/* Chart */}
@@ -160,11 +232,12 @@ export function RevenueByTimePage() {
                 axisLine={false} 
                 tickLine={false} 
                 tickFormatter={formatChartYAxis}
-                domain={[0, 20000000]}
-                ticks={[0, 5000000, 10000000, 15000000, 20000000]}
                 tick={{ fontSize: 12 }}
               />
-              <Tooltip formatter={(value: number) => new Intl.NumberFormat('vi-VN').format(value)} />
+              <Tooltip 
+                formatter={(value: number, name: string) => [new Intl.NumberFormat('vi-VN').format(value), name === 'profit' ? 'Lợi nhuận' : name === 'retail' ? 'Bán lẻ' : name === 'wholesale' ? 'Bán sỉ' : name === 'successfulOrders' ? 'Đơn thành công' : name]} 
+                labelFormatter={(label) => `Thời gian: ${label}`}
+              />
               <Bar dataKey="retail" fill="#ff9800" barSize={100} />
               <Line type="monotone" dataKey="profit" stroke="#2196f3" strokeWidth={2} dot={{ r: 4, fill: '#2196f3' }} />
             </ComposedChart>
@@ -181,14 +254,14 @@ export function RevenueByTimePage() {
       {/* Actions */}
       <div className="actions-bar">
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn-outline">
+          <button className="btn-outline" onClick={handleExportData}>
             <FileDown size={16} /> Xuất dữ liệu
           </button>
-          <button className="btn-outline">
+          <button className="btn-outline" onClick={handlePrint}>
             <Printer size={16} /> In báo cáo
           </button>
         </div>
-        <button className="btn-outline">
+        <button className="btn-outline" onClick={() => alert('Chức năng đổi giao diện bảng đang được phát triển!')}>
           <LayoutGrid size={16} />
         </button>
       </div>

@@ -256,9 +256,128 @@ router.post('/vouchers/export', async (req, res) => {
   }
 });
 
+router.post('/transfers', async (req, res, next) => {
+  try {
+    const { fromWarehouse, toWarehouse, lines, type, label, note, spCount, qty, creator, date, tabs } = req.body;
+    
+    if (!fromWarehouse || !toWarehouse || fromWarehouse === toWarehouse) {
+      return res.status(400).json({ message: 'Kho xuất và kho nhập không hợp lệ' });
+    }
+    if (!Array.isArray(lines) || lines.length === 0) {
+      return res.status(400).json({ message: 'Danh sách sản phẩm trống' });
+    }
+
+    // Lưu phiếu chuyển kho trước để lấy ID
+    const transfer = await WarehouseTransfer.create({
+      id: req.body.id || `TRF${Date.now()}`,
+      date: date || new Date().toISOString(),
+      tabs: tabs || ['all', 'draft'],
+      type: type || 'Chuyển kho',
+      fromWarehouse,
+      toWarehouse,
+      label,
+      note,
+      qty,
+      spCount,
+      creator: creator || 'System',
+      lines
+    });
+
+    // Thực hiện trừ tồn kho nguồn và cộng tồn kho đích
+    for (const line of lines) {
+      const q = Number(line.quantity);
+      if (q <= 0) continue;
+      
+      // Trừ kho xuất
+      await moveProductQty({
+        productId: line.productId,
+        branchId: fromWarehouse,
+        sourceType: 'WarehouseTransfer',
+        sourceId: transfer._id,
+        amount: -q
+      });
+      // Cộng kho nhập
+      await moveProductQty({
+        productId: line.productId,
+        branchId: toWarehouse,
+        sourceType: 'WarehouseTransfer',
+        sourceId: transfer._id,
+        amount: q
+      });
+    }
+
+    res.status(201).json(transfer);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Lỗi server khi chuyển kho' });
+  }
+});
+
 router.use('/vouchers', crudRoutes(InventoryVoucher));
 router.use('/products', crudRoutes(InventoryProduct));
 router.use('/transfers', crudRoutes(WarehouseTransfer));
+router.post('/checks', async (req, res, next) => {
+  try {
+    const { id, date, type, warehouse, creator, spCount, qty, note, missingSp, balance, lines } = req.body;
+    
+    if (!warehouse) return res.status(400).json({ message: 'Cửa hàng/Kho không hợp lệ' });
+    if (!Array.isArray(lines) || lines.length === 0) {
+      return res.status(400).json({ message: 'Danh sách sản phẩm trống' });
+    }
+
+    // Lưu phiếu kiểm kho chính
+    const check = await InventoryCheck.create({
+      id: id || `PKK${Math.floor(Date.now() / 1000)}`,
+      date: date || new Date().toISOString(),
+      type,
+      warehouse,
+      creator,
+      spCount,
+      qty,
+      note,
+      missingSp,
+      balance
+    });
+
+    // Xử lý từng sản phẩm
+    for (const line of lines) {
+      const difference = Number(line.difference || 0);
+
+      // Lưu dòng chi tiết kiểm kho
+      await InventoryCheckProduct.create({
+        date: check.date,
+        warehouse: check.warehouse,
+        productName: line.productName,
+        cost: line.cost,
+        price: line.price,
+        stock: line.stock,
+        transferring: line.transferring,
+        actualStock: line.actualStock,
+        difference: difference,
+        description: line.description,
+        checkId: check._id,
+        externalId: `CHK_PROD_${Date.now()}_${Math.random()}`,
+        sourceView: 'audit'
+      });
+
+      if (difference !== 0) {
+        // Cập nhật tồn kho (bù trừ)
+        await moveProductQty({
+          productId: line.productId,
+          branchId: warehouse,
+          sourceType: 'InventoryCheck',
+          sourceId: check._id,
+          amount: difference, // + nếu thừa, - nếu thiếu
+          valueAfter: line.cost
+        });
+      }
+    }
+
+    res.status(201).json(check);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Lỗi server khi lưu phiếu kiểm kho' });
+  }
+});
+
 router.use('/checks', crudRoutes(InventoryCheck));
 router.use('/check-products', crudRoutes(InventoryCheckProduct));
 

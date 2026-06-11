@@ -22,7 +22,7 @@ type TransferLine = {
   note: string;
 };
 
-const WAREHOUSES = ['Kho tổng', 'Cửa hàng chi nhánh 1', 'Cửa hàng chi nhánh 2', 'Kho bảo hành'];
+// const WAREHOUSES = ['Kho tổng', 'Cửa hàng chi nhánh 1', 'Cửa hàng chi nhánh 2', 'Kho bảo hành'];
 
 const MOCK_PRODUCTS: Product[] = [
   { _id: 'mock-1', code: 'SP001', name: 'Kem chống nắng LadyStars SPF 50+', price: 150000, cost: 90000, qty: 120, unit: 'tuýp' },
@@ -38,8 +38,9 @@ export function WarehouseTransferCreatePage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [fromWarehouse, setFromWarehouse] = useState('Kho tổng');
-  const [toWarehouse, setToWarehouse] = useState('Cửa hàng chi nhánh 1');
+  const [fromWarehouse, setFromWarehouse] = useState('');
+  const [toWarehouse, setToWarehouse] = useState('');
+  const [sysBranches, setSysBranches] = useState<any[]>([]);
   const [label, setLabel] = useState('');
   const [note, setNote] = useState('');
   const [afterSubmitAction, setAfterSubmitAction] = useState<'detail' | 'continue'>('detail');
@@ -60,7 +61,19 @@ export function WarehouseTransferCreatePage() {
         setProducts(MOCK_PRODUCTS);
       }
     };
+    const fetchBranches = async () => {
+      try {
+        const res = await http.get('/system/branches');
+        const branches = res.data?.items || [];
+        setSysBranches(branches);
+        if (branches.length > 0) {
+          setFromWarehouse(branches[0]._id);
+          setToWarehouse(branches.length > 1 ? branches[1]._id : branches[0]._id);
+        }
+      } catch (err) {}
+    };
     fetchProducts();
+    fetchBranches();
   }, []);
 
   useEffect(() => {
@@ -105,10 +118,15 @@ export function WarehouseTransferCreatePage() {
     }
     setSaving(true);
     try {
+      const fromBranch = sysBranches.find(b => b._id === fromWarehouse);
+      const toBranch = sysBranches.find(b => b._id === toWarehouse);
+
       await http.post('/warehouse/transfers', {
         id: `TRF${Date.now()}`, date: new Date().toISOString(),
         tabs: ['all', 'draft'], type: 'Chuyển kho',
-        fromWarehouse, toWarehouse, label, note,
+        fromWarehouse, toWarehouse, 
+        warehouse: `${fromBranch?.name || fromWarehouse} -> ${toBranch?.name || toWarehouse}`,
+        label, note,
         qty: totalQty, spCount: totalSP, creator: 'Current User',
         lines: lines.map(l => ({ productId: l.productId, quantity: l.quantity, batchCode: l.batchCode, imei: l.imei, unit: l.unit, note: l.note })),
       });
@@ -197,11 +215,11 @@ export function WarehouseTransferCreatePage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ background: 'var(--primary)', color: '#fff', borderRadius: 8, padding: '4px 12px', fontWeight: 800, fontSize: 13 }}>
-            {fromWarehouse}
+            {sysBranches.find(b => b._id === fromWarehouse)?.name || fromWarehouse}
           </div>
           <ChevronRight size={18} style={{ color: 'var(--primary)' }} />
           <div style={{ background: 'var(--success)', color: '#fff', borderRadius: 8, padding: '4px 12px', fontWeight: 800, fontSize: 13 }}>
-            {toWarehouse}
+            {sysBranches.find(b => b._id === toWarehouse)?.name || toWarehouse}
           </div>
         </div>
         <div style={{ color: 'var(--muted)', fontSize: 13, marginLeft: 'auto' }}>
@@ -439,7 +457,7 @@ export function WarehouseTransferCreatePage() {
               value={fromWarehouse}
               onChange={e => setFromWarehouse(e.target.value)}
             >
-              {WAREHOUSES.map(w => <option key={w} value={w}>{w}</option>)}
+              {sysBranches.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
             </select>
 
             <div style={{ textAlign: 'center', padding: '6px 0', color: 'var(--primary)' }}>
@@ -452,7 +470,7 @@ export function WarehouseTransferCreatePage() {
               value={toWarehouse}
               onChange={e => setToWarehouse(e.target.value)}
             >
-              {WAREHOUSES.filter(w => w !== fromWarehouse).map(w => <option key={w} value={w}>{w}</option>)}
+              {sysBranches.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
             </select>
 
             <label className="field-label">Nhãn phiếu</label>

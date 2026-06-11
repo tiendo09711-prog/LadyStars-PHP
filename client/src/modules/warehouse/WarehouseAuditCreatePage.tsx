@@ -17,15 +17,16 @@ type Product = {
   unit?: string;
 };
 
-const getStockForWarehouse = (prod: Product, wh: string) => {
-  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
-  return prod.totalStock ?? prod.qty ?? 0;
+const getStock = (product: any, branchId: string) => {
+  if (!product || !branchId) return 0;
+  const inv = product.inventories?.find((i: any) => i.branchId === branchId);
+  if (inv) return inv.qty || 0;
+  return product.qty || 0;
 };
 
 type CheckProductLine = {
   _id?: string;
+  productId: string;
   productCode: string;
   productName: string;
   cost: number;
@@ -47,10 +48,11 @@ const MOCK_PRODUCTS: Product[] = [
 export function WarehouseAuditCreatePage() {
   const navigate = useNavigate();
   const [dbProducts, setDbProducts] = useState<Product[]>([]);
+  const [sysBranches, setSysBranches] = useState<any[]>([]);
   const [form, setForm] = useState({
     id: `PKK${Math.floor(Date.now() / 1000)}`,
     date: new Date().toISOString().slice(0, 10),
-    warehouse: 'Chi nhánh trung tâm',
+    warehouse: '',
     type: 'Theo sản phẩm',
     note: '',
   });
@@ -61,18 +63,27 @@ export function WarehouseAuditCreatePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch products for dropdown search
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchBranchesAndProducts = async () => {
       try {
-        const response = await http.get('/products/inventories', { params: { limit: 100 } });
-        const items = response.data?.items;
-        setDbProducts(items?.length ? items : MOCK_PRODUCTS);
-      } catch {
-        setDbProducts(MOCK_PRODUCTS);
+        const [branchRes, prodRes] = await Promise.all([
+          http.get('/system/branches'),
+          http.get('/products/inventories', { params: { limit: 100 } })
+        ]);
+        
+        const branches = branchRes.data?.items || [];
+        setSysBranches(branches);
+        if (branches.length > 0) {
+          setForm(prev => ({ ...prev, warehouse: branches[0]._id }));
+        }
+
+        const items = prodRes.data?.items || [];
+        setDbProducts(items);
+      } catch (err) {
+        console.error('Error fetching data for audit create', err);
       }
     };
-    fetchProducts();
+    fetchBranchesAndProducts();
   }, []);
 
   // Update stock when warehouse changes
@@ -103,15 +114,16 @@ export function WarehouseAuditCreatePage() {
     );
   }, [searchQuery, dbProducts]);
 
-  const addProductToLines = (product: Product) => {
+  const addProductToLines = (product: any) => {
     // Check duplicate
     if (lines.some(l => l.productCode === product.code)) {
       setSearchQuery('');
       setShowDropdown(false);
       return;
     }
-    const currentStock = getStockForWarehouse(product, form.warehouse);
+    const currentStock = getStock(product, form.warehouse);
     const newLine: CheckProductLine = {
+      productId: product._id,
       productCode: product.code,
       productName: product.name,
       cost: product.cost || 0,
@@ -169,7 +181,7 @@ export function WarehouseAuditCreatePage() {
     setError('');
 
     try {
-      // 1. Save general check
+      // Send general check with lines
       await http.post('/warehouse/checks', {
         id: form.id,
         date: form.date,
@@ -181,23 +193,8 @@ export function WarehouseAuditCreatePage() {
         note: form.note,
         missingSp: String(lines.filter(p => p.difference < 0).length),
         balance: lines.some(p => p.difference !== 0) ? 'Có' : 'Không',
+        lines // Backend will handle lines and create check-products
       });
-
-      // 2. Save check products
-      for (const line of lines) {
-        await http.post('/warehouse/check-products', {
-          date: form.date,
-          warehouse: form.warehouse,
-          productName: line.productName,
-          cost: line.cost,
-          price: line.price,
-          stock: line.stock,
-          transferring: line.transferring,
-          actualStock: line.actualStock,
-          difference: line.difference,
-          description: line.description,
-        });
-      }
 
       alert('Tạo phiếu kiểm kho thành công!');
       navigate('/warehouse/audit');
@@ -428,9 +425,9 @@ export function WarehouseAuditCreatePage() {
                 onChange={(e) => setForm({...form, warehouse: e.target.value})}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
               >
-                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm</option>
-                <option value="Kho Hà Nội">Kho Hà Nội</option>
-                <option value="Kho HCM">Kho HCM</option>
+                {sysBranches.map(b => (
+                  <option key={b._id} value={b._id}>{b.name}</option>
+                ))}
               </select>
             </label>
 
