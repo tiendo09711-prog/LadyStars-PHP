@@ -23,6 +23,7 @@ Mô tả: File này là "Bộ quy trình chuẩn" (SOP) để hướng dẫn cho
 
 #### Bước 3: Đọc và Thực thi Test Case động (Dynamic Interaction)
 1. Phân tích `Test Cases` người dùng cung cấp.
+2. **Kiểm tra các mục con (Sub-tabs):** Nếu trang có nhiều mục con (ví dụ: các tab "Tất cả", "Mua nhiều", "Lâu chưa mua"...), bắt buộc phải lần lượt bấm vào từng tab con, kiểm tra xem dữ liệu có tải đúng và các nút, chức năng trên từng tab có hoạt động tốt hay không. Không được bỏ qua các tab phụ.
 2. Tìm kiếm chính xác các phần tử UI trên màn hình thông qua Label, Text, hoặc Placeholder (Dropdown, Nút bấm, Ô nhập ngày tháng...).
 3. Thực hiện thao tác tương tác (Click, Chọn, Nhập liệu) theo đúng mô tả.
 4. Mỗi khi tương tác, phải chụp ảnh màn hình hoặc đọc lại DOM để xem dữ liệu có thực sự thay đổi hay không (nhằm loại bỏ trường hợp dữ liệu bị code cứng).

@@ -6,9 +6,7 @@ import { connectDatabase } from '../config/database.js';
 import {
   Order,
   OrderDuplicate,
-  OrderPackaging,
   OrderHandover,
-  OrderShippingPending,
   OrderDispute,
   OrderCodControl,
   OrderSource,
@@ -20,9 +18,7 @@ await connectDatabase();
 const results = await Promise.all([
   Order.deleteMany({}),
   OrderDuplicate.deleteMany({}),
-  OrderPackaging.deleteMany({}),
   OrderHandover.deleteMany({}),
-  OrderShippingPending.deleteMany({}),
   OrderDispute.deleteMany({}),
   OrderCodControl.deleteMany({}),
   OrderSource.deleteMany({}),
@@ -30,8 +26,8 @@ const results = await Promise.all([
 ]);
 
 const names = [
-  'Order', 'OrderDuplicate', 'OrderPackaging', 'OrderHandover',
-  'OrderShippingPending', 'OrderDispute', 'OrderCodControl', 'OrderSource', 'OrderHistory',
+  'Order', 'OrderDuplicate', 'OrderHandover',
+  'OrderDispute', 'OrderCodControl', 'OrderSource', 'OrderHistory',
 ];
 
 results.forEach((r, i) => {

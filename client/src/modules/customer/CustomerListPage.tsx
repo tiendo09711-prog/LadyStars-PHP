@@ -1,5 +1,6 @@
-import { Users } from 'lucide-react';
+import { Users, RefreshCw } from 'lucide-react';
 import { TabbedModulePage } from '../../core/components/TabbedModulePage';
+import { http } from '../../core/api/http';
 
 const commonFields: any[] = [
   { key: 'code', label: 'Mã KH' },
@@ -26,6 +27,23 @@ const commonFormFields: any[] = [
 const createDefaults = { code: '', name: '', phone: '', type: 'person', email: '', address: '', note: '' };
 
 export function CustomerListPage() {
+  const handleSyncMetrics = async () => {
+    try {
+      const res = await http.post('/customers/sync-metrics');
+      if (res.data.success) {
+        alert(res.data.message);
+        window.location.reload();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Có lỗi khi đồng bộ');
+    }
+  };
+
+  const extraHeaderButtons = (
+    <button className="btn btn-outline" type="button" onClick={handleSyncMetrics}>
+      <RefreshCw size={16} /> Đồng bộ chỉ số mua hàng
+    </button>
+  );
   return (
     <TabbedModulePage
       tabs={[
@@ -40,6 +58,7 @@ export function CustomerListPage() {
           fields: commonFields,
           formFields: commonFormFields,
           createDefaults,
+          extraHeaderButtons,
         },
         {
           key: 'high_value',
@@ -52,6 +71,7 @@ export function CustomerListPage() {
           fields: commonFields,
           formFields: commonFormFields,
           createDefaults,
+          extraHeaderButtons,
         },
         {
           key: 'birthday_high_value',
@@ -64,6 +84,7 @@ export function CustomerListPage() {
           fields: commonFields,
           formFields: commonFormFields,
           createDefaults,
+          extraHeaderButtons,
         },
         {
           key: 'frequent',
@@ -76,6 +97,7 @@ export function CustomerListPage() {
           fields: commonFields,
           formFields: commonFormFields,
           createDefaults,
+          extraHeaderButtons,
         },
         {
           key: 'inactive',
@@ -88,6 +110,7 @@ export function CustomerListPage() {
           fields: commonFields,
           formFields: commonFormFields,
           createDefaults,
+          extraHeaderButtons,
         },
       ]}
     />

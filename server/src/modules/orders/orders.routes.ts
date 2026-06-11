@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
+import { crudController } from '../../core/utils/crud.js';
 import {
   Order,
   OrderDuplicate,
-  OrderPackaging,
   OrderHandover,
-  OrderShippingPending,
   OrderDispute,
   OrderCodControl,
   OrderSource,
@@ -60,28 +59,19 @@ router.post('/packaging/:id/pack', async (req, res) => {
     // Check if all items are fully scanned or forcePack is true
     const isFullyScanned = (order as any).products.every((op: any) => op.scannedQuantity >= op.quantity);
     const markAsPacked = isFullyScanned || forcePack;
+    
     if (markAsPacked) {
       order.status = 'Đã đóng gói';
+      order.packedAt = new Date().toLocaleString('vi-VN');
+    } else {
+      order.status = 'Đang đóng gói';
     }
-    await order.save();
 
-    // Upsert the OrderPackaging document
-    const userId = (req as any).user?.sub;
-    const packedAt = new Date().toLocaleString('vi-VN');
-    await OrderPackaging.findOneAndUpdate(
-      { orderCode: order.orderCode },
-      {
-        orderCode: order.orderCode,
-        customerName: order.customerName,
-        packer: packer || 'Hệ thống',
-        packageWeight: Number(packageWeight || 0),
-        packagingMaterial: packagingMaterial || 'Hộp carton',
-        status: markAsPacked ? 'Đã đóng gói' : 'Đang đóng gói',
-        packedAt: markAsPacked ? packedAt : '',
-        userId: userId || null
-      },
-      { upsert: true, new: true }
-    );
+    order.packer = packer || 'Hệ thống';
+    order.packageWeight = Number(packageWeight || 0);
+    order.packagingMaterial = packagingMaterial || 'Hộp carton';
+
+    await order.save();
 
     res.json({ success: true, order, isFullyScanned: markAsPacked });
   } catch (err: any) {
@@ -243,24 +233,12 @@ router.post('/manage/bulk-action', async (req, res) => {
     if (action === 'send-carrier') {
       const orders = await Order.find({ _id: { $in: ids } });
       for (const order of orders) {
-        order.deliveryStatus = 'Đang giao';
-        order.status = 'Đang chuyển';
+        order.deliveryStatus = 'Chờ lấy hàng';
+        order.status = 'In và đóng gói'; // Wait, let's keep status logical. Usually it's still packing or waiting
+        order.carrier = 'Giao hàng nhanh';
+        order.shippingFee = 30000;
+        order.codAmount = order.paymentMethod === 'COD' ? order.totalAmount : 0;
         await order.save();
-
-        await OrderShippingPending.findOneAndUpdate(
-          { orderCode: order.orderCode },
-          {
-            orderCode: order.orderCode,
-            carrier: 'Giao hàng nhanh',
-            customerName: order.customerName,
-            customerPhone: order.customerPhone,
-            shippingFee: 30000,
-            codAmount: order.paymentMethod === 'COD' ? order.totalAmount : 0,
-            status: 'Chờ lấy hàng',
-            userId: userId || null
-          },
-          { upsert: true, new: true }
-        );
       }
       return res.json({ success: true, message: `Đã chuyển tiếp ${ids.length} đơn sang hãng vận chuyển` });
     }
@@ -325,12 +303,51 @@ router.post('/manage/bulk-action', async (req, res) => {
   }
 });
 
+// Sync middleware for Disputes
+router.use('/disputes', async (req, res, next) => {
+  if (req.method === 'POST' || req.method === 'PATCH') {
+    if (req.body.orderCode) {
+      const order = await Order.findOne({ orderCode: req.body.orderCode });
+      if (order) {
+        req.body.customerName = order.customerName;
+        req.body.customerPhone = order.customerPhone;
+      }
+    }
+  }
+  next();
+}, crudRoutes(OrderDispute));
+
+// Sync middleware for Duplicates
+router.use('/duplicates', async (req, res, next) => {
+  if (req.method === 'POST' || req.method === 'PATCH') {
+    if (req.body.orderCode) {
+      const order = await Order.findOne({ orderCode: req.body.orderCode });
+      if (order) {
+        req.body.customerName = order.customerName;
+        req.body.customerPhone = order.customerPhone;
+      }
+    }
+  }
+  next();
+}, crudRoutes(OrderDuplicate));
+
+// Custom Shipping Pending Router using Order model
+const shippingRouter = Router();
+const shippingCrud = crudController(Order);
+shippingRouter.get('/', (req, res, next) => {
+  if (!req.query.deliveryStatus) {
+    req.query.deliveryStatus = 'Chờ lấy hàng,Lỗi kết nối API';
+  }
+  next();
+}, shippingCrud.list);
+shippingRouter.post('/', shippingCrud.create);
+shippingRouter.get('/:id', shippingCrud.detail);
+shippingRouter.patch('/:id', shippingCrud.update);
+shippingRouter.delete('/:id', shippingCrud.remove);
+router.use('/shipping-pending', shippingRouter);
+
 router.use('/manage', crudRoutes(Order));
-router.use('/duplicates', crudRoutes(OrderDuplicate));
-router.use('/packaging', crudRoutes(OrderPackaging));
 router.use('/handover', crudRoutes(OrderHandover));
-router.use('/shipping-pending', crudRoutes(OrderShippingPending));
-router.use('/disputes', crudRoutes(OrderDispute));
 router.use('/cod-control', crudRoutes(OrderCodControl));
 router.use('/sources', crudRoutes(OrderSource));
 router.use('/history', crudRoutes(OrderHistory));

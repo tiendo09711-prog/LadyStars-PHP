@@ -62,7 +62,7 @@ export function WholesaleInvoiceCreatePage() {
 
   // Expanded Form State to map 100% with extracted structure
   const [form, setForm] = useState({
-    id: 'HDSI-' + Math.floor(100000 + Math.random() * 900000),
+    id: 'BHS-' + Math.floor(100000 + Math.random() * 900000),
     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     cashier: 'Lê Sỹ Bách',
     salesperson: '',
@@ -153,7 +153,7 @@ export function WholesaleInvoiceCreatePage() {
       http.get('/auth/me'),
       http.get('/staff'),
       http.get('/customers/customers'),
-      http.get('/products/inventories', { params: { limit: 500 } })
+      http.get('/products/inventories', { params: { limit: 5000 } })
     ]).then(([meRes, staffRes, custRes, prodRes]) => {
       setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
       setDbStaffs(staffRes.data?.items || []);
@@ -364,7 +364,6 @@ export function WholesaleInvoiceCreatePage() {
     setIsSaving(true);
 
     const totalQty = products.reduce((acc, p) => acc + p.qty, 0);
-    const firstProduct = products[0];
     const totalCost = products.reduce((acc, p) => acc + (p.cost * p.qty), 0);
     const subtotalBeforeDiscount = products.reduce((acc, p) => acc + (p.price * p.qty), 0);
     const productDiscount = products.reduce((acc, p) => {
@@ -372,40 +371,6 @@ export function WholesaleInvoiceCreatePage() {
       return acc + (disc * p.qty);
     }, 0);
     const subtotalAfterDiscount = Math.max(0, subtotalBeforeDiscount - productDiscount);
-    const profit = Math.max(0, subtotalAfterDiscount - totalCost);
-
-    const tabs = ['wholesale'];
-    if (productDiscount > 0 || form.orderDiscount > 0) {
-      tabs.push('discount');
-    }
-    if (form.debtAmount > 0) {
-      tabs.push('debt');
-    }
-
-    const payload = {
-      ...form,
-      products,
-      tabs,
-      
-      // Backward compatibility fields for table view
-      productCode: products.map(p => p.code).join(', '),
-      productName: products.map(p => p.name).join(', '),
-      barcode: firstProduct.barcode || '',
-      unit: firstProduct.unit || 'Cái',
-      imei: products.map(p => p.imei).filter(Boolean).join(', '),
-      price: firstProduct.price,
-      cost: firstProduct.cost,
-      quantity: totalQty,
-
-      // Calculated aggregates
-      subtotalBeforeDiscount,
-      subtotalAfterDiscount,
-      profit,
-      productDiscount,
-      productDiscountPercent: subtotalBeforeDiscount > 0 ? (productDiscount / subtotalBeforeDiscount) * 100 : 0,
-      totalProducts: totalQty,
-      totalBeforeDiscount: subtotalBeforeDiscount,
-    };
 
     try {
       // Auto-save new customer if not found in dbCustomers
@@ -424,8 +389,48 @@ export function WholesaleInvoiceCreatePage() {
         }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
       }
 
-      await http.post('/products/wholesale-invoices', payload);
-      setSuccessMessage('Hóa đơn bán sỉ đã được tạo thành công!');
+      const existingCustomer = dbCustomers.find(
+        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
+      );
+
+      const salePayload = {
+        code: form.id,
+        branchId: branchId,
+        customerId: existingCustomer?._id ?? null,
+        note: form.description,
+        salesperson: form.salesperson,
+        orderSource: form.orderSource,
+        paymentMethod: form.paymentMethod,
+        discountValue: Number(form.orderDiscount) || 0,
+        discountType: 'number' as const,
+        status: 'draft',
+        amountProducts: totalQty,
+        totalCost: totalCost,
+        value: form.totalAmount,
+        valuePayment: form.paidAmount,
+        typePayment: [
+          ...(form.paymentCash > 0 ? [{ methodId: null, amount: form.paymentCash }] : []),
+          ...(form.paymentTransfer > 0 ? [{ methodId: null, amount: form.paymentTransfer }] : []),
+          ...(form.paymentCard > 0 ? [{ methodId: null, amount: form.paymentCard }] : []),
+          ...(form.paymentOther > 0 ? [{ methodId: null, amount: form.paymentOther }] : [])
+        ],
+        items: products.map(p => ({
+          productId: p._id,
+          amount: p.qty,
+          value: p.price,
+          discountValue: p.discountType === 'percentage' ? (p.price * p.discountValue / 100) : p.discountValue,
+          discountType: 'number',
+          total: p.total,
+          note: p.imei ? `IMEI: ${p.imei}` : ''
+        })),
+      };
+
+      const createRes = await http.post('/products/sales', salePayload);
+      const saleId = createRes.data._id;
+
+      await http.post(`/products/sales/${saleId}/complete`);
+
+      setSuccessMessage(`✅ Hóa đơn đã được lưu & tồn kho đã được trừ tự động! Mã: ${createRes.data.code}`);
       if (form.autoPrint) {
         console.log("In hóa đơn...");
         // In-browser mock print or trigger window.print()

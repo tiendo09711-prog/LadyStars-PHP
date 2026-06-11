@@ -1,4 +1,5 @@
 import { Product, ProductBranchStock, ProductLog, ProductRefund, SalePayment, StockAdjustment } from './product.models.js';
+import { Customer } from '../customer/customer.models.js';
 
 class ProductFlowError extends Error {
   status: number;
@@ -213,6 +214,18 @@ export async function completeSalePayment(paymentId: string) {
   payment.status = 'completed';
   payment.completedAt = new Date();
   await payment.save();
+
+  if (payment.customerId) {
+    const customer = await Customer.findById(payment.customerId);
+    if (customer) {
+      customer.totalSpent = (customer.totalSpent || 0) + (payment.value || 0);
+      customer.purchaseCount = (customer.purchaseCount || 0) + 1;
+      customer.lastPurchaseDate = new Date();
+      customer.daysSinceLastPurchase = 0;
+      await customer.save();
+    }
+  }
+
   return payment;
 }
 

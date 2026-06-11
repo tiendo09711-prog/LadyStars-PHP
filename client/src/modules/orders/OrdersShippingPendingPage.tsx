@@ -15,7 +15,7 @@ export function OrdersShippingPendingPage() {
         { key: 'customerPhone', label: 'SĐT khách hàng' },
         { key: 'shippingFee', label: 'Phí ship', type: 'money' },
         { key: 'codAmount', label: 'Tiền thu hộ COD', type: 'money' },
-        { key: 'status', label: 'Trạng thái gửi', type: 'status' },
+        { key: 'deliveryStatus', label: 'Trạng thái gửi', type: 'status' },
       ]}
       formFields={[
         { key: 'orderCode', label: 'Mã đơn hàng', required: true },
@@ -25,7 +25,7 @@ export function OrdersShippingPendingPage() {
         { key: 'shippingFee', label: 'Phí ship', type: 'number' },
         { key: 'codAmount', label: 'Thu hộ COD', type: 'number' },
         {
-          key: 'status', label: 'Trạng thái', type: 'select', options: [
+          key: 'deliveryStatus', label: 'Trạng thái', type: 'select', options: [
             { label: 'Chờ lấy hàng', value: 'Chờ lấy hàng' },
             { label: 'Lỗi kết nối API', value: 'Lỗi kết nối API' },
           ],
@@ -33,7 +33,7 @@ export function OrdersShippingPendingPage() {
       ]}
       createDefaults={{
         orderCode: '', carrier: '', customerName: '',
-        customerPhone: '', shippingFee: 0, codAmount: 0, status: 'Chờ lấy hàng',
+        customerPhone: '', shippingFee: 0, codAmount: 0, deliveryStatus: 'Chờ lấy hàng',
       }}
       primaryActionLabel="Ghi nhận đơn chờ"
       quickFilters={[

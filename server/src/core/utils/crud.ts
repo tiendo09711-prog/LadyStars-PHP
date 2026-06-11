@@ -38,7 +38,7 @@ export function crudController<T>(model: Model<T>) {
       const RESERVED = new Set(['page', 'limit', 'q', 'sort', 'order']);
 
       // Build filter: start with text search if q provided
-      const filter: Record<string, any> = q ? { $text: { $search: q } } : {};
+      const filter: Record<string, any> = { ...((req as any).customFilter || {}), ...(q ? { $text: { $search: q } } : {}) };
 
       // Add any extra query params as field filters
       for (const [key, val] of Object.entries(req.query)) {
