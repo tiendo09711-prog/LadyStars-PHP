@@ -27,6 +27,14 @@ import {
 } from 'lucide-react';
 import { http } from '../../core/api/http';
 
+const getStockForWarehouse = (prod: any, wh: string) => {
+  if (!wh) return prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+  return prod.totalStock ?? prod.qty ?? 0;
+};
+
 interface InvoiceProduct {
   _id?: string;
   code: string;
@@ -107,8 +115,11 @@ export function WholesaleInvoiceCreatePage() {
   // Multi-product list
   const [products, setProducts] = useState<InvoiceProduct[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
+  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
+  const [dbStaffs, setDbStaffs] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [productTypeTab, setProductTypeTab] = useState<'normal' | 'imei'>('normal');
 
   const [isSaving, setIsSaving] = useState(false);
@@ -136,15 +147,19 @@ export function WholesaleInvoiceCreatePage() {
     }
   }, [branchId]);
 
-  // Load products list for local fast auto-suggest
+  // Load dependencies (products, customers, staff, me)
   useEffect(() => {
-    http.get('/products/products?limit=150')
-      .then((res) => {
-        setDbProducts(res.data.items ?? []);
-      })
-      .catch((err) => {
-        console.error("Lỗi lấy danh sách sản phẩm:", err);
-      });
+    Promise.all([
+      http.get('/auth/me'),
+      http.get('/staff'),
+      http.get('/customers/customers'),
+      http.get('/products/inventories', { params: { limit: 500 } })
+    ]).then(([meRes, staffRes, custRes, prodRes]) => {
+      setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
+      setDbStaffs(staffRes.data?.items || []);
+      setDbCustomers(custRes.data?.items || []);
+      setDbProducts(prodRes.data?.items || []);
+    }).catch(err => console.error("Error fetching dependencies:", err));
   }, []);
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save, F10 toggle auto-print
@@ -393,6 +408,22 @@ export function WholesaleInvoiceCreatePage() {
     };
 
     try {
+      // Auto-save new customer if not found in dbCustomers
+      const isExistingCustomer = dbCustomers.some(
+        c => c.name?.toLowerCase() === form.customerName.toLowerCase() && (c.phone === form.customerPhone || !form.customerPhone)
+      );
+      if (!isExistingCustomer) {
+        await http.post('/customers/customers', {
+          name: form.customerName,
+          phone: form.customerPhone,
+          email: form.email,
+          dob: form.dob,
+          cardId: form.customerCode,
+          addressLocation: form.addressLocation,
+          address: form.address,
+        }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
+      }
+
       await http.post('/products/wholesale-invoices', payload);
       setSuccessMessage('Hóa đơn bán sỉ đã được tạo thành công!');
       if (form.autoPrint) {
@@ -409,11 +440,12 @@ export function WholesaleInvoiceCreatePage() {
     }
   };
 
-  // Local Search Autocomplete list
-  const autocompleteList = searchQuery.trim() === '' ? [] : dbProducts.filter(p => 
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.code?.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 10);
+  // Local Search Autocomplete list (filtered by stock in the selected warehouse)
+  const autocompleteList = searchQuery.trim() === '' ? [] : dbProducts.filter(p => {
+    const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.code?.toLowerCase().includes(searchQuery.toLowerCase());
+    const stock = getStockForWarehouse(p, branch?.name);
+    return matchesSearch && stock > 0;
+  }).slice(0, 10);
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -773,25 +805,16 @@ export function WholesaleInvoiceCreatePage() {
               {/* Sales Person */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nhân viên bán hàng</span>
-                <input 
-                  type="text" 
-                  placeholder="Nhân viên sỉ phụ trách" 
+                <select 
                   value={form.salesperson} 
                   onChange={(e) => handleChange('salesperson', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
-                />
-              </div>
-
-              {/* Tech Staff */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nhân viên kỹ thuật</span>
-                <input 
-                  type="text" 
-                  placeholder="Nhân viên kỹ thuật (nếu có)" 
-                  value={form.techStaff} 
-                  onChange={(e) => handleChange('techStaff', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
-                />
+                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff', fontSize: '13px' }}
+                >
+                  <option value="">-- Chọn nhân viên --</option>
+                  {dbStaffs.map(staff => (
+                    <option key={staff._id} value={staff.name}>{staff.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Invoice Label */}
@@ -874,16 +897,44 @@ export function WholesaleInvoiceCreatePage() {
 
               {/* Customer Name & Card Code */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tên khách hàng <span style={{ color: '#ef4444' }}>*</span></span>
                   <input 
                     type="text" 
                     required
                     placeholder="Tên khách đại lý / sỉ" 
                     value={form.customerName} 
-                    onChange={(e) => handleChange('customerName', e.target.value)} 
+                    onFocus={() => setShowCustomerDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                    onChange={(e) => {
+                      handleChange('customerName', e.target.value);
+                      setShowCustomerDropdown(true);
+                    }} 
                     style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
                   />
+                  {showCustomerDropdown && form.customerName.trim().length > 0 && dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
+                      {dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).map(c => (
+                        <div key={c._id} onClick={() => {
+                          setForm(prev => ({
+                            ...prev, 
+                            customerName: c.name || '', 
+                            customerPhone: c.phone || '', 
+                            email: c.email || '', 
+                            dob: c.birthday ? new Date(c.birthday).toISOString().split('T')[0] : (c.dob || ''), 
+                            customerCode: c.cardId || c.code || '', 
+                            addressLocation: c.addressLocation || '', 
+                            address: c.address || '',
+                            companyName: c.company || '',
+                            taxId: c.vat || '',
+                          }));
+                          setShowCustomerDropdown(false);
+                        }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                          <div style={{ fontWeight: '600', fontSize: '13px' }}>{c.name} - {c.phone}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã thẻ</span>

@@ -24,6 +24,12 @@ const CustomerSchema = new Schema({
   vat: String,
   facebook: String,
   note: String,
+  totalSpent: { type: Number, default: 0 },
+  purchaseCount: { type: Number, default: 0 },
+  points: { type: Number, default: 0 },
+  lastPurchaseDate: Date,
+  daysSinceLastPurchase: Number,
+  tags: [{ type: String }],
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   groups: [{ type: Schema.Types.ObjectId, ref: 'CustomerGroup' }],
@@ -31,3 +37,17 @@ const CustomerSchema = new Schema({
 }, { timestamps: true });
 CustomerSchema.index({ name: 'text', code: 'text', phone: 'text', email: 'text' });
 export const Customer = model('Customer', CustomerSchema);
+
+const CustomerCareSchema = new Schema({
+  code: { type: String, required: true },
+  customerCode: { type: String },
+  customerName: { type: String },
+  customerPhone: { type: String },
+  details: { type: String },
+  reason: { type: String },
+  description: { type: String },
+  creator: { type: String },
+  recordDate: { type: Date },
+}, { timestamps: true });
+CustomerCareSchema.index({ code: 'text', customerName: 'text', customerPhone: 'text' });
+export const CustomerCare = model('CustomerCare', CustomerCareSchema);

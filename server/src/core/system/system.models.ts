@@ -22,3 +22,9 @@ export const MenuItem = model('MenuItem', new Schema({
   sortOrder: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true }));
+
+export const Wallet = model('Wallet', new Schema({
+  code: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  balance: { type: Number, default: 0 },
+}, { timestamps: true }));

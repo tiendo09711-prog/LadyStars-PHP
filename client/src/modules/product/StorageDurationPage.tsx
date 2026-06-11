@@ -35,6 +35,9 @@ export function StorageDurationPage() {
   const [tempSearch, setTempSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'unsold_long' | 'slow_selling'>('all');
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [loadingBranches, setLoadingBranches] = useState(false);
   
   // Advanced filters
   const [minStartDays, setMinStartDays] = useState('');
@@ -72,7 +75,7 @@ export function StorageDurationPage() {
     }
   }, [toast]);
 
-  // Load Categories on mount
+  // Load Categories and Branches on mount
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -82,7 +85,19 @@ export function StorageDurationPage() {
         console.error('Failed to load categories', err);
       }
     };
+    const loadBranches = async () => {
+      setLoadingBranches(true);
+      try {
+        const res = await http.get('/system/branches');
+        setBranches(res.data?.items || []);
+      } catch (err) {
+        console.error('Failed to load branches', err);
+      } finally {
+        setLoadingBranches(false);
+      }
+    };
     loadCategories();
+    loadBranches();
   }, []);
 
   // Main Data Loading
@@ -97,7 +112,8 @@ export function StorageDurationPage() {
         tab: activeTab,
         minStartDays: minStartDays ? Number(minStartDays) : undefined,
         minSoldDays: minSoldDays ? Number(minSoldDays) : undefined,
-        minStock: minStock ? Number(minStock) : undefined
+        minStock: minStock ? Number(minStock) : undefined,
+        branchId: selectedBranch || undefined
       };
 
       const res = await productApi.getStorageDuration(params);
@@ -116,10 +132,10 @@ export function StorageDurationPage() {
     }
   };
 
-  // Reload when page, tab, category or search queries change
+  // Reload when page, tab, category, search queries or branch change
   useEffect(() => {
     loadData();
-  }, [page, activeTab, selectedCategory, search]);
+  }, [page, activeTab, selectedCategory, search, selectedBranch]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +150,7 @@ export function StorageDurationPage() {
     setMinStartDays('');
     setMinSoldDays('');
     setMinStock('');
+    setSelectedBranch('');
     setPage(1);
   };
 
@@ -196,19 +213,20 @@ export function StorageDurationPage() {
     }
 
     try {
-      // 1. Update the product stock directly in database
-      const newQty = Math.max(0, (returnProduct.qty || 0) - returnQty);
-      await productApi.updateProduct(returnProduct._id, { qty: newQty });
+      const targetBranchId = selectedBranch || branches.find(b => b.isDefault)?._id || branches[0]?._id;
+      // Calculate target global stock after returning
+      const newGlobalQty = Math.max(0, (returnProduct.globalQty || returnProduct.qty || 0) - returnQty);
 
-      // 2. Also register a stock adjustment record to keep track of this return
+      // Create a completed stock adjustment to adjust both the global and branch-specific stocks
       await http.post('/products/stock-adjustments', {
         code: `TRA-NCC-${Date.now().toString().slice(-6)}`,
+        branchId: targetBranchId || undefined,
         balanceDate: new Date().toISOString().slice(0, 10),
-        status: 'completed', // auto complete to reflect stock changes
+        status: 'completed', // auto complete to trigger database adjustments
         note: `[TRẢ HÀNG NCC] ${returnProduct.name} (NCC: ${returnProduct.supplierName || 'Mặc định'}). Lý do: ${returnNote}`,
         items: [{
           productId: returnProduct._id,
-          actualStock: newQty
+          actualStock: newGlobalQty
         }]
       });
 
@@ -369,6 +387,25 @@ export function StorageDurationPage() {
                 placeholder="Tên SP, mã SP..." 
               />
             </div>
+
+            <label className="field-label" style={{ marginTop: '16px' }}>Chi nhánh</label>
+            <select 
+              style={{
+                width: '100%',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '9px 11px',
+                outline: '0',
+                background: '#fff'
+              }}
+              value={selectedBranch} 
+              onChange={(e) => { setSelectedBranch(e.target.value); setPage(1); }}
+            >
+              <option value="">Tất cả chi nhánh</option>
+              {branches.map((b) => (
+                <option key={b._id} value={b._id}>{b.name} ({b.code})</option>
+              ))}
+            </select>
 
             <label className="field-label" style={{ marginTop: '16px' }}>Nhóm sản phẩm</label>
             <select 

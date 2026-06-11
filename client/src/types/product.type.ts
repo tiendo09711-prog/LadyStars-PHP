@@ -19,6 +19,7 @@ export interface IProduct {
   name: string;
   unit?: string;
   status?: string;
+  categoryId?: string;
   categoryName?: string;
   trademarkName?: string;
   supplierName?: string;
@@ -107,6 +108,7 @@ export interface IStorageDuration {
   cost?: number;
   price?: number;
   qty?: number;
+  globalQty?: number;
   firstTransactionDate?: string;
   lastTransactionDate?: string;
   lastSoldDate?: string;

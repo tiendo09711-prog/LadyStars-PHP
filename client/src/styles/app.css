@@ -257,8 +257,10 @@ h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
 .error-chip { color: #b91c1c; background: var(--danger-soft); border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; }
 .table-scroll { overflow: auto; }
 .data-table { width: 100%; border-collapse: collapse; background: #fff; }
-.data-table th, .data-table td { border-bottom: 1px solid var(--border-soft); padding: 12px 14px; text-align: left; white-space: nowrap; font-size: 14px; }
-.data-table th { color: #475569; background: #f8fafc; font-size: 12px; text-transform: uppercase; font-weight: 800; }
+.data-table th, .data-table td { border-bottom: 1px solid var(--border-soft); padding: 12px 14px; text-align: left; font-size: 14px; max-width: 400px; }
+.data-table td { white-space: normal; overflow-wrap: break-word; }
+.data-table td:not(.check-cell):not(.action-cell) { min-width: 120px; }
+.data-table th { color: #475569; background: #f8fafc; font-size: 12px; text-transform: uppercase; font-weight: 800; white-space: nowrap; }
 .data-table tr:hover td { background: #f8fafc; }
 .data-table.compact td { white-space: normal; }
 .data-table small { display: block; color: var(--muted); margin-top: 3px; }

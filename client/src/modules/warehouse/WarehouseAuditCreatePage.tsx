@@ -10,7 +10,18 @@ type Product = {
   price: number;
   cost: number;
   qty: number;
+  totalStock?: number;
+  stockCN?: number;
+  stockHanoi?: number;
+  stockHCM?: number;
   unit?: string;
+};
+
+const getStockForWarehouse = (prod: Product, wh: string) => {
+  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+  return prod.totalStock ?? prod.qty ?? 0;
 };
 
 type CheckProductLine = {
@@ -39,7 +50,7 @@ export function WarehouseAuditCreatePage() {
   const [form, setForm] = useState({
     id: `PKK${Math.floor(Date.now() / 1000)}`,
     date: new Date().toISOString().slice(0, 10),
-    warehouse: 'Gruda Hair',
+    warehouse: 'Chi nhánh trung tâm',
     type: 'Theo sản phẩm',
     note: '',
   });
@@ -54,7 +65,7 @@ export function WarehouseAuditCreatePage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await http.get('/products/products', { params: { limit: 100 } });
+        const response = await http.get('/products/inventories', { params: { limit: 100 } });
         const items = response.data?.items;
         setDbProducts(items?.length ? items : MOCK_PRODUCTS);
       } catch {
@@ -63,6 +74,26 @@ export function WarehouseAuditCreatePage() {
     };
     fetchProducts();
   }, []);
+
+  // Update stock when warehouse changes
+  useEffect(() => {
+    if (dbProducts.length > 0 && lines.length > 0) {
+      setLines(prev => prev.map(line => {
+        const prod = dbProducts.find(p => p.code === line.productCode);
+        if (prod) {
+          const newStock = getStockForWarehouse(prod, form.warehouse);
+          if (line.stock !== newStock) {
+            return {
+              ...line,
+              stock: newStock,
+              difference: line.actualStock - newStock
+            };
+          }
+        }
+        return line;
+      }));
+    }
+  }, [form.warehouse, dbProducts]);
 
   const filteredSearchProducts = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -79,14 +110,15 @@ export function WarehouseAuditCreatePage() {
       setShowDropdown(false);
       return;
     }
+    const currentStock = getStockForWarehouse(product, form.warehouse);
     const newLine: CheckProductLine = {
       productCode: product.code,
       productName: product.name,
       cost: product.cost || 0,
       price: product.price || 0,
-      stock: product.qty || 0,
+      stock: currentStock,
       transferring: 0,
-      actualStock: product.qty || 0,
+      actualStock: currentStock,
       difference: 0,
       description: '',
     };
@@ -396,10 +428,9 @@ export function WarehouseAuditCreatePage() {
                 onChange={(e) => setForm({...form, warehouse: e.target.value})}
                 style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
               >
-                <option value="Gruda Hair">Gruda Hair</option>
-                <option value="Kho Tổng">Kho Tổng</option>
-                <option value="Cửa hàng chi nhánh 1">Cửa hàng chi nhánh 1</option>
-                <option value="Cửa hàng chi nhánh 2">Cửa hàng chi nhánh 2</option>
+                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm</option>
+                <option value="Kho Hà Nội">Kho Hà Nội</option>
+                <option value="Kho HCM">Kho HCM</option>
               </select>
             </label>
 

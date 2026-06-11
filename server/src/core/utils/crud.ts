@@ -1,4 +1,4 @@
-import type { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import type { Request, Response } from 'express';
 import { writeAuditLog } from '../audit/audit.service.js';
 
@@ -45,7 +45,13 @@ export function crudController<T>(model: Model<T>) {
         if (RESERVED.has(key)) continue;
         const strVal = String(val ?? '').trim();
         if (!strVal) continue;
-        if (strVal.includes(',')) {
+
+        const isObjectIdField = model.schema.path(key)?.instance === 'ObjectID';
+        const isObjectIdValue = /^[0-9a-fA-F]{24}$/.test(strVal);
+
+        if (isObjectIdField || (isObjectIdValue && (key.endsWith('Id') || key === '_id'))) {
+          filter[key] = new mongoose.Types.ObjectId(strVal);
+        } else if (strVal.includes(',')) {
           const parts = strVal.split(',').map(p => p.trim()).filter(Boolean);
           filter[key] = { $in: parts.map(p => new RegExp(`^${p}$`, 'i')) };
         } else {

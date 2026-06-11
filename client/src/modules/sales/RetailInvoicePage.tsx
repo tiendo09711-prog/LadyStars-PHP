@@ -16,6 +16,80 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const [branchError, setBranchError] = useState('');
   const navigate = useNavigate();
 
+  // states for confirm modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [unpaidInvoices, setUnpaidInvoices] = useState<any[]>([]);
+  const [loadingConfirm, setLoadingConfirm] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  const [confirmForm, setConfirmForm] = useState({
+    orderId: '',
+    senderName: '',
+    transactionCode: '',
+    bankName: '',
+    bankAccountNo: '',
+    transactionDate: new Date().toISOString().slice(0,10),
+    store: '',
+    transactionContent: '',
+    confirmedBy: '',
+  });
+
+  useEffect(() => {
+    http.get('/auth/me').then(res => setCurrentUser(res.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (showConfirmModal) {
+      setLoadingConfirm(true);
+      http.get('/products/retail-invoices?tabs=all&limit=100')
+        .then(res => {
+          // Filter out unpaid invoices
+          const items = (res.data.items || []).filter((inv: any) => inv.status !== 'Đã thanh toán' && inv.status !== 'Đã hủy');
+          setUnpaidInvoices(items);
+        })
+        .finally(() => setLoadingConfirm(false));
+    }
+  }, [showConfirmModal]);
+
+  const handleOrderSelect = (orderId: string) => {
+    const inv = unpaidInvoices.find(i => i.id === orderId);
+    if (inv) {
+      setConfirmForm(prev => ({
+        ...prev,
+        orderId: inv.id,
+        senderName: inv.customerName || '',
+        store: inv.branchName || inv.orderSource || '',
+        transactionContent: `Thanh toán cho đơn hàng ${inv.id}`,
+        confirmedBy: currentUser?.name || 'Admin'
+      }));
+    } else {
+      setConfirmForm(prev => ({ ...prev, orderId }));
+    }
+  };
+
+  const handleSaveConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...confirmForm,
+        tabs: ['confirm'],
+      };
+      await http.post('/products/retail-invoices', payload);
+      
+      // Update the original invoice status to "Đã thanh toán"
+      const inv = unpaidInvoices.find(i => i.id === confirmForm.orderId);
+      if (inv && inv._id) {
+        await http.patch(`/products/retail-invoices/${inv._id}`, { status: 'Đã thanh toán' });
+      }
+
+      setShowConfirmModal(false);
+      window.location.reload(); // Quick refresh to update tables
+    } catch (err) {
+      console.error(err);
+      alert('Có lỗi xảy ra khi lưu xác nhận thanh toán');
+    }
+  };
+
   useEffect(() => {
     if (showBranchModal) {
       setLoadingBranches(true);
@@ -160,6 +234,20 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             endpoint: '/products/retail-invoices?tabs=confirm',
             icon: <WalletCards size={24} />,
             primaryActionLabel: 'Thêm xác nhận thanh toán',
+            onPrimaryActionClick: () => {
+              setConfirmForm({
+                orderId: '',
+                senderName: '',
+                transactionCode: '',
+                bankName: '',
+                bankAccountNo: '',
+                transactionDate: new Date().toISOString().slice(0,10),
+                store: '',
+                transactionContent: '',
+                confirmedBy: currentUser?.name || 'Admin',
+              });
+              setShowConfirmModal(true);
+            },
             fields: [
               { key: 'orderId', label: 'ID đơn hàng' },
               { key: 'senderName', label: 'Khách chuyển khoản' },
@@ -335,6 +423,78 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                 Tiếp tục <ArrowRight size={16} />
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmModal && (
+        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 1000 }}>
+          <div className="modal-card" style={{ maxWidth: '600px', width: '100%', borderRadius: '16px', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+            <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: '#e0e7ff', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+                  <WalletCards size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Thêm xác nhận thanh toán</h2>
+                  <p style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 0 0' }}>Ghi nhận khách đã chuyển khoản cho đơn hàng</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowConfirmModal(false)} style={{ background: '#f1f5f9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleSaveConfirm}>
+              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '65vh', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Chọn đơn hàng chưa thanh toán <span style={{ color: '#ef4444' }}>*</span></label>
+                  {loadingConfirm ? (
+                    <div style={{ padding: '10px', color: '#64748b', fontSize: '13px' }}>Đang tải danh sách đơn hàng...</div>
+                  ) : (
+                    <select required value={confirmForm.orderId} onChange={(e) => handleOrderSelect(e.target.value)} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px', color: '#1e293b', background: '#f8fafc' }}>
+                      <option value="">-- Bấm để chọn mã đơn hàng --</option>
+                      {unpaidInvoices.map(inv => (
+                        <option key={inv.id} value={inv.id}>{inv.id} - Khách: {inv.customerName} - {inv.totalAmount?.toLocaleString('vi-VN')}đ</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Khách chuyển khoản <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input required type="text" placeholder="Tên người chuyển khoản" value={confirmForm.senderName} onChange={(e) => setConfirmForm(p => ({...p, senderName: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã giao dịch <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input required type="text" placeholder="Ví dụ: FT20394..." value={confirmForm.transactionCode} onChange={(e) => setConfirmForm(p => ({...p, transactionCode: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ngân hàng nhận <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input required type="text" placeholder="Ví dụ: Vietcombank" value={confirmForm.bankName} onChange={(e) => setConfirmForm(p => ({...p, bankName: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Số tài khoản nhận</label>
+                    <input type="text" placeholder="Số tài khoản của shop" value={confirmForm.bankAccountNo} onChange={(e) => setConfirmForm(p => ({...p, bankAccountNo: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ngày giao dịch</label>
+                    <input type="date" value={confirmForm.transactionDate} onChange={(e) => setConfirmForm(p => ({...p, transactionDate: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Người xác nhận</label>
+                    <input type="text" readOnly value={confirmForm.confirmedBy} onChange={(e) => setConfirmForm(p => ({...p, confirmedBy: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px', background: '#f8fafc', color: '#64748b' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nội dung giao dịch / Ghi chú</label>
+                  <textarea rows={3} placeholder="Nội dung chuyển khoản..." value={confirmForm.transactionContent} onChange={(e) => setConfirmForm(p => ({...p, transactionContent: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical', fontSize: '14px' }} />
+                </div>
+              </div>
+              <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc' }}>
+                <button type="button" onClick={() => setShowConfirmModal(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>Hủy bỏ</button>
+                <button type="submit" disabled={!confirmForm.orderId} style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: '#ffffff', fontWeight: '600', cursor: confirmForm.orderId ? 'pointer' : 'not-allowed', opacity: confirmForm.orderId ? 1 : 0.6, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>Lưu xác nhận</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -18,9 +18,18 @@ import {
   CreditCard, 
   Info,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+
+const getStockForWarehouse = (prod: any, wh: string) => {
+  if (!wh) return prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+  return prod.totalStock ?? prod.qty ?? 0;
+};
 
 export function RetailInvoiceCreatePage() {
   const { channel } = useParams();
@@ -36,10 +45,8 @@ export function RetailInvoiceCreatePage() {
   const [form, setForm] = useState({
     id: 'HDLE-' + Math.floor(100000 + Math.random() * 900000), // Random unique invoice ID
     date: new Date().toLocaleString('vi-VN'),
-    orderId: '',
     type: 'Xuất bán lẻ [L]',
     salesperson: '',
-    techStaff: '',
     phone: '',
     customerName: '',
     email: '',
@@ -49,10 +56,7 @@ export function RetailInvoiceCreatePage() {
     address: '',
     cardId: '',
     customerLevel: '',
-    companyName: '',
-    taxId: '',
-    companyAddress: '',
-    orderSource: '',
+    orderSource: 'Cửa hàng',
     productCode: '',
     productName: '',
     discount: 0,
@@ -63,6 +67,13 @@ export function RetailInvoiceCreatePage() {
     note: '',
     status: 'Mới',
   });
+
+  const [dbProducts, setDbProducts] = useState<any[]>([]);
+  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
+  const [dbStaffs, setDbStaffs] = useState<any[]>([]);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [maxStock, setMaxStock] = useState(0);
 
   // Local helper states for pricing calculation
   const [price, setPrice] = useState<number>(0);
@@ -90,6 +101,21 @@ export function RetailInvoiceCreatePage() {
         });
     }
   }, [branchId]);
+
+  useEffect(() => {
+    // Fetch users, customers, and products
+    Promise.all([
+      http.get('/auth/me'),
+      http.get('/staff'),
+      http.get('/customers/customers'),
+      http.get('/products/inventories', { params: { limit: 500 } })
+    ]).then(([meRes, staffRes, custRes, prodRes]) => {
+      setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
+      setDbStaffs(staffRes.data?.items || []);
+      setDbCustomers(custRes.data?.items || []);
+      setDbProducts(prodRes.data?.items || []);
+    }).catch(err => console.error("Error fetching dependencies:", err));
+  }, []);
 
   // Handle auto-calculation
   useEffect(() => {
@@ -134,21 +160,38 @@ export function RetailInvoiceCreatePage() {
     setErrorMessage('');
     setIsSaving(true);
 
-    const payload = {
-      ...form,
-      tabs: ['all'],
-      branchId,
-      branchName: branch?.name,
-      branchCode: branch?.code,
-      // Store calculations in the note or logs if needed
-      metadata: {
-        price,
-        quantity,
-        autoCalculated: useAutoCalculate
-      }
-    };
-
     try {
+      // Auto-save new customer if not found in dbCustomers
+      const isExistingCustomer = dbCustomers.some(
+        c => c.name?.toLowerCase() === form.customerName.toLowerCase() && (c.phone === form.phone || !form.phone)
+      );
+      if (!isExistingCustomer) {
+        await http.post('/customers/customers', {
+          name: form.customerName,
+          phone: form.phone,
+          email: form.email,
+          facebook: form.facebook,
+          dob: form.dob,
+          cardId: form.cardId,
+          customerLevel: form.customerLevel,
+          addressLocation: form.addressLocation,
+          address: form.address,
+        }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
+      }
+
+      const payload = {
+        ...form,
+        tabs: ['all'],
+        branchId,
+        branchName: branch?.name,
+        branchCode: branch?.code,
+        metadata: {
+          price,
+          quantity,
+          autoCalculated: useAutoCalculate
+        }
+      };
+
       await http.post('/products/retail-invoices', payload);
       setSuccessMessage('Hóa đơn bán lẻ đã được lưu thành công!');
       setTimeout(() => {
@@ -271,10 +314,9 @@ export function RetailInvoiceCreatePage() {
                   <Info size={14} color="#94a3b8" />
                   <input 
                     type="text" 
-                    required
+                    readOnly
                     value={form.id} 
-                    onChange={(e) => handleChange('id', e.target.value)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
+                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#64748b' }} 
                   />
                 </div>
               </div>
@@ -311,44 +353,27 @@ export function RetailInvoiceCreatePage() {
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nguồn đơn hàng</span>
                 <input 
                   type="text" 
-                  placeholder="Ví dụ: Cửa hàng, Facebook, Shopee..." 
                   value={form.orderSource} 
                   onChange={(e) => handleChange('orderSource', e.target.value)} 
                   style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nhân viên bán hàng</span>
-                <input 
-                  type="text" 
-                  placeholder="Tên nhân viên phụ trách" 
+                <select 
                   value={form.salesperson} 
                   onChange={(e) => handleChange('salesperson', e.target.value)} 
                   style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Kỹ thuật viên</span>
-                <input 
-                  type="text" 
-                  placeholder="Kỹ thuật viên lắp đặt/hỗ trợ" 
-                  value={form.techStaff} 
-                  onChange={(e) => handleChange('techStaff', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>ID Đơn hàng (Nếu có)</span>
-                <input 
-                  type="text" 
-                  placeholder="Liên kết với ID đơn hàng hệ thống" 
-                  value={form.orderId} 
-                  onChange={(e) => handleChange('orderId', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
+                >
+                  <option value="">-- Chọn nhân viên --</option>
+                  {dbStaffs.map(staff => (
+                    <option key={staff._id} value={staff.name}>{staff.name}</option>
+                  ))}
+                  {form.salesperson && !dbStaffs.some(s => s.name === form.salesperson) && (
+                    <option value={form.salesperson}>{form.salesperson}</option>
+                  )}
+                </select>
               </div>
             </div>
           </div>
@@ -363,7 +388,7 @@ export function RetailInvoiceCreatePage() {
             </div>
             
             <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tên khách hàng <span style={{ color: '#ef4444' }}>*</span></span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
                   <User size={14} color="#94a3b8" />
@@ -372,10 +397,30 @@ export function RetailInvoiceCreatePage() {
                     required
                     placeholder="Nhập họ tên khách hàng" 
                     value={form.customerName} 
-                    onChange={(e) => handleChange('customerName', e.target.value)} 
+                    onFocus={() => setShowCustomerDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                    onChange={(e) => {
+                      handleChange('customerName', e.target.value);
+                      setShowCustomerDropdown(true);
+                    }} 
                     style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
                   />
                 </div>
+                {showCustomerDropdown && form.customerName.trim().length > 0 && dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
+                    {dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).map(c => (
+                      <div key={c._id} onClick={() => {
+                        setForm(prev => ({
+                          ...prev, customerName: c.name, phone: c.phone || '', email: c.email || '', facebook: c.facebook || '',
+                          dob: c.dob || '', cardId: c.cardId || '', customerLevel: c.customerLevel || '', addressLocation: c.addressLocation || '', address: c.address || ''
+                        }));
+                        setShowCustomerDropdown(false);
+                      }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ fontWeight: '600', fontSize: '13px' }}>{c.name} - {c.phone}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -486,50 +531,7 @@ export function RetailInvoiceCreatePage() {
             </div>
           </div>
 
-          {/* Card 3: Company VAT Invoice Details */}
-          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: '#fef3c7', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-                <FileText size={15} />
-              </div>
-              <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Hóa Đơn Công Ty (VAT - Nếu có)</h2>
-            </div>
-            
-            <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tên công ty / Tổ chức</span>
-                <input 
-                  type="text" 
-                  placeholder="Nhập tên đầy đủ của doanh nghiệp" 
-                  value={form.companyName} 
-                  onChange={(e) => handleChange('companyName', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã số thuế</span>
-                <input 
-                  type="text" 
-                  placeholder="Mã số thuế doanh nghiệp" 
-                  value={form.taxId} 
-                  onChange={(e) => handleChange('taxId', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Địa chỉ công ty</span>
-                <input 
-                  type="text" 
-                  placeholder="Địa chỉ đăng ký doanh nghiệp" 
-                  value={form.companyAddress} 
-                  onChange={(e) => handleChange('companyAddress', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Card 4: Product Info */}
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
@@ -541,27 +543,61 @@ export function RetailInvoiceCreatePage() {
             </div>
             
             <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã sản phẩm <span style={{ color: '#ef4444' }}>*</span></span>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Nhập mã sản phẩm (Ví dụ: SP001)" 
-                  value={form.productCode} 
-                  onChange={(e) => handleChange('productCode', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2', position: 'relative' }}>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tìm chọn sản phẩm <span style={{ color: '#ef4444' }}>*</span></span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
+                  <Search size={14} color="#94a3b8" />
+                  <input 
+                    type="text" 
+                    placeholder="Tìm theo mã hoặc tên sản phẩm..." 
+                    value={form.productName} 
+                    onFocus={() => setShowProductDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowProductDropdown(false), 200)}
+                    onChange={(e) => { handleChange('productName', e.target.value); setShowProductDropdown(true); }} 
+                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
+                  />
+                </div>
+                {showProductDropdown && dbProducts.filter(p => {
+                  const matchesSearch = p.name?.toLowerCase().includes(form.productName.toLowerCase()) || p.code?.toLowerCase().includes(form.productName.toLowerCase());
+                  const stock = getStockForWarehouse(p, branch?.name);
+                  return matchesSearch && stock > 0;
+                }).length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '250px', overflowY: 'auto' }}>
+                    {dbProducts.filter(p => {
+                      const matchesSearch = p.name?.toLowerCase().includes(form.productName.toLowerCase()) || p.code?.toLowerCase().includes(form.productName.toLowerCase());
+                      const stock = getStockForWarehouse(p, branch?.name);
+                      return matchesSearch && stock > 0;
+                    }).map(p => {
+                      const stock = getStockForWarehouse(p, branch?.name);
+                      return (
+                        <div key={p.code} onClick={() => {
+                          setForm(prev => ({ ...prev, productCode: p.code, productName: p.name }));
+                          setPrice(p.price || 0);
+                          setMaxStock(stock);
+                          setQuantity(1);
+                          setShowProductDropdown(false);
+                        }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
+                          <div>
+                            <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{p.name}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>Mã: {p.code} | Giá: {(p.price||0).toLocaleString()}đ</div>
+                          </div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#10b981' }}>
+                            Tồn kho: {stock}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tên sản phẩm <span style={{ color: '#ef4444' }}>*</span></span>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã sản phẩm (Tự điền)</span>
                 <input 
                   type="text" 
-                  required
-                  placeholder="Nhập tên sản phẩm bán lẻ" 
-                  value={form.productName} 
-                  onChange={(e) => handleChange('productName', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
+                  readOnly
+                  value={form.productCode} 
+                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#64748b', background: '#f8fafc' }} 
                 />
               </div>
 
@@ -572,7 +608,6 @@ export function RetailInvoiceCreatePage() {
                   <input 
                     type="number" 
                     min={0}
-                    placeholder="0" 
                     value={price || ''} 
                     onChange={(e) => setPrice(Number(e.target.value) || 0)} 
                     style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
@@ -581,12 +616,19 @@ export function RetailInvoiceCreatePage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Số lượng</span>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>
+                  Số lượng {maxStock > 0 && <span style={{ color: '#10b981', fontWeight: '500' }}>(Tồn: {maxStock})</span>}
+                </span>
                 <input 
                   type="number" 
                   min={1}
+                  max={maxStock > 0 ? maxStock : undefined}
                   value={quantity} 
-                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))} 
+                  onChange={(e) => {
+                    let val = Math.max(1, Number(e.target.value) || 1);
+                    if (maxStock > 0 && val > maxStock) val = maxStock;
+                    setQuantity(val);
+                  }} 
                   style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
                 />
               </div>

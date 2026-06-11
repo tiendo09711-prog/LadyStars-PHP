@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, FileDown, FileUp, Filter, Pencil, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { productApi } from '../../../core/api/product.api';
-import type { IProduct } from '../../../types/product.type';
+import type { IProduct, ICategory } from '../../../types/product.type';
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
 import { ExportExcelModal, ColumnOption } from './ExportExcelModal';
@@ -109,8 +110,16 @@ interface ProductFormProps {
 }
 
 function ProductForm({ product, onSave, onClose, saving, error }: ProductFormProps) {
+  const navigate = useNavigate();
   const isEdit = !!product;
   const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'product', status: 'Mới' });
+  const [categories, setCategories] = useState<ICategory[]>([]);
+
+  useEffect(() => {
+    productApi.getCategories({ limit: 100 })
+      .then(res => setCategories(res.items || []))
+      .catch(err => console.error('Lỗi khi tải danh mục:', err));
+  }, []);
 
   const set = (k: keyof IProduct, v: string | number) => setForm(f => ({ ...f, [k]: v }));
 
@@ -146,7 +155,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     { key: 'color', label: 'Màu sắc' },
     { key: 'size', label: 'Kích cỡ' },
     { key: 'origin', label: 'Xuất xứ' },
-    { key: 'categoryName', label: 'Danh mục' },
+    { key: 'categoryId', label: 'Danh mục' },
     { key: 'trademarkName', label: 'Thương hiệu' },
     { key: 'supplierName', label: 'Nhà cung cấp' },
   ];
@@ -163,23 +172,58 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         </div>
         {error && <div className="form-error">{error}</div>}
         <div className="form-grid">
-          {fields.map(f => (
-            <div className="form-field" key={f.key}>
-              <span>{f.label}</span>
-              {f.options ? (
-                <select value={String(form[f.key] ?? '')} onChange={e => set(f.key, e.target.value)}>
-                  <option value="">-- Chọn --</option>
-                  {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              ) : (
-                <input
-                  type={f.type || 'text'}
-                  value={String(form[f.key] ?? '')}
-                  onChange={e => set(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
-                />
-              )}
-            </div>
-          ))}
+          {fields.map(f => {
+            if (f.key === 'categoryId') {
+              return (
+                <div className="form-field" key={f.key}>
+                  <span>{f.label}</span>
+                  <select 
+                    value={String(form.categoryId ?? '')} 
+                    onChange={e => {
+                      const selectedId = e.target.value;
+                      const cat = categories.find(c => c._id === selectedId);
+                      setForm(prev => ({
+                        ...prev,
+                        categoryId: selectedId || undefined,
+                        categoryName: cat ? cat.name : ''
+                      }));
+                    }}
+                  >
+                    <option value="">-- Chọn danh mục --</option>
+                    {categories.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            }
+            return (
+              <div className="form-field" key={f.key}>
+                <span>{f.label}</span>
+                {f.options ? (
+                  <select value={String(form[f.key] ?? '')} onChange={e => set(f.key, e.target.value)}>
+                    <option value="">-- Chọn --</option>
+                    {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                ) : (
+                  <input
+                    type={f.type || 'text'}
+                    value={String(form[f.key] ?? '')}
+                    onChange={e => set(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
+                  />
+                )}
+              </div>
+            );
+          })}
+          <div style={{ gridColumn: '1 / -1', padding: '12px', background: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '13px', marginTop: '10px' }}>
+            <strong>Lưu ý:</strong> Không cập nhật số lượng tồn kho tại đây. Hãy cập nhật số lượng trong kho tồn trong{' '}
+            <span 
+              onClick={() => { onClose(); navigate(`/warehouse/transactions/vouchers/import${product?._id ? `?productId=${product._id}` : ''}`); }} 
+              style={{ color: '#ea580c', textDecoration: 'underline', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Phần xuất nhập kho
+            </span>.
+          </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-light" onClick={onClose} disabled={saving}>Hủy</button>

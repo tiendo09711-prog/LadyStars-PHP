@@ -1,0 +1,136 @@
+.installment-page {
+  background-color: #eef2f5;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  color: #333;
+}
+
+.installment-header {
+  background-color: #f8f9fa;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.installment-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-add-installment {
+  background-color: #4caf50;
+  color: white;
+  border: 1px solid #4caf50;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+.btn-add-installment:hover {
+  background-color: #43a047;
+}
+
+.btn-fee-table {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-fee-table:hover {
+  background-color: #e2e6ea;
+}
+
+.installment-filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.installment-filter-input {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  height: 32px;
+  outline: none;
+  width: 130px;
+}
+
+.installment-filter-input:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.btn-filter-installment {
+  background-color: #26a69a;
+  color: white;
+  border: 1px solid #26a69a;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  height: 32px;
+  font-weight: 500;
+}
+.btn-filter-installment:hover {
+  background-color: #208d83;
+}
+
+.installment-table-container {
+  overflow-x: auto;
+  background: white;
+}
+
+.installment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.installment-table th, .installment-table td {
+  border: 1px solid #dee2e6;
+  padding: 10px;
+  vertical-align: middle;
+}
+
+.installment-table th {
+  background-color: #f4f6f8;
+  color: #495057;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.installment-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.btn-gear-installment {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-gear-installment:hover {
+  color: #343a40;
+}

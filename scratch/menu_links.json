@@ -1,0 +1,918 @@
+[
+  {
+    "href": "/thong-bao-tinh-nang-so-ke-toan-them-2-so-s2c-s2d-an926.html",
+    "text": "Thông báo tính năng Sổ kế toán thêm 2 sổ s2c, s2d"
+  },
+  {
+    "href": "/thong-bao-lich-nghi-le-gio-to-hung-vuong-giai-phong-mien-nam-304-va-quoc-te-lao-dong-15-an925.html",
+    "text": "Thông báo lịch nghỉ lễ Giỗ tổ Hùng Vương, Giải phóng Miền Nam 30/4 và Quốc tế lao động 1/5"
+  },
+  {
+    "href": "/thong-bao-thay-doi-bang-gia-best-express-an924.html",
+    "text": "Thông báo thay đổi bảng giá  BEST EXPRESS"
+  },
+  {
+    "href": "/thong-bao-mo-ho-tro-dia-chi-2-cap-cho-don-hang-spx-an923.html",
+    "text": "Thông báo mở hỗ trợ địa chỉ 2 cấp cho đơn hàng SPX"
+  },
+  {
+    "href": "/thong-bao-lich-ngung-ho-tro-api-v2-an922.html",
+    "text": "Thông báo lịch ngừng hỗ trợ API v2"
+  },
+  {
+    "href": "/dieu-chinh-phi-van-chuyen-viettel-post-an921.html",
+    "text": "Điều chỉnh phí vận chuyển Viettel Post"
+  },
+  {
+    "href": "/thong-bao-dieu-chinh-phi-tin-nhan-zalo-zbs-zalo-zns-an920.html",
+    "text": "Thông báo điều chỉnh phí tin nhắn Zalo ZBS (Zalo ZNS)"
+  },
+  {
+    "href": "/cai-tien-man-hinh-ban-hang-don-hang-ho-tro-chuong-trinh-chiet-khau-va-qua-tang-moi-an919.html",
+    "text": "Cải tiến màn hình bán hàng, đơn hàng hỗ trợ chương trình chiết khấu và quà tặng mới"
+  },
+  {
+    "href": "/workshop-online-mien-phi-360-quan-tri-chi-phi-quang-cao-facebook-an918.html",
+    "text": "Workshop online miễn phí: 360° QUẢN TRỊ CHI PHÍ QUẢNG CÁO FACEBOOK"
+  },
+  {
+    "href": "/thong-bao-lich-bao-tri-server-dip-tet-nguyen-dan-2026-an917.html",
+    "text": "Thông báo lịch bảo trì server dịp Tết Nguyên Đán 2026"
+  },
+  {
+    "href": "/report/revenue/index?businessId=122623",
+    "text": "Theo thời gian"
+  },
+  {
+    "href": "/report/revenue/depot?businessId=122623",
+    "text": "Theo cửa hàng"
+  },
+  {
+    "href": "/report/revenue/brand?businessId=122623",
+    "text": "Theo thương hiệu"
+  },
+  {
+    "href": "/report/revenue/staff?businessId=122623",
+    "text": "Theo nhân viên"
+  },
+  {
+    "href": "/report/revenue/department?businessId=122623",
+    "text": "Theo phòng ban"
+  },
+  {
+    "href": "/report/revenue/category?businessId=122623",
+    "text": "Theo danh mục sản phẩm"
+  },
+  {
+    "href": "/report/revenue/internalcategory?businessId=122623",
+    "text": "Theo danh mục nội bộ"
+  },
+  {
+    "href": "/report/revenue/product?businessId=122623",
+    "text": "Theo sản phẩm"
+  },
+  {
+    "href": "/report/revenue/supplier?businessId=122623",
+    "text": "Theo nhà cung cấp"
+  },
+  {
+    "href": "/report/revenue/customer?businessId=122623",
+    "text": "Theo khách hàng"
+  },
+  {
+    "href": "/report/revenue/inventoryrate?businessId=122623",
+    "text": "Tỷ suất doanh thu / tồn kho"
+  },
+  {
+    "href": "/report/order/salechannel?businessId=122623",
+    "text": "Theo kênh bán"
+  },
+  {
+    "href": "/report/order/index?businessId=122623",
+    "text": "Đơn tạo"
+  },
+  {
+    "href": "/report/order/success?businessId=122623",
+    "text": "Đơn thành công"
+  },
+  {
+    "href": "/report/order/value?businessId=122623",
+    "text": "Theo giá trị đơn hàng"
+  },
+  {
+    "href": "/report/order/category?businessId=122623",
+    "text": "Theo danh mục sản phẩm"
+  },
+  {
+    "href": "/report/order/product?businessId=122623",
+    "text": "Theo sản phẩm"
+  },
+  {
+    "href": "/report/order/status?businessId=122623",
+    "text": "Theo trạng thái"
+  },
+  {
+    "href": "/report/order/location?businessId=122623",
+    "text": "Theo địa chỉ"
+  },
+  {
+    "href": "/report/order/cancel?businessId=122623",
+    "text": "Lý do xử lý đơn hàng"
+  },
+  {
+    "href": "/report/order/create?businessId=122623",
+    "text": "Nhân viên xử lý"
+  },
+  {
+    "href": "/report/order/utm?businessId=122623",
+    "text": "Theo quảng cáo"
+  },
+  {
+    "href": "/report/order/verifyandtransfer?businessId=122623",
+    "text": "Tiền đối soát"
+  },
+  {
+    "href": "/report/order/carrier?businessId=122623",
+    "text": "Theo hãng vận chuyển"
+  },
+  {
+    "href": "/report/retail/index?businessId=122623",
+    "text": "Tổng quan"
+  },
+  {
+    "href": "/report/retail/trafficsource?businessId=122623",
+    "text": "Theo nguồn khách hàng"
+  },
+  {
+    "href": "/report/retail/cashier?businessId=122623",
+    "text": "Theo nhân viên"
+  },
+  {
+    "href": "/report/retail/depot?businessId=122623",
+    "text": "Theo cửa hàng"
+  },
+  {
+    "href": "/report/retail/creditmoney?businessId=122623",
+    "text": "Chi tiết quẹt thẻ"
+  },
+  {
+    "href": "/report/retail/billvalue?businessId=122623",
+    "text": "Theo giá trị hóa đơn"
+  },
+  {
+    "href": "/report/retail/customerbillrate?businessId=122623",
+    "text": "Báo cáo tỷ lệ hóa đơn/ khách vào cửa hàng"
+  },
+  {
+    "href": "/report/retail/workshift?businessId=122623",
+    "text": "Báo cáo kết ca"
+  },
+  {
+    "href": "/report/wholesale/index?businessId=122623",
+    "text": "Tổng quan"
+  },
+  {
+    "href": "/report/wholesale/storesale?businessId=122623",
+    "text": "Theo nhân viên bán hàng"
+  },
+  {
+    "href": "/report/inventory/index?businessId=122623",
+    "text": "Xuất nhập tồn theo sản phẩm"
+  },
+  {
+    "href": "/report/inventory/imex?businessId=122623",
+    "text": "Chi tiết sản phẩm XNK"
+  },
+  {
+    "href": "/report/inventory/imextotal?businessId=122623",
+    "text": "Tổng XNK"
+  },
+  {
+    "href": "/report/inventory/imexdepot?businessId=122623",
+    "text": "Tổng XNK theo cửa hàng"
+  },
+  {
+    "href": "/report/inventory/supplier2?businessId=122623",
+    "text": "Theo nhà cung cấp"
+  },
+  {
+    "href": "/report/inventory/category?businessId=122623",
+    "text": "Danh mục sản phẩm"
+  },
+  {
+    "href": "/report/inventory/eachdepot?businessId=122623",
+    "text": "Số lượng hàng tồn kho"
+  },
+  {
+    "href": "/report/inventory/transfer?businessId=122623",
+    "text": "Chuyển kho chưa xác nhận"
+  },
+  {
+    "href": "/report/inventory/depotinventorystatus?businessId=122623",
+    "text": "Theo trạng thái từng cửa hàng"
+  },
+  {
+    "href": "/report/inventory/productinventorystatus?businessId=122623",
+    "text": "Theo trạng thái từng sản phẩm"
+  },
+  {
+    "href": "/report/inventory/productbatchs?businessId=122623",
+    "text": "Theo lô hàng"
+  },
+  {
+    "href": "/report/inventory/producttransfer?businessId=122623",
+    "text": "Chuyển kho theo sản phẩm"
+  },
+  {
+    "href": "/report/product/index?businessId=122623",
+    "text": "Bán chạy nhất"
+  },
+  {
+    "href": "/report/product/depot?businessId=122623",
+    "text": "Bán chạy theo cửa hàng"
+  },
+  {
+    "href": "/report/product/salespeed?businessId=122623",
+    "text": "Tốc độ bán hàng"
+  },
+  {
+    "href": "/report/product/salechannel?businessId=122623",
+    "text": "Theo kênh bán"
+  },
+  {
+    "href": "/report/product/categorydetail?businessId=122623",
+    "text": "Theo danh mục và cửa hàng"
+  },
+  {
+    "href": "/report/product/value?businessId=122623",
+    "text": "Theo khoảng giá"
+  },
+  {
+    "href": "/report/product/date?businessId=122623",
+    "text": "Theo ngày"
+  },
+  {
+    "href": "/report/product/salebyimei?businessId=122623",
+    "text": "Bán hàng theo IMEI"
+  },
+  {
+    "href": "/report/product/attribute?businessId=122623",
+    "text": "Theo thuộc tính"
+  },
+  {
+    "href": "/accounting/report/cash?businessId=122623",
+    "text": "Tổng hợp thu chi theo cửa hàng"
+  },
+  {
+    "href": "/accounting/report/account?businessId=122623",
+    "text": "Tổng hợp theo tài khoản"
+  },
+  {
+    "href": "/accounting/report/money?businessId=122623",
+    "text": "Tổng hợp tiền bán lẻ hàng ngày theo cửa hàng"
+  },
+  {
+    "href": "/accounting/report/cashbook?businessId=122623",
+    "text": "Tổng hợp thu chi theo ngày"
+  },
+  {
+    "href": "/accounting/report/businessresult?businessId=122623",
+    "text": "Tổng hợp kết quả kinh doanh"
+  },
+  {
+    "href": "/accounting/report/balancesheet?businessId=122623",
+    "text": "Bảng cân đối kế toán"
+  },
+  {
+    "href": "/report/household/s1a?businessId=122623",
+    "text": "Mẫu sổ  S1a-HKD (Doanh thu từ 500 triệu trở xuống)"
+  },
+  {
+    "href": "/report/household/s2a?businessId=122623",
+    "text": "Mẫu sổ  S2a-HKD (Doanh thu trên 500 triệu đến 3 tỷ)"
+  },
+  {
+    "href": "/report/household/s2b?businessId=122623",
+    "text": "Mẫu sổ  S2b-HKD (Doanh thu trên 3 tỷ)"
+  },
+  {
+    "href": "/report/household/s2b?businessId=122623",
+    "text": "Mẫu sổ  S2b-HKD (Doanh thu trên 3 tỷ)"
+  },
+  {
+    "href": "/report/household/s2c?businessId=122623",
+    "text": "Mẫu sổ  S2c-HKD (Sổ chi tiết doanh thu, chi phí)"
+  },
+  {
+    "href": "/report/household/s2d?businessId=122623",
+    "text": "Mẫu sổ  S2d-HKD (Sổ chi tiết vật liệu, dụng cụ, sản phẩm, hàng hóa)"
+  },
+  {
+    "href": "/report/customer/index?businessId=122623",
+    "text": "Tổng quan"
+  },
+  {
+    "href": "/report/customer/product?businessId=122623",
+    "text": "Theo sản phẩm"
+  },
+  {
+    "href": "/report/customer/total?businessId=122623",
+    "text": "Tỷ lệ khách quay lại"
+  },
+  {
+    "href": "/report/customer/level?businessId=122623",
+    "text": "Cấp độ khách hàng"
+  },
+  {
+    "href": "/report/customer/group?businessId=122623",
+    "text": "Nhóm khách hàng"
+  },
+  {
+    "href": "/report/customer/createnew?businessId=122623",
+    "text": "Khách hàng tạo mới theo cửa hàng"
+  },
+  {
+    "href": "/report/customer/frequencybought?businessId=122623",
+    "text": "Chu kỳ mua hàng"
+  },
+  {
+    "href": "/report/customer/birthday?businessId=122623",
+    "text": "Sinh nhật khách hàng"
+  },
+  {
+    "href": "/report/promotion/discountrate?businessId=122623",
+    "text": "Tỉ lệ với doanh thu"
+  },
+  {
+    "href": "/report/promotion/productgift?businessId=122623",
+    "text": "Quà tặng theo sản phẩm"
+  },
+  {
+    "href": "/report/promotion/productdiscountrate?businessId=122623",
+    "text": "Theo sản phẩm"
+  },
+  {
+    "href": "/report/promotion/bonusbydepot?businessId=122623",
+    "text": "Quà tặng theo cửa hàng"
+  },
+  {
+    "href": "/report/promotion/pricelist?businessId=122623",
+    "text": "Doanh thu theo bảng giá"
+  },
+  {
+    "href": "/report/zalo/historydate?businessId=122623",
+    "text": "Tin gửi theo ngày"
+  },
+  {
+    "href": "/report/zalo/template?businessId=122623",
+    "text": "Tin gửi theo mẫu"
+  },
+  {
+    "href": "/report/zalo/rating?businessId=122623",
+    "text": "Đánh giá của khách hàng"
+  },
+  {
+    "href": "/report/sms/date?businessId=122623",
+    "text": "Tin gửi theo ngày"
+  },
+  {
+    "href": "/product/item/index?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/product/brand/index?businessId=122623",
+    "text": "Thương hiệu"
+  },
+  {
+    "href": "/product/batch/index?businessId=122623",
+    "text": "Lô sản phẩm"
+  },
+  {
+    "href": "/product/item/storagetime?businessId=122623",
+    "text": "Thời gian lưu kho"
+  },
+  {
+    "href": "/product/item/inventory?businessId=122623",
+    "text": "Tồn kho"
+  },
+  {
+    "href": "/product/category/index?businessId=122623",
+    "text": "Danh mục"
+  },
+  {
+    "href": "/product/variant/index?businessId=122623",
+    "text": "Thuộc tính"
+  },
+  {
+    "href": "/supplier/manage/index?businessId=122623",
+    "text": "Nhà cung cấp"
+  },
+  {
+    "href": "/inventory/bill/index?businessId=122623",
+    "text": "Xuất nhập kho"
+  },
+  {
+    "href": "/inventory/transfer/index?businessId=122623",
+    "text": "Chuyển kho"
+  },
+  {
+    "href": "/inventory/check/index?businessId=122623",
+    "text": "Kiểm kho"
+  },
+  {
+    "href": "/inventory/requirement/bill?businessId=122623",
+    "text": "Phiếu nháp"
+  },
+  {
+    "href": "/pos/bill/addpackage?businessId=122623",
+    "text": "Thêm gói sản phẩm"
+  },
+  {
+    "href": "/pos/bill/extractpackage?businessId=122623",
+    "text": "Bung gói sản phẩm"
+  },
+  {
+    "href": "/inventory/archive/index?businessId=122623",
+    "text": "Hạn mức tồn kho"
+  },
+  {
+    "href": "/inventory/position/index?businessId=122623",
+    "text": "Vị trí sản phẩm"
+  },
+  {
+    "href": "/inventory/position/category?businessId=122623",
+    "text": "Danh mục vị trí"
+  },
+  {
+    "href": "/inventory/position/bill?businessId=122623",
+    "text": "HĐXN vị trí"
+  },
+  {
+    "href": "/inventory/position/imex?businessId=122623",
+    "text": "Sản phẩm xuất nhập vị trí"
+  },
+  {
+    "href": "/inventory/forecasting/movingaverage?businessId=122623",
+    "text": "Dự báo nhập hàng"
+  },
+  {
+    "href": "/inventory/product/companyavailable?businessId=122623",
+    "text": "Tổng công ty"
+  },
+  {
+    "href": "/inventory/log/imexbill?businessId=122623",
+    "text": "Lịch sử sửa xóa"
+  },
+  {
+    "href": "/customer/code/customerlist?businessId=122623",
+    "text": "Danh sách khách hàng"
+  },
+  {
+    "href": "/customer/code/index?businessId=122623",
+    "text": "Thẻ khách hàng"
+  },
+  {
+    "href": "/customer/care/index?businessId=122623",
+    "text": "Chăm sóc khách hàng"
+  },
+  {
+    "href": "/customer/store/level?businessId=122623",
+    "text": "Cấp độ"
+  },
+  {
+    "href": "/customer/group/index?businessId=122623",
+    "text": "Nhóm khách hàng"
+  },
+  {
+    "href": "/customer/type/index?businessId=122623",
+    "text": "Hình thức chăm sóc"
+  },
+  {
+    "href": "/customer/reason/index?businessId=122623",
+    "text": "Lý do chăm sóc"
+  },
+  {
+    "href": "/pos/bill/lookup?businessId=122623",
+    "text": "Tìm hóa đơn"
+  },
+  {
+    "href": "/pos/bill/index?businessId=122623",
+    "text": "Bán lẻ"
+  },
+  {
+    "href": "/pos/bill/wholesale?businessId=122623",
+    "text": "Bán sỉ"
+  },
+  {
+    "href": "/pos/invoice/index?businessId=122623",
+    "text": "Hóa đơn điện tử"
+  },
+  {
+    "href": "/pos/return/index?businessId=122623",
+    "text": "Trả hàng"
+  },
+  {
+    "href": "/pos/debt/bill?businessId=122623",
+    "text": "Nợ quà tặng"
+  },
+  {
+    "href": "/order/manage/index?businessId=122623",
+    "text": "Đơn hàng"
+  },
+  {
+    "href": "/order/manage/checkduplicate?businessId=122623",
+    "text": "Đơn trùng"
+  },
+  {
+    "href": "/order/manage/packing?businessId=122623",
+    "text": "Đóng gói"
+  },
+  {
+    "href": "/shipping/handover/index?businessId=122623",
+    "text": "Biên bản bàn giao"
+  },
+  {
+    "href": "/order/manage/sendingcarrier?businessId=122623",
+    "text": "Chờ gửi vận chuyển"
+  },
+  {
+    "href": "/order/manage/complain?businessId=122623",
+    "text": "Khiếu nại"
+  },
+  {
+    "href": "/order/payment/index?businessId=122623",
+    "text": "Đơn gửi qua Nhanh"
+  },
+  {
+    "href": "/order/manage/payment?businessId=122623",
+    "text": "Đơn tự kết nối"
+  },
+  {
+    "href": "/store/traffic/source?businessId=122623",
+    "text": "Nguồn đơn hàng"
+  },
+  {
+    "href": "/order/manage/deleted?businessId=122623",
+    "text": "Lịch sử sửa xóa"
+  },
+  {
+    "href": "/ecommerce/shopee/product?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/ecommerce/shopee/order?businessId=122623",
+    "text": "Đơn hàng"
+  },
+  {
+    "href": "/ecommerce/shopee/productreview?businessId=122623",
+    "text": "Đánh giá"
+  },
+  {
+    "href": "/ecommerce/tiktok/product?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/ecommerce/tiktok/order?businessId=122623",
+    "text": "Đơn hàng"
+  },
+  {
+    "href": "/ecommerce/lazada/product?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/ecommerce/lazada/order?businessId=122623",
+    "text": "Đơn hàng"
+  },
+  {
+    "href": "/ecommerce/lazada/productreview?businessId=122623",
+    "text": "Đánh giá"
+  },
+  {
+    "href": "/ecommerce/tiki/product?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/ecommerce/tiki/order?businessId=122623",
+    "text": "Đơn hàng"
+  },
+  {
+    "href": "/ecommerce/meta/product?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/ecommerce/finance/dashboard?businessId=122623",
+    "text": "Báo cáo tài chính"
+  },
+  {
+    "href": "/ecommerce/manage/reportads?businessId=122623",
+    "text": "Tiền quảng cáo"
+  },
+  {
+    "href": "/ecommerce/manage/index?businessId=122623",
+    "text": "Đối soát COD"
+  },
+  {
+    "href": "/ecommerce/manage/return?businessId=122623",
+    "text": "Trả hàng hoàn tiền"
+  },
+  {
+    "href": "/invoice/setting/index?businessId=122623",
+    "text": "Cài đặt"
+  },
+  {
+    "href": "/invoice/product/index?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/invoice/bill/index?businessId=122623",
+    "text": "Hóa đơn"
+  },
+  {
+    "href": "/accounting/transaction/cash?businessId=122623",
+    "text": "Thu chi tiền mặt"
+  },
+  {
+    "href": "/accounting/transaction/bank?businessId=122623",
+    "text": "Thu chi ngân hàng"
+  },
+  {
+    "href": "/accounting/transaction/cashbook?businessId=122623",
+    "text": "Tổng hợp thu chi"
+  },
+  {
+    "href": "/accounting/debts/merchant?businessId=122623",
+    "text": "Sàn TMĐT"
+  },
+  {
+    "href": "/accounting/debts/customer?businessId=122623",
+    "text": "Khách hàng"
+  },
+  {
+    "href": "/accounting/debts/salemandate?businessId=122623",
+    "text": "Nhân viên bán hàng"
+  },
+  {
+    "href": "/accounting/debts/supplier?businessId=122623",
+    "text": "Nhà cung cấp"
+  },
+  {
+    "href": "/accounting/debts/installment?businessId=122623",
+    "text": "Dịch vụ trả góp"
+  },
+  {
+    "href": "/accounting/debts/item?businessId=122623",
+    "text": "Trả góp theo ngày"
+  },
+  {
+    "href": "/accounting/debts/byaccount?businessId=122623",
+    "text": "Công nợ theo đầu tài khoản"
+  },
+  {
+    "href": "/accounting/debts/add?businessId=122623",
+    "text": "Nhập công nợ đầu kỳ"
+  },
+  {
+    "href": "/accounting/transaction/index?businessId=122623",
+    "text": "Bút toán"
+  },
+  {
+    "href": "/accounting/transaction/reciprocalaccount?businessId=122623",
+    "text": "Phát sinh đối ứng"
+  },
+  {
+    "href": "/accounting/transaction/logbook?businessId=122623",
+    "text": "Nhật ký chung"
+  },
+  {
+    "href": "/accounting/transaction/installments?businessId=122623",
+    "text": "Thu hộ trả góp"
+  },
+  {
+    "href": "/accounting/transaction/logs?businessId=122623",
+    "text": "Lịch sử"
+  },
+  {
+    "href": "/accounting/account/index?businessId=122623",
+    "text": "Tài khoản kế toán"
+  },
+  {
+    "href": "/accounting/contact/index?businessId=122623",
+    "text": "Dịch vụ trả góp"
+  },
+  {
+    "href": "/website/content/setting?businessId=122623",
+    "text": "Cài đặt"
+  },
+  {
+    "href": "/website/content/tags?businessId=122623",
+    "text": "Tag"
+  },
+  {
+    "href": "/website/album/index?businessId=122623",
+    "text": "Album"
+  },
+  {
+    "href": "/website/redirectlink/index?businessId=122623",
+    "text": "Link điều hướng"
+  },
+  {
+    "href": "/social/comment/product?businessId=122623",
+    "text": "Comment sản phẩm"
+  },
+  {
+    "href": "/social/like/index?businessId=122623",
+    "text": "Like sản phẩm"
+  },
+  {
+    "href": "/social/rating/product?businessId=122623",
+    "text": "Đánh giá sản phẩm"
+  },
+  {
+    "href": "/promotion/setting/discount?businessId=122623",
+    "text": "Chiết khấu"
+  },
+  {
+    "href": "/promotion/setting/pricelist?businessId=122623",
+    "text": "Thiết lập bảng giá"
+  },
+  {
+    "href": "/promotion/setting/point?businessId=122623",
+    "text": "Tích điểm"
+  },
+  {
+    "href": "/promotion/setting/coupon?businessId=122623",
+    "text": "Mã giảm giá"
+  },
+  {
+    "href": "/promotion/setting/gift?businessId=122623",
+    "text": "Quà tặng"
+  },
+  {
+    "href": "/promotion/setting/commission?businessId=122623",
+    "text": "Hoa hồng bán hàng"
+  },
+  {
+    "href": "/store/user/index?businessId=122623",
+    "text": "Nhân viên"
+  },
+  {
+    "href": "/setting/store/index?businessId=122623",
+    "text": "Cài đặt chung"
+  },
+  {
+    "href": "/setting/store/sale?businessId=122623",
+    "text": "Bán hàng và XNK"
+  },
+  {
+    "href": "/setting/invoice/index?businessId=122623",
+    "text": "Hóa đơn điện tử"
+  },
+  {
+    "href": "/setting/order/index?businessId=122623",
+    "text": "Đơn hàng và vận chuyển"
+  },
+  {
+    "href": "/setting/store/labels?businessId=122623",
+    "text": "Cài đặt nhãn"
+  },
+  {
+    "href": "/store/template/design?businessId=122623",
+    "text": "Mẫu in"
+  },
+  {
+    "href": "/setting/zalo/index?businessId=122623",
+    "text": "Gửi Zalo"
+  },
+  {
+    "href": "/setting/email/index?businessId=122623",
+    "text": "Gửi email"
+  },
+  {
+    "href": "/setting/sms/index?businessId=122623",
+    "text": "Gửi SMS"
+  },
+  {
+    "href": "/setting/payment/index?businessId=122623",
+    "text": "Thanh toán"
+  },
+  {
+    "href": "/store/branch/index?businessId=122623",
+    "text": "Chi nhánh"
+  },
+  {
+    "href": "/store/agency/index?businessId=122623",
+    "text": "Đại lý"
+  },
+  {
+    "href": "/setting/expire/depot?businessId=122623",
+    "text": "Hạn sử dụng"
+  },
+  {
+    "href": "/business/tool/index?businessId=122623",
+    "text": "Business Tools"
+  },
+  {
+    "href": "/admin?businessId=122623",
+    "text": "Tổng quan"
+  },
+  {
+    "href": "/product/item/index?businessId=122623",
+    "text": "Sản phẩm"
+  },
+  {
+    "href": "/inventory/bill/index?businessId=122623",
+    "text": "Kho hàng"
+  },
+  {
+    "href": "/order/manage/index?businessId=122623",
+    "text": "Đơn hàng"
+  },
+  {
+    "href": "/customer/code/customerlist?businessId=122623",
+    "text": "Khách hàng"
+  },
+  {
+    "href": "/accounting/transaction/index?businessId=122623",
+    "text": "Kế toán"
+  },
+  {
+    "href": "/report/revenue/index?businessId=122623",
+    "text": "Báo cáo"
+  },
+  {
+    "href": "/website/content/index?businessId=122623",
+    "text": "Website"
+  },
+  {
+    "href": "/promotion/setting/discount?businessId=122623",
+    "text": "Khuyến mại"
+  },
+  {
+    "href": "/setting/store/index?businessId=122623",
+    "text": "Cài đặt"
+  },
+  {
+    "href": "/setting/zalo/index?businessId=122623",
+    "text": "[Nạp tiền]"
+  },
+  {
+    "href": "/thong-bao-tinh-nang-so-ke-toan-them-2-so-s2c-s2d-an926.html",
+    "text": "Thông báo tính năng Sổ kế toán thêm 2 sổ s2c, s2d"
+  },
+  {
+    "href": "/thong-bao-lich-nghi-le-gio-to-hung-vuong-giai-phong-mien-nam-304-va-quoc-te-lao-dong-15-an925.html",
+    "text": "Thông báo lịch nghỉ lễ Giỗ tổ Hùng Vương, Giải phóng Miền Nam 30/4 và Quốc tế lao động 1/5"
+  },
+  {
+    "href": "/thong-bao-thay-doi-bang-gia-best-express-an924.html",
+    "text": "Thông báo thay đổi bảng giá  BEST EXPRESS"
+  },
+  {
+    "href": "/thong-bao-mo-ho-tro-dia-chi-2-cap-cho-don-hang-spx-an923.html",
+    "text": "Thông báo mở hỗ trợ địa chỉ 2 cấp cho đơn hàng SPX"
+  },
+  {
+    "href": "/thong-bao-lich-ngung-ho-tro-api-v2-an922.html",
+    "text": "Thông báo lịch ngừng hỗ trợ API v2"
+  },
+  {
+    "href": "/dieu-chinh-phi-van-chuyen-viettel-post-an921.html",
+    "text": "Điều chỉnh phí vận chuyển Viettel Post"
+  },
+  {
+    "href": "/thong-bao-dieu-chinh-phi-tin-nhan-zalo-zbs-zalo-zns-an920.html",
+    "text": "Thông báo điều chỉnh phí tin nhắn Zalo ZBS (Zalo ZNS)"
+  },
+  {
+    "href": "/cai-tien-man-hinh-ban-hang-don-hang-ho-tro-chuong-trinh-chiet-khau-va-qua-tang-moi-an919.html",
+    "text": "Cải tiến màn hình bán hàng, đơn hàng hỗ trợ chương trình chiết khấu và quà tặng mới"
+  },
+  {
+    "href": "/workshop-online-mien-phi-360-quan-tri-chi-phi-quang-cao-facebook-an918.html",
+    "text": "Workshop online miễn phí: 360° QUẢN TRỊ CHI PHÍ QUẢNG CÁO FACEBOOK"
+  },
+  {
+    "href": "/thong-bao-lich-bao-tri-server-dip-tet-nguyen-dan-2026-an917.html",
+    "text": "Thông báo lịch bảo trì server dịp Tết Nguyên Đán 2026"
+  },
+  {
+    "href": "/lich-nghi-tet-nguyen-dan-binh-ngo-2026-an916.html",
+    "text": "Lịch nghỉ Tết Nguyên Đán Bính Ngọ 2026"
+  },
+  {
+    "href": "/workshop-online-mien-phi-facebook-ads-2026-an915.html",
+    "text": "WORKSHOP ONLINE MIỄN PHÍ: FACEBOOK ADS 2026"
+  },
+  {
+    "href": "/thong-bao-thay-doi-bang-gia-spx-an914.html",
+    "text": "Thông báo thay đổi bảng giá SPX"
+  },
+  {
+    "href": "/lich-nghi-tet-duong-lich-2026-an913.html",
+    "text": "Lịch nghỉ Tết dương lịch 2026"
+  },
+  {
+    "href": "/-workshop-online-khai-thac-data-co-san-chien-luoc-chuyen-doi-hieu-qua-cao-chi-phi-thap-voi-tin-nhan-quang-cao-facebook-messenger-an912.html",
+    "text": "🔥 [WORKSHOP ONLINE] Khai thác Data có sẵn: Chiến lược chuyển đổi hiệu quả cao - chi phí thấp với tin nhắn quảng cáo Facebook Messenger"
+  }
+]

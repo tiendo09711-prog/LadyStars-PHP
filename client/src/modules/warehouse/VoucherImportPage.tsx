@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowDownLeft, ArrowLeft, Plus, Trash2, Eye, RotateCcw, Settings2 } from 'lucide-react';
 import { http } from '../../core/api/http';
 
@@ -10,7 +10,18 @@ type Product = {
   price: number;
   cost: number;
   qty: number;
+  totalStock?: number;
+  stockCN?: number;
+  stockHanoi?: number;
+  stockHCM?: number;
   unit?: string;
+};
+
+const getStockForWarehouse = (prod: Product, wh: string) => {
+  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+  return prod.totalStock ?? prod.qty ?? 0;
 };
 
 type ImportLine = {
@@ -28,22 +39,22 @@ type ImportLine = {
   note: string;
 };
 
-const MOCK_PRODUCTS: Product[] = [
-  { _id: 'mock-1', code: 'SP001', name: 'Kem chống nắng LadyStars SPF 50+', price: 150000, cost: 90000, qty: 120, unit: 'tuýp' },
-  { _id: 'mock-2', code: 'SP002', name: 'Sữa rửa mặt dịu nhẹ LadyStars', price: 120000, cost: 70000, qty: 85, unit: 'chai' },
-  { _id: 'mock-3', code: 'SP003', name: 'Serum tế bào gốc trẻ hóa da', price: 450000, cost: 280000, qty: 40, unit: 'lọ' },
-  { _id: 'mock-4', code: 'SP004', name: 'Son dưỡng môi nhung mịn LadyStars', price: 95000, cost: 55000, qty: 150, unit: 'thỏi' },
-];
+// Removed MOCK_PRODUCTS for production sync.
 
 export function VoucherImportPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initProductId = searchParams.get('productId');
   const [products, setProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [sysBranches, setSysBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [warehouse, setWarehouse] = useState('Kho chính');
+  const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
   const [importType, setImportType] = useState('Nhập mua');
   const [supplier, setSupplier] = useState('Nhà cung cấp A');
   const [tags, setTags] = useState('');
@@ -76,36 +87,63 @@ export function VoucherImportPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
+      setError('');
       try {
-        const response = await http.get('/products/products', { params: { limit: 100 } });
+        const response = await http.get('/products/inventories', { params: { limit: 100 } });
         if (response.data?.items && response.data.items.length > 0) {
           setProducts(response.data.items);
         } else {
-          setProducts(MOCK_PRODUCTS);
+          setError('Không có sản phẩm nào trong hệ thống. Vui lòng tạo sản phẩm trước.');
         }
       } catch (err) {
-        console.warn('Failed to load products from API, falling back to mock.', err);
-        setProducts(MOCK_PRODUCTS);
+        console.error('Failed to load products from API.', err);
+        setError('Không thể kết nối tới máy chủ để tải danh sách sản phẩm.');
       } finally {
         setLoading(false);
       }
     };
     fetchProducts();
+    http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
+    http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
+    http.get('/system/branches').then(res => setSysBranches(res.data.items || [])).catch(() => {});
   }, []);
+
+  // Update remainQty when warehouse changes
+  useEffect(() => {
+    if (products.length > 0 && lines.length > 0) {
+      setLines(current => current.map(line => {
+        const prod = products.find(p => p._id === line.productId);
+        if (prod) {
+          const newQty = getStockForWarehouse(prod, warehouse);
+          if (line.remainQty !== newQty) {
+            return { ...line, remainQty: newQty };
+          }
+        }
+        return line;
+      }));
+    }
+  }, [warehouse, products]);
 
   // Initialize with one line when products are loaded
   useEffect(() => {
     if (products.length > 0 && lines.length === 0) {
+      if (initProductId) {
+        const prod = products.find(p => p._id === initProductId);
+        if (prod) {
+          setLines([createLineObj(prod)]);
+          return;
+        }
+      }
       const first = products[0];
       setLines([createLineObj(first)]);
     }
-  }, [products]);
+  }, [products, initProductId]);
 
   const createLineObj = (prod: Product): ImportLine => ({
     productId: prod._id,
     batchCode: '',
     unit: prod.unit || 'cái',
-    remainQty: prod.qty || 0,
+    remainQty: getStockForWarehouse(prod, warehouse),
     quantity: 1,
     price: prod.cost || prod.price || 0,
     discountValue: 0,
@@ -136,7 +174,7 @@ export function VoucherImportPage() {
         const prod = products.find(p => p._id === patch.productId);
         if (prod) {
           next.unit = prod.unit || 'cái';
-          next.remainQty = prod.qty || 0;
+          next.remainQty = getStockForWarehouse(prod, warehouse);
           next.price = prod.cost || prod.price || 0;
         }
       }
@@ -226,50 +264,30 @@ export function VoucherImportPage() {
       return;
     }
 
-    // Generate custom code (mock)
-    const mockVoucherId = 'PNK-' + Math.floor(Math.random() * 900000 + 100000);
-
     try {
-      // Post to our API (mocked or real based on backend support)
-      await http.post('/warehouse/vouchers', {
-        voucherId: mockVoucherId,
+      const payload = {
         date: new Date().toISOString().slice(0, 10),
         warehouse,
-        type: 'import',
-        spCount: validLines.length,
-        qty: totals.quantity,
-        totalAmount: totals.totalPrice,
-        discount: lines.reduce((sum, l) => sum + (l.discountType === 'đ' ? l.discountValue : 0), 0),
-        creator: 'Admin',
+        type: importType,
+        supplier,
         note: note || `Nhập kho tự động - Loại: ${importType}`,
-      });
+        items: validLines.map(line => ({
+          productId: line.productId,
+          quantity: line.quantity,
+          price: line.price,
+          discountValue: line.discountValue,
+          discountType: line.discountType,
+          vatValue: line.vatValue,
+          vatType: line.vatType,
+          note: line.note,
+          unit: line.unit
+        }))
+      };
 
-      setSuccessMsg(`Tạo thành công phiếu nhập kho ${mockVoucherId}!`);
-      
-      // Post actual product details if warehouse products endpoint exists
-      for (const line of validLines) {
-        const prod = products.find(p => p._id === line.productId);
-        if (prod) {
-          try {
-            await http.post('/warehouse/products', {
-              id: 'TX-' + Math.floor(Math.random() * 900000 + 100000),
-              voucherId: mockVoucherId,
-              date: new Date().toISOString().slice(0, 10),
-              warehouse,
-              productCode: prod.code,
-              productName: prod.name,
-              type: 'import',
-              importQty: line.quantity,
-              exportQty: 0,
-              price: line.price,
-              totalAmount: getLineTotal(line),
-              creator: 'Admin',
-            });
-          } catch (lineErr) {
-            console.error('Failed to post voucher product detail', lineErr);
-          }
-        }
-      }
+      const response = await http.post('/warehouse/vouchers/import', payload);
+      const voucherId = response.data?.voucher?.voucherId || 'PNK-xxxxxx';
+
+      setSuccessMsg(`Tạo thành công phiếu nhập kho ${voucherId}!`);
 
       setTimeout(() => {
         if (afterSubmitAction === 'detail') {
@@ -329,10 +347,9 @@ export function VoucherImportPage() {
             <label className="form-field">
               <span>Kho hàng *</span>
               <select value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
-                <option value="Kho chính">Kho chính</option>
-                <option value="Kho phụ">Kho phụ</option>
-                <option value="Kho hàng LadyStars 1">Kho hàng LadyStars 1</option>
-                <option value="Kho tổng">Kho tổng</option>
+                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm</option>
+                <option value="Kho Hà Nội">Kho Hà Nội</option>
+                <option value="Kho HCM">Kho HCM</option>
               </select>
             </label>
 
@@ -346,15 +363,42 @@ export function VoucherImportPage() {
               </select>
             </label>
 
-            <label className="form-field">
-              <span>Nhà cung cấp</span>
-              <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
-                <option value="Nhà cung cấp A">Nhà cung cấp A</option>
-                <option value="Nhà cung cấp B">Nhà cung cấp B</option>
-                <option value="Công ty TNHH Mỹ phẩm Sao Mơ">Công ty TNHH Mỹ phẩm Sao Mơ</option>
-                <option value="Khách lẻ">Khách lẻ / Trả hàng</option>
-              </select>
-            </label>
+            {importType === 'Nhập mua' && (
+              <label className="form-field">
+                <span>Nhà cung cấp</span>
+                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+                  <option value="">-- Chọn nhà cung cấp --</option>
+                  {vendors.map(v => <option key={v._id} value={v.name}>{v.name}</option>)}
+                </select>
+              </label>
+            )}
+
+            {importType === 'Nhập hoàn' && (
+              <label className="form-field">
+                <span>Khách hàng</span>
+                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+                  <option value="">-- Chọn khách hàng --</option>
+                  {customers.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
+                </select>
+              </label>
+            )}
+
+            {importType === 'Nhập chuyển kho' && (
+              <label className="form-field">
+                <span>Từ kho hàng</span>
+                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+                  <option value="">-- Chọn kho xuất --</option>
+                  {sysBranches.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
+                </select>
+              </label>
+            )}
+
+            {importType === 'Nhập khác' && (
+              <label className="form-field">
+                <span>Đối tác / Ghi chú thêm</span>
+                <input type="text" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Nhập tên đối tác hoặc lý do..." />
+              </label>
+            )}
 
             <label className="form-field">
               <span>Nhãn</span>

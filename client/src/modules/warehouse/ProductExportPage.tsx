@@ -10,7 +10,18 @@ type Product = {
   price: number;
   cost: number;
   qty: number;
+  totalStock?: number;
+  stockCN?: number;
+  stockHanoi?: number;
+  stockHCM?: number;
   unit?: string;
+};
+
+const getStockForWarehouse = (prod: Product, wh: string) => {
+  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
+  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+  return prod.totalStock ?? prod.qty ?? 0;
 };
 
 type ExportLine = {
@@ -39,12 +50,15 @@ const MOCK_PRODUCTS: Product[] = [
 export function ProductExportPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [sysBranches, setSysBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [warehouse, setWarehouse] = useState('Kho chính');
+  const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
   const [exportType, setExportType] = useState('Xuất trả hàng');
   const [supplierCustomer, setSupplierCustomer] = useState('Nhà cung cấp A');
   const [tags, setTags] = useState('');
@@ -78,7 +92,7 @@ export function ProductExportPage() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const response = await http.get('/products/products', { params: { limit: 100 } });
+        const response = await http.get('/products/inventories', { params: { limit: 100 } });
         if (response.data?.items && response.data.items.length > 0) {
           setProducts(response.data.items);
         } else {
@@ -92,7 +106,26 @@ export function ProductExportPage() {
       }
     };
     fetchProducts();
+    http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
+    http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
+    http.get('/system/branches').then(res => setSysBranches(res.data.items || [])).catch(() => {});
   }, []);
+
+  // Update remainQty when warehouse changes
+  useEffect(() => {
+    if (products.length > 0 && lines.length > 0) {
+      setLines(current => current.map(line => {
+        const prod = products.find(p => p._id === line.productId);
+        if (prod) {
+          const newQty = getStockForWarehouse(prod, warehouse);
+          if (line.remainQty !== newQty) {
+            return { ...line, remainQty: newQty };
+          }
+        }
+        return line;
+      }));
+    }
+  }, [warehouse, products]);
 
   // Initialize with one line when products are loaded
   useEffect(() => {
@@ -106,7 +139,7 @@ export function ProductExportPage() {
     productId: prod._id,
     batchCode: '',
     unit: prod.unit || 'cái',
-    remainQty: prod.qty || 0,
+    remainQty: getStockForWarehouse(prod, warehouse),
     quantity: 1,
     price: prod.price || 0,
     discountValue: 0,
@@ -138,7 +171,7 @@ export function ProductExportPage() {
         const prod = products.find(p => p._id === patch.productId);
         if (prod) {
           next.unit = prod.unit || 'cái';
-          next.remainQty = prod.qty || 0;
+          next.remainQty = getStockForWarehouse(prod, warehouse);
           next.price = prod.price || 0;
         }
       }
@@ -231,8 +264,8 @@ export function ProductExportPage() {
     // Validate stock levels
     for (const line of validLines) {
       const prod = products.find(p => p._id === line.productId);
-      if (prod && Number(line.quantity) > Number(prod.qty ?? 0)) {
-        setError(`Sản phẩm ${prod.code} không đủ tồn kho để xuất. Tồn kho hiện tại: ${prod.qty}`);
+      if (prod && Number(line.quantity) > Number(line.remainQty)) {
+        setError(`Sản phẩm ${prod.code} không đủ tồn kho để xuất. Tồn kho hiện tại: ${line.remainQty}`);
         return;
       }
     }
@@ -246,7 +279,8 @@ export function ProductExportPage() {
         voucherId: mockVoucherId,
         date: new Date().toISOString().slice(0, 10),
         warehouse,
-        type: 'export',
+        type: exportType,
+        supplier: supplierCustomer,
         spCount: validLines.length,
         qty: totals.quantity,
         totalAmount: totals.totalPrice,
@@ -340,10 +374,9 @@ export function ProductExportPage() {
             <label className="form-field">
               <span>Kho hàng *</span>
               <select value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
-                <option value="Kho chính">Kho chính</option>
-                <option value="Kho phụ">Kho phụ</option>
-                <option value="Kho hàng LadyStars 1">Kho hàng LadyStars 1</option>
-                <option value="Kho tổng">Kho tổng</option>
+                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm</option>
+                <option value="Kho Hà Nội">Kho Hà Nội</option>
+                <option value="Kho HCM">Kho HCM</option>
               </select>
             </label>
 
@@ -357,15 +390,42 @@ export function ProductExportPage() {
               </select>
             </label>
 
-            <label className="form-field">
-              <span>Nhà cung cấp / Khách hàng</span>
-              <select value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)}>
-                <option value="Nhà cung cấp A">Nhà cung cấp A</option>
-                <option value="Nhà cung cấp B">Nhà cung cấp B</option>
-                <option value="Công ty TNHH Mỹ phẩm Sao Mơ">Công ty TNHH Mỹ phẩm Sao Mơ</option>
-                <option value="Khách mua lẻ">Khách mua lẻ</option>
-              </select>
-            </label>
+            {exportType === 'Xuất trả hàng' && (
+              <label className="form-field">
+                <span>Nhà cung cấp (Hoàn trả)</span>
+                <select value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)}>
+                  <option value="">-- Chọn nhà cung cấp --</option>
+                  {vendors.map(v => <option key={v._id} value={v.name}>{v.name}</option>)}
+                </select>
+              </label>
+            )}
+
+            {exportType === 'Xuất bán lẻ' && (
+              <label className="form-field">
+                <span>Khách hàng</span>
+                <select value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)}>
+                  <option value="">-- Chọn khách hàng --</option>
+                  {customers.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
+                </select>
+              </label>
+            )}
+
+            {exportType === 'Xuất chuyển kho' && (
+              <label className="form-field">
+                <span>Đến kho hàng</span>
+                <select value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)}>
+                  <option value="">-- Chọn kho nhập --</option>
+                  {sysBranches.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
+                </select>
+              </label>
+            )}
+
+            {exportType === 'Xuất hủy/Hao hụt' && (
+              <label className="form-field">
+                <span>Đối tác / Lý do hủy</span>
+                <input type="text" value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)} placeholder="Nhập tên đối tác hoặc lý do..." />
+              </label>
+            )}
 
             <label className="form-field">
               <span>Nhãn</span>

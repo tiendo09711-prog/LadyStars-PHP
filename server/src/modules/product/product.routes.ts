@@ -5,6 +5,7 @@ import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranch
 import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
+import { Order } from '../orders/orders.models.js';
 
 const router = Router();
 
@@ -172,14 +173,44 @@ router.get('/storage-duration', async (req, res) => {
     const categoryId = req.query.categoryId ? String(req.query.categoryId) : '';
     const trademarkId = req.query.trademarkId ? String(req.query.trademarkId) : '';
     const tab = req.query.tab ? String(req.query.tab) : 'all'; // all, unsold_long, slow_selling
+    const branchId = req.query.branchId ? String(req.query.branchId).trim() : '';
 
     const minStartDays = req.query.minStartDays ? Number(req.query.minStartDays) : 0;
     const minSoldDays = req.query.minSoldDays ? Number(req.query.minSoldDays) : 0;
     const minStock = req.query.minStock ? Number(req.query.minStock) : 1; // default to > 0
 
-    const productQuery: any = {
-      qty: { $gte: minStock }
-    };
+    let targetBranchId: any = null;
+    let branchName = '';
+    
+    if (branchId) {
+      if (branchId === 'hanoi' || branchId === 'hcm') {
+        const branchCode = branchId === 'hanoi' ? 'HN' : 'HCM';
+        const branch = await Branch.findOne({ code: branchCode }).lean();
+        if (branch) {
+          targetBranchId = branch._id;
+          branchName = branch.name;
+        }
+      } else if (/^[0-9a-fA-F]{24}$/.test(branchId)) {
+        const branch = await Branch.findById(branchId).lean();
+        if (branch) {
+          targetBranchId = branch._id;
+          branchName = branch.name;
+        }
+      }
+    }
+
+    const productQuery: any = {};
+    const branchStockMap = new Map<string, number>();
+
+    if (targetBranchId) {
+      const stocks = await ProductBranchStock.find({ branchId: targetBranchId, qty: { $gte: minStock } }).lean();
+      productQuery._id = { $in: stocks.map(s => s.productId) };
+      for (const s of stocks) {
+        branchStockMap.set(String(s.productId), s.qty);
+      }
+    } else {
+      productQuery.qty = { $gte: minStock };
+    }
 
     if (q) {
       productQuery.$or = [
@@ -195,6 +226,102 @@ router.get('/storage-duration', async (req, res) => {
     }
 
     const products = await Product.find(productQuery).lean();
+    const productIds = products.map(p => p._id);
+    const productCodes = products.map(p => p.code).filter(Boolean);
+
+    // Fetch all related transactions in parallel for O(1) in-memory resolution
+    const [batches, salePayments, retailInvoices, wholesaleInvoices, orders, stockAdjustments] = await Promise.all([
+      Batch.find({ productId: { $in: productIds } }).lean(),
+      SalePayment.find(
+        targetBranchId 
+          ? { status: 'completed', 'items.productId': { $in: productIds }, branchId: targetBranchId }
+          : { status: 'completed', 'items.productId': { $in: productIds } }
+      ).lean(),
+      RetailInvoice.find(
+        targetBranchId 
+          ? { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' }, $or: [{ branchId: targetBranchId }, { branchId: String(targetBranchId) }] }
+          : { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' } }
+      ).lean(),
+      WholesaleInvoice.find(
+        targetBranchId && branchName
+          ? { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' }, warehouse: branchName }
+          : { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' } }
+      ).lean(),
+      Order.find(
+        targetBranchId && branchName
+          ? { 'products.productId': { $in: productIds }, status: { $ne: 'Đã hủy' }, warehouse: branchName }
+          : { 'products.productId': { $in: productIds }, status: { $ne: 'Đã hủy' } }
+      ).lean(),
+      StockAdjustment.find(
+        targetBranchId
+          ? { status: 'completed', 'items.productId': { $in: productIds }, branchId: targetBranchId }
+          : { status: 'completed', 'items.productId': { $in: productIds } }
+      ).lean()
+    ]);
+
+    // Build Maps for O(1) lookup inside loop
+    const batchesMap = new Map<string, any[]>();
+    for (const b of batches) {
+      const pidStr = String(b.productId);
+      if (!batchesMap.has(pidStr)) batchesMap.set(pidStr, []);
+      batchesMap.get(pidStr)!.push(b);
+    }
+
+    const salePaymentsMap = new Map<string, any>();
+    for (const s of salePayments) {
+      for (const item of s.items || []) {
+        const pidStr = String(item.productId);
+        const existing = salePaymentsMap.get(pidStr);
+        const currentLoc = s.completedAt || s.createdAt;
+        if (!existing || new Date(currentLoc) > new Date(existing.completedAt || existing.createdAt)) {
+          salePaymentsMap.set(pidStr, s);
+        }
+      }
+    }
+
+    const retailInvoicesMap = new Map<string, any>();
+    for (const r of retailInvoices) {
+      const pCode = r.productCode;
+      if (!pCode) continue;
+      const existing = retailInvoicesMap.get(pCode);
+      if (!existing || new Date(r.createdAt) > new Date(existing.createdAt)) {
+        retailInvoicesMap.set(pCode, r);
+      }
+    }
+
+    const wholesaleInvoicesMap = new Map<string, any>();
+    for (const w of wholesaleInvoices) {
+      const pCode = w.productCode;
+      if (!pCode) continue;
+      const existing = wholesaleInvoicesMap.get(pCode);
+      if (!existing || new Date(w.createdAt) > new Date(existing.createdAt)) {
+        wholesaleInvoicesMap.set(pCode, w);
+      }
+    }
+
+    const ordersMap = new Map<string, any>();
+    for (const o of orders) {
+      for (const item of o.products || []) {
+        const pidStr = String(item.productId);
+        const existing = ordersMap.get(pidStr);
+        if (!existing || new Date(o.createdAt) > new Date(existing.createdAt)) {
+          ordersMap.set(pidStr, o);
+        }
+      }
+    }
+
+    const stockAdjustmentsMap = new Map<string, any>();
+    for (const sa of stockAdjustments) {
+      for (const item of sa.items || []) {
+        const pidStr = String(item.productId);
+        const existing = stockAdjustmentsMap.get(pidStr);
+        const currentLoc = sa.balanceDate || sa.createdAt;
+        if (!existing || new Date(currentLoc) > new Date(existing.balanceDate || existing.createdAt)) {
+          stockAdjustmentsMap.set(pidStr, sa);
+        }
+      }
+    }
+
     const resultItems: any[] = [];
     const nowMs = Date.now();
 
@@ -204,24 +331,66 @@ router.get('/storage-duration', async (req, res) => {
     let totalValue = 0;
 
     for (const product of products) {
-      // Find oldest batch
-      const oldestBatch = await Batch.findOne({ productId: product._id }).sort({ manufactureDate: 1, createdAt: 1 }).lean();
-      // Find newest batch
-      const newestBatch = await Batch.findOne({ productId: product._id }).sort({ createdAt: -1 }).lean();
-      // Find last sold
-      const lastSale = await SalePayment.findOne({ status: 'completed', 'items.productId': product._id }).sort({ completedAt: -1, createdAt: -1 }).lean();
+      const productQty = targetBranchId ? (branchStockMap.get(String(product._id)) || 0) : (product.qty || 0);
+
+      // Find oldest and newest batch in memory
+      const productBatches = batchesMap.get(String(product._id)) || [];
+      let oldestBatch = null;
+      let newestBatch = null;
+      
+      if (productBatches.length > 0) {
+        const sortedOldest = [...productBatches].sort((a, b) => {
+          const dateA = new Date(a.manufactureDate || a.createdAt).getTime();
+          const dateB = new Date(b.manufactureDate || b.createdAt).getTime();
+          return dateA - dateB;
+        });
+        oldestBatch = sortedOldest[0];
+
+        const sortedNewest = [...productBatches].sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.manufactureDate).getTime();
+          const dateB = new Date(b.createdAt || b.manufactureDate).getTime();
+          return dateB - dateA;
+        });
+        newestBatch = sortedNewest[0];
+      }
+
+      // Find last sold from the maps
+      const lastSale = salePaymentsMap.get(String(product._id));
+      const lastRetail = retailInvoicesMap.get(product.code);
+      const lastWholesale = wholesaleInvoicesMap.get(product.code);
+      const lastOrder = ordersMap.get(String(product._id));
 
       const firstTransactionDate = oldestBatch
         ? (oldestBatch.manufactureDate || oldestBatch.createdAt || product.createdAt)
         : product.createdAt;
 
-      const lastTransactionDate = newestBatch
-        ? (newestBatch.createdAt || newestBatch.manufactureDate || product.updatedAt)
-        : product.updatedAt;
+      // Newest transaction includes batch and stock adjustments
+      let lastTransactionDate = product.updatedAt || product.createdAt;
+      if (newestBatch) {
+        const batchDate = newestBatch.createdAt || newestBatch.manufactureDate;
+        if (batchDate && new Date(batchDate) > new Date(lastTransactionDate)) {
+          lastTransactionDate = batchDate;
+        }
+      }
+      const lastAdjustment = stockAdjustmentsMap.get(String(product._id));
+      if (lastAdjustment) {
+        const adjDate = lastAdjustment.balanceDate || lastAdjustment.createdAt;
+        if (adjDate && new Date(adjDate) > new Date(lastTransactionDate)) {
+          lastTransactionDate = adjDate;
+        }
+      }
 
-      const lastSoldDate = lastSale
-        ? (lastSale.completedAt || lastSale.createdAt)
-        : null;
+      // Max Sold Date from all 4 sales channels
+      let lastSoldDate: any = null;
+      const soldDates: Date[] = [];
+      if (lastSale) soldDates.push(new Date(lastSale.completedAt || lastSale.createdAt));
+      if (lastRetail) soldDates.push(new Date(lastRetail.createdAt));
+      if (lastWholesale) soldDates.push(new Date(lastWholesale.createdAt));
+      if (lastOrder) soldDates.push(new Date(lastOrder.createdAt));
+
+      if (soldDates.length > 0) {
+        lastSoldDate = new Date(Math.max(...soldDates.map(d => d.getTime())));
+      }
 
       const firstTxMs = new Date(firstTransactionDate).getTime();
       const lastTxMs = new Date(lastTransactionDate).getTime();
@@ -234,7 +403,7 @@ router.get('/storage-duration', async (req, res) => {
 
       // Update KPI statistics (for all active products before tab filter)
       totalProducts++;
-      totalValue += (product.cost || 0) * (product.qty || 0);
+      totalValue += (product.cost || 0) * productQty;
       if (daysFromStart >= 30 && lastSoldDate === null) {
         unsoldLong++;
       }
@@ -271,7 +440,8 @@ router.get('/storage-duration', async (req, res) => {
         categoryName: product.categoryName || '',
         cost: product.cost || 0,
         price: product.price || 0,
-        qty: product.qty || 0,
+        qty: productQty,
+        globalQty: product.qty || 0,
         firstTransactionDate: firstTransactionDate ? new Date(firstTransactionDate).toISOString() : undefined,
         lastTransactionDate: lastTransactionDate ? new Date(lastTransactionDate).toISOString() : undefined,
         lastSoldDate: lastSoldDate ? new Date(lastSoldDate).toISOString() : undefined,
@@ -308,14 +478,19 @@ router.get('/inventories', async (req, res) => {
     const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
     const q = req.query.q ? String(req.query.q).trim() : '';
     const branchId = req.query.branchId ? String(req.query.branchId).trim() : '';
+    const categoryId = req.query.categoryId ? String(req.query.categoryId).trim() : '';
     const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
     const sortOrder = req.query.order === 'asc' ? 1 : -1;
 
     // Find branches
+    const branchCN = await Branch.findOne({ code: 'CN001' }).lean();
     const branchHN = await Branch.findOne({ code: 'HN' }).lean();
     const branchHCM = await Branch.findOne({ code: 'HCM' }).lean();
 
     const filter: any = {};
+    if (categoryId) {
+      filter.categoryId = categoryId;
+    }
 
     // Filter by branch
     if (branchId === 'hanoi' && branchHN) {
@@ -356,6 +531,7 @@ router.get('/inventories', async (req, res) => {
     for (const p of products) {
       const pAny = p as any;
       const stocks = stockMap.get(String(pAny._id)) || [];
+      const stockCN = stocks.find(s => String(s.branchId) === String(branchCN?._id))?.qty || 0;
       const stockHanoi = stocks.find(s => String(s.branchId) === String(branchHN?._id))?.qty || 0;
       const stockHCM = stocks.find(s => String(s.branchId) === String(branchHCM?._id))?.qty || 0;
 
@@ -372,8 +548,10 @@ router.get('/inventories', async (req, res) => {
         importPrice: pAny.cost || 0,
         wholesalePrice: pAny.wholesalePrice || 0,
         totalStock: pAny.qty || 0,
+        stockCN,
         stockHanoi,
         stockHCM,
+        unit: pAny.unit || '',
         createdAt: pAny.createdAt
       });
     }
