@@ -25,28 +25,51 @@ export async function seedProduct(productCode: string) {
   const db = await connectDB();
   const products = db.collection('products');
   
-  // Seed a product with stock in Kho HCM
-  await products.updateOne(
+  // Seed a product
+  const result = await products.findOneAndUpdate(
     { code: productCode },
     {
       $set: {
         code: productCode,
         name: 'Sản phẩm Test E2E',
         retailPrice: 500000,
-        totalStock: 100,
-        stockHCM: 100, // Stock in Kho HCM
+        totalStock: 1000,
+        qty: 1000,
+        stockHCM: 100,
+        stockHN: 100,
         cost: 300000,
         categoryId: null,
-        status: 'Đang bán'
+        status: 'Đang bán',
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     },
-    { upsert: true }
+    { upsert: true, returnDocument: 'after' }
   );
+
+  const product = result?.value || result;
+  
+  if (product && product._id) {
+    const branches = await db.collection('branches').find({}).toArray();
+    for (const b of branches) {
+      await db.collection('productbranchstocks').updateOne(
+        { productId: product._id, branchId: b._id },
+        { $set: { qty: 100 } },
+        { upsert: true }
+      );
+    }
+  }
 }
 
 export async function cleanupTestData(productCode: string) {
   const db = await connectDB();
   
+  // Get product ID
+  const product = await db.collection('products').findOne({ code: productCode });
+  if (product) {
+    await db.collection('productbranchstocks').deleteMany({ productId: product._id });
+  }
+
   // Remove the product
   await db.collection('products').deleteOne({ code: productCode });
   

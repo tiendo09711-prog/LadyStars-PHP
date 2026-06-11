@@ -441,44 +441,38 @@ export function RefundInvoiceCreatePage() {
 
     const firstProduct = products[0];
     const totalQty = products.reduce((acc, p) => acc + p.qty, 0);
-    const totalCost = products.reduce((acc, p) => acc + (p.cost * p.qty), 0);
-    
-    // We map backend schema fields to match Nhanh.vn CSV:
-    // Only saving first item properties for flattening OR we can use strict: false and save list under custom field.
-    // In our backend models, we defined strict: false. We will save the first product flattened for table views
-    // and store all items in the 'products' and 'newProducts' arrays for detail views.
-    const payload = {
-      ...form,
-      products,
-      newProducts,
 
-      // Flat fields for default Nhanh.vn row mapping (returns)
-      productCode: products.map(p => p.code).join(', '),
-      productName: products.map(p => p.name).join(', '),
-      price: firstProduct.price,
-      cost: firstProduct.cost,
-      quantity: totalQty,
-      unit: firstProduct.unit || 'Cái',
-      imei: products.map(p => p.imei).filter(Boolean).join(', '),
-      batch: firstProduct.batch || '',
-      brand: firstProduct.brand || '',
-      vat: products.reduce((acc, p) => acc + p.vat, 0),
-      gift: firstProduct.gift || '',
-      giftCost: products.reduce((acc, p) => acc + p.giftCost, 0),
-      extendedWarrantyName: firstProduct.extendedWarrantyName || '',
-      extendedWarrantyFee: products.reduce((acc, p) => acc + p.extendedWarrantyFee, 0),
-      
-      // Flat fields for new products (purchases)
-      newProductCodes: newProducts.map(p => p.code).join(', '),
-      newProductNames: newProducts.map(p => p.name).join(', '),
-      
-      revenue: products.reduce((acc, p) => acc + (p.price * p.qty), 0),
-      profit: form.totalAmount - totalCost,
+    const payload = {
+      code: form.id,
+      branchId: branchId,
+      note: form.description,
+      status: 'draft',
+      amountProducts: totalQty,
+      value: form.refundAmount,
+      items: products.map(p => ({
+        productId: p._id,
+        amount: p.qty,
+        value: p.price,
+        discountValue: p.refundFee || 0,
+        discountType: 'number',
+        total: p.total,
+        note: p.imei ? `IMEI: ${p.imei}` : ''
+      })),
+      // Future mapping for payment methods if necessary
+      typePayment: [
+        ...(form.cash > 0 ? [{ methodId: null, amount: form.cash }] : []),
+        ...(form.transfer > 0 ? [{ methodId: null, amount: form.transfer }] : []),
+        ...(form.card > 0 ? [{ methodId: null, amount: form.card }] : [])
+      ]
     };
 
     try {
-      await http.post('/products/refund-invoices', payload);
-      setSuccessMessage('Hóa đơn đổi trả hàng đã được tạo thành công!');
+      const createRes = await http.post('/products/refunds', payload);
+      const refundId = createRes.data._id;
+
+      await http.post(`/products/refunds/${refundId}/complete`);
+
+      setSuccessMessage('Hóa đơn đổi trả hàng đã được tạo và lưu kho thành công!');
       setTimeout(() => {
         navigate(`/sales-channels/${channel}/refund`);
       }, 1200);

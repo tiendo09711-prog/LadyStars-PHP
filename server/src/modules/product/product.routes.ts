@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
 import { writeAuditLog } from '../../core/audit/audit.service.js';
-import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark, ProductEditLog, RetailInvoice, WholesaleInvoice } from './product.models.js';
+import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark, ProductEditLog } from './product.models.js';
 import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
@@ -227,22 +227,12 @@ router.get('/storage-duration', async (req, res) => {
     const productCodes = products.map(p => p.code).filter(Boolean);
 
     // Fetch all related transactions in parallel for O(1) in-memory resolution
-    const [batches, salePayments, retailInvoices, wholesaleInvoices, orders, stockAdjustments] = await Promise.all([
+    const [batches, salePayments, orders, stockAdjustments] = await Promise.all([
       Batch.find({ productId: { $in: productIds } }).lean(),
       SalePayment.find(
         targetBranchId 
           ? { status: 'completed', 'items.productId': { $in: productIds }, branchId: targetBranchId }
           : { status: 'completed', 'items.productId': { $in: productIds } }
-      ).lean(),
-      RetailInvoice.find(
-        targetBranchId 
-          ? { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' }, $or: [{ branchId: targetBranchId }, { branchId: String(targetBranchId) }] }
-          : { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' } }
-      ).lean(),
-      WholesaleInvoice.find(
-        targetBranchId && branchName
-          ? { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' }, warehouse: branchName }
-          : { productCode: { $in: productCodes }, status: { $ne: 'Đã hủy' } }
       ).lean(),
       Order.find(
         targetBranchId && branchName
@@ -276,25 +266,6 @@ router.get('/storage-duration', async (req, res) => {
       }
     }
 
-    const retailInvoicesMap = new Map<string, any>();
-    for (const r of retailInvoices) {
-      const pCode = r.productCode;
-      if (!pCode) continue;
-      const existing = retailInvoicesMap.get(pCode);
-      if (!existing || new Date(r.createdAt) > new Date(existing.createdAt)) {
-        retailInvoicesMap.set(pCode, r);
-      }
-    }
-
-    const wholesaleInvoicesMap = new Map<string, any>();
-    for (const w of wholesaleInvoices) {
-      const pCode = w.productCode;
-      if (!pCode) continue;
-      const existing = wholesaleInvoicesMap.get(pCode);
-      if (!existing || new Date(w.createdAt) > new Date(existing.createdAt)) {
-        wholesaleInvoicesMap.set(pCode, w);
-      }
-    }
 
     const ordersMap = new Map<string, any>();
     for (const o of orders) {
@@ -353,8 +324,7 @@ router.get('/storage-duration', async (req, res) => {
 
       // Find last sold from the maps
       const lastSale = salePaymentsMap.get(String(product._id));
-      const lastRetail = retailInvoicesMap.get(product.code);
-      const lastWholesale = wholesaleInvoicesMap.get(product.code);
+
       const lastOrder = ordersMap.get(String(product._id));
 
       const firstTransactionDate = oldestBatch
@@ -381,8 +351,7 @@ router.get('/storage-duration', async (req, res) => {
       let lastSoldDate: any = null;
       const soldDates: Date[] = [];
       if (lastSale) soldDates.push(new Date(lastSale.completedAt || lastSale.createdAt));
-      if (lastRetail) soldDates.push(new Date(lastRetail.createdAt));
-      if (lastWholesale) soldDates.push(new Date(lastWholesale.createdAt));
+
       if (lastOrder) soldDates.push(new Date(lastOrder.createdAt));
 
       if (soldDates.length > 0) {
