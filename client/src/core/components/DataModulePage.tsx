@@ -315,42 +315,41 @@ export function DataModulePage({
           )}
           {extraHeaderButtons}
           {!hideCreate && primaryActionLabel && (
-            primaryActions && primaryActions.length > 0 ? (
-              <div className="dropdown-container">
-                <button
-                  className="btn btn-primary"
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDropdown(!showDropdown);
-                  }}
-                >
-                  <Plus size={16} /> {primaryActionLabel}
-                </button>
-                {showDropdown && (
-                  <div className="dropdown-menu">
-                    {primaryActions.map((action, idx) => (
-                      <button
-                        key={idx}
-                        className="dropdown-item"
-                        type="button"
-                        onClick={() => {
-                          setShowDropdown(false);
-                          action.onClick();
-                        }}
-                      >
-                        {action.icon}
-                        <span>{action.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button className="btn btn-primary" type="button" onClick={onPrimaryActionClick ? onPrimaryActionClick : openCreate}>
-                <Plus size={16} /> {primaryActionLabel}
+            <button className="btn btn-primary" type="button" onClick={onPrimaryActionClick ? onPrimaryActionClick : openCreate}>
+              <Plus size={16} /> {primaryActionLabel}
+            </button>
+          )}
+          {primaryActions && primaryActions.length > 0 && (
+            <div className="dropdown-container">
+              <button
+                className="btn btn-outline"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(!showDropdown);
+                }}
+              >
+                Hành động nhanh
               </button>
-            )
+              {showDropdown && (
+                <div className="dropdown-menu">
+                  {primaryActions.map((action, idx) => (
+                    <button
+                      key={idx}
+                      className="dropdown-item"
+                      type="button"
+                      onClick={() => {
+                        setShowDropdown(false);
+                        action.onClick();
+                      }}
+                    >
+                      {action.icon}
+                      <span>{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -527,13 +526,23 @@ export function DataModulePage({
                 <label className={field.type === 'textarea' ? 'form-field wide' : 'form-field'} key={field.key}>
                   <span>{field.label}{field.required ? ' *' : ''}</span>
                   {field.type === 'textarea' ? (
-                    <textarea value={String(form[field.key] ?? '')} onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))} rows={4} />
+                    <textarea 
+                      name={field.key}
+                      value={String(form[field.key] ?? '')} 
+                      onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))} 
+                      rows={4} 
+                    />
                   ) : field.type === 'select' ? (
-                    <select value={String(form[field.key] ?? '')} onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}>
+                    <select 
+                      name={field.key}
+                      value={String(form[field.key] ?? '')} 
+                      onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
+                    >
                       {field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   ) : (
                     <input
+                      name={field.key}
                       required={field.required}
                       type={field.type ?? 'text'}
                       value={String(form[field.key] ?? '')}

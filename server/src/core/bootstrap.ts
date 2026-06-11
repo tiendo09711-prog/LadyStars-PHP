@@ -22,9 +22,7 @@ import { PrintForm } from '../modules/printForms/printForms.models.js';
 import {
   Order,
   OrderDuplicate,
-  OrderPackaging,
   OrderHandover,
-  OrderShippingPending,
   OrderDispute,
   OrderCodControl,
   OrderSource,
@@ -59,7 +57,7 @@ export async function bootstrapSystem() {
     SaleChannel, DeliveryPartner, PaymentMethod, Customer, CustomerGroup,
     Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer,
     AccountingType, Receipt, ExpensePayment, PayPerson, Project, Task, PrintForm,
-    Order, OrderDuplicate, OrderPackaging, OrderHandover, OrderShippingPending,
+    Order, OrderDuplicate, OrderHandover,
     OrderDispute, OrderCodControl, OrderSource, OrderHistory,
   ];
 

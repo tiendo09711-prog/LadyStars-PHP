@@ -137,23 +137,16 @@ export function OrdersPackagingPage() {
   // --- Data Loading ---
   const loadPackedData = async () => {
     try {
-      const [pkgRes, orderRes] = await Promise.all([
-        http.get('/orders/packaging'),
-        http.get('/orders/manage', { params: { status: 'Đã đóng gói' } })
-      ]);
-      
-      const packagingList = pkgRes.data.items || [];
+      const orderRes = await http.get('/orders/manage', { params: { status: 'Đã đóng gói' } });
       const ordersList = orderRes.data.items || [];
       
-      // Merge packaging details with order attributes
       const merged = ordersList.map((order: any) => {
-        const pkgInfo = packagingList.find((p: any) => p.orderCode === order.orderCode);
         return {
           ...order,
-          packer: pkgInfo?.packer || 'Hệ thống',
-          packageWeight: pkgInfo?.packageWeight || 0.5,
-          packagingMaterial: pkgInfo?.packagingMaterial || 'Hộp carton',
-          packedAt: pkgInfo?.packedAt || new Date(order.updatedAt).toLocaleString('vi-VN')
+          packer: order.packer || 'Hệ thống',
+          packageWeight: order.packageWeight || 0.5,
+          packagingMaterial: order.packagingMaterial || 'Hộp carton',
+          packedAt: order.packedAt || new Date(order.updatedAt).toLocaleString('vi-VN')
         };
       }).sort((a: any, b: any) => b.orderCode.localeCompare(a.orderCode));
       
@@ -521,14 +514,7 @@ export function OrdersPackagingPage() {
   const handleDeletePackedOrder = async (orderId: string, orderCode: string) => {
     if (!window.confirm(`Bạn có chắc chắn muốn hủy trạng thái đóng gói và khôi phục đơn hàng ${orderCode}?`)) return;
     try {
-      // 1. Delete packaging record
-      await http.delete(`/orders/packaging/${orderId}`);
-      // 2. Change order status back to "In và đóng gói" or "Xác nhận"
-      const orderRes = await http.get('/orders/manage', { params: { orderCode } });
-      const order = orderRes.data.items?.find((o: any) => o.orderCode === orderCode);
-      if (order) {
-        await http.patch(`/orders/manage/${order._id}`, { status: 'In và đóng gói' });
-      }
+      await http.patch(`/orders/manage/${orderId}`, { status: 'In và đóng gói', packedAt: '', packer: '', packageWeight: 0, packagingMaterial: '' });
       playAudioFeedback('success');
       addLog(`Hủy đóng gói đơn hàng ${orderCode}.`);
       loadPackedData();

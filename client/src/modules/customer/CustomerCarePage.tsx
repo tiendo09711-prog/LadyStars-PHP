@@ -17,8 +17,8 @@ const fields: any[] = [
 const formFields: any[] = [
   { key: 'code', label: 'ID Phiếu (Có thể nhập hoặc sinh tự động)', required: true },
   { key: 'customerCode', label: 'Mã khách hàng (nếu có)' },
-  { key: 'customerName', label: 'Tên khách hàng', required: true },
-  { key: 'customerPhone', label: 'Số điện thoại' },
+  { key: 'customerName', label: 'Tên khách hàng (Tự động điền nếu nhập Mã KH)' },
+  { key: 'customerPhone', label: 'Số điện thoại (Tự động điền)' },
   { key: 'details', label: 'Chi tiết (Ví dụ: -65 điểm)', type: 'textarea' },
   { key: 'reason', label: 'Lý do' },
   { key: 'description', label: 'Mô tả', type: 'textarea' },

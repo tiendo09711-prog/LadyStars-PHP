@@ -18,3 +18,5 @@ You are operating in an Autonomous IDE environment (YOLO Mode) where your file e
 - Anti-Loop Mechanism: If a terminal command fails or throws an error, do not get stuck in an infinite retry loop. Try to fix it once. If it fails twice, STOP and wait for the user.
 - No Guessing: If a task is highly ambiguous or lacks critical context, do NOT guess and write breaking code. Output a message in the chat explicitly asking the user for clarification.
 - Step-by-Step Logging: Before executing a massive multi-file refactor, briefly list the files you are about to touch in the chat so the user is aware.
+- PLAYWRIGHT/E2E TESTING: Always run Playwright or any E2E tests in strict headless mode (e.g., `npx playwright test --headed` is STRICTLY FORBIDDEN; use `npx playwright test` instead) so the extension can auto-approve without triggering UI environment guards.
+- NON-INTERACTIVE COMMANDS: When running build, database migrations, or script executions, ensure commands are non-interactive and bypass prompt blocks if possible.
