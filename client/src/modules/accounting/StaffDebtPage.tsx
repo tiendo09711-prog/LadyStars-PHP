@@ -36,6 +36,25 @@ export function StaffDebtPage() {
     return Number(val).toLocaleString('vi-VN');
   };
 
+  const handleExportCSV = () => {
+    const csv = [
+      ['Nhân viên bán hàng', 'Đã thu (Bán lẻ, Bán sỉ)', 'Đã thu (Đơn hàng)', 'Còn nợ'].join(','),
+      ...items.map(item => [
+        `"${item.staffName || ''}"`,
+        item.collectedRetail || 0,
+        item.collectedOrders || 0,
+        item.remainingDebt || 0
+      ].join(','))
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cong_no_nhan_vien_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="staff-debt-page">
       <div className="staff-debt-filters">
@@ -54,7 +73,7 @@ export function StaffDebtPage() {
       </div>
 
       <div className="staff-actions-bar">
-        <button className="btn-outline-staff">
+        <button className="btn-outline-staff" onClick={handleExportCSV}>
           <Download size={14} /> Xuất dữ liệu
         </button>
         

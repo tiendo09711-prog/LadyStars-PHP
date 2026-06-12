@@ -21,16 +21,23 @@
 */
 .ph,.ph-bold,.ph-light,.ph-thin,.ph-fill,.ph-duotone {
     font-size: 1.25em;
+    vertical-align: -0.125em;
 }
 .ph-lg {
   font-size: 1.5em !important;
   line-height: .05em;
+  vertical-align: -.18em;
+}
+.ph-md {
+    font-size: 1.25em !important;
 }
 .ph-2x {
     font-size: 2.5em !important;
+    vertical-align: -0.15em !important;
 }
 .ph-3x {
-    font-size: 3.5em !important;
+    font-size: 3.7em !important;
+    vertical-align: -0.15em !important;
 }
 
 .form-control-feedback-start:not(.filterBasicImportant.search-group) .form-control {

@@ -87,6 +87,64 @@ export function InstallmentCollectionPage() {
     return true;
   });
 
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleExportCSV = () => {
+    const csv = [
+      ['ID phiếu thu', 'Ngày thu tiền', 'Quỹ tiền', 'Khách hàng', 'Dịch vụ trả góp', 'Mã hợp đồng', 'Ghi chú', 'Số tiền', 'Trạng thái'].join(','),
+      ...filteredItems.map(item => [
+        `"${item.transactionId || ''}"`,
+        `"${item.date ? new Date(item.date).toLocaleDateString('vi-VN') : ''}"`,
+        `"${item.accountName || ''}"`,
+        `"${item.customerName || ''}"`,
+        `"${item.serviceName || ''}"`,
+        `"${item.contractCode || ''}"`,
+        `"${item.note || ''}"`,
+        item.amount || 0,
+        `"${item.status || ''}"`
+      ].join(','))
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `phieu_thu_tra_gop_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const [formData, setFormData] = useState({
+    contractCode: '',
+    amount: 0,
+    date: new Date().toISOString().substring(0, 10),
+    cashier: 'Admin',
+    status: 'Thành công',
+    note: ''
+  });
+
+  const handleAddSubmit = async () => {
+    if (!formData.contractCode || !formData.amount) return alert('Vui lòng nhập Mã hợp đồng và Số tiền');
+    try {
+      const payload = {
+        transactionId: `PTTG_${Date.now()}`,
+        contractCode: formData.contractCode,
+        amount: formData.amount,
+        date: new Date(formData.date),
+        cashier: formData.cashier,
+        status: formData.status,
+        note: formData.note,
+        accountName: 'Tiền mặt VNĐ', // Mặc định
+        customerName: 'Khách hàng ' + formData.contractCode
+      };
+      // Gửi vào mảng items qua bulk để dùng endpoint sẵn có, hoặc tạo mới
+      await http.post('/accounting/installment-collections/bulk', { items: [payload] });
+      setShowAddModal(false);
+      setFormData({ contractCode: '', amount: 0, date: new Date().toISOString().substring(0, 10), cashier: 'Admin', status: 'Thành công', note: '' });
+      loadData();
+    } catch (err: any) {
+      alert('Lỗi thêm phiếu thu: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   return (
     <div style={{ padding: '20px', backgroundColor: '#eef2f6', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
       <input
@@ -147,10 +205,10 @@ export function InstallmentCollectionPage() {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', padding: '0 16px 16px 16px', gap: '10px' }}>
-          <button style={{ backgroundColor: '#4caf50', color: '#fff', border: 'none', borderRadius: '4px', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 500 }}>
+          <button onClick={() => setShowAddModal(true)} style={{ backgroundColor: '#4caf50', color: '#fff', border: 'none', borderRadius: '4px', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 500 }}>
             <Plus size={16} /> Thêm mới
           </button>
-          <button style={{ backgroundColor: '#fff', color: '#495057', border: '1px solid #ced4da', borderRadius: '4px', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <button onClick={handleExportCSV} style={{ backgroundColor: '#fff', color: '#495057', border: '1px solid #ced4da', borderRadius: '4px', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <FileDown size={14} /> Xuất dữ liệu
           </button>
           {/* Nút Import để tương tác thực tế với CSDL như yêu cầu */}
@@ -174,7 +232,7 @@ export function InstallmentCollectionPage() {
                 <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Quỹ tiền</th>
                 <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Khách hàng</th>
                 <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Dịch vụ trả góp</th>
-                <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Nhà cung cấp</th>
+                <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Mã hợp đồng</th>
                 <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Ghi chú</th>
                 <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Số tiền</th>
                 <th style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', fontWeight: 600, color: '#333' }}>Trạng thái</th>
@@ -203,16 +261,16 @@ export function InstallmentCollectionPage() {
                     <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>{item.accountName || '-'}</td>
                     <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>{item.customerName || '-'}</td>
                     <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>{item.serviceName || '-'}</td>
-                    <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>{item.vendorName || '-'}</td>
+                    <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>{item.contractCode || '-'}</td>
                     <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>{item.note || '-'}</td>
-                    <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>{item.amount ? item.amount.toLocaleString('vi-VN') : '0'}</td>
+                    <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6', color: 'green', fontWeight: 'bold' }}>{item.amount ? item.amount.toLocaleString('vi-VN') : '0'}</td>
                     <td style={{ padding: '12px 16px', borderRight: '1px solid #dee2e6' }}>
                       <span style={{ backgroundColor: item.status === 'Thành công' ? '#e6f4ea' : '#f8f9fa', color: item.status === 'Thành công' ? '#1e8e3e' : '#333', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
                         {item.status || '-'}
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      {/* Cài đặt từng dòng (nếu cần) */}
+                      {/* Cài đặt từng dòng */}
                     </td>
                   </tr>
                 ))
@@ -221,6 +279,55 @@ export function InstallmentCollectionPage() {
           </table>
         </div>
       </div>
+
+      {showAddModal && (
+        <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}} onClick={() => setShowAddModal(false)}>
+          <div style={{background: '#fff', padding: '24px', borderRadius: '8px', width: '500px'}} onClick={e => e.stopPropagation()}>
+            <h3 style={{marginTop: 0, marginBottom: '20px', fontSize: '18px', fontWeight: 600}}>Thêm phiếu thu trả góp</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500}}>Mã hợp đồng (*)</label>
+                <input style={{width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} value={formData.contractCode} onChange={e => setFormData({...formData, contractCode: e.target.value})} placeholder="VD: HD_123" />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500}}>Số tiền (*)</label>
+                <input type="number" style={{width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500}}>Ngày thu</label>
+                <input type="date" style={{width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500}}>Người thu tiền</label>
+                <input style={{width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} value={formData.cashier} onChange={e => setFormData({...formData, cashier: e.target.value})} />
+              </div>
+
+              <div>
+                <label style={{display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500}}>Trạng thái</label>
+                <select style={{width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+                  <option value="Thành công">Thành công</option>
+                  <option value="Thất bại">Thất bại</option>
+                  <option value="Chờ xử lý">Chờ xử lý</option>
+                </select>
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 500}}>Ghi chú</label>
+                <textarea rows={3} style={{width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})}></textarea>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px'}}>
+              <button onClick={() => setShowAddModal(false)} style={{padding: '8px 16px', border: '1px solid #ced4da', borderRadius: '4px', background: '#fff', cursor: 'pointer', fontWeight: 500}}>Hủy</button>
+              <button onClick={handleAddSubmit} style={{padding: '8px 16px', border: 'none', borderRadius: '4px', background: '#009688', color: '#fff', cursor: 'pointer', fontWeight: 500}}>Lưu phiếu thu</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

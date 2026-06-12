@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
 import { SalePayment } from '../product/product.models.js';
-import { AccountingType, CashTransaction, BankTransaction, SummaryTransaction, ExpensePayment, PayPerson, Receipt, CustomerDebtSummary, CustomerDebtRecord, StaffDebtSummary, VendorDebtSummary, VendorDebtRecord, LogBookEntry, InstallmentCollection, AccountingTransactionLog, AccountingAccount, InstallmentService } from './accounting.models.js';
+import { AccountingType, CashTransaction, BankTransaction, SummaryTransaction, ExpensePayment, PayPerson, Receipt, CustomerDebtSummary, CustomerDebtRecord, StaffDebtSummary, VendorDebtSummary, VendorDebtRecord, LogBookEntry, InstallmentCollection, AccountingTransactionLog, AccountingAccount, InstallmentService, InstallmentSetting } from './accounting.models.js';
 const router = Router();
 router.use('/types', crudRoutes(AccountingType));
 router.use('/pay-persons', crudRoutes(PayPerson));
@@ -14,7 +14,8 @@ router.use('/summary-transactions', crudRoutes(SummaryTransaction));
 router.use('/installment-collections', crudRoutes(InstallmentCollection));
 router.use('/transaction-logs', crudRoutes(AccountingTransactionLog));
 router.use('/accounts', crudRoutes(AccountingAccount));
-router.use('/installment-services-crud', crudRoutes(InstallmentService));
+router.use('/installment-services', crudRoutes(InstallmentService));
+router.use('/installment-settings', crudRoutes(InstallmentSetting));
 
 router.get('/installment-services', async (req, res) => {
   const { id, name, targetCode, phone, address } = req.query;
@@ -30,12 +31,19 @@ router.get('/installment-services', async (req, res) => {
 });
 
 router.get('/accounts-list', async (req, res) => {
-  const { code, name, status, accountId } = req.query;
+  const { code, name, status, accountId, search } = req.query;
   const query: any = {};
   if (code) query.code = new RegExp(String(code), 'i');
   if (name) query.name = new RegExp(String(name), 'i');
   if (status) query.status = status;
   if (accountId) query.id = accountId;
+  if (search) {
+    query.$or = [
+      { id: new RegExp(String(search), 'i') },
+      { code: new RegExp(String(search), 'i') },
+      { name: new RegExp(String(search), 'i') }
+    ];
+  }
 
   const items = await AccountingAccount.find(query).sort({ code: 1 });
   res.json({ items, total: items.length });
@@ -239,40 +247,42 @@ router.post('/debt/opening', async (req, res) => {
     return res.status(400).json({ message: 'Missing targetCode or amount' });
   }
 
-  const numAmount = Number(amount);
+  const numAmount = Number(String(amount).replace(/[^0-9.-]+/g, ""));
 
   try {
     if (targetType === 'vendor') {
-      const summary = await VendorDebtSummary.findOne({ code: targetCode });
-      if (summary) {
-        if (type === 'payable') {
-          summary.initialPayable = (summary.initialPayable || 0) + numAmount;
-          summary.finalPayable = (summary.finalPayable || 0) + numAmount;
-        } else {
-          summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
-          summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
-        }
-        await summary.save();
+      let summary = await VendorDebtSummary.findOne({ code: targetCode });
+      if (!summary) {
+        summary = new VendorDebtSummary({ code: targetCode, vendorName: targetCode });
       }
+      if (type === 'payable') {
+        summary.initialPayable = (summary.initialPayable || 0) + numAmount;
+        summary.finalPayable = (summary.finalPayable || 0) + numAmount;
+      } else {
+        summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
+        summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
+      }
+      await summary.save();
     } else if (targetType === 'customer') {
-      const summary = await CustomerDebtSummary.findOne({ code: targetCode });
-      if (summary) {
-        if (type === 'payable') {
-          summary.initialPayable = (summary.initialPayable || 0) + numAmount;
-          summary.finalPayable = (summary.finalPayable || 0) + numAmount;
-        } else {
-          summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
-          summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
-        }
-        await summary.save();
+      let summary = await CustomerDebtSummary.findOne({ code: targetCode });
+      if (!summary) {
+        summary = new CustomerDebtSummary({ code: targetCode, customerName: targetCode });
       }
+      if (type === 'payable') {
+        summary.initialPayable = (summary.initialPayable || 0) + numAmount;
+        summary.finalPayable = (summary.finalPayable || 0) + numAmount;
+      } else {
+        summary.initialReceivable = (summary.initialReceivable || 0) + numAmount;
+        summary.finalReceivable = (summary.finalReceivable || 0) + numAmount;
+      }
+      await summary.save();
     } else if (targetType === 'staff') {
-      const summary = await StaffDebtSummary.findOne({ staffName: targetCode });
-      if (summary) {
-        // Staff logic if needed, currently they have collectedRetail, collectedOrders, remainingDebt.
-        summary.remainingDebt = (summary.remainingDebt || 0) + numAmount;
-        await summary.save();
+      let summary = await StaffDebtSummary.findOne({ staffName: targetCode });
+      if (!summary) {
+        summary = new StaffDebtSummary({ staffName: targetCode });
       }
+      summary.remainingDebt = (summary.remainingDebt || 0) + numAmount;
+      await summary.save();
     }
     
     res.json({ success: true });

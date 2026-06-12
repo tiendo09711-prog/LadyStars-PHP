@@ -86,7 +86,18 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
               code: '',
               note: '',
               status: 'draft',
-            }
+            },
+            hideEdit: true,
+            customActions: [
+              {
+                label: 'Trả hàng - Đổi hàng',
+                onClick: (item) => navigate(`/sales-channels/${channel}/refund/create?saleId=${item._id}`),
+              },
+              {
+                label: 'Sửa thông tin',
+                onClick: (item) => navigate(`/sales-channels/${channel}/wholesale/create?editId=${item._id}`),
+              }
+            ],
           },
           {
             key: 'discount',
@@ -112,7 +123,18 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
             createDefaults: {
               code: '',
               note: '',
-            }
+            },
+            hideEdit: true,
+            customActions: [
+              {
+                label: 'Trả hàng - Đổi hàng',
+                onClick: (item) => navigate(`/sales-channels/${channel}/refund/create?saleId=${item._id}`),
+              },
+              {
+                label: 'Sửa thông tin',
+                onClick: (item) => navigate(`/sales-channels/${channel}/wholesale/create?editId=${item._id}`),
+              }
+            ],
           },
           {
             key: 'debt',
@@ -138,7 +160,18 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
             createDefaults: {
               code: '',
               note: '',
-            }
+            },
+            hideEdit: true,
+            customActions: [
+              {
+                label: 'Trả hàng - Đổi hàng',
+                onClick: (item) => navigate(`/sales-channels/${channel}/refund/create?saleId=${item._id}`),
+              },
+              {
+                label: 'Sửa thông tin',
+                onClick: (item) => navigate(`/sales-channels/${channel}/wholesale/create?editId=${item._id}`),
+              }
+            ],
           }
         ]}
       />

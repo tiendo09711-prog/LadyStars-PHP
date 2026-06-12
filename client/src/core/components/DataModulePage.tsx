@@ -55,11 +55,13 @@ export type DataModulePageProps = {
   metrics?: ModuleMetric[];
   normalizePayload?: (payload: Record<string, unknown>) => Record<string, unknown>;
   actions?: RowAction[];
+  customActions?: { label: string; icon?: ReactNode; onClick: (item: Record<string, any>) => void; variant?: string }[];
   onPrimaryActionClick?: () => void;
   bulkActionGroups?: BulkActionGroup[];
   extraHeaderButtons?: ReactNode;
   hideImport?: boolean;
   hideCreate?: boolean;
+  hideEdit?: boolean;
 };
 
 function getValue(item: Record<string, any>, key: string) {
@@ -105,6 +107,8 @@ export function DataModulePage({
   extraHeaderButtons,
   hideImport,
   hideCreate,
+  hideEdit,
+  customActions,
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -494,9 +498,16 @@ export function DataModulePage({
                           {action.label}
                         </button>
                       ))}
-                      <button className="mini-action" type="button" onClick={() => openEdit(item)}>
-                        Sửa
-                      </button>
+                      {customActions?.map((action, idx) => (
+                        <button className={`mini-action ${action.variant || ''}`} type="button" key={idx} onClick={() => action.onClick(item)}>
+                          {action.icon} {action.label}
+                        </button>
+                      ))}
+                      {!hideEdit && (
+                        <button className="mini-action" type="button" onClick={() => openEdit(item)}>
+                          Sửa
+                        </button>
+                      )}
                       <button className="icon-button danger" type="button" onClick={() => remove(item._id)} title="Xóa">
                         <Trash2 size={16} />
                       </button>

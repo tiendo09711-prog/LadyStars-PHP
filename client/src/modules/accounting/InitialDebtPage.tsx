@@ -57,8 +57,8 @@ export function InitialDebtPage() {
         setTargetCode('');
         setNote('');
       } else {
-        // Redirect logic depending on targetType
-        window.location.href = `/accounting/debt/${targetType}s`;
+        const urlSuffix = targetType === 'staff' ? 'staff' : `${targetType}s`;
+        window.location.href = `/accounting/debt/${urlSuffix}`;
       }
     } catch (err: any) {
       alert('Lỗi: ' + (err.response?.data?.message || err.message));

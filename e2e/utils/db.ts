@@ -77,3 +77,35 @@ export async function cleanupTestData(productCode: string) {
   await db.collection('retailinvoices').deleteMany({ productCode: productCode });
   await db.collection('salepayments').deleteMany({ 'items.productCode': productCode });
 }
+
+export async function seedRevenueData(testCode: string) {
+  const db = await connectDB();
+  const now = new Date();
+  
+  await db.collection('salepayments').insertOne({
+    code: testCode,
+    status: 'completed',
+    createdAt: now,
+    discountValue: 50000,
+    items: [
+      {
+        productCode: testCode,
+        amount: 2,
+        cost: 300000,
+        total: 1000000 // Doanh thu 1tr, giá vốn 600k -> lợi nhuận 400k - discount 50k
+      }
+    ]
+  });
+
+  await db.collection('orders').insertOne({
+    code: testCode,
+    status: 'Thành công',
+    createdAt: now,
+  });
+}
+
+export async function cleanupRevenueData(testCode: string) {
+  const db = await connectDB();
+  await db.collection('salepayments').deleteMany({ code: testCode });
+  await db.collection('orders').deleteMany({ code: testCode });
+}

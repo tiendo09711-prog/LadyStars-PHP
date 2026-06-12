@@ -85,6 +85,28 @@ export function JournalPage() {
     return Number(val).toLocaleString('vi-VN');
   };
 
+  const handleExportCSV = () => {
+    const csv = [
+      ['Ngày giao dịch', 'ID giao dịch', 'Chứng từ', 'TK Nợ | TK Có', 'Tài khoản đối ứng', 'Nợ', 'Có'].join(','),
+      ...items.map(item => [
+        `"${item.date || ''}"`,
+        `"${item.transactionId || ''}"`,
+        `"${item.voucherId || ''}"`,
+        `"${item.account || ''}"`,
+        `"${item.contraAccount || ''}"`,
+        item.debit || 0,
+        item.credit || 0
+      ].join(','))
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `so_nhat_ky_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Group items by transactionId
   const groupsMap = new Map();
   items.forEach(item => {
@@ -148,7 +170,7 @@ export function JournalPage() {
 
         <div className="jl-actions-bar">
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="jl-btn-outline">
+            <button className="jl-btn-outline" onClick={handleExportCSV}>
               <Download size={14} /> Xuất dữ liệu
             </button>
             <button className="jl-btn-outline" style={{ position: 'relative' }}>

@@ -103,6 +103,38 @@ router.patch('/sales/:id', async (req, res) => {
   res.json(populated);
 });
 
+router.post('/sales/:id/cancel', async (req, res) => {
+  const payment = await SalePayment.findById(req.params.id);
+  if (!payment) return res.status(404).json({ message: 'Not found' });
+  if (payment.status === 'cancelled') return res.status(422).json({ message: 'Already cancelled' });
+
+  if (payment.status === 'completed') {
+    for (const item of payment.items) {
+      await moveProductQty({
+        productId: item.productId,
+        branchId: payment.branchId,
+        sourceType: 'SalePaymentCancel',
+        sourceId: payment._id,
+        amount: Number(item.amount ?? 0),
+        valueAfter: Number(item.value ?? 0),
+      });
+    }
+    if (payment.customerId) {
+      const customer = await Customer.findById(payment.customerId);
+      if (customer) {
+        customer.totalSpent = Math.max((customer.totalSpent || 0) - (payment.value || 0), 0);
+        customer.purchaseCount = Math.max((customer.purchaseCount || 0) - 1, 0);
+        await customer.save();
+      }
+    }
+  }
+
+  payment.status = 'cancelled';
+  await payment.save();
+  await writeAuditLog(req, { action: 'sales.cancel', module: 'sales', resource: 'SalePayment', resourceId: payment.id, before: payment });
+  res.json(payment);
+});
+
 router.delete('/sales/:id', async (req, res) => {
   const item = await SalePayment.findById(req.params.id);
   if (!item) return res.status(404).json({ message: 'Not found' });
