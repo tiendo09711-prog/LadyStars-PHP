@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, Filter, RefreshCw, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, Filter, RefreshCw, Search, Pencil } from 'lucide-react';
 import { productApi } from '../../../core/api/product.api';
 import type { IInventory } from '../../../types/product.type';
 import { Pagination } from '../../../core/components/Pagination';
@@ -45,6 +45,27 @@ export function InventoryList() {
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [editingStock, setEditingStock] = useState<{ id: string; hanoi: number; hcm: number } | null>(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
+
+  const handleUpdateStock = async () => {
+    if (!editingStock) return;
+    setUpdateLoading(true);
+    try {
+      await productApi.updateInventory(editingStock.id, {
+        stockHanoi: editingStock.hanoi,
+        stockHCM: editingStock.hcm,
+        totalStock: editingStock.hanoi + editingStock.hcm
+      });
+      setEditingStock(null);
+      load();
+    } catch (err) {
+      console.error(err);
+      alert('Cập nhật tồn kho thất bại!');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
 
   const exportColumns: ColumnOption[] = useMemo(() => [
     { label: 'Mã SP', key: 'code', getValue: (item: IInventory) => item.code },
@@ -206,6 +227,7 @@ export function InventoryList() {
                   <th style={thStyle} onClick={() => handleSort('stockHanoi')}><div style={thInner}><SortIcon field="stockHanoi" />Kho Hà Nội</div></th>
                   <th style={thStyle} onClick={() => handleSort('stockHCM')}><div style={thInner}><SortIcon field="stockHCM" />Kho HCM</div></th>
                   <th style={thStyle} onClick={() => handleSort('totalStock')}><div style={thInner}><SortIcon field="totalStock" />Tổng tồn</div></th>
+                  <th style={{ width: '80px', textAlign: 'center' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,9 +243,57 @@ export function InventoryList() {
                     </td>
                     <td>{formatMoney(item.cost)}</td>
                     <td>{formatMoney(item.price)}</td>
-                    <td style={{ color: '#2563eb', fontWeight: 500 }}>{Number(item.stockHanoi || 0).toLocaleString('vi-VN')}</td>
-                    <td style={{ color: '#ea580c', fontWeight: 500 }}>{Number(item.stockHCM || 0).toLocaleString('vi-VN')}</td>
-                    <td><strong>{Number(item.totalStock || 0).toLocaleString('vi-VN')}</strong></td>
+                    {editingStock?.id === item._id ? (
+                      <>
+                        <td>
+                          <input 
+                            type="number" 
+                            className="form-control" 
+                            value={editingStock.hanoi} 
+                            onChange={(e) => setEditingStock({...editingStock, hanoi: Number(e.target.value)})}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <input 
+                            type="number" 
+                            className="form-control" 
+                            value={editingStock.hcm} 
+                            onChange={(e) => setEditingStock({...editingStock, hcm: Number(e.target.value)})}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td><strong>{editingStock.hanoi + editingStock.hcm}</strong></td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button 
+                            className="btn btn-success" 
+                            style={{ padding: '2px 8px', fontSize: '12px', marginBottom: '4px' }} 
+                            onClick={handleUpdateStock}
+                            disabled={updateLoading}
+                          >Lưu</button>
+                          <button 
+                            className="btn btn-outline" 
+                            style={{ padding: '2px 8px', fontSize: '12px' }} 
+                            onClick={() => setEditingStock(null)}
+                          >Hủy</button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td style={{ color: '#2563eb', fontWeight: 500 }}>{Number(item.stockHanoi || 0).toLocaleString('vi-VN')}</td>
+                        <td style={{ color: '#ea580c', fontWeight: 500 }}>{Number(item.stockHCM || 0).toLocaleString('vi-VN')}</td>
+                        <td><strong>{Number(item.totalStock || 0).toLocaleString('vi-VN')}</strong></td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button 
+                            className="btn btn-outline" 
+                            onClick={() => setEditingStock({ id: item._id, hanoi: item.stockHanoi || 0, hcm: item.stockHCM || 0 })}
+                            title="Sửa tồn kho"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

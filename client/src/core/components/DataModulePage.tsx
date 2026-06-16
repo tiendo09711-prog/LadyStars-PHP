@@ -77,6 +77,7 @@ export type DataModulePageProps = {
   hideImport?: boolean;
   hideCreate?: boolean;
   hideEdit?: boolean;
+  hidePrimaryActionInDropdown?: boolean;
 };
 
 function getValue(item: Record<string, any>, key: string) {
@@ -122,6 +123,7 @@ export function DataModulePage({
   hideImport,
   hideCreate,
   hideEdit,
+  hidePrimaryActionInDropdown = false,
   customActions,
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
@@ -342,11 +344,15 @@ export function DataModulePage({
                   </button>
                   {showPrimaryDropdown && (
                     <div className="dropdown-menu primary-action-menu">
-                      <button className="dropdown-item" type="button" onClick={runPrimaryCreate}>
-                        <Plus size={16} />
-                        <span>{primaryActionLabel}</span>
-                      </button>
-                      <div className="dropdown-separator" />
+                      {!hidePrimaryActionInDropdown && (
+                        <>
+                          <button className="dropdown-item" type="button" onClick={runPrimaryCreate}>
+                            <Plus size={16} />
+                            <span>{primaryActionLabel}</span>
+                          </button>
+                          <div className="dropdown-separator" />
+                        </>
+                      )}
                       {primaryActions?.map((action, index) => (
                         <button
                           key={`${action.label}-${index}`}

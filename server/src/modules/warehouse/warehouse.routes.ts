@@ -1,151 +1,200 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
-import { 
-  InventoryVoucher, 
-  InventoryProduct, 
+import {
+  InventoryVoucher,
+  InventoryProduct,
   WarehouseTransfer,
   InventoryCheck,
   InventoryCheckProduct
 } from './warehouse.models.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { moveProductQty } from '../product/product.service.js';
-import { Product, ProductBranchStock } from '../product/product.models.js';
+import { Batch, Product, ProductBranchStock } from '../product/product.models.js';
+import multer from 'multer';
+import * as xlsx from 'xlsx';
 
+const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
-// Endpoint giao dịch nhập kho đồng bộ
-router.post('/vouchers/import', async (req, res) => {
-  const { date, warehouse, type, supplier, note, items } = req.body;
+function parseNumber(value: any): number {
+  if (value === undefined || value === null || value === '') return 0;
+  if (typeof value === 'number') return value;
+  return Number(String(value).replace(/,/g, '').trim()) || 0;
+}
+
+function parseExcelDate(value: any): Date | undefined {
+  if (!value) return undefined;
+  if (value instanceof Date) return value;
+  if (typeof value === 'number') {
+    const parsed = xlsx.SSF.parse_date_code(value);
+    if (!parsed) return undefined;
+    return new Date(parsed.y, parsed.m - 1, parsed.d, 12, 0, 0);
+  }
+  const s = String(value).trim();
+  if (!s) return undefined;
+  const vn = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (vn) return new Date(Number(vn[3]), Number(vn[2]) - 1, Number(vn[1]), 12, 0, 0);
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function computeBatchStatus(expiry?: Date): string {
+  if (!expiry) return 'Còn hạn';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const e = new Date(expiry);
+  e.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((e.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return 'Hết hạn';
+  if (diffDays <= 30) return 'Sắp hết hạn';
+  return 'Còn hạn';
+}
+
+async function resolveBranch(warehouse?: string, branchId?: string) {
+  if (branchId) {
+    const byId = await Branch.findById(branchId);
+    if (byId) return byId;
+  }
+  const branchMap: Record<string, string> = {
+    'Chi nhánh trung tâm': 'CN001',
+    'Kho Hà Nội': 'HN',
+    'Kho HCM': 'HCM',
+    'Kho Hồ Chí Minh': 'HCM',
+    'Kho chính': 'HN'
+  };
+  const code = branchMap[warehouse || ''] || 'CN001';
+  return await Branch.findOne({ code }) || await Branch.findOne({ isDefault: true }) || await Branch.findOne();
+}
+
+function lineTotal(qty: number, price: number, item: any) {
+  let amount = qty * price;
+  const discount = parseNumber(item.discountValue ?? item.discount);
+  if (item.discountType === '%') amount -= amount * discount / 100;
+  else amount -= discount;
+  const vat = parseNumber(item.vatValue ?? item.vat);
+  if (item.vatType === '%') amount += amount * vat / 100;
+  else amount += vat;
+  return Math.max(0, amount);
+}
+
+async function createImportVoucher(req: any, payload: any) {
+  const { date, warehouse, branchId: inputBranchId, type, supplier, note, items, updatePriceFlag } = payload;
   if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: 'Danh sách sản phẩm nhập không được để trống' });
+    const error: any = new Error('Danh sách sản phẩm nhập không được để trống');
+    error.status = 400;
+    throw error;
   }
 
-  try {
-    // 1. Ánh xạ warehouse sang branchId
-    const branchMap: Record<string, string> = {
-      'Chi nhánh trung tâm': 'CN001',
-      'Kho Hà Nội': 'HN',
-      'Kho HCM': 'HCM',
-      'Kho Hồ Chí Minh': 'HCM',
-      'Kho chính': 'HN'
-    };
-    const code = branchMap[warehouse] || 'CN001';
-    let branch = await Branch.findOne({ code });
-    if (!branch) {
-      branch = await Branch.findOne({ isDefault: true }) || await Branch.findOne();
-    }
-    const branchId = branch?._id;
+  const branch = await resolveBranch(warehouse, inputBranchId);
+  const branchId = branch?._id;
+  const voucherId = 'PNK-' + Math.floor(Math.random() * 900000 + 100000);
+  const spCount = items.length;
+  let totalQty = 0;
+  let totalAmount = 0;
+  const savedItems = [];
 
-    // 2. Sinh mã phiếu tự động
-    const voucherId = 'PNK-' + Math.floor(Math.random() * 900000 + 100000);
-
-    // 3. Tính toán các tổng số
-    const spCount = items.length;
-    let totalQty = 0;
-    let totalAmount = 0;
-
-    const savedItems = [];
-    for (const item of items) {
-      const product = await Product.findById(item.productId);
-      if (!product) {
-        return res.status(404).json({ message: `Không tìm thấy sản phẩm với ID ${item.productId}` });
-      }
-
-      const qty = Number(item.quantity || 0);
-      const price = Number(item.price || 0);
-      
-      // Tính tổng tiền mặt hàng có tính chiết khấu và VAT
-      let lineAmount = qty * price;
-      if (item.discountType === '%') {
-        lineAmount -= lineAmount * (Number(item.discountValue || 0) / 100);
-      } else {
-        lineAmount -= Number(item.discountValue || 0);
-      }
-      if (item.vatType === '%') {
-        lineAmount += lineAmount * (Number(item.vatValue || 0) / 100);
-      } else {
-        lineAmount += Number(item.vatValue || 0);
-      }
-      lineAmount = Math.max(0, lineAmount);
-
-      totalQty += qty;
-      totalAmount += lineAmount;
-
-      // Lưu InventoryProduct
-      const invProduct = await InventoryProduct.create({
-        id: 'TX-' + Math.floor(Math.random() * 900000 + 100000),
-        voucherId,
-        date: date || new Date().toISOString().slice(0, 10),
-        warehouse,
-        productCode: product.code,
-        productName: product.name,
-        type: 'import',
-        importQty: qty,
-        exportQty: 0,
-        price,
-        totalAmount: lineAmount,
-        creator: (req as any).user?.name || 'Admin',
-        unit: item.unit || product.unit,
-        cost: price,
-        note: item.note || ''
-      });
-
-      // Cập nhật kho thực
-      await moveProductQty({
-        productId: product._id,
-        branchId,
-        sourceType: 'InventoryProduct',
-        sourceId: invProduct._id,
-        amount: qty,
-        valueAfter: price
-      });
-
-      savedItems.push(invProduct);
+  for (const item of items) {
+    const product = await Product.findById(item.productId);
+    if (!product) {
+      const error: any = new Error(`Không tìm thấy sản phẩm với ID ${item.productId}`);
+      error.status = 404;
+      throw error;
     }
 
-    // Tạo InventoryVoucher
-    const voucher = await InventoryVoucher.create({
+    const qty = Number(item.quantity || 0);
+    const price = Number(item.price || 0);
+    if (qty <= 0) {
+      const error: any = new Error(`Số lượng nhập của [${product.code}] phải lớn hơn 0`);
+      error.status = 400;
+      throw error;
+    }
+
+    const lineAmount = lineTotal(qty, price, item);
+    totalQty += qty;
+    totalAmount += lineAmount;
+
+    const invProduct = await InventoryProduct.create({
+      id: 'TX-' + Math.floor(Math.random() * 900000 + 100000),
       voucherId,
       date: date || new Date().toISOString().slice(0, 10),
       warehouse,
-      type: type || 'import',
-      supplier: supplier || '',
-      spCount,
-      qty: totalQty,
-      totalAmount,
-      discount: items.reduce((sum, l) => sum + (l.discountType === 'đ' ? Number(l.discountValue || 0) : 0), 0),
-      creator: (req as any).user?.name || 'Admin',
-      note: note || `Nhập kho tự động - Loại: ${type || 'Nhập mua'}`
+      productCode: product.code,
+      productName: product.name,
+      type: 'import',
+      importQty: qty,
+      exportQty: 0,
+      price,
+      totalAmount: lineAmount,
+      creator: req?.user?.name || 'Admin',
+      unit: item.unit || product.unit,
+      cost: price,
+      batch: item.batchCode || item.batch || '',
+      discount: parseNumber(item.discountValue),
+      vat: parseNumber(item.vatValue),
+      vatType: item.vatType || '',
+      note: item.note || ''
     });
 
-    res.status(201).json({ voucher, items: savedItems });
+    if (updatePriceFlag) {
+      product.cost = price;
+      await product.save();
+    }
+
+    if (item.batchCode || item.batch || item.expiryDate) {
+      const batchNumber = String(item.batchCode || item.batch || `${product.code}-${voucherId}`).trim();
+      const expiryDate = parseExcelDate(item.expiryDate);
+      await Batch.findOneAndUpdate(
+        { batchNumber, productId: product._id, branchId },
+        { $inc: { qty }, $set: { cost: price, expiryDate, status: computeBatchStatus(expiryDate), note: item.note || '' } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+
+    await moveProductQty({ productId: product._id, branchId, sourceType: 'InventoryProduct', sourceId: invProduct._id, amount: qty, valueAfter: price });
+    savedItems.push(invProduct);
+  }
+
+  const voucher = await InventoryVoucher.create({
+    voucherId,
+    date: date || new Date().toISOString().slice(0, 10),
+    warehouse,
+    type: type || 'import',
+    supplier: supplier || '',
+    spCount,
+    qty: totalQty,
+    totalAmount,
+    discount: items.reduce((sum: number, l: any) => sum + (l.discountType === 'đ' ? Number(l.discountValue || 0) : 0), 0),
+    creator: req?.user?.name || 'Admin',
+    note: note || `Nhập kho tự động - Loại: ${type || 'Nhập mua'}`
+  });
+
+  return { voucher, items: savedItems };
+}
+
+// Endpoint giao dịch nhập kho đồng bộ
+router.post('/vouchers/import', async (req, res) => {
+  try {
+    const result = await createImportVoucher(req as any, req.body);
+    res.status(201).json(result);
   } catch (err: any) {
-    res.status(500).json({ message: err.message || 'Lỗi server khi nhập kho' });
+    res.status(err.status || 500).json({ message: err.message || 'Lỗi server khi nhập kho' });
   }
 });
 
 // Endpoint giao dịch xuất kho đồng bộ
 router.post('/vouchers/export', async (req, res) => {
-  const { date, warehouse, type, supplier, note, items } = req.body;
+  const { date, warehouse, branchId: inputBranchId, type, supplier, note, items } = req.body;
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'Danh sách sản phẩm xuất không được để trống' });
   }
 
   try {
-    // 1. Ánh xạ warehouse sang branchId
-    const branchMap: Record<string, string> = {
-      'Chi nhánh trung tâm': 'CN001',
-      'Kho Hà Nội': 'HN',
-      'Kho HCM': 'HCM',
-      'Kho Hồ Chí Minh': 'HCM',
-      'Kho chính': 'HN'
-    };
-    const code = branchMap[warehouse] || 'CN001';
-    let branch = await Branch.findOne({ code });
-    if (!branch) {
-      branch = await Branch.findOne({ isDefault: true }) || await Branch.findOne();
-    }
+    const branch = await resolveBranch(warehouse, inputBranchId);
     const branchId = branch?._id;
+
+    if (type === 'Xuất bán lẻ' || type === 'Xuất bán sỉ') {
+      return res.status(422).json({ message: 'Xuất bán hàng phải tạo ở module Bán hàng để đồng bộ doanh thu, khách hàng và kênh bán.' });
+    }
 
     // 2. Sinh mã phiếu tự động
     const voucherId = 'PXK-' + Math.floor(Math.random() * 900000 + 100000);
@@ -162,7 +211,8 @@ router.post('/vouchers/export', async (req, res) => {
         return res.status(404).json({ message: `Không tìm thấy sản phẩm với ID ${item.productId}` });
       }
       const qty = Number(item.quantity || 0);
-      
+      if (qty <= 0) return res.status(400).json({ message: `Số lượng xuất của [${product.code}] phải lớn hơn 0` });
+
       let stockQty = 0;
       if (branchId) {
         const branchStock = await ProductBranchStock.findOne({ productId: product._id, branchId });
@@ -185,20 +235,8 @@ router.post('/vouchers/export', async (req, res) => {
 
       const qty = Number(item.quantity || 0);
       const price = Number(item.price || 0);
-      
-      // Tính tổng tiền mặt hàng
-      let lineAmount = qty * price;
-      if (item.discountType === '%') {
-        lineAmount -= lineAmount * (Number(item.discountValue || 0) / 100);
-      } else {
-        lineAmount -= Number(item.discountValue || 0);
-      }
-      if (item.vatType === '%') {
-        lineAmount += lineAmount * (Number(item.vatValue || 0) / 100);
-      } else {
-        lineAmount += Number(item.vatValue || 0);
-      }
-      lineAmount = Math.max(0, lineAmount);
+
+      const lineAmount = lineTotal(qty, price, item);
 
       totalQty += qty;
       totalAmount += lineAmount;
@@ -219,6 +257,10 @@ router.post('/vouchers/export', async (req, res) => {
         creator: (req as any).user?.name || 'Admin',
         unit: item.unit || product.unit,
         cost: price,
+        batch: item.batchCode || item.batch || '',
+        discount: parseNumber(item.discountValue),
+        vat: parseNumber(item.vatValue),
+        vatType: item.vatType || '',
         note: item.note || ''
       });
 
@@ -256,15 +298,84 @@ router.post('/vouchers/export', async (req, res) => {
   }
 });
 
+router.post('/vouchers/import-excel', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'Vui lòng tải lên file Excel' });
+    const { warehouse = 'Chi nhánh trung tâm', type = 'Nhập mua', note = '' } = req.body;
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer', cellDates: true });
+    const sheetName = workbook.SheetNames.includes('XNK') ? 'XNK' : workbook.SheetNames[0];
+    const rows = xlsx.utils.sheet_to_json<any>(workbook.Sheets[sheetName], { defval: '' });
+    const items: any[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const productText = String(row['Sản phẩm'] || '').trim();
+      if (!productText) continue;
+      const product = await Product.findOne({ $or: [{ code: productText }, { name: productText }] });
+      if (!product) {
+        errors.push(`Dòng ${i + 2}: Không tìm thấy sản phẩm "${productText}"`);
+        continue;
+      }
+      const qty = parseNumber(row['Số lượng']);
+      if (qty <= 0) {
+        errors.push(`Dòng ${i + 2}: Số lượng phải lớn hơn 0`);
+        continue;
+      }
+      items.push({
+        productId: product._id,
+        quantity: qty,
+        price: parseNumber(row['Giá']),
+        discountValue: parseNumber(row['Chiết khấu']),
+        discountType: 'đ',
+        vatValue: 0,
+        vatType: '%',
+        unit: row['Đơn vị tính'] || product.unit,
+        batchCode: row['Lô hàng'] || '',
+        expiryDate: row['Ngày hết hạn'] || '',
+        warningDays: parseNumber(row['Cảnh báo trước']),
+        note: row['Ghi chú'] || ''
+      });
+    }
+
+    if (!items.length) return res.status(400).json({ message: 'File không có dòng hợp lệ để nhập kho', errors });
+
+    const result = await createImportVoucher(req as any, { warehouse, type, note: note || `Nhập kho từ Excel - File: ${req.file.originalname}`, items });
+    return res.status(201).json({ ...result, errors });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message || 'Lỗi import Excel XNK' });
+  }
+});
+
 router.post('/transfers', async (req, res, next) => {
   try {
     const { fromWarehouse, toWarehouse, lines, type, label, note, spCount, qty, creator, date, tabs } = req.body;
-    
+
     if (!fromWarehouse || !toWarehouse || fromWarehouse === toWarehouse) {
       return res.status(400).json({ message: 'Kho xuất và kho nhập không hợp lệ' });
     }
     if (!Array.isArray(lines) || lines.length === 0) {
       return res.status(400).json({ message: 'Danh sách sản phẩm trống' });
+    }
+
+    // Kiểm tra tồn kho trước khi chuyển
+    for (const line of lines) {
+      const q = Number(line.quantity);
+      if (q <= 0) return res.status(400).json({ message: 'Số lượng chuyển phải lớn hơn 0' });
+
+      const product = await Product.findById(line.productId);
+      if (!product) {
+        return res.status(400).json({ message: `Sản phẩm không tồn tại (ID: ${line.productId})` });
+      }
+
+      const branchStock = await ProductBranchStock.findOne({ productId: line.productId, branchId: fromWarehouse });
+      const currentStock = branchStock?.qty || 0;
+
+      if (currentStock < q) {
+        return res.status(400).json({
+          message: `Sản phẩm ${product.code || product.name} không đủ tồn kho tại kho xuất. Tồn hiện tại: ${currentStock}, Yêu cầu: ${q}`
+        });
+      }
     }
 
     // Lưu phiếu chuyển kho trước để lấy ID
@@ -287,7 +398,7 @@ router.post('/transfers', async (req, res, next) => {
     for (const line of lines) {
       const q = Number(line.quantity);
       if (q <= 0) continue;
-      
+
       // Trừ kho xuất
       await moveProductQty({
         productId: line.productId,
@@ -318,7 +429,7 @@ router.use('/transfers', crudRoutes(WarehouseTransfer));
 router.post('/checks', async (req, res, next) => {
   try {
     const { id, date, type, warehouse, creator, spCount, qty, note, missingSp, balance, lines } = req.body;
-    
+
     if (!warehouse) return res.status(400).json({ message: 'Cửa hàng/Kho không hợp lệ' });
     if (!Array.isArray(lines) || lines.length === 0) {
       return res.status(400).json({ message: 'Danh sách sản phẩm trống' });

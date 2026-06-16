@@ -114,7 +114,7 @@ interface BatchFormProps {
 
 function BatchForm({ batch, onSave, onClose, saving, error }: BatchFormProps) {
   const isEdit = !!batch;
-  
+
   // Format Date object or Date string into YYYY-MM-DD for input[type=date]
   const formatDateForInput = (d?: string) => {
     if (!d) return '';
@@ -124,11 +124,11 @@ function BatchForm({ batch, onSave, onClose, saving, error }: BatchFormProps) {
   const [form, setForm] = useState<Partial<IBatch>>(
     batch
       ? {
-          ...batch,
-          productId: (batch.productId && typeof batch.productId === 'object') ? batch.productId._id : (batch.productId || ''),
-          manufactureDate: formatDateForInput(batch.manufactureDate),
-          expiryDate: formatDateForInput(batch.expiryDate),
-        }
+        ...batch,
+        productId: (batch.productId && typeof batch.productId === 'object') ? batch.productId._id : (batch.productId || ''),
+        manufactureDate: formatDateForInput(batch.manufactureDate),
+        expiryDate: formatDateForInput(batch.expiryDate),
+      }
       : { status: 'Còn hạn', qty: 0, cost: 0 }
   );
 
@@ -158,7 +158,7 @@ function BatchForm({ batch, onSave, onClose, saving, error }: BatchFormProps) {
           <button className="icon-button" onClick={onClose}><X size={18} /></button>
         </div>
         {error && <div className="form-error" style={{ margin: '16px' }}>{error}</div>}
-        
+
         <div className="form-grid" style={{ padding: '16px' }}>
           <div className="form-field">
             <span>Số lô hàng *</span>
@@ -260,21 +260,29 @@ function BatchForm({ batch, onSave, onClose, saving, error }: BatchFormProps) {
 }
 
 // ─── Import Modal ────────────────────────────────────────────────────────────
-function ImportModal({ onClose }: { onClose: () => void }) {
+function ImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [msg, setMsg] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
 
   const handleImport = async () => {
     if (!file) { setMsg('Vui lòng chọn file.'); return; }
+    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) { setMsg('Chỉ hỗ trợ file .xlsx, .xls hoặc .csv.'); return; }
     try {
+      setImporting(true);
+      setErrors([]);
       setMsg('Đang nhập...');
-      // Simple delay to simulate import
-      setTimeout(() => {
-        setMsg('Nhập file thành công! (Demo - endpoint import đang được xây dựng)');
-      }, 1000);
-    } catch {
-      setMsg('Lỗi khi nhập file.');
+      const res = await productApi.importBatches(file, 'upsert');
+      const summary = res.summary;
+      setMsg(`Import xong: tạo ${summary.created}, cập nhật ${summary.updated}, bỏ qua ${summary.skipped}, lỗi ${summary.errors?.length || 0}.`);
+      setErrors(summary.errors || []);
+      onImported();
+    } catch (err: any) {
+      setMsg(err?.response?.data?.message || 'Lỗi khi nhập file.');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -295,10 +303,15 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           </div>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={e => setFile(e.target.files?.[0] || null)} />
           {msg && <p style={{ margin: 0, color: msg.includes('Lỗi') ? '#b91c1c' : '#047857', fontWeight: 700 }}>{msg}</p>}
+          {errors.length > 0 && (
+            <div style={{ maxHeight: 140, overflowY: 'auto', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 10 }}>
+              {errors.map((error, index) => <div key={index} style={{ color: '#b91c1c', fontSize: 13 }}>{error}</div>)}
+            </div>
+          )}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-light" onClick={onClose}>Đóng</button>
-          <button className="btn btn-primary" onClick={handleImport}><FileUp size={16} /> Nhập file</button>
+          <button className="btn btn-light" onClick={onClose} disabled={importing}>Đóng</button>
+          <button className="btn btn-primary" onClick={handleImport} disabled={importing}><FileUp size={16} /> {importing ? 'Đang nhập...' : 'Nhập file'}</button>
         </div>
       </div>
     </div>
@@ -612,7 +625,7 @@ export function BatchPage() {
         />
       )}
       {deleteItem && <DeleteConfirm batch={deleteItem} onConfirm={handleDelete} onCancel={() => setDeleteItem(null)} />}
-      {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={load} />}
     </div>
   );
 }

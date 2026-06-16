@@ -93,7 +93,15 @@ test.describe('Products Storage Duration Page - Automation', () => {
     await page.waitForTimeout(1000);
 
     // 5. Test chức năng "Trả hàng" (Return to Vendor)
-    await row.locator('button:has-text("Trả hàng")').click();
+    // Cần chọn chi nhánh trước khi trả hàng (theo validation mới)
+    const branchSelect = page.locator('.filter-panel select').first();
+    await branchSelect.selectOption({ index: 1 }); // Chọn chi nhánh đầu tiên
+    await page.waitForTimeout(1000); // Chờ API reload do branch thay đổi
+    
+    const rowAfterBranch = page.locator('table.data-table tbody tr').filter({ hasText: TEST_PROD_CODE }).first();
+    await expect(rowAfterBranch).toBeVisible();
+
+    await rowAfterBranch.locator('button:has-text("Trả hàng")').click();
     const returnModal = page.locator('.modal-card').first();
     await expect(returnModal.getByRole('heading', { name: 'Lập phiếu nháp trả hàng nhà cung cấp' })).toBeVisible();
     

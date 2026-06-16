@@ -1,6 +1,62 @@
-import { Boxes, ReceiptText, ArrowDownLeft, ArrowUpRight, FileUp } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { Boxes, ReceiptText, ArrowDownLeft, ArrowUpRight, FileUp, ChevronDown, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TabbedModulePage } from '../../core/components/TabbedModulePage';
+
+type ActionOption = {
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+};
+
+function TransactionActionDropdown({ label, actions }: { label: string; actions: ActionOption[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="primary-action-split has-menu">
+      <button
+        className="btn btn-primary primary-action-main"
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+      >
+        <Plus size={16} /> {label}
+      </button>
+      <button
+        className="btn btn-primary primary-action-toggle"
+        type="button"
+        aria-label="Mở lựa chọn xuất nhập kho"
+        aria-expanded={open}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+      >
+        <ChevronDown size={16} />
+      </button>
+      {open && (
+        <div className="dropdown-menu primary-action-menu">
+          {actions.map((action, index) => (
+            <button
+              key={`${action.label}-${index}`}
+              className="dropdown-item"
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                action.onClick();
+              }}
+            >
+              {action.icon}
+              <span>{action.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function WarehouseTransactionPage() {
   const navigate = useNavigate();
@@ -15,24 +71,28 @@ export function WarehouseTransactionPage() {
           subtitle: 'Quản lý thông tin phiếu xuất và nhập kho',
           endpoint: '/warehouse/vouchers',
           icon: <ReceiptText size={24} />,
-          primaryActionLabel: 'Tạo phiếu XNK',
-          primaryActions: [
-            {
-              label: 'Nhập kho',
-              icon: <ArrowDownLeft size={16} />,
-              onClick: () => navigate('/warehouse/transactions/vouchers/import'),
-            },
-            {
-              label: 'Xuất kho',
-              icon: <ArrowUpRight size={16} />,
-              onClick: () => navigate('/warehouse/transactions/vouchers/export'),
-            },
-            {
-              label: 'Import xuất nhập kho',
-              icon: <FileUp size={16} />,
-              onClick: () => navigate('/warehouse/transactions/vouchers/excel'),
-            },
-          ],
+          extraHeaderButtons: (
+            <TransactionActionDropdown
+              label="Tạo phiếu XNK"
+              actions={[
+                {
+                  label: 'Nhập kho',
+                  icon: <ArrowDownLeft size={16} />,
+                  onClick: () => navigate('/warehouse/transactions/vouchers/import'),
+                },
+                {
+                  label: 'Xuất kho',
+                  icon: <ArrowUpRight size={16} />,
+                  onClick: () => navigate('/warehouse/transactions/vouchers/export'),
+                },
+                {
+                  label: 'Import xuất nhập kho',
+                  icon: <FileUp size={16} />,
+                  onClick: () => navigate('/warehouse/transactions/vouchers/excel'),
+                },
+              ]}
+            />
+          ),
           fields: [
             { key: 'voucherId', label: 'Mã phiếu' },
             { key: 'date', label: 'Ngày' },
@@ -80,19 +140,23 @@ export function WarehouseTransactionPage() {
           subtitle: 'Quản lý danh sách chi tiết các mặt hàng xuất nhập kho',
           endpoint: '/warehouse/products',
           icon: <Boxes size={24} />,
-          primaryActionLabel: 'Thêm SP XNK',
-          primaryActions: [
-            {
-              label: 'Nhập kho',
-              icon: <ArrowDownLeft size={16} />,
-              onClick: () => navigate('/warehouse/transactions/products/import'),
-            },
-            {
-              label: 'Xuất kho',
-              icon: <ArrowUpRight size={16} />,
-              onClick: () => navigate('/warehouse/transactions/products/export'),
-            },
-          ],
+          extraHeaderButtons: (
+            <TransactionActionDropdown
+              label="Thao tác SP XNK"
+              actions={[
+                {
+                  label: 'Nhập kho',
+                  icon: <ArrowDownLeft size={16} />,
+                  onClick: () => navigate('/warehouse/transactions/products/import'),
+                },
+                {
+                  label: 'Xuất kho',
+                  icon: <ArrowUpRight size={16} />,
+                  onClick: () => navigate('/warehouse/transactions/products/export'),
+                },
+              ]}
+            />
+          ),
           fields: [
             { key: 'id', label: 'ID giao dịch' },
             { key: 'voucherId', label: 'Mã phiếu XNK' },
@@ -146,4 +210,7 @@ export function WarehouseTransactionPage() {
     />
   );
 }
+
+
+
 

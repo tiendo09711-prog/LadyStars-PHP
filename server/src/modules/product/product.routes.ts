@@ -6,12 +6,51 @@ import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefu
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
 import { Order } from '../orders/orders.models.js';
+import multer from 'multer';
+import * as xlsx from 'xlsx';
+import { InventoryProduct, InventoryVoucher } from '../warehouse/warehouse.models.js';
 
+const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
 function nextCode(prefix: string) {
   const stamp = new Date().toISOString().replace(/\D/g, '').slice(2, 14);
   return `${prefix}${stamp}`;
+}
+
+function parseExcelDate(value: any): Date | undefined {
+  if (!value) return undefined;
+  if (value instanceof Date) return value;
+  if (typeof value === 'number') {
+    const parsed = xlsx.SSF.parse_date_code(value);
+    if (!parsed) return undefined;
+    return new Date(parsed.y, parsed.m - 1, parsed.d, 12, 0, 0);
+  }
+  const s = String(value).trim();
+  if (!s) return undefined;
+  const vn = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (vn) return new Date(Number(vn[3]), Number(vn[2]) - 1, Number(vn[1]), 12, 0, 0);
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function computeBatchStatus(expiry?: Date): string {
+  if (!expiry) return 'Còn hạn';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const e = new Date(expiry);
+  e.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((e.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return 'Hết hạn';
+  if (diffDays <= 30) return 'Sắp hết hạn';
+  return 'Còn hạn';
+}
+
+function parseNumber(value: any): number {
+  if (value === undefined || value === null || value === '') return 0;
+  if (typeof value === 'number') return value;
+  const normalized = String(value).replace(/,/g, '').trim();
+  return Number(normalized) || 0;
 }
 
 async function populateSale(query: any) {
@@ -25,6 +64,179 @@ async function populateRefund(query: any) {
 router.use('/categories', crudRoutes(Category));
 router.use('/trademarks', crudRoutes(Trademark));
 router.use('/shelves', crudRoutes(Shelf));
+
+// Import Excel Endpoint
+router.post('/products/import', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Không tìm thấy file tải lên' });
+    }
+
+    const { warehouse, importMode } = req.body; // importMode: 'Thêm mới' | 'Cập nhật thông tin'
+    if (!warehouse) {
+      return res.status(400).json({ message: 'Vui lòng chọn Kho hàng' });
+    }
+
+    // 1. Resolve branch
+    const branchMap: Record<string, string> = {
+      'Chi nhánh trung tâm': 'CN001',
+      'Kho Hà Nội': 'HN',
+      'Kho HCM': 'HCM',
+      'Kho Hồ Chí Minh': 'HCM',
+      'Kho chính': 'HN'
+    };
+    const branchCode = branchMap[warehouse] || 'CN001';
+    let branch = await Branch.findOne({ code: branchCode });
+    if (!branch) {
+      branch = await Branch.findOne({ isDefault: true }) || await Branch.findOne();
+    }
+    const branchId = branch?._id;
+
+    // 2. Parse Excel
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const rows = xlsx.utils.sheet_to_json<any>(workbook.Sheets[sheetName]);
+
+    let created = 0, updated = 0, skipped = 0, stockAdded = 0;
+    const errors: string[] = [];
+
+    const voucherId = 'PNK-' + Math.floor(Math.random() * 900000 + 100000);
+    const date = new Date().toISOString().slice(0, 10);
+    let totalQty = 0;
+    let totalAmount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const code = row['Mã sản phẩm']?.toString().trim();
+      const name = row['Tên sản phẩm']?.toString().trim();
+
+      if (!code || !name) {
+        errors.push(`Dòng ${i + 2}: Thiếu mã hoặc tên sản phẩm`);
+        continue;
+      }
+
+      // Map fields
+      const costStr = row['Giá nhập'] || row['Giá vốn'] || row['Giá vốn (Đ)'] || 0;
+      const priceStr = row['Giá bán'] || row['Giá bán (Đ)'] || 0;
+      const wholesalePriceStr = row['Giá sỉ'] || row['Giá sỉ (Đ)'] || 0;
+      const qtyStr = row['Tồn trong kho'] || row['Tồn'] || row['Tổng tồn'] || 0;
+
+      const cost = Number(costStr.toString().replace(/,/g, '')) || 0;
+      const price = Number(priceStr.toString().replace(/,/g, '')) || 0;
+      const wholesalePrice = Number(wholesalePriceStr.toString().replace(/,/g, '')) || 0;
+      const qty = Number(qtyStr.toString().replace(/,/g, '')) || 0;
+
+      const metadata = {
+        name,
+        barcode: row['Mã vạch']?.toString(),
+        unit: row['Đơn vị tính']?.toString() || row['Đơn vị']?.toString(),
+        cost,
+        price,
+        wholesalePrice,
+        categoryName: row['Danh mục']?.toString(),
+        trademarkName: row['Thương hiệu']?.toString(),
+        supplierName: row['Nhà cung cấp']?.toString(),
+        color: row['Màu sắc']?.toString(),
+        size: row['Kích thước']?.toString() || row['Kích cỡ']?.toString(),
+        status: row['Trạng thái']?.toString() || 'Mới',
+        type: 'product'
+      };
+
+      let product = await Product.findOne({ code });
+
+      if (!product) {
+        // Mới
+        product = await Product.create({ ...metadata, code, qty: 0 });
+        created++;
+      } else {
+        if (importMode === 'Thêm mới') {
+          // Bỏ qua dòng trùng mã nếu chọn "Thêm mới"
+          skipped++;
+          continue;
+        } else {
+          // Cập nhật thông tin
+          await Product.updateOne({ _id: product._id }, { $set: metadata });
+          updated++;
+        }
+      }
+
+      // Nhập kho
+      if (qty > 0) {
+        const lineAmount = qty * cost;
+        totalQty += qty;
+        totalAmount += lineAmount;
+        stockAdded += qty;
+
+        const invProduct = await InventoryProduct.create({
+          id: 'TX-' + Math.floor(Math.random() * 900000 + 100000),
+          voucherId,
+          date,
+          warehouse,
+          productCode: product.code,
+          productName: product.name,
+          type: 'import',
+          importQty: qty,
+          exportQty: 0,
+          price: cost,
+          totalAmount: lineAmount,
+          creator: (req as any).user?.name || 'Admin',
+          unit: product.unit,
+          cost: cost,
+          note: 'Nhập từ file Excel'
+        });
+
+        await moveProductQty({
+          productId: product._id,
+          branchId,
+          sourceType: 'InventoryProduct',
+          sourceId: invProduct._id,
+          amount: qty,
+          valueAfter: cost
+        });
+      }
+    }
+
+    if (totalQty > 0) {
+      await InventoryVoucher.create({
+        voucherId,
+        date,
+        warehouse,
+        type: 'import',
+        supplier: '',
+        spCount: created + updated,
+        qty: totalQty,
+        totalAmount,
+        discount: 0,
+        creator: (req as any).user?.name || 'Admin',
+        note: 'Nhập kho hàng loạt từ file Excel'
+      });
+    }
+
+    res.json({
+      success: true,
+      summary: { created, updated, skipped, stockAdded, errors, voucherId: totalQty > 0 ? voucherId : null }
+    });
+
+  } catch (err: any) {
+    console.error('Import error:', err);
+    res.status(500).json({ message: err.message || 'Lỗi server khi nhập file' });
+  }
+});
+
+router.post('/products', async (req, res) => {
+  const payload = { ...req.body, qty: 0 };
+  delete (payload as any).availableStock;
+
+  const item = await Product.create(payload);
+  await writeAuditLog(req, {
+    action: 'product.create_master',
+    module: 'Product',
+    resource: 'Product',
+    resourceId: item.id,
+    after: item,
+  });
+  res.status(201).json(item);
+});
 router.use('/products', crudRoutes(Product));
 router.use('/branch-stocks', crudRoutes(ProductBranchStock));
 router.use('/sale-channels', crudRoutes(SaleChannel));
@@ -32,6 +244,68 @@ router.use('/delivery-partners', crudRoutes(DeliveryPartner));
 router.use('/payment-methods', crudRoutes(PaymentMethod));
 router.use('/stock-adjustments', crudRoutes(StockAdjustment));
 router.use('/logs', crudRoutes(ProductLog));
+
+router.post('/batches/import', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'Không tìm thấy file tải lên' });
+
+    const mode = String(req.body.mode || 'upsert');
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer', cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+    const rows = xlsx.utils.sheet_to_json<any>(workbook.Sheets[sheetName], { defval: '' });
+
+    if (!rows.length) {
+      return res.json({ success: true, summary: { created: 0, updated: 0, skipped: 0, errors: ['File không có dòng dữ liệu'] } });
+    }
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const line = i + 2;
+      const batchNumber = String(row['Số lô'] || row['So lo'] || row['batchNumber'] || '').trim();
+      const productKey = String(row['Sản phẩm'] || row['San pham'] || row['Mã sản phẩm'] || row['Ma san pham'] || '').trim();
+
+      if (!batchNumber) { errors.push(`Dòng ${line}: Thiếu Số lô`); skipped++; continue; }
+      if (!productKey) { errors.push(`Dòng ${line}: Thiếu Sản phẩm`); skipped++; continue; }
+
+      const product = await Product.findOne({ $or: [{ code: productKey }, { name: productKey }] });
+      if (!product) { errors.push(`Dòng ${line}: Không tìm thấy sản phẩm '${productKey}'`); skipped++; continue; }
+
+      const manufactureDate = parseExcelDate(row['Ngày sản xuất'] || row['Ngay san xuat']);
+      const expiryDate = parseExcelDate(row['Ngày hết hạn'] || row['Ngay het han']);
+      const payload = {
+        batchNumber,
+        productId: product._id,
+        qty: parseNumber(row['Tồn kho'] || row['Ton kho'] || row['qty']),
+        manufactureDate,
+        expiryDate,
+        cost: parseNumber(row['Giá nhập'] || row['Gia nhap'] || (product as any).cost),
+        status: computeBatchStatus(expiryDate),
+        note: row['ID'] ? `Import ID: ${row['ID']}` : undefined,
+      };
+
+      const existing = await Batch.findOne({ batchNumber, productId: product._id });
+      if (existing) {
+        if (mode === 'create') { skipped++; continue; }
+        await Batch.updateOne({ _id: existing._id }, { $set: payload }, { runValidators: true });
+        updated++;
+      } else {
+        await Batch.create(payload);
+        created++;
+      }
+    }
+
+    res.json({ success: true, summary: { created, updated, skipped, errors } });
+  } catch (err: any) {
+    console.error('Batch import error:', err);
+    res.status(500).json({ message: err.message || 'Lỗi import lô hàng' });
+  }
+});
+
 router.use('/batches', crudRoutes(Batch));
 
 
@@ -39,7 +313,7 @@ router.use('/batches', crudRoutes(Batch));
 router.get('/sales', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 100);
-  
+
   const filter: any = {};
   if (req.query.code) {
     filter.code = new RegExp(String(req.query.code).trim(), 'i');
@@ -210,7 +484,7 @@ router.get('/storage-duration', async (req, res) => {
 
     let targetBranchId: any = null;
     let branchName = '';
-    
+
     if (branchId) {
       if (branchId === 'hanoi' || branchId === 'hcm') {
         const branchCode = branchId === 'hanoi' ? 'HN' : 'HCM';
@@ -241,17 +515,35 @@ router.get('/storage-duration', async (req, res) => {
       productQuery.qty = { $gte: minStock };
     }
 
+    const andConditions: any[] = [];
+
     if (q) {
-      productQuery.$or = [
-        { name: new RegExp(q, 'i') },
-        { code: new RegExp(q, 'i') }
-      ];
+      andConditions.push({
+        $or: [
+          { name: new RegExp(q, 'i') },
+          { code: new RegExp(q, 'i') }
+        ]
+      });
     }
     if (categoryId) {
-      productQuery.categoryId = categoryId;
+      const category = await Category.findById(categoryId).lean();
+      if (category) {
+        andConditions.push({
+          $or: [
+            { categoryId: categoryId },
+            { categoryName: category.name }
+          ]
+        });
+      } else {
+        productQuery.categoryId = categoryId;
+      }
     }
     if (trademarkId) {
       productQuery.trademarkId = trademarkId;
+    }
+
+    if (andConditions.length > 0) {
+      productQuery.$and = andConditions;
     }
 
     const products = await Product.find(productQuery).lean();
@@ -262,7 +554,7 @@ router.get('/storage-duration', async (req, res) => {
     const [batches, salePayments, orders, stockAdjustments] = await Promise.all([
       Batch.find({ productId: { $in: productIds } }).lean(),
       SalePayment.find(
-        targetBranchId 
+        targetBranchId
           ? { status: 'completed', 'items.productId': { $in: productIds }, branchId: targetBranchId }
           : { status: 'completed', 'items.productId': { $in: productIds } }
       ).lean(),
@@ -337,7 +629,7 @@ router.get('/storage-duration', async (req, res) => {
       const productBatches = batchesMap.get(String(product._id)) || [];
       let oldestBatch = null;
       let newestBatch = null;
-      
+
       if (productBatches.length > 0) {
         const sortedOldest = [...productBatches].sort((a, b) => {
           const dateA = new Date(a.manufactureDate || a.createdAt).getTime();
@@ -484,6 +776,15 @@ router.get('/inventories', async (req, res) => {
     const branchCN = await Branch.findOne({ code: 'CN001' }).lean();
     const branchHN = await Branch.findOne({ code: 'HN' }).lean();
     const branchHCM = await Branch.findOne({ code: 'HCM' }).lean();
+    const objectIdLike = /^[a-f\d]{24}$/i;
+    const selectedBranchId =
+      objectIdLike.test(branchId)
+        ? branchId
+        : branchId === 'hanoi'
+          ? String(branchHN?._id || '')
+          : branchId === 'hcm'
+            ? String(branchHCM?._id || '')
+            : '';
 
     const filter: any = {};
     if (categoryId) {
@@ -532,6 +833,9 @@ router.get('/inventories', async (req, res) => {
       const stockCN = stocks.find(s => String(s.branchId) === String(branchCN?._id))?.qty || 0;
       const stockHanoi = stocks.find(s => String(s.branchId) === String(branchHN?._id))?.qty || 0;
       const stockHCM = stocks.find(s => String(s.branchId) === String(branchHCM?._id))?.qty || 0;
+      const selectedStock = selectedBranchId
+        ? stocks.find(s => String(s.branchId) === selectedBranchId)?.qty || 0
+        : undefined;
 
       allItems.push({
         _id: pAny._id,
@@ -549,6 +853,7 @@ router.get('/inventories', async (req, res) => {
         stockCN,
         stockHanoi,
         stockHCM,
+        selectedStock,
         unit: pAny.unit || '',
         createdAt: pAny.createdAt
       });
@@ -650,4 +955,7 @@ router.get('/edit-logs', async (req, res) => {
 });
 
 export default router;
+
+
+
 

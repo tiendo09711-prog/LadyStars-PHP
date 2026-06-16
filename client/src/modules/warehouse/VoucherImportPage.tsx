@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowDownLeft, ArrowLeft, Plus, Trash2, Eye, RotateCcw, Settings2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowLeft, Plus, Trash2, Settings2 } from 'lucide-react';
 import { http } from '../../core/api/http';
 
 type Product = {
@@ -14,13 +14,25 @@ type Product = {
   stockCN?: number;
   stockHanoi?: number;
   stockHCM?: number;
+  selectedStock?: number;
   unit?: string;
 };
 
-const getStockForWarehouse = (prod: Product, wh: string) => {
-  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+type Branch = {
+  _id: string;
+  name: string;
+  code?: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+};
+
+const getStockForBranch = (prod: Product, branch?: Branch) => {
+  if (typeof prod.selectedStock === 'number') return prod.selectedStock;
+  const code = String(branch?.code || '').toUpperCase();
+  const name = String(branch?.name || '').toLowerCase();
+  if (code === 'CN001' || name.includes('trung tâm') || name.includes('trung tam')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
+  if (code === 'HN' || name.includes('hà nội') || name.includes('ha noi') || name.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
+  if (code === 'HCM' || name.includes('hcm') || name.includes('hồ chí minh') || name.includes('ho chi minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
   return prod.totalStock ?? prod.qty ?? 0;
 };
 
@@ -48,15 +60,16 @@ export function VoucherImportPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [sysBranches, setSysBranches] = useState<any[]>([]);
+  const [sysBranches, setSysBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingBranches, setLoadingBranches] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
+  const [branchId, setBranchId] = useState('');
   const [importType, setImportType] = useState('Nhập mua');
-  const [supplier, setSupplier] = useState('Nhà cung cấp A');
+  const [supplier, setSupplier] = useState('');
   const [tags, setTags] = useState('');
   const [note, setNote] = useState('');
   const [updatePriceFlag, setUpdatePriceFlag] = useState(false);
@@ -83,13 +96,19 @@ export function VoucherImportPage() {
   // Table rows
   const [lines, setLines] = useState<ImportLine[]>([]);
 
+  const selectedBranch = useMemo(
+    () => sysBranches.find(branch => branch._id === branchId),
+    [sysBranches, branchId]
+  );
+  const warehouse = selectedBranch?.name || '';
+
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       setError('');
       try {
-        const response = await http.get('/products/inventories', { params: { limit: 100 } });
+        const response = await http.get('/products/inventories', { params: { limit: 5000, branchId: branchId || undefined } });
         if (response.data?.items && response.data.items.length > 0) {
           setProducts(response.data.items);
         } else {
@@ -103,9 +122,32 @@ export function VoucherImportPage() {
       }
     };
     fetchProducts();
+  }, [branchId]);
+
+  useEffect(() => {
     http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
-    http.get('/system/branches').then(res => setSysBranches(res.data.items || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoadingBranches(true);
+    http.get('/system/branches')
+      .then(res => {
+        if (!mounted) return;
+        const branches: Branch[] = (res.data?.items || []).filter((branch: Branch) => branch.isActive !== false);
+        setSysBranches(branches);
+        const defaultBranch = branches.find(branch => branch.isDefault) || branches[0];
+        setBranchId(defaultBranch?._id || '');
+        if (!branches.length) setError('Không tìm thấy kho hàng nào. Vui lòng tạo kho hàng trước khi nhập kho.');
+      })
+      .catch(() => {
+        if (mounted) setError('Không thể tải danh sách kho hàng.');
+      })
+      .finally(() => {
+        if (mounted) setLoadingBranches(false);
+      });
+    return () => { mounted = false; };
   }, []);
 
   // Update remainQty when warehouse changes
@@ -114,7 +156,7 @@ export function VoucherImportPage() {
       setLines(current => current.map(line => {
         const prod = products.find(p => p._id === line.productId);
         if (prod) {
-          const newQty = getStockForWarehouse(prod, warehouse);
+          const newQty = getStockForBranch(prod, selectedBranch);
           if (line.remainQty !== newQty) {
             return { ...line, remainQty: newQty };
           }
@@ -122,7 +164,7 @@ export function VoucherImportPage() {
         return line;
       }));
     }
-  }, [warehouse, products]);
+  }, [selectedBranch, products]);
 
   // Initialize with one line when products are loaded
   useEffect(() => {
@@ -143,7 +185,7 @@ export function VoucherImportPage() {
     productId: prod._id,
     batchCode: '',
     unit: prod.unit || 'cái',
-    remainQty: getStockForWarehouse(prod, warehouse),
+    remainQty: getStockForBranch(prod, selectedBranch),
     quantity: 1,
     price: prod.cost || prod.price || 0,
     discountValue: 0,
@@ -174,7 +216,7 @@ export function VoucherImportPage() {
         const prod = products.find(p => p._id === patch.productId);
         if (prod) {
           next.unit = prod.unit || 'cái';
-          next.remainQty = getStockForWarehouse(prod, warehouse);
+          next.remainQty = getStockForBranch(prod, selectedBranch);
           next.price = prod.cost || prod.price || 0;
         }
       }
@@ -259,6 +301,10 @@ export function VoucherImportPage() {
     setSuccessMsg('');
 
     const validLines = lines.filter(l => l.productId && Number(l.quantity) > 0);
+    if (!branchId || !warehouse) {
+      setError('Vui lòng chọn kho hàng hợp lệ.');
+      return;
+    }
     if (validLines.length === 0) {
       setError('Phiếu nhập kho phải có ít nhất một sản phẩm với số lượng lớn hơn 0.');
       return;
@@ -267,14 +313,17 @@ export function VoucherImportPage() {
     try {
       const payload = {
         date: new Date().toISOString().slice(0, 10),
+        branchId,
         warehouse,
         type: importType,
         supplier,
         note: note || `Nhập kho tự động - Loại: ${importType}`,
+        updatePriceFlag,
         items: validLines.map(line => ({
           productId: line.productId,
           quantity: line.quantity,
           price: line.price,
+          batchCode: line.batchCode,
           discountValue: line.discountValue,
           discountType: line.discountType,
           vatValue: line.vatValue,
@@ -346,16 +395,20 @@ export function VoucherImportPage() {
           <div className="form-grid">
             <label className="form-field">
               <span>Kho hàng *</span>
-              <select value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
-                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm</option>
-                <option value="Kho Hà Nội">Kho Hà Nội</option>
-                <option value="Kho HCM">Kho HCM</option>
+              <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={loadingBranches || !sysBranches.length}>
+                {loadingBranches && <option value="">Đang tải kho hàng...</option>}
+                {!loadingBranches && !sysBranches.length && <option value="">Không có kho hàng</option>}
+                {sysBranches.map(branch => (
+                  <option key={branch._id} value={branch._id}>
+                    {branch.name}{branch.code ? ` (${branch.code})` : ''}
+                  </option>
+                ))}
               </select>
             </label>
 
             <label className="form-field">
               <span>Loại nhập hàng *</span>
-              <select value={importType} onChange={(e) => setImportType(e.target.value)}>
+              <select value={importType} onChange={(e) => { setImportType(e.target.value); setSupplier(''); }}>
                 <option value="Nhập mua">Nhập mua (Từ NCC)</option>
                 <option value="Nhập hoàn">Nhập trả hàng / Hoàn hàng</option>
                 <option value="Nhập chuyển kho">Nhập chuyển kho nội bộ</option>

@@ -57,7 +57,6 @@ const genericTabs: Array<DataModulePageProps & { key: string; label: string }> =
       ] },
       { key: 'cost', label: 'Giá vốn', type: 'number' },
       { key: 'price', label: 'Giá bán', type: 'number' },
-      { key: 'qty', label: 'Tồn kho', type: 'number' },
       { key: 'unit', label: 'Đơn vị' },
       { key: 'minQuantity', label: 'Tồn ít nhất', type: 'number' },
       { key: 'maxQuantity', label: 'Tồn nhiều nhất', type: 'number' },

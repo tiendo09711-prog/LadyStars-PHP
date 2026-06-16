@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, FileDown, FileUp, Filter, Pencil, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { productApi } from '../../../core/api/product.api';
+import { http } from '../../../core/api/http';
 import type { IProduct, ICategory } from '../../../types/product.type';
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
@@ -237,46 +238,92 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 }
 
 // ─── Import Modal ────────────────────────────────────────────────────────────
-function ImportModal({ onClose }: { onClose: () => void }) {
+function ImportModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: (result: any) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [importMode, setImportMode] = useState('Thêm mới');
+  const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
 
   const handleImport = async () => {
     if (!file) { setMsg('Vui lòng chọn file.'); return; }
+    if (!warehouse) { setMsg('Vui lòng chọn kho hàng.'); return; }
+    
+    setLoading(true);
+    setMsg('Đang nhập...');
+    
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('warehouse', warehouse);
+    fd.append('importMode', importMode);
+    
     try {
-      setMsg('Đang nhập...');
-      // NOTE: update endpoint when server supports it
-      // await http.post('/products/products/import', fd);
-      setMsg('Nhập file thành công! (Demo - endpoint chưa có)');
-    } catch {
-      setMsg('Lỗi khi nhập file.');
+      const res = await http.post('/products/products/import', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setMsg('Nhập file thành công!');
+      setTimeout(() => {
+        onSuccess(res.data.summary);
+      }, 500);
+    } catch (err: any) {
+      setMsg(err.response?.data?.message || 'Lỗi khi nhập file.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-card" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+      <div className="modal-card" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <div><h2>Nhập File (Import)</h2><p>Chọn file Excel (.xlsx) để nhập sản phẩm</p></div>
-          <button className="icon-button" onClick={onClose}><X size={18} /></button>
+          <div><h2>Nhập dữ liệu sản phẩm</h2><p>Nhập file Excel (.xlsx) để thêm mới hoặc cập nhật</p></div>
+          <button className="icon-button" onClick={onClose} disabled={loading}><X size={18} /></button>
         </div>
-        <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div className="form-field">
+              <span>Kho hàng nhập tồn <span style={{color: 'red'}}>*</span></span>
+              <select value={warehouse} onChange={e => setWarehouse(e.target.value)}>
+                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm (CN001)</option>
+                <option value="Kho Hà Nội">Kho Hà Nội (HN)</option>
+                <option value="Kho HCM">Kho Hồ Chí Minh (HCM)</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <span>Chế độ đối với dòng trùng mã</span>
+              <select value={importMode} onChange={e => setImportMode(e.target.value)}>
+                <option value="Thêm mới">Thêm mới (Bỏ qua dòng trùng)</option>
+                <option value="Cập nhật thông tin">Cập nhật thông tin (Cập nhật & cộng tồn)</option>
+              </select>
+            </div>
+          </div>
+
           <div
-            style={{ border: '2px dashed var(--border)', borderRadius: '8px', padding: '32px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc' }}
-            onClick={() => fileRef.current?.click()}
+            style={{ border: '2px dashed var(--border)', borderRadius: '8px', padding: '32px', textAlign: 'center', cursor: loading ? 'default' : 'pointer', background: '#f8fafc' }}
+            onClick={() => !loading && fileRef.current?.click()}
           >
             <FileUp size={32} style={{ color: 'var(--muted)', marginBottom: '8px' }} />
             <p style={{ margin: 0, color: 'var(--muted)', fontWeight: 700 }}>{file ? file.name : 'Click để chọn file Excel (.xlsx)'}</p>
           </div>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={e => setFile(e.target.files?.[0] || null)} />
+          
           {msg && <p style={{ margin: 0, color: msg.includes('Lỗi') ? '#b91c1c' : '#047857', fontWeight: 700 }}>{msg}</p>}
+          
+          <div style={{ padding: '12px', background: '#fffbeb', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '13px' }}>
+            <strong>Lưu ý:</strong>
+            <ul style={{ margin: '4px 0 0', paddingLeft: '20px' }}>
+              <li>Nếu mã sản phẩm đã tồn tại trong hệ thống, chế độ <strong>Thêm mới</strong> sẽ bỏ qua dòng đó.</li>
+              <li>Chế độ <strong>Cập nhật thông tin</strong> sẽ sửa lại tên, giá, danh mục... và <strong>cộng thêm tồn kho</strong> theo số lượng trong file.</li>
+              <li>Việc nhập số lượng {'>'} 0 sẽ tự động tạo phiếu nhập kho.</li>
+            </ul>
+          </div>
+
         </div>
         <div className="modal-footer">
-          <button className="btn btn-light" onClick={onClose}>Đóng</button>
-          <button className="btn btn-primary" onClick={handleImport}><FileUp size={16} /> Nhập file</button>
+          <button className="btn btn-light" onClick={onClose} disabled={loading}>Hủy</button>
+          <button className="btn btn-primary" onClick={handleImport} disabled={loading || !file}><FileUp size={16} /> {loading ? 'Đang xử lý...' : 'Upload & Nhập'}</button>
         </div>
       </div>
     </div>
@@ -307,6 +354,7 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
   
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
 
   const exportColumns: ColumnOption[] = useMemo(() => [
     { label: 'Mã SP', key: 'code', getValue: (p: IProduct) => p.code },
@@ -573,7 +621,54 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
         />
       )}
       {deleteItem && <DeleteConfirm product={deleteItem} onConfirm={handleDelete} onCancel={() => setDeleteItem(null)} />}
-      {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      
+      {showImport && (
+        <ImportModal 
+          onClose={() => setShowImport(false)} 
+          onSuccess={(result) => {
+            setShowImport(false);
+            setImportResult(result);
+            load();
+          }} 
+        />
+      )}
+
+      {importResult && (
+        <div className="modal-backdrop" onClick={() => setImportResult(null)}>
+          <div className="modal-card" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div><h2 style={{ color: '#059669' }}>Import thành công</h2></div>
+              <button className="icon-button" onClick={() => setImportResult(null)}><X size={18} /></button>
+            </div>
+            <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px' }}>
+              <p>Kết quả xử lý file:</p>
+              <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                <li><strong>{importResult.created}</strong> sản phẩm tạo mới</li>
+                <li><strong>{importResult.updated}</strong> sản phẩm được cập nhật</li>
+                <li><strong>{importResult.skipped}</strong> dòng bị bỏ qua</li>
+                <li><strong>{importResult.stockAdded}</strong> tổng số lượng đã cộng vào kho</li>
+              </ul>
+              {importResult.voucherId && (
+                <p style={{ marginTop: '8px' }}>
+                  Đã tạo phiếu nhập kho tự động: <strong>{importResult.voucherId}</strong>
+                </p>
+              )}
+              {importResult.errors && importResult.errors.length > 0 && (
+                <div style={{ marginTop: '12px', padding: '10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', color: '#b91c1c', maxHeight: '150px', overflowY: 'auto' }}>
+                  <strong>Cảnh báo dòng lỗi:</strong>
+                  <ul style={{ margin: '4px 0 0', paddingLeft: '20px' }}>
+                    {importResult.errors.map((err: string, i: number) => <li key={i}>{err}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-primary" onClick={() => setImportResult(null)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showExportModal && (
         <ExportExcelModal
           isOpen={showExportModal}
