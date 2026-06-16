@@ -110,6 +110,7 @@ import { OrdersCodControlPage } from './modules/orders/OrdersCodControlPage';
 import { OrdersSourcesPage } from './modules/orders/OrdersSourcesPage';
 import { OrdersHistoryPage } from './modules/orders/OrdersHistoryPage';
 import './styles/app.css';
+import './styles/phase-rescue.css';
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },

@@ -1,71 +1,80 @@
 import { test, expect } from '@playwright/test';
-import { connectDB, closeDB } from '../utils/db';
 
-test.describe('Menu Navigation Test', () => {
-  test.beforeAll(async () => {
-    const db = await connectDB();
-    // Tạo user giả nếu cần, ở đây default login `admin@gmail.com`
-    const users = db.collection('users');
-    await users.updateOne(
-      { email: 'admin@gmail.com' },
-      { $set: { email: 'admin@gmail.com', password: 'password123', name: 'Admin E2E', role: 'owner' } },
-      { upsert: true }
-    );
-  });
+test.describe('Phase 2 navigation/sidebar/header', () => {
+  test('desktop navigation groups, active state, reports route, user menu, reload, logout', async ({ page }) => {
+    const seriousErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') seriousErrors.push(message.text());
+    });
 
-  test.afterAll(async () => {
-    await closeDB();
-  });
-
-  test('should display topbar menu correctly and dropdowns should work on hover', async ({ page }) => {
-    // 1. Đi tới trang chủ (đã được lưu state login từ auth.setup.ts)
     await page.goto('/');
-    
-    // Đợi layout chính render
-    await page.waitForSelector('.app-sidebar', { timeout: 15000 });
+    await expect(page.locator('.app-sidebar')).toBeVisible();
+    await expect(page.locator('.app-header')).toBeHidden();
+    await expect(page.locator('.brand.user-dropdown-container')).toBeVisible();
+    await expect(page.locator('.app-sidebar')).toHaveCSS('position', 'fixed');
+    await expect(page.locator('.app-sidebar')).toHaveCSS('width', /1[0-9]{3}px/);
+    await expect(page.locator('.app-main')).toHaveCSS('margin-left', '0px');
 
-    // 2. Kiểm tra layout topbar 
-    // Logo user container
-    const brandContainer = page.locator('.brand.user-dropdown-container');
-    await expect(brandContainer).toBeVisible();
+    for (const group of ['Kho hàng', 'Khách hàng', 'Báo Cáo']) {
+      await expect(page.locator('.menu-group-title', { hasText: group })).toBeVisible();
+    }
 
-    // 3. Click thử user menu
-    await brandContainer.click();
-    const logoutBtn = page.locator('button:has-text("Đăng xuất")');
-    await expect(logoutBtn).toBeVisible();
-    await page.mouse.click(0, 0); // click outside to close
+    const productGroup = page.locator('.menu-group', { has: page.locator('.menu-group-title', { hasText: 'Sản phẩm' }) });
+    await productGroup.locator('.menu-group-title').click();
+    await expect(productGroup.locator('.menu-panel')).toBeVisible();
+    await productGroup.locator('a[href="/products/inventory"]').click();
+    await expect(page).toHaveURL(/\/products\/inventory/);
+    await expect(productGroup.locator('.menu-group-title')).toHaveClass(/active/);
+    await expect(productGroup.locator('a[href="/products/inventory"]')).toHaveClass(/active/);
 
-    // 4. Kiểm tra hover menu dropdown (Sản phẩm)
-    const productMenuTitle = page.locator('.menu-group-title:has-text("Sản phẩm")');
-    await productMenuTitle.hover();
-    
-    const productPanel = productMenuTitle.locator('xpath=..').locator('.menu-panel');
-    // .menu-panel theo css hiện tại dùng :hover của .menu-group
-    await expect(productPanel).toBeVisible();
+    const reportGroup = page.locator('.menu-group', { has: page.locator('a[href="/reports/revenue/time"]') });
+    await reportGroup.locator('.menu-group-title').click();
+    await expect(reportGroup.locator('.reports-panel')).toBeVisible();
+    await expect(reportGroup.locator('.reports-panel .submenu-trigger', { hasText: 'Doanh thu' })).toBeVisible();
+    await reportGroup.locator('a[href="/reports/revenue/time"]').click();
+    await expect(page).toHaveURL(/\/reports\/revenue\/time/);
+    await expect(reportGroup.locator('.menu-group-title')).toHaveClass(/active/);
 
-    // Kiểm tra link con
-    const inventoryLink = productPanel.locator('a:has-text("Tồn kho")');
-    await expect(inventoryLink).toBeVisible();
+    await page.reload();
+    await expect(page.locator('.app-sidebar')).toBeVisible();
+    await expect(page.locator('.app-header')).toBeHidden();
+    await expect(page).toHaveURL(/\/reports\/revenue\/time/);
 
-    // 5. Kiểm tra Submenu (Báo Cáo -> Doanh thu)
-    const reportMenuTitle = page.locator('.menu-group-title:has-text("Báo Cáo")');
-    await reportMenuTitle.hover();
-    
-    const reportPanel = reportMenuTitle.locator('xpath=..').locator('.menu-panel');
-    await expect(reportPanel).toBeVisible();
+    const ownerMenu = page.locator('a[href="/staff/accounts"]');
+    if (await ownerMenu.count()) {
+      const staffGroup = page.locator('.menu-group', { has: ownerMenu });
+      await staffGroup.locator('.menu-group-title').click();
+      await expect(ownerMenu).toBeVisible();
+    }
 
-    const revenueSubMenu = reportPanel.locator('.submenu-trigger:has-text("Doanh thu")');
-    await revenueSubMenu.hover();
-    
-    const revenuePanel = revenueSubMenu.locator('xpath=..').locator('.submenu-panel');
-    await expect(revenuePanel).toBeVisible();
+    const brand = page.locator('.brand.user-dropdown-container');
+    await brand.click();
+    await expect(page.locator('.user-dropdown-action.danger')).toBeVisible();
+    await page.locator('.user-dropdown-action.danger').click();
+    await expect(page).toHaveURL(/\/login/);
 
-    const timeReportLink = revenuePanel.locator('a:has-text("Theo thời gian")');
-    await expect(timeReportLink).toBeVisible();
-    
-    // 6. Click chuyển trang để test route logic không đổi
-    // Dùng evaluate để click tránh lỗi Playwright scroll element out of viewport
-    await timeReportLink.evaluate((node: HTMLElement) => node.click());
-    await expect(page).toHaveURL(/.*\/reports\/revenue\/time/);
+    expect(seriousErrors.filter((text) => !text.includes('favicon'))).toEqual([]);
+  });
+
+  test('mobile drawer opens, closes, navigates, and closes after route click', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/customers/list');
+    await expect(page.locator('.app-header')).toBeVisible();
+    await expect(page.locator('.menu-toggle')).toBeVisible();
+    await expect(page.locator('.app-shell')).not.toHaveClass(/sidebar-open/);
+
+    await page.locator('.menu-toggle').click();
+    await expect(page.locator('.app-shell')).toHaveClass(/sidebar-open/);
+    await expect(page.locator('.app-sidebar')).toBeVisible();
+
+    await page.locator('.sidebar-close').click();
+    await expect(page.locator('.app-shell')).not.toHaveClass(/sidebar-open/);
+
+    await page.locator('.menu-toggle').click();
+    const customerGroup = page.locator('.menu-group', { has: page.locator('a[href="/customers/care"]') });
+    await expect(customerGroup.locator('a[href="/customers/care"]')).toBeVisible();
+    await customerGroup.locator('a[href="/customers/care"]').evaluate((node: HTMLAnchorElement) => node.click());
+    await expect(page).toHaveURL(/\/customers\/care/);
+    await expect(page.locator('.app-shell')).not.toHaveClass(/sidebar-open/);
   });
 });

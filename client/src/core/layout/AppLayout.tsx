@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeftRight,
   Boxes,
@@ -10,12 +10,10 @@ import {
   Clock,
   FileEdit,
   FileText,
-  Gift,
   History,
   LayoutDashboard,
   Layers,
   LogOut,
-  Menu,
   Package,
   Printer,
   RotateCcw,
@@ -24,12 +22,8 @@ import {
   ShoppingBag,
   ShoppingCart,
   Shuffle,
-  Store,
   CreditCard,
   HeartHandshake,
-  Network,
-  BriefcaseMedical,
-  MessageSquareHeart,
   UserCog,
   Users,
   WalletCards,
@@ -40,7 +34,24 @@ import {
 } from 'lucide-react';
 import { http } from '../api/http';
 
-const baseMenuGroups = [
+type MenuLeaf = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+};
+
+type MenuItem = MenuLeaf | {
+  label: string;
+  icon: typeof LayoutDashboard;
+  subItems: MenuLeaf[];
+};
+
+type MenuGroup = {
+  label: string;
+  items: MenuItem[];
+};
+
+const baseMenuGroups: MenuGroup[] = [
   {
     label: 'Tổng quan',
     items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }],
@@ -289,25 +300,36 @@ type StoreSettings = {
 
 export function AppLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({ shopName: 'LadyStars' });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openMenuGroups, setOpenMenuGroups] = useState<Record<string, boolean>>(() => defaultMenuGroupState);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [reportSearch, setReportSearch] = useState('');
   const isOwner = user?.role === 'owner';
-  const shopName = storeSettings.shopName || 'LadyStars';
+
+  const isDesktopNav = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 981px)').matches;
+  const closeAllMenus = () => {
+    setOpenMenuGroups(defaultMenuGroupState);
+    setReportSearch('');
+  };
 
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (!(event.target as Element).closest('.user-dropdown-container')) {
+      const target = event.target as Element;
+      if (!target.closest('.user-dropdown-container')) {
         setUserMenuOpen(false);
+      }
+      if (!target.closest('.app-sidebar')) {
+        closeAllMenus();
       }
     };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
-  const menuGroups = isOwner
+  const menuGroups = useMemo<MenuGroup[]>(() => isOwner
     ? [
       ...baseMenuGroups,
       {
@@ -319,7 +341,7 @@ export function AppLayout() {
         ],
       },
     ]
-    : baseMenuGroups;
+    : baseMenuGroups, [isOwner]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -362,11 +384,100 @@ export function AppLayout() {
     navigate('/login');
   };
 
-  const toggleMenuGroup = (label: string) => {
+  const openDesktopMenuGroup = (label: string) => {
+    if (!isDesktopNav()) return;
+    setOpenMenuGroups({ ...defaultMenuGroupState, [label]: true });
+  };
+
+  const toggleMenuGroup = (label: string, parentLabel?: string) => {
     setOpenMenuGroups((current) => ({
-      ...current,
+      ...(isDesktopNav()
+        ? { ...defaultMenuGroupState, ...(parentLabel ? { [parentLabel]: true } : {}) }
+        : current),
       [label]: !(current[label] ?? false),
     }));
+  };
+
+  const routeMatches = (to: string) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+  const itemActive = (item: MenuItem) => 'to' in item ? routeMatches(item.to) : item.subItems.some((subItem) => routeMatches(subItem.to));
+  const groupActive = (group: MenuGroup) => group.items.some(itemActive);
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    closeAllMenus();
+  };
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const activeUpdates: Record<string, boolean> = {};
+    menuGroups.forEach((group) => {
+      if (groupActive(group)) activeUpdates[group.label] = true;
+      group.items.forEach((item) => {
+        if (!('to' in item) && itemActive(item)) activeUpdates[item.label] = true;
+      });
+    });
+    if (Object.keys(activeUpdates).length) {
+      setOpenMenuGroups((current) => ({ ...current, ...activeUpdates }));
+    }
+  }, [location.pathname, menuGroups, sidebarOpen]);
+
+  const renderMenuLink = (item: MenuLeaf) => {
+    const Icon = item.icon;
+    return (
+      <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={closeSidebar}>
+        <Icon size={16} className="menu-icon" />
+        <span>{item.label}</span>
+      </NavLink>
+    );
+  };
+
+  const renderReportPanel = (group: MenuGroup, isGroupOpen: boolean) => {
+    const searchTerm = reportSearch.trim().toLowerCase();
+    return (
+      <div className={`menu-panel reports-panel ${isGroupOpen ? 'open mobile-open' : ''}`}>
+        <label className="report-search">
+          <Search size={15} />
+          <input
+            value={reportSearch}
+            onChange={(event) => setReportSearch(event.target.value)}
+            placeholder="Tìm báo cáo..."
+            aria-label="Tìm báo cáo"
+          />
+        </label>
+        <div className="report-menu-list">
+          {group.items.map((item) => {
+            if ('to' in item) return renderMenuLink(item);
+            const filtered = item.subItems.filter((subItem) => {
+              const text = `${item.label} ${subItem.label}`.toLowerCase();
+              return !searchTerm || text.includes(searchTerm);
+            });
+            if (!filtered.length) return null;
+            const Icon = item.icon;
+            const isSubGroupOpen = openMenuGroups[item.label] ?? false;
+            const isSubActive = itemActive(item);
+            return (
+              <div className="submenu-group report-menu-category" key={item.label}>
+                <button
+                  className={`submenu-trigger ${isSubActive ? 'active' : ''}`}
+                  type="button"
+                  aria-expanded={isSubGroupOpen}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    toggleMenuGroup(item.label, group.label);
+                  }}
+                >
+                  <Icon size={16} className="menu-icon" />
+                  <span>{item.label}</span>
+                  <ChevronDown className="submenu-chevron" size={14} />
+                </button>
+                <div className={`submenu-panel report-submenu-panel ${isSubGroupOpen ? 'open mobile-open' : ''}`}>
+                  {filtered.map(renderMenuLink)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -377,47 +488,26 @@ export function AppLayout() {
         aria-label="Close menu"
         onClick={() => setSidebarOpen(false)}
       />
-      <aside className="app-sidebar">
-        <div className="brand user-dropdown-container" style={{ cursor: 'pointer', position: 'relative' }} onClick={() => setUserMenuOpen(!userMenuOpen)}>
-          <div className="brand-mark" style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
+      <aside className="app-sidebar" onMouseLeave={() => { if (isDesktopNav()) closeAllMenus(); }}>
+        <div className="brand user-dropdown-container" onClick={() => setUserMenuOpen(!userMenuOpen)}>
+          <div className="brand-mark brand-avatar">
             {user?.name?.slice(0, 1) ?? 'A'}
           </div>
           <div>
             <strong>{user?.name ?? 'Admin'}</strong>
             <span>{user?.email ?? 'admin@gmail.com'}</span>
           </div>
-          <ChevronDown size={14} style={{ color: '#94a3b8', marginLeft: '4px' }} />
+          <ChevronDown size={14} className="brand-chevron" />
           
           {userMenuOpen && (
-            <div className="user-dropdown-menu" style={{
-              position: 'absolute',
-              top: '100%',
-              left: '16px',
-              marginTop: '8px',
-              background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              boxShadow: '0 12px 32px rgba(15, 23, 42, .12)',
-              minWidth: '220px',
-              zIndex: 200,
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '8px'
-            }}>
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9', marginBottom: '4px' }}>
-                <strong style={{ color: '#0f172a', display: 'block' }}>{user?.name ?? 'Admin'}</strong>
-                <span style={{ color: '#64748b', fontSize: '12px' }}>Vai trò: {user?.role === 'owner' ? 'Chủ cửa hàng' : 'Nhân viên'}</span>
+            <div className="user-dropdown-menu">
+              <div className="user-dropdown-summary">
+                <strong>{user?.name ?? 'Admin'}</strong>
+                <span>Vai trò: {user?.role === 'owner' ? 'Chủ cửa hàng' : 'Nhân viên'}</span>
               </div>
               <button 
                 onClick={logout}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  width: '100%', padding: '10px 12px', border: 'none',
-                  background: 'transparent', color: '#ef4444', fontWeight: 600,
-                  cursor: 'pointer', borderRadius: '6px', textAlign: 'left'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                className="user-dropdown-action danger"
               >
                 <LogOut size={16} /> Đăng xuất
               </button>
@@ -441,11 +531,16 @@ export function AppLayout() {
         <nav className="sidebar-nav">
           {menuGroups.map((group) => {
             const isGroupOpen = openMenuGroups[group.label] ?? false;
+            const isActive = groupActive(group);
 
             return (
-              <div className="menu-group" key={group.label}>
+              <div
+                className={`menu-group ${isActive ? 'active' : ''}`}
+                key={group.label}
+                onMouseEnter={() => openDesktopMenuGroup(group.label)}
+              >
                 <button
-                  className="menu-group-title"
+                  className={`menu-group-title ${isActive ? 'active' : ''}`}
                   type="button"
                   aria-expanded={isGroupOpen}
                   onClick={() => toggleMenuGroup(group.label)}
@@ -453,61 +548,47 @@ export function AppLayout() {
                   <span>{group.label}</span>
                   <ChevronDown className="menu-group-chevron" size={14} />
                 </button>
-                <div className={`menu-panel ${isGroupOpen ? 'mobile-open' : ''}`}>
+                {group.label === 'Báo Cáo' ? renderReportPanel(group, isGroupOpen) : (
+                <div className={`menu-panel ${isGroupOpen ? 'open mobile-open' : ''}`}>
                   {group.items.map((item) => {
                     const Icon = item.icon;
-                    if (item.subItems) {
+                    if (!('to' in item) && item.subItems) {
                       const isSubGroupOpen = openMenuGroups[item.label] ?? false;
+                      const isSubActive = itemActive(item);
                       return (
                         <div className="submenu-group" key={item.label}>
                           <button
-                            className="submenu-trigger"
+                            className={`submenu-trigger ${isSubActive ? 'active' : ''}`}
                             type="button"
                             aria-expanded={isSubGroupOpen}
                             onClick={(e) => {
                               e.preventDefault();
-                              toggleMenuGroup(item.label);
+                              toggleMenuGroup(item.label, group.label);
                             }}
                           >
                             <Icon size={16} className="menu-icon" />
                             <span>{item.label}</span>
                             <ChevronDown className="submenu-chevron" size={14} />
                           </button>
-                          <div className={`submenu-panel ${isSubGroupOpen ? 'mobile-open' : ''}`}>
-                            {item.subItems.map(subItem => {
-                              const SubIcon = subItem.icon;
-                              return (
-                                <NavLink 
-                                  key={subItem.to} 
-                                  to={subItem.to} 
-                                  onClick={() => setSidebarOpen(false)}
-                                >
-                                  <SubIcon size={16} className="menu-icon" />
-                                  <span>{subItem.label}</span>
-                                </NavLink>
-                              )
-                            })}
+                          <div className={`submenu-panel ${isSubGroupOpen ? 'open mobile-open' : ''}`}>
+                            {item.subItems.map(renderMenuLink)}
                           </div>
                         </div>
                       );
                     }
                     
-                    return (
-                      <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => setSidebarOpen(false)}>
-                        <Icon size={16} className="menu-icon" />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    );
+                    return renderMenuLink(item as MenuLeaf);
                   })}
                 </div>
+                )}
               </div>
             );
           })}
           {isOwner && (
-            <div className="menu-group owner-setting-group">
+            <div className="menu-group owner-setting-group" onMouseEnter={() => { if (isDesktopNav()) closeAllMenus(); }}>
               <NavLink className="sidebar-setting" to="/settings" onClick={() => setSidebarOpen(false)}>
                 <Settings size={16} className="menu-icon" />
-                <span>Thiết lập cài đặt</span>
+                <span>Cài đặt</span>
               </NavLink>
             </div>
           )}
@@ -515,6 +596,16 @@ export function AppLayout() {
       </aside>
 
       <div className="app-main">
+        <header className="app-header">
+          <button className="menu-toggle" type="button" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+            <List size={20} />
+          </button>
+          <div className="app-header-title">
+            <strong>{storeSettings.shopName || 'LadyStars'}</strong>
+            <span>{location.pathname === '/' ? 'Dashboard' : location.pathname}</span>
+          </div>
+          <div className="app-header-user">{user?.role === 'owner' ? 'Chủ cửa hàng' : 'Nhân viên'}</div>
+        </header>
         <main className="content">
           <Outlet />
         </main>
