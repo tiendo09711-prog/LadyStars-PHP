@@ -41,6 +41,7 @@ import { SettingsPage } from './modules/settings/SettingsPage';
 import { WarehouseTransactionPage } from './modules/warehouse/WarehouseTransactionPage';
 import { WarehouseTransferPage } from './modules/warehouse/WarehouseTransferPage';
 import { WarehouseTransferCreatePage } from './modules/warehouse/WarehouseTransferCreatePage';
+import { WarehouseTransferDetailPage } from './modules/warehouse/WarehouseTransferDetailPage';
 import { WarehouseAuditPage } from './modules/warehouse/WarehouseAuditPage';
 import { WarehouseAuditCreatePage } from './modules/warehouse/WarehouseAuditCreatePage';
 import { WarehouseDraftPage } from './modules/warehouse/WarehouseDraftPage';
@@ -136,6 +137,7 @@ const router = createBrowserRouter([
       { path: 'warehouse/transactions/products/export', element: <ProductExportPage /> },
       { path: 'warehouse/transfers', element: <WarehouseTransferPage /> },
       { path: 'warehouse/transfers/create', element: <WarehouseTransferCreatePage /> },
+      { path: 'warehouse/transfers/:id', element: <WarehouseTransferDetailPage /> },
       { path: 'warehouse/audit', element: <WarehouseAuditPage /> },
       { path: 'warehouse/audit/create', element: <WarehouseAuditCreatePage /> },
       { path: 'warehouse/drafts', element: <WarehouseDraftPage /> },

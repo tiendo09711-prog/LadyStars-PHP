@@ -6,7 +6,11 @@ import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefu
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
 import { Order } from '../orders/orders.models.js';
+import multer from 'multer';
+import * as xlsx from 'xlsx';
+import { InventoryProduct, InventoryVoucher } from '../warehouse/warehouse.models.js';
 
+const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
 function nextCode(prefix: string) {
@@ -25,6 +29,179 @@ async function populateRefund(query: any) {
 router.use('/categories', crudRoutes(Category));
 router.use('/trademarks', crudRoutes(Trademark));
 router.use('/shelves', crudRoutes(Shelf));
+
+// Import Excel Endpoint
+router.post('/products/import', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Không tìm thấy file tải lên' });
+    }
+
+    const { warehouse, importMode } = req.body; // importMode: 'Thêm mới' | 'Cập nhật thông tin'
+    if (!warehouse) {
+      return res.status(400).json({ message: 'Vui lòng chọn Kho hàng' });
+    }
+
+    // 1. Resolve branch
+    const branchMap: Record<string, string> = {
+      'Chi nhánh trung tâm': 'CN001',
+      'Kho Hà Nội': 'HN',
+      'Kho HCM': 'HCM',
+      'Kho Hồ Chí Minh': 'HCM',
+      'Kho chính': 'HN'
+    };
+    const branchCode = branchMap[warehouse] || 'CN001';
+    let branch = await Branch.findOne({ code: branchCode });
+    if (!branch) {
+      branch = await Branch.findOne({ isDefault: true }) || await Branch.findOne();
+    }
+    const branchId = branch?._id;
+
+    // 2. Parse Excel
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const rows = xlsx.utils.sheet_to_json<any>(workbook.Sheets[sheetName]);
+
+    let created = 0, updated = 0, skipped = 0, stockAdded = 0;
+    const errors: string[] = [];
+
+    const voucherId = 'PNK-' + Math.floor(Math.random() * 900000 + 100000);
+    const date = new Date().toISOString().slice(0, 10);
+    let totalQty = 0;
+    let totalAmount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const code = row['Mã sản phẩm']?.toString().trim();
+      const name = row['Tên sản phẩm']?.toString().trim();
+      
+      if (!code || !name) {
+        errors.push(`Dòng ${i + 2}: Thiếu mã hoặc tên sản phẩm`);
+        continue;
+      }
+
+      // Map fields
+      const costStr = row['Giá nhập'] || row['Giá vốn'] || row['Giá vốn (Đ)'] || 0;
+      const priceStr = row['Giá bán'] || row['Giá bán (Đ)'] || 0;
+      const wholesalePriceStr = row['Giá sỉ'] || row['Giá sỉ (Đ)'] || 0;
+      const qtyStr = row['Tồn trong kho'] || row['Tồn'] || row['Tổng tồn'] || 0;
+
+      const cost = Number(costStr.toString().replace(/,/g, '')) || 0;
+      const price = Number(priceStr.toString().replace(/,/g, '')) || 0;
+      const wholesalePrice = Number(wholesalePriceStr.toString().replace(/,/g, '')) || 0;
+      const qty = Number(qtyStr.toString().replace(/,/g, '')) || 0;
+
+      const metadata = {
+        name,
+        barcode: row['Mã vạch']?.toString(),
+        unit: row['Đơn vị tính']?.toString() || row['Đơn vị']?.toString(),
+        cost,
+        price,
+        wholesalePrice,
+        categoryName: row['Danh mục']?.toString(),
+        trademarkName: row['Thương hiệu']?.toString(),
+        supplierName: row['Nhà cung cấp']?.toString(),
+        color: row['Màu sắc']?.toString(),
+        size: row['Kích thước']?.toString() || row['Kích cỡ']?.toString(),
+        status: row['Trạng thái']?.toString() || 'Mới',
+        type: 'product'
+      };
+
+      let product = await Product.findOne({ code });
+
+      if (!product) {
+        // Mới
+        product = await Product.create({ ...metadata, code, qty: 0 });
+        created++;
+      } else {
+        if (importMode === 'Thêm mới') {
+          // Bỏ qua dòng trùng mã nếu chọn "Thêm mới"
+          skipped++;
+          continue;
+        } else {
+          // Cập nhật thông tin
+          await Product.updateOne({ _id: product._id }, { $set: metadata });
+          updated++;
+        }
+      }
+
+      // Nhập kho
+      if (qty > 0) {
+        const lineAmount = qty * cost;
+        totalQty += qty;
+        totalAmount += lineAmount;
+        stockAdded += qty;
+
+        const invProduct = await InventoryProduct.create({
+          id: 'TX-' + Math.floor(Math.random() * 900000 + 100000),
+          voucherId,
+          date,
+          warehouse,
+          productCode: product.code,
+          productName: product.name,
+          type: 'import',
+          importQty: qty,
+          exportQty: 0,
+          price: cost,
+          totalAmount: lineAmount,
+          creator: (req as any).user?.name || 'Admin',
+          unit: product.unit,
+          cost: cost,
+          note: 'Nhập từ file Excel'
+        });
+
+        await moveProductQty({
+          productId: product._id,
+          branchId,
+          sourceType: 'InventoryProduct',
+          sourceId: invProduct._id,
+          amount: qty,
+          valueAfter: cost
+        });
+      }
+    }
+
+    if (totalQty > 0) {
+      await InventoryVoucher.create({
+        voucherId,
+        date,
+        warehouse,
+        type: 'import',
+        supplier: '',
+        spCount: created + updated,
+        qty: totalQty,
+        totalAmount,
+        discount: 0,
+        creator: (req as any).user?.name || 'Admin',
+        note: 'Nhập kho hàng loạt từ file Excel'
+      });
+    }
+
+    res.json({
+      success: true,
+      summary: { created, updated, skipped, stockAdded, errors, voucherId: totalQty > 0 ? voucherId : null }
+    });
+
+  } catch (err: any) {
+    console.error('Import error:', err);
+    res.status(500).json({ message: err.message || 'Lỗi server khi nhập file' });
+  }
+});
+
+router.post('/products', async (req, res) => {
+  const payload = { ...req.body, qty: 0 };
+  delete (payload as any).availableStock;
+
+  const item = await Product.create(payload);
+  await writeAuditLog(req, {
+    action: 'product.create_master',
+    module: 'Product',
+    resource: 'Product',
+    resourceId: item.id,
+    after: item,
+  });
+  res.status(201).json(item);
+});
 router.use('/products', crudRoutes(Product));
 router.use('/branch-stocks', crudRoutes(ProductBranchStock));
 router.use('/sale-channels', crudRoutes(SaleChannel));
@@ -650,4 +827,6 @@ router.get('/edit-logs', async (req, res) => {
 });
 
 export default router;
+
+
 

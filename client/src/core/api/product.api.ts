@@ -20,7 +20,8 @@ export const productApi = {
   },
 
   createProduct: async (data: Partial<IProduct>) => {
-    const response = await http.post<IProduct>('/products/products', data);
+    const { qty: _qty, availableStock: _availableStock, ...payload } = data;
+    const response = await http.post<IProduct>('/products/products', payload);
     return response.data;
   },
 
@@ -49,6 +50,10 @@ export const productApi = {
   // In reality, getInventories might need to query branch-stocks or similar.
   getInventories: async (params?: { page?: number; limit?: number; q?: string; branchId?: string; sort?: string; order?: 'asc' | 'desc'; [key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IInventory>>('/products/inventories', { params });
+    return response.data;
+  },
+  updateInventory: async (id: string, payload: Partial<IInventory>) => {
+    const response = await http.put<IInventory>(`/products/inventories/${id}`, payload);
     return response.data;
   },
 

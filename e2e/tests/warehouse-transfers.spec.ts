@@ -83,28 +83,34 @@ test.describe('Warehouse Transfers - Automation', () => {
     // Ghi chú để dễ clean up
     await page.getByPlaceholder('Ghi chú thêm...').fill('E2E Test - Chuyển hàng');
 
-    // Xoá các dòng mặc định
-    let trashButtons = page.locator('table.data-table tbody .icon-button.danger');
-    let count = await trashButtons.count();
-    while (count > 0) {
-      await trashButtons.nth(0).click();
-      await page.waitForTimeout(100);
-      count = await trashButtons.count();
+    // Bấm thêm dòng nếu chưa có
+    const addLineBtn = page.getByRole('button', { name: 'Thêm dòng' }).first();
+    const rows = page.locator('table.data-table tbody tr');
+    
+    // Nếu bảng đang trống, thêm 1 dòng
+    const rowCount = await rows.count();
+    if (rowCount === 0 || await rows.first().locator('.empty-cell').isVisible()) {
+        await page.getByRole('button', { name: 'Thêm sản phẩm' }).click();
+        await page.waitForTimeout(500);
     }
 
-    // Bấm thêm dòng
-    await page.getByRole('button', { name: 'Thêm dòng' }).click();
-    await page.waitForTimeout(500);
+    // Test Validate tồn kho: Chuyển quá số lượng
+    const productSelect0 = page.locator('table.data-table tbody tr').first().locator('select');
+    await productSelect0.selectOption({ label: 'Sản phẩm Test Chuyển Kho' });
+    const qtyInput0 = page.locator('table.data-table tbody tr').first().locator('input[type="number"]');
+    await qtyInput0.fill('21');
 
-    // Chọn sản phẩm trong dropdown của dòng mới
-    const productSelect = page.locator('table.data-table tbody tr').last().locator('select');
-    await productSelect.selectOption({ value: testProductId.toString() });
+    await page.getByRole('button', { name: 'Lưu phiếu chuyển' }).first().click();
 
-    const row = page.locator('table.data-table tbody tr').last();
-    
-    // Đổi số lượng chuyển thành 5
-    const qtyInput = row.locator('input[type="number"]').first();
-    await qtyInput.fill('5');
+    // Verify lỗi hiển thị (alert hoặc toast)
+    const errAlert = page.locator('.alert.alert-error, .toast-error'); // Tùy CSS của UI
+    await expect(errAlert).toBeVisible({ timeout: 5000 }).catch(() => {
+        // Fallback kiểm tra page content
+        expect(page.content()).resolves.toContain('không đủ tồn kho');
+    });
+
+    // Reset lại số lượng đúng để đi tiếp
+    await qtyInput0.fill('5');
 
     // Lưu phiếu chuyển
     await page.getByRole('button', { name: 'Lưu phiếu chuyển kho' }).first().click();

@@ -267,6 +267,26 @@ router.post('/transfers', async (req, res, next) => {
       return res.status(400).json({ message: 'Danh sách sản phẩm trống' });
     }
 
+    // Kiểm tra tồn kho trước khi chuyển
+    for (const line of lines) {
+      const q = Number(line.quantity);
+      if (q <= 0) return res.status(400).json({ message: 'Số lượng chuyển phải lớn hơn 0' });
+
+      const product = await Product.findById(line.productId);
+      if (!product) {
+        return res.status(400).json({ message: `Sản phẩm không tồn tại (ID: ${line.productId})` });
+      }
+
+      const branchStock = await ProductBranchStock.findOne({ productId: line.productId, branchId: fromWarehouse });
+      const currentStock = branchStock?.qty || 0;
+
+      if (currentStock < q) {
+        return res.status(400).json({ 
+          message: `Sản phẩm ${product.code || product.name} không đủ tồn kho tại kho xuất. Tồn hiện tại: ${currentStock}, Yêu cầu: ${q}` 
+        });
+      }
+    }
+
     // Lưu phiếu chuyển kho trước để lấy ID
     const transfer = await WarehouseTransfer.create({
       id: req.body.id || `TRF${Date.now()}`,

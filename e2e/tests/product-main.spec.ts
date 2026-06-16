@@ -11,6 +11,11 @@ test.describe('Products Main Page - Automation', () => {
 
   test.afterAll(async () => {
     const db = await connectDB();
+    const product = await db.collection('products').findOne({ code: TEST_PRODUCT_CODE });
+    if (product) {
+      await db.collection('productbranchstocks').deleteMany({ productId: product._id });
+    }
+    await db.collection('inventoryproducts').deleteMany({ productCode: TEST_PRODUCT_CODE });
     await db.collection('products').deleteOne({ code: TEST_PRODUCT_CODE });
     await closeDB();
   });
@@ -56,6 +61,12 @@ test.describe('Products Main Page - Automation', () => {
     await expect(row).toBeVisible();
     await expect(row).toContainText('Sản phẩm Test E2E Main');
     await expect(row).toContainText('350.000');
+
+    const dbAfterCreate = await connectDB();
+    const createdProduct = await dbAfterCreate.collection('products').findOne({ code: TEST_PRODUCT_CODE });
+    expect(createdProduct?.qty ?? 0).toBe(0);
+    const stockRowsAfterCreate = await dbAfterCreate.collection('productbranchstocks').countDocuments({ productId: createdProduct?._id });
+    expect(stockRowsAfterCreate).toBe(0);
 
     // 5. Mở Xem Chi tiết
     await row.locator('button[title="Chi tiết"]').click();

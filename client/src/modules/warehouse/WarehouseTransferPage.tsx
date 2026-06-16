@@ -16,6 +16,9 @@ export function WarehouseTransferPage() {
           icon: <Shuffle size={24} />,
           primaryActionLabel: 'Tạo phiếu chuyển kho',
           onPrimaryActionClick: () => navigate('/warehouse/transfers/create'),
+          customActions: [
+            { label: 'Chi tiết', onClick: (item) => navigate(`/warehouse/transfers/${item._id}`) }
+          ],
           fields: [
             { key: 'id', label: 'ID chuyển kho' },
             { key: 'date', label: 'Ngày' },
@@ -59,6 +62,9 @@ export function WarehouseTransferPage() {
           icon: <FileText size={24} />,
           primaryActionLabel: 'Tạo phiếu nháp',
           onPrimaryActionClick: () => navigate('/warehouse/transfers/create'),
+          customActions: [
+            { label: 'Chi tiết', onClick: (item) => navigate(`/warehouse/transfers/${item._id}`) }
+          ],
           fields: [
             { key: 'id', label: 'ID' },
             { key: 'date', label: 'Ngày' },

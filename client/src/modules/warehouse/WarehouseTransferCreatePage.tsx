@@ -11,6 +11,9 @@ type Product = {
   cost: number;
   qty: number;
   unit?: string;
+  stockCN?: number;
+  stockHanoi?: number;
+  stockHCM?: number;
 };
 
 type TransferLine = {
@@ -51,16 +54,34 @@ export function WarehouseTransferCreatePage() {
     stt: true, image: false, batch: true, imei: true, unit: true, note: false,
   });
 
+  const getBranchStockKey = (branchId: string) => {
+    const branch = sysBranches.find(b => b._id === branchId);
+    const code = String(branch?.code || '').toUpperCase();
+    const name = String(branch?.name || '').toLowerCase();
+
+    if (code === 'HN' || name.includes('hà nội') || name.includes('ha noi')) return 'stockHanoi';
+    if (code === 'HCM' || name.includes('hcm') || name.includes('hồ chí minh') || name.includes('ho chi minh')) return 'stockHCM';
+    if (code === 'CN001' || name.includes('trung tâm') || name.includes('trung tam')) return 'stockCN';
+    return 'qty';
+  };
+
+  const getBranchInventoryFilter = (branchId: string) => {
+    const branch = sysBranches.find(b => b._id === branchId);
+    const code = String(branch?.code || '').toUpperCase();
+    const name = String(branch?.name || '').toLowerCase();
+
+    if (code === 'HN' || name.includes('hà nội') || name.includes('ha noi')) return 'hanoi';
+    if (code === 'HCM' || name.includes('hcm') || name.includes('hồ chí minh') || name.includes('ho chi minh')) return 'hcm';
+    return undefined;
+  };
+
+  const getProductStock = (product?: Product) => {
+    if (!product) return 0;
+    const key = getBranchStockKey(fromWarehouse) as keyof Product;
+    return Number(product[key] || 0);
+  };
+
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await http.get('/products/products', { params: { limit: 100 } });
-        const items = response.data?.items;
-        setProducts(items?.length ? items : MOCK_PRODUCTS);
-      } catch {
-        setProducts(MOCK_PRODUCTS);
-      }
-    };
     const fetchBranches = async () => {
       try {
         const res = await http.get('/system/branches');
@@ -72,16 +93,36 @@ export function WarehouseTransferCreatePage() {
         }
       } catch (err) {}
     };
-    fetchProducts();
     fetchBranches();
   }, []);
 
   useEffect(() => {
-    if (products.length > 0 && lines.length === 0) {
-      setLines([createLine(products[0])]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products]);
+    const fetchProducts = async () => {
+      if (!fromWarehouse || !sysBranches.length) return;
+      try {
+        const response = await http.get('/products/inventories', {
+          params: { limit: 5000, branchId: getBranchInventoryFilter(fromWarehouse) }
+        });
+        const stockKey = getBranchStockKey(fromWarehouse) as keyof Product;
+        const items = (response.data?.items || [])
+          .map((item: Product) => ({ ...item, qty: Number(item[stockKey] || 0) }))
+          .filter((item: Product) => item.qty > 0);
+        setProducts(items);
+        setLines(prev => prev.filter(line => items.some((p: Product) => p._id === line.productId)));
+      } catch {
+        setProducts([]);
+      }
+    };
+    fetchProducts();
+  }, [fromWarehouse, sysBranches]);
+
+  // Xóa logic tự động thêm dòng đầu tiên nếu gây lỗi UI
+  // useEffect(() => {
+  //   if (products.length > 0 && lines.length === 0) {
+  //     setLines([createLine(products[0])]);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [products]);
 
   function createLine(product: Product): TransferLine {
     return { productId: product._id, batchCode: '', imei: '', unit: product.unit || 'cái', quantity: 1, note: '' };
@@ -97,11 +138,20 @@ export function WarehouseTransferCreatePage() {
   const updateLine = (i: number, field: keyof TransferLine, value: string | number) => {
     setLines(prev => {
       const next = [...prev];
-      next[i] = { ...next[i], [field]: value };
+      const current = { ...next[i], [field]: value };
       if (field === 'productId') {
         const p = products.find(x => x._id === value);
-        if (p) next[i].unit = p.unit || 'cái';
+        if (p) {
+          current.unit = p.unit || 'cái';
+          current.quantity = Math.min(Math.max(Number(current.quantity || 1), 1), getProductStock(p));
+        }
       }
+      if (field === 'quantity') {
+        const p = products.find(x => x._id === current.productId);
+        const maxQty = getProductStock(p);
+        current.quantity = Math.min(Math.max(Number(value || 1), 1), maxQty || 1);
+      }
+      next[i] = current;
       return next;
     });
   };
@@ -115,6 +165,15 @@ export function WarehouseTransferCreatePage() {
     if (!lines.length) { setError('Vui lòng thêm ít nhất 1 sản phẩm.'); return; }
     if (lines.some(l => !l.productId || l.quantity <= 0)) {
       setError('Tất cả sản phẩm phải có số lượng > 0.'); return;
+    }
+    const overStockLine = lines.find(l => {
+      const product = products.find(p => p._id === l.productId);
+      return product && l.quantity > getProductStock(product);
+    });
+    if (overStockLine) {
+      const product = products.find(p => p._id === overStockLine.productId);
+      setError(`Sản phẩm ${product?.code || ''} vượt tồn kho. Tồn hiện tại: ${getProductStock(product)}, yêu cầu: ${overStockLine.quantity}`);
+      return;
     }
     setSaving(true);
     try {
@@ -352,7 +411,7 @@ export function WarehouseTransferCreatePage() {
                       </td>
                       <td>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{product?.name || <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>Chọn sản phẩm</span>}</div>
-                        {product && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Tồn: {product.qty} {product.unit}</div>}
+                        {product && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Tồn: {getProductStock(product)} {product.unit}</div>}
                       </td>
                       {colVisible.batch && (
                         <td>
@@ -390,6 +449,7 @@ export function WarehouseTransferCreatePage() {
                         <input
                           type="number"
                           min={1}
+                          max={getProductStock(product)}
                           style={{
                             border: '1px solid #bfdbfe', borderRadius: 8,
                             padding: '6px 8px', outline: 0,
