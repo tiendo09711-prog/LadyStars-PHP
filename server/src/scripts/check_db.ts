@@ -12,10 +12,10 @@ async function check() {
     await mongoose.connect(process.env.MONGO_URI as string);
     const db = mongoose.connection.db;
     
-    const retail = await db.collection('retailinvoices').findOne();
-    const wholesale = await db.collection('wholesaleinvoices').findOne();
-    const sale = await db.collection('salepayments').findOne();
-    const order = await db.collection('orders').findOne();
+    const retail = await db!.collection('retailinvoices').findOne();
+    const wholesale = await db!.collection('wholesaleinvoices').findOne();
+    const sale = await db!.collection('salepayments').findOne();
+    const order = await db!.collection('orders').findOne();
     
     console.log('RetailInvoice fields:', retail ? Object.keys(retail).filter(k => k!=='tabs') : 'null');
     if (retail) console.log('Retail branchId?', retail.branchId, 'categoryId?', retail.categoryId);

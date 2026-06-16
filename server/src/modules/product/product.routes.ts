@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
 import { writeAuditLog } from '../../core/audit/audit.service.js';
 import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark, ProductEditLog } from './product.models.js';
-import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment } from './product.service.js';
+import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment, moveProductQty } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
 import { Order } from '../orders/orders.models.js';

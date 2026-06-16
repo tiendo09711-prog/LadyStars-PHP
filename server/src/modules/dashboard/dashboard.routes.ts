@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
   const dateFilter = { $gte: startDate, $lt: endDate };
 
   // 2. Lấy danh sách chi nhánh
-  const allBranches = await mongoose.connection.db.collection('branches').find({ isActive: true }).project({ _id: 1, name: 1 }).toArray();
+  const allBranches = await mongoose.connection.db!.collection('branches').find({ isActive: true }).project({ _id: 1, name: 1 }).toArray();
   const availableStores = allBranches.map((b: any) => b.name);
 
   // 3. Branch filter
@@ -430,7 +430,7 @@ router.get('/daily-products', async (req, res) => {
 
   let branchMatch: any = {};
   if (stores) {
-    const allBranches = await mongoose.connection.db.collection('branches').find({ isActive: true }).project({ _id: 1, name: 1 }).toArray();
+    const allBranches = await mongoose.connection.db!.collection('branches').find({ isActive: true }).project({ _id: 1, name: 1 }).toArray();
     const storeNames = String(stores).split(',').filter(Boolean);
     if (storeNames.length > 0) {
       const selectedBranches = allBranches.filter(b => storeNames.includes((b as any).name));

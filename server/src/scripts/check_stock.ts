@@ -12,7 +12,7 @@ async function check() {
     await mongoose.connect(process.env.MONGO_URI as string);
     const db = mongoose.connection.db;
     
-    const prod = await db.collection('products').findOne({ code: { $regex: /K609/i } });
+    const prod = await db!.collection('products').findOne({ code: { $regex: /K609/i } });
     console.log('K609 Product:', prod ? {
       name: prod.name,
       code: prod.code,
