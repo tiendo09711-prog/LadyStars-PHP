@@ -23,6 +23,7 @@ export function CashReceiptsPage() {
         { key: 'voucherType', label: 'Chứng từ' },
         { key: 'revenue', label: 'Thu', type: 'money' },
         { key: 'expense', label: 'Chi', type: 'money' },
+        { key: 'description', label: 'Diễn giải' },
         { key: 'creatorName', label: 'Người tạo' },
       ]}
       formFields={[

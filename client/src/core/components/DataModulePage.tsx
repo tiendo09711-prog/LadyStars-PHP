@@ -1,5 +1,20 @@
-import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
-import { FileDown, FileUp, Filter, Plus, RefreshCw, Search, Trash2, X, ChevronDown } from 'lucide-react';
+import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  AlertCircle,
+  ChevronDown,
+  FileDown,
+  FileUp,
+  Filter,
+  Inbox,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  Wrench,
+  X,
+} from 'lucide-react';
 import { http } from '../api/http';
 
 export type DataField = {
@@ -55,11 +70,13 @@ export type DataModulePageProps = {
   metrics?: ModuleMetric[];
   normalizePayload?: (payload: Record<string, unknown>) => Record<string, unknown>;
   actions?: RowAction[];
+  customActions?: { label: string; icon?: ReactNode; onClick: (item: Record<string, any>) => void; variant?: string }[];
   onPrimaryActionClick?: () => void;
   bulkActionGroups?: BulkActionGroup[];
   extraHeaderButtons?: ReactNode;
   hideImport?: boolean;
   hideCreate?: boolean;
+  hideEdit?: boolean;
 };
 
 function getValue(item: Record<string, any>, key: string) {
@@ -76,7 +93,6 @@ function formatValue(value: unknown, type: DataField['type']) {
   if (strVal === 'company') return 'Công ty';
   return strVal;
 }
-
 
 function statusClass(value: unknown) {
   const status = String(value ?? '').toLowerCase();
@@ -105,6 +121,8 @@ export function DataModulePage({
   extraHeaderButtons,
   hideImport,
   hideCreate,
+  hideEdit,
+  customActions,
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,28 +132,35 @@ export function DataModulePage({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>(createDefaults);
   const [error, setError] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [showQuickDropdown, setShowQuickDropdown] = useState(false);
+  const [showToolsDropdown, setShowToolsDropdown] = useState(false);
+  const [showPrimaryDropdown, setShowPrimaryDropdown] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showBulkDropdown, setShowBulkDropdown] = useState(false);
+  const [rowActionOpen, setRowActionOpen] = useState<string | null>(null);
+
+  const hasPrimaryActions = !!primaryActions?.length;
+  const canCreate = !hideCreate && !!primaryActionLabel;
+  const hasBulkActions = !!bulkActionGroups?.some((group) => group.actions.length > 0);
+  const hasRowActionMenu = actions.length > 0 || !!customActions?.length || !hideEdit;
 
   useEffect(() => {
-    if (!showDropdown && !showQuickDropdown && !showBulkDropdown) return;
+    if (!showToolsDropdown && !showPrimaryDropdown && !rowActionOpen) return;
     const handleClose = () => {
-      setShowDropdown(false);
-      setShowQuickDropdown(false);
-      setShowBulkDropdown(false);
+      setShowToolsDropdown(false);
+      setShowPrimaryDropdown(false);
+      setRowActionOpen(null);
     };
     window.addEventListener('click', handleClose);
     return () => window.removeEventListener('click', handleClose);
-  }, [showDropdown, showQuickDropdown]);
+  }, [showPrimaryDropdown, showToolsDropdown, rowActionOpen]);
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
       const response = await http.get(endpoint);
-      setItems(response.data.items ?? []);
+      const responseItems = Array.isArray(response.data) ? response.data : response.data.items ?? [];
+      setItems(responseItems);
+      setSelectedIds(new Set());
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Không tải được dữ liệu.');
     } finally {
@@ -157,12 +182,20 @@ export function DataModulePage({
         ? Object.values(item).some((value) => {
             const strVal = String(value).toLowerCase();
             const filterVals = quickFilter.toLowerCase().split(',');
-            return filterVals.some(fv => strVal === fv.trim());
+            return filterVals.some((fv) => strVal === fv.trim());
           })
         : true;
       return textMatch && quickMatch;
     });
   }, [fields, items, quickFilter, search]);
+
+  useEffect(() => {
+    setSelectedIds((current) => {
+      const validIds = new Set(filteredItems.map((item) => item._id));
+      const next = new Set([...current].filter((id) => validIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [filteredItems]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -193,6 +226,12 @@ export function DataModulePage({
     setShowModal(true);
   };
 
+  const runPrimaryCreate = () => {
+    setShowPrimaryDropdown(false);
+    if (onPrimaryActionClick) onPrimaryActionClick();
+    else openCreate();
+  };
+
   const openEdit = (item: Record<string, any>) => {
     const nextForm = { ...createDefaults };
     formFields.forEach((field) => {
@@ -201,21 +240,34 @@ export function DataModulePage({
     });
     setEditingId(item._id);
     setForm(nextForm);
+    setRowActionOpen(null);
     setShowModal(true);
   };
 
   const remove = async (id: string) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) return;
     const baseEndpoint = endpoint.split('?')[0];
-    await http.delete(`${baseEndpoint}/${id}`);
-    await load();
+    setError('');
+    try {
+      await http.delete(`${baseEndpoint}/${id}`);
+      setRowActionOpen(null);
+      await load();
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? 'Không xóa được bản ghi.');
+    }
   };
 
   const runAction = async (item: Record<string, any>, action: RowAction) => {
     if (action.confirm && !window.confirm(action.confirm)) return;
     const baseEndpoint = endpoint.split('?')[0];
-    await http[action.method ?? 'post'](`${baseEndpoint}/${item._id}/${action.endpointSuffix}`);
-    await load();
+    setError('');
+    try {
+      await http[action.method ?? 'post'](`${baseEndpoint}/${item._id}/${action.endpointSuffix}`);
+      setRowActionOpen(null);
+      await load();
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? `Không thực hiện được "${action.label}".`);
+    }
   };
 
   const exportCsv = () => {
@@ -223,18 +275,19 @@ export function DataModulePage({
       fields.map((field) => `"${field.label.replace(/"/g, '""')}"`).join(','),
       ...filteredItems.map((item) => fields.map((field) => `"${String(getValue(item, field.key) ?? '').replace(/"/g, '""')}"`).join(',')),
     ].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `${title.toLowerCase().replace(/\s+/g, '-')}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+    setShowToolsDropdown(false);
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedIds(new Set(filteredItems.map(item => item._id)));
+  const handleSelectAll = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      setSelectedIds(new Set(filteredItems.map((item) => item._id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -245,6 +298,14 @@ export function DataModulePage({
     if (checked) newSelected.add(id);
     else newSelected.delete(id);
     setSelectedIds(newSelected);
+  };
+
+  const runBulkAction = (action: BulkAction) => {
+    const itemsForAction = filteredByIds(filteredItems, selectedIds);
+    action.onClick(itemsForAction, () => {
+      setSelectedIds(new Set());
+      load();
+    });
   };
 
   return (
@@ -258,99 +319,90 @@ export function DataModulePage({
           </div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-light" type="button" onClick={load} title="Làm mới">
-            <RefreshCw size={16} /> Làm mới
-          </button>
-          <button className="btn btn-success" type="button" onClick={exportCsv} title="Xuất CSV">
-            <FileDown size={16} /> Xuất CSV
-          </button>
-          {!hideImport && (
-            <button className="btn btn-outline" type="button" onClick={() => alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.')} title="Nhập dữ liệu">
-              <FileUp size={16} /> Nhập
-            </button>
-          )}
-          {bulkActionGroups && bulkActionGroups.length > 0 && (
-            <div className="dropdown-container">
-              <button
-                className="btn btn-outline"
-                type="button"
-                disabled={selectedIds.size === 0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowBulkDropdown(!showBulkDropdown);
-                }}
-              >
-                Thao tác ({selectedIds.size}) <ChevronDown size={16} style={{ marginLeft: 4 }} />
+          {extraHeaderButtons}
+          {canCreate && (
+            <div className={`primary-action-split ${hasPrimaryActions ? 'has-menu' : ''}`}>
+              <button className="btn btn-primary primary-action-main" type="button" onClick={runPrimaryCreate}>
+                <Plus size={16} /> {primaryActionLabel}
               </button>
-              {showBulkDropdown && (
-                <div className="dropdown-menu" style={{ width: 280, right: 0, left: 'auto' }}>
-                  {bulkActionGroups.map((group, gIdx) => (
-                    <div key={gIdx}>
-                      {group.label && <div style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>{group.label}</div>}
-                      {group.actions.map((action, aIdx) => (
+              {hasPrimaryActions && (
+                <>
+                  <button
+                    className="btn btn-primary primary-action-toggle"
+                    type="button"
+                    aria-label="Mở lựa chọn tạo mới"
+                    aria-expanded={showPrimaryDropdown}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setShowPrimaryDropdown((current) => !current);
+                      setShowToolsDropdown(false);
+                    }}
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                  {showPrimaryDropdown && (
+                    <div className="dropdown-menu primary-action-menu">
+                      <button className="dropdown-item" type="button" onClick={runPrimaryCreate}>
+                        <Plus size={16} />
+                        <span>{primaryActionLabel}</span>
+                      </button>
+                      <div className="dropdown-separator" />
+                      {primaryActions?.map((action, index) => (
                         <button
-                          key={aIdx}
-                          className={`dropdown-item`}
-                          style={action.danger ? { color: '#ef4444' } : {}}
+                          key={`${action.label}-${index}`}
+                          className="dropdown-item"
                           type="button"
                           onClick={() => {
-                            setShowBulkDropdown(false);
-                            const items = filteredItems.filter(i => selectedIds.has(i._id));
-                            action.onClick(items, () => {
-                              setSelectedIds(new Set());
-                              load();
-                            });
+                            setShowPrimaryDropdown(false);
+                            action.onClick();
                           }}
                         >
                           {action.icon}
                           <span>{action.label}</span>
                         </button>
                       ))}
-                      {gIdx < bulkActionGroups.length - 1 && <div style={{ height: 1, background: '#e2e8f0', margin: '4px 0' }}></div>}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           )}
-          {extraHeaderButtons}
-          {!hideCreate && primaryActionLabel && (
-            <button className="btn btn-primary" type="button" onClick={onPrimaryActionClick ? onPrimaryActionClick : openCreate}>
-              <Plus size={16} /> {primaryActionLabel}
+          <div className="dropdown-container">
+            <button
+              className="btn btn-light"
+              type="button"
+              aria-expanded={showToolsDropdown}
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowToolsDropdown((current) => !current);
+                setShowPrimaryDropdown(false);
+              }}
+            >
+              <Wrench size={16} /> Công cụ
             </button>
-          )}
-          {primaryActions && primaryActions.length > 0 && (
-            <div className="dropdown-container">
-              <button
-                className="btn btn-outline"
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDropdown(!showDropdown);
-                }}
-              >
-                Hành động nhanh
-              </button>
-              {showDropdown && (
-                <div className="dropdown-menu">
-                  {primaryActions.map((action, idx) => (
-                    <button
-                      key={idx}
-                      className="dropdown-item"
-                      type="button"
-                      onClick={() => {
-                        setShowDropdown(false);
-                        action.onClick();
-                      }}
-                    >
-                      {action.icon}
-                      <span>{action.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            {showToolsDropdown && (
+              <div className="dropdown-menu tools-menu">
+                <button className="dropdown-item" type="button" onClick={load}>
+                  <RefreshCw size={16} /> Làm mới
+                </button>
+                <button className="dropdown-item" type="button" onClick={exportCsv}>
+                  <FileDown size={16} /> Xuất CSV
+                </button>
+                {!hideImport && (
+                  <button
+                    className="dropdown-item"
+                    type="button"
+                    onClick={() => {
+                      setShowToolsDropdown(false);
+                      alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.');
+                    }}
+                  >
+                    <FileUp size={16} /> Nhập dữ liệu
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -379,7 +431,7 @@ export function DataModulePage({
           {quickFilters.length > 0 && (
             <>
               <label className="field-label">Lọc nhanh</label>
-              <div className="quick-filter-list">
+              <div className="quick-filter-list" role="list" aria-label="Lọc nhanh">
                 <button className={!quickFilter ? 'active' : ''} type="button" onClick={() => setQuickFilter('')}>Tất cả</button>
                 {quickFilters.map((filter) => (
                   <button className={quickFilter === filter.value ? 'active' : ''} key={filter.value} type="button" onClick={() => setQuickFilter(filter.value)}>
@@ -389,67 +441,64 @@ export function DataModulePage({
               </div>
             </>
           )}
-          {!hideCreate && (
-            <div className="quick-actions">
-              <span>Thao tác nhanh</span>
-              {primaryActions && primaryActions.length > 0 ? (
-                <div className="dropdown-container full-width">
-                  <button
-                    className="btn btn-primary full"
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowQuickDropdown(!showQuickDropdown);
-                    }}
-                  >
-                    <Plus size={16} /> Tạo mới
-                  </button>
-                  {showQuickDropdown && (
-                    <div className="dropdown-menu left-align">
-                      {primaryActions.map((action, idx) => (
-                        <button
-                          key={idx}
-                          className="dropdown-item"
-                          type="button"
-                          onClick={() => {
-                            setShowQuickDropdown(false);
-                            action.onClick();
-                          }}
-                        >
-                          {action.icon}
-                          <span>{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button className="btn btn-primary full" type="button" onClick={onPrimaryActionClick ? onPrimaryActionClick : openCreate}>
-                  <Plus size={16} /> Tạo mới
-                </button>
-              )}
-            </div>
-          )}
         </aside>
 
         <section className="data-card">
           <div className="data-card-header">
             <div>
               <h2>{title}</h2>
-              <span className="record-badge">{filteredItems.length} bản ghi</span>
+              <div className="data-card-meta">
+                <span className="record-badge">{filteredItems.length} bản ghi</span>
+                {selectedIds.size > 0 && <span className="selected-badge">{selectedIds.size} đã chọn</span>}
+              </div>
             </div>
-            {error && <span className="error-chip">{error}</span>}
           </div>
+
+          {error && (
+            <div className="data-alert" role="alert">
+              <AlertCircle size={17} />
+              <span>{error}</span>
+              <button type="button" onClick={load}>Thử lại</button>
+            </div>
+          )}
+
+          {hasBulkActions && selectedIds.size > 0 && (
+            <div className="bulk-action-bar">
+              <div>
+                <strong>{selectedIds.size} bản ghi đã chọn</strong>
+                <span>Chọn thao tác hàng loạt để xử lý nhanh.</span>
+              </div>
+              <div className="bulk-action-list">
+                {bulkActionGroups?.map((group, groupIndex) => (
+                  <div className="bulk-action-group" key={groupIndex}>
+                    {group.label && <span className="bulk-action-label">{group.label}</span>}
+                    {group.actions.map((action, actionIndex) => (
+                      <button
+                        className={`btn btn-light ${action.danger ? 'btn-danger-soft' : ''}`}
+                        key={`${action.label}-${actionIndex}`}
+                        type="button"
+                        onClick={() => runBulkAction(action)}
+                      >
+                        {action.icon}
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
                   <th className="check-cell">
-                    <input 
-                      type="checkbox" 
-                      aria-label="Chọn tất cả" 
+                    <input
+                      type="checkbox"
+                      aria-label="Chọn tất cả"
                       checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length}
-                      onChange={handleSelectAll} 
+                      onChange={handleSelectAll}
                     />
                   </th>
                   {fields.map((field) => <th key={field.key}>{field.label}</th>)}
@@ -457,24 +506,37 @@ export function DataModulePage({
                 </tr>
               </thead>
               <tbody>
-                {loading && (
-                  <tr>
-                    <td colSpan={fields.length + 2} className="empty-cell">Đang tải dữ liệu...</td>
+                {loading && Array.from({ length: 5 }).map((_, rowIndex) => (
+                  <tr className="skeleton-row" key={`loading-${rowIndex}`}>
+                    <td className="check-cell"><span /></td>
+                    {fields.map((field) => <td key={field.key}><span /></td>)}
+                    <td className="action-cell"><span /></td>
                   </tr>
-                )}
+                ))}
                 {!loading && filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={fields.length + 2} className="empty-cell">Chưa có dữ liệu phù hợp.</td>
+                    <td colSpan={fields.length + 2} className="empty-cell">
+                      <div className="empty-state">
+                        <div className="empty-state-icon"><Inbox size={24} /></div>
+                        <strong>Chưa có dữ liệu phù hợp</strong>
+                        <span>Thử đổi từ khóa, bỏ bộ lọc hoặc tạo bản ghi mới.</span>
+                        {canCreate && (
+                          <button className="btn btn-primary" type="button" onClick={runPrimaryCreate}>
+                            <Plus size={16} /> {primaryActionLabel}
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 )}
                 {!loading && filteredItems.map((item) => (
                   <tr key={item._id}>
                     <td className="check-cell">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         aria-label={`Chọn ${item.name ?? item.code ?? item._id}`}
                         checked={selectedIds.has(item._id)}
-                        onChange={(e) => handleSelectRow(item._id, e.target.checked)} 
+                        onChange={(event) => handleSelectRow(item._id, event.target.checked)}
                       />
                     </td>
                     {fields.map((field) => {
@@ -489,17 +551,42 @@ export function DataModulePage({
                       );
                     })}
                     <td className="action-cell">
-                      {actions.map((action) => (
-                        <button className="mini-action" type="button" key={action.label} onClick={() => runAction(item, action)}>
-                          {action.label}
+                      <div className="row-actions">
+                        <button
+                          className="icon-button"
+                          type="button"
+                          aria-label={`Mở thao tác cho ${item.name ?? item.code ?? item._id}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setRowActionOpen(rowActionOpen === item._id ? null : item._id);
+                          }}
+                        >
+                          <MoreHorizontal size={16} />
                         </button>
-                      ))}
-                      <button className="mini-action" type="button" onClick={() => openEdit(item)}>
-                        Sửa
-                      </button>
-                      <button className="icon-button danger" type="button" onClick={() => remove(item._id)} title="Xóa">
-                        <Trash2 size={16} />
-                      </button>
+                        {rowActionOpen === item._id && (
+                          <div className="dropdown-menu row-action-menu">
+                            {actions.map((action) => (
+                              <button className="dropdown-item" type="button" key={action.label} onClick={() => runAction(item, action)}>
+                                {action.label}
+                              </button>
+                            ))}
+                            {customActions?.map((action, index) => (
+                              <button className={`dropdown-item ${action.variant || ''}`} type="button" key={`${action.label}-${index}`} onClick={() => { setRowActionOpen(null); action.onClick(item); }}>
+                                {action.icon} {action.label}
+                              </button>
+                            ))}
+                            {hasRowActionMenu && (actions.length > 0 || customActions?.length) && <div className="dropdown-separator" />}
+                            {!hideEdit && (
+                              <button className="dropdown-item" type="button" onClick={() => openEdit(item)}>
+                                <Pencil size={16} /> Sửa
+                              </button>
+                            )}
+                            <button className="dropdown-item danger" type="button" onClick={() => remove(item._id)}>
+                              <Trash2 size={16} /> Xóa
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -526,16 +613,16 @@ export function DataModulePage({
                 <label className={field.type === 'textarea' ? 'form-field wide' : 'form-field'} key={field.key}>
                   <span>{field.label}{field.required ? ' *' : ''}</span>
                   {field.type === 'textarea' ? (
-                    <textarea 
+                    <textarea
                       name={field.key}
-                      value={String(form[field.key] ?? '')} 
-                      onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))} 
-                      rows={4} 
+                      value={String(form[field.key] ?? '')}
+                      onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
+                      rows={4}
                     />
                   ) : field.type === 'select' ? (
-                    <select 
+                    <select
                       name={field.key}
-                      value={String(form[field.key] ?? '')} 
+                      value={String(form[field.key] ?? '')}
                       onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
                     >
                       {field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -562,4 +649,8 @@ export function DataModulePage({
       )}
     </div>
   );
+}
+
+function filteredByIds(items: Record<string, any>[], selectedIds: Set<string>) {
+  return items.filter((item) => selectedIds.has(item._id));
 }

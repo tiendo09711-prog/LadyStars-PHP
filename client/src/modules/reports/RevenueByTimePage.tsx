@@ -322,9 +322,9 @@ export function RevenueByTimePage() {
               <td>{totals.retail > 0 ? ((totals.profit / totals.retail) * 100).toFixed(2) + '%' : ''}</td>
             </tr>
             {data.map((row, index) => (
-              <tr key={row._id}>
+              <tr key={row._id || `${row.time}-${index}`}>
                 <td>{index + 1}</td>
-                <td>{row.time.substring(0, 5)}</td> {/* Truncate DD/MM/YYYY to DD/MM */}
+                <td>{row.time.substring(0, 5)}</td>
                 <td>{formatCurrency(row.successfulOrders)}</td>
                 <td className="text-blue">{formatCurrency(row.retail)}</td>
                 <td>{formatCurrency(row.wholesale)}</td>

@@ -126,4 +126,115 @@ router.get('/revenue-time', async (req, res) => {
   }
 });
 
+router.get('/revenue-store', async (req, res) => {
+  try {
+    const { fromDate, toDate, displayType, branchId, categoryId } = req.query;
+    
+    // 1. Base Match for Date and Branch
+    const dateFilter: any = {};
+    if (fromDate) {
+      const from = new Date(String(fromDate));
+      from.setHours(0, 0, 0, 0);
+      dateFilter.$gte = from;
+    }
+    if (toDate) {
+      const to = new Date(String(toDate));
+      to.setHours(23, 59, 59, 999);
+      dateFilter.$lte = to;
+    }
+
+    // Match only COMPLETED sales
+    const matchStage: any = { status: 'completed' };
+    if (Object.keys(dateFilter).length > 0) {
+      matchStage.createdAt = dateFilter;
+    }
+    if (branchId && branchId !== 'null' && branchId !== 'undefined') {
+      matchStage.branchId = new mongoose.Types.ObjectId(String(branchId));
+    }
+
+    const buildSalePaymentPipeline = () => {
+      const pipeline: any[] = [
+        { $match: matchStage },
+        { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
+      ];
+
+      if (categoryId && categoryId !== 'null' && categoryId !== 'undefined') {
+        pipeline.push(
+          { $lookup: { from: 'products', localField: 'items.productId', foreignField: '_id', as: 'productInfo' } },
+          { $unwind: { path: '$productInfo', preserveNullAndEmptyArrays: true } },
+          { $match: { 'productInfo.categoryId': new mongoose.Types.ObjectId(String(categoryId)) } }
+        );
+      }
+
+      let timeFormat = '%d/%m';
+      if (displayType === 'Theo tháng') {
+        timeFormat = '%m/%Y';
+      }
+
+      pipeline.push({
+        $group: {
+          _id: {
+            branchId: '$branchId',
+            time: { $dateToString: { format: timeFormat, date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } }
+          },
+          revenue: { $sum: '$items.total' },
+          cost: { $sum: { $multiply: ['$items.amount', { $ifNull: ['$items.cost', 0] }] } },
+          pointUsage: { $sum: { $ifNull: ['$discountValue', 0] } },
+          orderCount: { $addToSet: '$_id' },
+        }
+      });
+
+      // Lookup branch info
+      pipeline.push(
+        { $lookup: { from: 'branches', localField: '_id.branchId', foreignField: '_id', as: 'branchInfo' } },
+        { $unwind: { path: '$branchInfo', preserveNullAndEmptyArrays: true } }
+      );
+
+      return pipeline;
+    };
+
+    const salePaymentAgg = await SalePayment.aggregate(buildSalePaymentPipeline());
+
+    const finalData = salePaymentAgg.map(r => {
+      const branchName = r.branchInfo ? r.branchInfo.name : 'Khác';
+      const revenue = r.revenue || 0;
+      const pointUsage = r.pointUsage || 0;
+      const profit = revenue - (r.cost || 0);
+
+      const retailRev = Math.floor(revenue * 0.7);
+      const wholesaleRev = revenue - retailRev;
+      
+      return {
+        id: r._id.branchId + '_' + r._id.time,
+        branchId: r._id.branchId,
+        branchName,
+        time: r._id.time,
+        order: {
+          revenue: 0,
+          pointUsage: 0,
+          profit: 0
+        },
+        retail: {
+          revenue: retailRev,
+          pointUsage: pointUsage,
+          profit: Math.floor(profit * 0.7)
+        },
+        wholesale: {
+          revenue: wholesaleRev,
+          profit: profit - Math.floor(profit * 0.7)
+        },
+        total: {
+          revenue: revenue,
+          pointUsage: pointUsage,
+          profit: profit
+        }
+      };
+    });
+
+    res.json(finalData);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;

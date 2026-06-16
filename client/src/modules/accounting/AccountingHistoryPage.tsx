@@ -90,6 +90,31 @@ export function AccountingHistoryPage() {
     return true;
   });
 
+  const handleExportCSV = () => {
+    const csv = [
+      ['ID', 'ID giao dịch', 'Ngày giao dịch', 'Loại chứng từ', 'Chứng từ', 'Loại giao dịch', 'Tổng tiền giao dịch', 'Người thao tác', 'Hành động', 'Dữ liệu'].join(','),
+      ...filteredItems.map(item => [
+        `"${item.logId || ''}"`,
+        `"${item.transactionId || ''}"`,
+        `"${item.transactionDate ? new Date(item.transactionDate).toLocaleDateString('vi-VN') : ''}"`,
+        `"${item.documentType || ''}"`,
+        `"${item.documentCode || ''}"`,
+        `"${item.transactionType || ''}"`,
+        item.totalAmount || 0,
+        `"${item.operator || ''}"`,
+        `"${item.action || ''}"`,
+        `"${item.dataDetail || ''}"`
+      ].join(','))
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lich_su_giao_dich_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ padding: '20px', backgroundColor: '#eef2f6', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
       <input
@@ -187,7 +212,7 @@ export function AccountingHistoryPage() {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', padding: '0 16px 16px 16px', gap: '10px' }}>
-          <button style={{ backgroundColor: '#fff', color: '#495057', border: '1px solid #ced4da', borderRadius: '4px', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <button onClick={handleExportCSV} style={{ backgroundColor: '#fff', color: '#495057', border: '1px solid #ced4da', borderRadius: '4px', padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <FileDown size={14} /> Xuất dữ liệu
           </button>
           

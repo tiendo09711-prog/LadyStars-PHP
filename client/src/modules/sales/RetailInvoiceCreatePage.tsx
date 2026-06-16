@@ -35,6 +35,7 @@ export function RetailInvoiceCreatePage() {
   const { channel } = useParams();
   const [searchParams] = useSearchParams();
   const branchId = searchParams.get('branchId');
+  const editId = searchParams.get('editId');
   const navigate = useNavigate();
 
   // Branch details state
@@ -60,6 +61,7 @@ export function RetailInvoiceCreatePage() {
     productCode: '',
     productName: '',
     discount: 0,
+    discountType: 'fixed',
     vat: 0,
     coupon: '',
     paymentMethod: 'Tiền mặt',
@@ -114,8 +116,41 @@ export function RetailInvoiceCreatePage() {
       setDbStaffs(staffRes.data?.items || []);
       setDbCustomers(custRes.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
+      
+      // Load edit data
+      if (editId) {
+        http.get(`/products/sales/${editId}`).then(res => {
+          const sale = res.data;
+          setForm(prev => ({
+            ...prev,
+            id: sale.code + '-S', // append S to indicate it's an edited version
+            customerName: sale.customerId?.name || sale.customerName || '',
+            phone: sale.customerId?.phone || sale.customerPhone || '',
+            email: sale.customerId?.email || '',
+            address: sale.customerId?.address || '',
+            note: sale.note || '',
+            discount: sale.discountValue || 0,
+            discountType: 'fixed', // Since we saved it as 'number', we fallback to fixed
+          }));
+          
+          if (sale.items && sale.items.length > 0) {
+            const item = sale.items[0];
+            const p = (prodRes.data?.items || []).find((p: any) => p._id === item.productId || p._id === item.productId?._id);
+            if (p) {
+              setForm(prev => ({
+                ...prev,
+                productCode: p.code,
+                productName: p.name,
+              }));
+            }
+            setPrice(item.value || 0);
+            setQuantity(item.amount || 1);
+            setUseAutoCalculate(false);
+          }
+        }).catch(err => console.error("Lỗi lấy thông tin hóa đơn cũ:", err));
+      }
     }).catch(err => console.error("Error fetching dependencies:", err));
-  }, []);
+  }, [editId]);
 
   // Handle auto-calculation
   useEffect(() => {
@@ -124,7 +159,11 @@ export function RetailInvoiceCreatePage() {
       const discountVal = Number(form.discount) || 0;
       const vatVal = Number(form.vat) || 0;
       
-      const discounted = Math.max(0, subtotal - discountVal);
+      const absoluteDiscount = form.discountType === 'percentage'
+        ? subtotal * (discountVal / 100)
+        : discountVal;
+
+      const discounted = Math.max(0, subtotal - absoluteDiscount);
       const taxAmount = Math.round(discounted * (vatVal / 100));
       const finalTotal = discounted + taxAmount;
 
@@ -133,7 +172,7 @@ export function RetailInvoiceCreatePage() {
         totalAmount: finalTotal
       }));
     }
-  }, [price, quantity, form.discount, form.vat, useAutoCalculate]);
+  }, [price, quantity, form.discount, form.discountType, form.vat, useAutoCalculate]);
 
   const handleChange = (field: string, value: any) => {
     setForm(prev => ({
@@ -169,11 +208,15 @@ export function RetailInvoiceCreatePage() {
     setIsSaving(true);
     try {
       // 1. Auto-save new customer if not found
-      const isExistingCustomer = dbCustomers.some(
-        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase() && (c.phone === form.phone || !form.phone)
+      let customerId = null;
+      const existingCustomer = dbCustomers.find(
+        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
       );
-      if (!isExistingCustomer) {
-        await http.post('/customers/customers', {
+      
+      if (existingCustomer) {
+        customerId = existingCustomer._id;
+      } else {
+        const createCustRes = await http.post('/customers/customers', {
           name: form.customerName,
           phone: form.phone,
           email: form.email,
@@ -184,22 +227,25 @@ export function RetailInvoiceCreatePage() {
           addressLocation: form.addressLocation,
           address: form.address,
         }).catch(e => console.log('Lỗi tạo khách hàng tự động:', e));
+
+        if (createCustRes && createCustRes.data) {
+          customerId = createCustRes.data._id;
+        }
       }
 
-      // 2. Find customerId if exists
-      const existingCustomer = dbCustomers.find(
-        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
-      );
-
       // 3. Build SalePayment payload with proper ObjectId references
+      const absoluteDiscount = form.discountType === 'percentage'
+        ? (price * quantity) * ((Number(form.discount) || 0) / 100)
+        : (Number(form.discount) || 0);
+
       const salePayload = {
         branchId: branchId,
-        customerId: existingCustomer?._id ?? null,
+        customerId: customerId,
         note: form.note,
         salesperson: form.salesperson,
         orderSource: form.orderSource,
         paymentMethod: form.paymentMethod,
-        discountValue: Number(form.discount) || 0,
+        discountValue: absoluteDiscount,
         discountType: 'number' as const,
         status: 'draft',
         // items drives inventory deduction in completeSalePayment()
@@ -211,6 +257,11 @@ export function RetailInvoiceCreatePage() {
           discountType: 'number',
         }],
       };
+
+      // If editing, cancel the old sale first
+      if (editId) {
+        await http.post(`/products/sales/${editId}/cancel`);
+      }
 
       // 4. Create the sale (draft - no inventory change yet)
       const createRes = await http.post('/products/sales', salePayload);
@@ -436,7 +487,8 @@ export function RetailInvoiceCreatePage() {
                 {showCustomerDropdown && form.customerName.trim().length > 0 && dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).length > 0 && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
                     {dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).map(c => (
-                      <div key={c._id} onClick={() => {
+                      <div key={c._id} onMouseDown={(e) => {
+                        e.preventDefault();
                         setForm(prev => ({
                           ...prev, customerName: c.name, phone: c.phone || '', email: c.email || '', facebook: c.facebook || '',
                           dob: c.dob || '', cardId: c.cardId || '', customerLevel: c.customerLevel || '', addressLocation: c.addressLocation || '', address: c.address || ''
@@ -597,7 +649,8 @@ export function RetailInvoiceCreatePage() {
                     }).map(p => {
                       const stock = getStockForWarehouse(p, branch?.name);
                       return (
-                        <div key={p.code} onClick={() => {
+                        <div key={p.code} onMouseDown={(e) => {
+                          e.preventDefault();
                           setForm(prev => ({ ...prev, productCode: p.code, productName: p.name }));
                           setPrice(p.price || 0);
                           setMaxStock(stock);
@@ -713,14 +766,34 @@ export function RetailInvoiceCreatePage() {
                 {/* Discount field */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>Chiết khấu trực tiếp (đ):</span>
-                    <input 
-                      type="number" 
-                      min={0}
-                      value={form.discount || ''}
-                      onChange={(e) => handleChange('discount', Number(e.target.value) || 0)}
-                      style={{ width: '120px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                    />
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>Chiết khấu trực tiếp:</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input 
+                        type="number" 
+                        min={0}
+                        value={form.discount || ''}
+                        onChange={(e) => handleChange('discount', Number(e.target.value) || 0)}
+                        style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleChange('discountType', form.discountType === 'fixed' ? 'percentage' : 'fixed')}
+                        style={{
+                          border: '1px solid #cbd5e1',
+                          background: '#f8fafc',
+                          borderRadius: '6px',
+                          padding: '4px 6px',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          color: '#475569',
+                          cursor: 'pointer',
+                          width: '32px',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {form.discountType === 'percentage' ? '%' : 'đ'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

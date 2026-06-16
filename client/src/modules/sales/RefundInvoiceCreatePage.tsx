@@ -54,6 +54,7 @@ export function RefundInvoiceCreatePage() {
   const { channel } = useParams();
   const [searchParams] = useSearchParams();
   const branchId = searchParams.get('branchId');
+  const saleId = searchParams.get('saleId');
   const navigate = useNavigate();
 
   const [branch, setBranch] = useState<any>(null);
@@ -63,6 +64,7 @@ export function RefundInvoiceCreatePage() {
   const [form, setForm] = useState({
     id: 'HDTH-' + Math.floor(100000 + Math.random() * 900000),
     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    paymentId: '',
     returnOrderId: '',
     receiver: 'Lê Sỹ Bách',
     salesAccount: '',
@@ -154,6 +156,43 @@ export function RefundInvoiceCreatePage() {
         });
     }
   }, [branchId]);
+
+  // Load sale data if saleId is present
+  useEffect(() => {
+    if (saleId) {
+      http.get(`/products/sales/${saleId}`)
+        .then(res => {
+          const sale = res.data;
+          setForm(prev => ({
+            ...prev,
+            paymentId: sale._id,
+            customerName: sale.customerId?.name || sale.customerName || '',
+            customerPhone: sale.customerId?.phone || sale.customerPhone || '',
+            address: sale.customerId?.address || '',
+            email: sale.customerId?.email || '',
+          }));
+          
+          if (sale.items && Array.isArray(sale.items)) {
+            setProducts(sale.items.map((item: any) => ({
+              _id: item.productId?._id,
+              code: item.productId?.code || '',
+              name: item.productId?.name || '',
+              stock: item.productId?.qty || 0,
+              qty: item.amount,
+              price: item.value,
+              cost: item.productId?.cost || 0,
+              unit: item.productId?.unit || 'Cái',
+              vat: 0,
+              refundFee: 0,
+              extendedWarrantyFee: 0,
+              giftCost: 0,
+              total: item.total || (item.value * item.amount)
+            })));
+          }
+        })
+        .catch(err => console.error("Lỗi lấy thông tin hóa đơn:", err));
+    }
+  }, [saleId]);
 
   // Load products list for local fast auto-suggest
   useEffect(() => {
@@ -444,6 +483,7 @@ export function RefundInvoiceCreatePage() {
 
     const payload = {
       code: form.id,
+      paymentId: form.paymentId,
       branchId: branchId,
       note: form.description,
       status: 'draft',
@@ -471,6 +511,54 @@ export function RefundInvoiceCreatePage() {
       const refundId = createRes.data._id;
 
       await http.post(`/products/refunds/${refundId}/complete`);
+
+      // Nếu có mua hàng mới (Đổi hàng), tạo thêm 1 hóa đơn Bán lẻ
+      if (newProducts.length > 0) {
+        let customerId = null;
+        if (form.customerPhone || form.customerName) {
+          try {
+            const searchRes = await http.get(`/customers/customers?phone=${form.customerPhone || form.customerName}`);
+            if (searchRes.data.items && searchRes.data.items.length > 0) {
+              customerId = searchRes.data.items[0]._id;
+            } else {
+              const cRes = await http.post('/customers/customers', {
+                name: form.customerName,
+                phone: form.customerPhone,
+              });
+              customerId = cRes.data?._id;
+            }
+          } catch(e) {
+            console.error("Lỗi tìm/tạo khách hàng khi đổi hàng:", e);
+          }
+        }
+
+        const salePayload = {
+           code: form.id.replace('HDTH-', 'HDLE-') + '-M', // M for Mới
+           branchId: branchId,
+           customerId: customerId,
+           note: form.newDescription,
+           salesperson: form.salesperson,
+           orderSource: form.source,
+           paymentMethod: 'Tiền mặt',
+           discountValue: 0,
+           discountType: 'number',
+           status: 'draft',
+           amountProducts: newProducts.reduce((acc, p) => acc + p.qty, 0),
+           value: newProducts.reduce((acc, p) => acc + p.total, 0),
+           items: newProducts.map(p => ({
+             productId: p._id,
+             amount: p.qty,
+             value: p.price,
+             discountValue: 0,
+             discountType: 'number',
+             total: p.total,
+             note: p.imei ? `IMEI: ${p.imei}` : ''
+           }))
+        };
+        
+        const saleRes = await http.post('/products/sales', salePayload);
+        await http.post(`/products/sales/${saleRes.data._id}/complete`);
+      }
 
       setSuccessMessage('Hóa đơn đổi trả hàng đã được tạo và lưu kho thành công!');
       setTimeout(() => {
@@ -662,8 +750,7 @@ export function RefundInvoiceCreatePage() {
                     {autocompleteList.length > 0 ? (
                       autocompleteList.map(prod => (
                         <div
-                          key={prod._id}
-                          onClick={() => addProduct(prod)}
+                          onMouseDown={(e) => { e.preventDefault(); addProduct(prod); }}
                           style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                           onMouseEnter={(e) => e.currentTarget.style.background = '#fff1f2'}
                           onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
@@ -908,8 +995,7 @@ export function RefundInvoiceCreatePage() {
                     {newAutocompleteList.length > 0 ? (
                       newAutocompleteList.map(prod => (
                         <div
-                          key={prod._id}
-                          onClick={() => addNewProduct(prod)}
+                          onMouseDown={(e) => { e.preventDefault(); addNewProduct(prod); }}
                           style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                           onMouseEnter={(e) => e.currentTarget.style.background = '#fff1f2'}
                           onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}

@@ -140,6 +140,30 @@ export function JournalEntriesPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    const csv = [
+      ['ID', 'Ngày tạo', 'Loại', 'Đối tượng', 'Chứng từ', 'Số tiền', 'Nợ', 'Có', 'Ghi chú'].join(','),
+      ...items.map(item => [
+        `"${item.transactionId || ''}"`,
+        `"${item.date ? new Date(item.date).toLocaleDateString('vi-VN') : ''}"`,
+        `"${item.type || ''}"`,
+        `"${item.targetCode || ''} ${item.targetName || ''}"`,
+        `"${item.voucherType || ''} ${item.voucherId || ''}"`,
+        item.revenue || 0,
+        `"${item.accountCode || ''}"`,
+        `"${item.contraAccountCode || ''}"`,
+        `"${item.description || ''}"`
+      ].join(','))
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `but_toan_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="je-page">
       <div className="je-card">
@@ -235,7 +259,7 @@ export function JournalEntriesPage() {
               </div>
             </div>
 
-            <button className="je-btn-outline">
+            <button className="je-btn-outline" onClick={handleExportCSV}>
               <Download size={14} /> Xuất dữ liệu
             </button>
 

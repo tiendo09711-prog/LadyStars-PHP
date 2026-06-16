@@ -55,6 +55,7 @@ export function WholesaleInvoiceCreatePage() {
   const { channel } = useParams();
   const [searchParams] = useSearchParams();
   const branchId = searchParams.get('branchId');
+  const editId = searchParams.get('editId');
   const navigate = useNavigate();
 
   const [branch, setBranch] = useState<any>(null);
@@ -159,8 +160,45 @@ export function WholesaleInvoiceCreatePage() {
       setDbStaffs(staffRes.data?.items || []);
       setDbCustomers(custRes.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
+
+      if (editId) {
+        http.get(`/products/sales/${editId}`).then(res => {
+          const sale = res.data;
+          setForm(prev => ({
+            ...prev,
+            id: sale.code + '-S',
+            customerName: sale.customerId?.name || sale.customerName || '',
+            customerPhone: sale.customerId?.phone || sale.customerPhone || '',
+            customerCode: sale.customerId?.code || sale.customerId?.cardId || '',
+            email: sale.customerId?.email || '',
+            dob: sale.customerId?.birthday ? new Date(sale.customerId.birthday).toISOString().split('T')[0] : '',
+            address: sale.customerId?.address || '',
+            companyName: sale.customerId?.company || '',
+            taxId: sale.customerId?.vat || '',
+            description: sale.note || '',
+            orderDiscount: sale.discountValue || 0,
+          }));
+
+          if (sale.items && sale.items.length > 0) {
+            setProducts(sale.items.map((item: any) => ({
+              _id: item.productId?._id,
+              code: item.productId?.code || '',
+              name: item.productId?.name || '',
+              stock: item.productId?.qty || 0,
+              qty: item.amount,
+              price: item.value,
+              cost: item.productId?.cost || 0,
+              discountType: 'fixed',
+              discountValue: item.discountValue || 0,
+              total: item.total || (item.value * item.amount),
+              unit: item.productId?.unit || 'Cái',
+              imei: '',
+            })));
+          }
+        }).catch(err => console.error("Lỗi tải hóa đơn sỉ cũ:", err));
+      }
     }).catch(err => console.error("Error fetching dependencies:", err));
-  }, []);
+  }, [editId]);
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save, F10 toggle auto-print
   useEffect(() => {
@@ -373,12 +411,16 @@ export function WholesaleInvoiceCreatePage() {
     const subtotalAfterDiscount = Math.max(0, subtotalBeforeDiscount - productDiscount);
 
     try {
-      // Auto-save new customer if not found in dbCustomers
-      const isExistingCustomer = dbCustomers.some(
-        c => c.name?.toLowerCase() === form.customerName.toLowerCase() && (c.phone === form.customerPhone || !form.customerPhone)
+      // Auto-save new customer if not found
+      let customerId = null;
+      const existingCustomer = dbCustomers.find(
+        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
       );
-      if (!isExistingCustomer) {
-        await http.post('/customers/customers', {
+
+      if (existingCustomer) {
+        customerId = existingCustomer._id;
+      } else {
+        const createCustRes = await http.post('/customers/customers', {
           name: form.customerName,
           phone: form.customerPhone,
           email: form.email,
@@ -387,16 +429,16 @@ export function WholesaleInvoiceCreatePage() {
           addressLocation: form.addressLocation,
           address: form.address,
         }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
+        
+        if (createCustRes && createCustRes.data) {
+          customerId = createCustRes.data._id;
+        }
       }
-
-      const existingCustomer = dbCustomers.find(
-        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
-      );
 
       const salePayload = {
         code: form.id,
         branchId: branchId,
-        customerId: existingCustomer?._id ?? null,
+        customerId: customerId,
         note: form.description,
         salesperson: form.salesperson,
         orderSource: form.orderSource,
@@ -424,6 +466,10 @@ export function WholesaleInvoiceCreatePage() {
           note: p.imei ? `IMEI: ${p.imei}` : ''
         })),
       };
+
+      if (editId) {
+        await http.post(`/products/sales/${editId}/cancel`);
+      }
 
       const createRes = await http.post('/products/sales', salePayload);
       const saleId = createRes.data._id;
@@ -623,8 +669,7 @@ export function WholesaleInvoiceCreatePage() {
                     {autocompleteList.length > 0 ? (
                       autocompleteList.map(prod => (
                         <div
-                          key={prod._id}
-                          onClick={() => addProduct(prod)}
+                          onMouseDown={(e) => { e.preventDefault(); addProduct(prod); }}
                           style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                           onMouseEnter={(e) => e.currentTarget.style.background = '#f5f3ff'}
                           onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
@@ -920,7 +965,8 @@ export function WholesaleInvoiceCreatePage() {
                   {showCustomerDropdown && form.customerName.trim().length > 0 && dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
                       {dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).map(c => (
-                        <div key={c._id} onClick={() => {
+                        <div key={c._id} onMouseDown={(e) => {
+                          e.preventDefault();
                           setForm(prev => ({
                             ...prev, 
                             customerName: c.name || '', 

@@ -151,6 +151,17 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               note: '',
               status: 'draft',
             },
+            hideEdit: true,
+            customActions: [
+              {
+                label: 'Trả hàng - Đổi hàng',
+                onClick: (item) => navigate(`/sales-channels/${channel}/refund/create?saleId=${item._id}`),
+              },
+              {
+                label: 'Sửa thông tin',
+                onClick: (item) => navigate(`/sales-channels/${channel}/retail/create?editId=${item._id}`),
+              }
+            ],
           },
           {
             key: 'confirm',

@@ -62,6 +62,29 @@ export function CustomerDebtPage() {
   const totalNoPhaiThu = items.reduce((sum, item) => sum + (item.finalReceivable || 0), 0);
   const totalCoPhaiTra = items.reduce((sum, item) => sum + (item.finalPayable || 0), 0);
 
+  const handleExportCSV = () => {
+    const csv = [
+      ['Khách hàng', 'SĐT', 'Nợ đầu kì', 'Có đầu kì', 'Ghi nợ', 'Ghi có', 'Nợ cuối kì', 'Có cuối kì'].join(','),
+      ...items.map(item => [
+        `"${item.code} - ${item.customerName || ''}"`,
+        `"${item.phone || ''}"`,
+        item.initialReceivable || 0,
+        item.initialPayable || 0,
+        item.incurredReceivable || 0,
+        item.incurredPayable || 0,
+        item.finalReceivable || 0,
+        item.finalPayable || 0
+      ].join(','))
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cong_no_khach_hang_${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="debt-page">
       <div className="debt-tabs">
@@ -99,7 +122,7 @@ export function CustomerDebtPage() {
 
       <div className="debt-actions-bar">
         <div className="debt-actions-left">
-          <button className="btn-outline-debt">
+          <button className="btn-outline-debt" onClick={handleExportCSV}>
             <Download size={14} /> Xuất dữ liệu
           </button>
           <button className="btn-outline-debt">

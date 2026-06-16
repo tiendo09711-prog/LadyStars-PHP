@@ -212,5 +212,15 @@ export const InstallmentService = model('InstallmentService', new Schema({
   phone: { type: String },
   address: { type: String },
   creator: { type: String },
+  totalAmount: { type: Number, default: 0 },
+  prepaidAmount: { type: Number, default: 0 },
+  interestRate: { type: Number, default: 0 },
+  months: { type: Number, default: 1 },
+  monthlyPayment: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
+}, { timestamps: true }));
+
+export const InstallmentSetting = model('InstallmentSetting', new Schema({
+  defaultInterestRate: { type: Number, default: 1.5 },
+  lateFeeRate: { type: Number, default: 0.1 },
 }, { timestamps: true }));
