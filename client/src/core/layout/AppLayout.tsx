@@ -293,8 +293,20 @@ export function AppLayout() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({ shopName: 'LadyStars' });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openMenuGroups, setOpenMenuGroups] = useState<Record<string, boolean>>(() => defaultMenuGroupState);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isOwner = user?.role === 'owner';
   const shopName = storeSettings.shopName || 'LadyStars';
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!(event.target as Element).closest('.user-dropdown-container')) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
   const menuGroups = isOwner
     ? [
       ...baseMenuGroups,
@@ -366,18 +378,61 @@ export function AppLayout() {
         onClick={() => setSidebarOpen(false)}
       />
       <aside className="app-sidebar">
-        <div className="brand">
-          <div className="brand-mark">LS</div>
-          <div>
-            <strong>{shopName}</strong>
-            
+        <div className="brand user-dropdown-container" style={{ cursor: 'pointer', position: 'relative' }} onClick={() => setUserMenuOpen(!userMenuOpen)}>
+          <div className="brand-mark" style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
+            {user?.name?.slice(0, 1) ?? 'A'}
           </div>
+          <div>
+            <strong>{user?.name ?? 'Admin'}</strong>
+            <span>{user?.email ?? 'admin@gmail.com'}</span>
+          </div>
+          <ChevronDown size={14} style={{ color: '#94a3b8', marginLeft: '4px' }} />
+          
+          {userMenuOpen && (
+            <div className="user-dropdown-menu" style={{
+              position: 'absolute',
+              top: '100%',
+              left: '16px',
+              marginTop: '8px',
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              boxShadow: '0 12px 32px rgba(15, 23, 42, .12)',
+              minWidth: '220px',
+              zIndex: 200,
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '8px'
+            }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9', marginBottom: '4px' }}>
+                <strong style={{ color: '#0f172a', display: 'block' }}>{user?.name ?? 'Admin'}</strong>
+                <span style={{ color: '#64748b', fontSize: '12px' }}>Vai trò: {user?.role === 'owner' ? 'Chủ cửa hàng' : 'Nhân viên'}</span>
+              </div>
+              <button 
+                onClick={logout}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  width: '100%', padding: '10px 12px', border: 'none',
+                  background: 'transparent', color: '#ef4444', fontWeight: 600,
+                  cursor: 'pointer', borderRadius: '6px', textAlign: 'left'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <LogOut size={16} /> Đăng xuất
+              </button>
+            </div>
+          )}
+
           <button
             className="sidebar-close"
             type="button"
             aria-label="Close menu"
             title="Close menu"
-            onClick={() => setSidebarOpen(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSidebarOpen(false);
+            }}
           >
             <X size={18} />
           </button>
@@ -398,28 +453,27 @@ export function AppLayout() {
                   <span>{group.label}</span>
                   <ChevronDown className="menu-group-chevron" size={14} />
                 </button>
-                {isGroupOpen && group.items.map((item) => {
-                  const Icon = item.icon;
-                  if (item.subItems) {
-                    const isSubGroupOpen = openMenuGroups[item.label] ?? false;
-                    return (
-                      <div key={item.label}>
-                        <button
-                          type="button"
-                          aria-expanded={isSubGroupOpen}
-                          onClick={() => toggleMenuGroup(item.label)}
-                          style={{
-                            display: 'flex', alignItems: 'center', width: '100%',
-                            padding: '8px 16px', background: 'transparent', border: 'none',
-                            color: '#94a3b8', fontSize: '14px', cursor: 'pointer', fontWeight: 500
-                          }}
-                        >
-                          <Icon size={18} style={{ marginRight: '12px' }} />
-                          <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
-                          <ChevronDown size={14} style={{ transform: isSubGroupOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                        </button>
-                        {isSubGroupOpen && (
-                          <div style={{ background: '#0f172a', padding: '4px 0' }}>
+                <div className={`menu-panel ${isGroupOpen ? 'mobile-open' : ''}`}>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    if (item.subItems) {
+                      const isSubGroupOpen = openMenuGroups[item.label] ?? false;
+                      return (
+                        <div className="submenu-group" key={item.label}>
+                          <button
+                            className="submenu-trigger"
+                            type="button"
+                            aria-expanded={isSubGroupOpen}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleMenuGroup(item.label);
+                            }}
+                          >
+                            <Icon size={16} className="menu-icon" />
+                            <span>{item.label}</span>
+                            <ChevronDown className="submenu-chevron" size={14} />
+                          </button>
+                          <div className={`submenu-panel ${isSubGroupOpen ? 'mobile-open' : ''}`}>
                             {item.subItems.map(subItem => {
                               const SubIcon = subItem.icon;
                               return (
@@ -427,72 +481,40 @@ export function AppLayout() {
                                   key={subItem.to} 
                                   to={subItem.to} 
                                   onClick={() => setSidebarOpen(false)}
-                                  style={({isActive}) => ({
-                                    padding: '8px 16px 8px 46px', display: 'flex', alignItems: 'center',
-                                    textDecoration: 'none', color: isActive ? '#fff' : '#94a3b8',
-                                    fontSize: '14px', background: isActive ? '#1e293b' : 'transparent',
-                                    fontWeight: isActive ? 600 : 400
-                                  })}
                                 >
-                                  <SubIcon size={16} style={{ marginRight: '12px' }} />
+                                  <SubIcon size={16} className="menu-icon" />
                                   <span>{subItem.label}</span>
                                 </NavLink>
                               )
                             })}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => setSidebarOpen(false)}>
+                        <Icon size={16} className="menu-icon" />
+                        <span>{item.label}</span>
+                      </NavLink>
                     );
-                  }
-                  
-                  return (
-                    <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={() => setSidebarOpen(false)}>
-                      <Icon size={18} />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  );
-                })}
+                  })}
+                </div>
               </div>
             );
           })}
+          {isOwner && (
+            <div className="menu-group owner-setting-group">
+              <NavLink className="sidebar-setting" to="/settings" onClick={() => setSidebarOpen(false)}>
+                <Settings size={16} className="menu-icon" />
+                <span>Thiết lập cài đặt</span>
+              </NavLink>
+            </div>
+          )}
         </nav>
-
-        {isOwner && (
-          <NavLink className="sidebar-setting" to="/settings" onClick={() => setSidebarOpen(false)}>
-            <Settings size={17} />
-            <span>Thiết lập cài đặt</span>
-          </NavLink>
-        )}
       </aside>
 
       <div className="app-main">
-        <header className="topbar">
-          <div className="topbar-title">
-            <button
-              className="menu-toggle"
-              type="button"
-              aria-label="Open menu"
-              title="Open menu"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu size={20} />
-            </button>
-            <div>
-              <span className="topbar-eyebrow">Admin Workspace</span>
-              <strong>Quản trị vận hành {shopName}</strong>
-            </div>
-          </div>
-          <div className="user-menu">
-            <div className="user-avatar">{user?.name?.slice(0, 1) ?? 'A'}</div>
-            <div className="user-info">
-              <strong>{user?.name ?? 'Admin'}</strong>
-              <span>{user?.email ?? 'admin@myerp.local'}</span>
-            </div>
-            <button className="icon-button" type="button" onClick={logout} title="Đăng xuất">
-              <LogOut size={17} />
-            </button>
-          </div>
-        </header>
         <main className="content">
           <Outlet />
         </main>

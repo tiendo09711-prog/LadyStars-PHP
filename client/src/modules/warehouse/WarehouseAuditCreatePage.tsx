@@ -92,7 +92,7 @@ export function WarehouseAuditCreatePage() {
       setLines(prev => prev.map(line => {
         const prod = dbProducts.find(p => p.code === line.productCode);
         if (prod) {
-          const newStock = getStockForWarehouse(prod, form.warehouse);
+          const newStock = getStock(prod, form.warehouse);
           if (line.stock !== newStock) {
             return {
               ...line,
