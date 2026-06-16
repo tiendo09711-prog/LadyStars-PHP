@@ -43,6 +43,7 @@ export function StorageDurationPage() {
   const [minStartDays, setMinStartDays] = useState('');
   const [minSoldDays, setMinSoldDays] = useState('');
   const [minStock, setMinStock] = useState('');
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   // KPIs
   const [kpis, setKpis] = useState({
@@ -135,12 +136,16 @@ export function StorageDurationPage() {
   // Reload when page, tab, category, search queries or branch change
   useEffect(() => {
     loadData();
-  }, [page, activeTab, selectedCategory, search, selectedBranch]);
+  }, [page, activeTab, selectedCategory, search, selectedBranch, fetchTrigger]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1);
     setSearch(tempSearch);
+    if (page === 1) {
+      setFetchTrigger(prev => prev + 1);
+    } else {
+      setPage(1);
+    }
   };
 
   const handleClearFilters = () => {
@@ -197,6 +202,10 @@ export function StorageDurationPage() {
 
   // Return to Vendor Action handlers
   const handleOpenReturn = (product: IStorageDuration) => {
+    if (!selectedBranch) {
+      setToast({ message: 'Vui lòng chọn một chi nhánh cụ thể ở bộ lọc trước khi trả hàng.', type: 'error' });
+      return;
+    }
     setReturnProduct(product);
     setReturnQty(1);
     setReturnPrice(product.cost || 0);
@@ -207,28 +216,35 @@ export function StorageDurationPage() {
     e.preventDefault();
     if (!returnProduct) return;
 
+    if (!selectedBranch) {
+      setToast({ message: 'Vui lòng chọn một chi nhánh cụ thể ở bộ lọc để trả hàng.', type: 'error' });
+      return;
+    }
+
     if (returnQty <= 0 || returnQty > (returnProduct.qty || 0)) {
       setToast({ message: 'Số lượng trả hàng không hợp lệ.', type: 'error' });
       return;
     }
 
     try {
-      const targetBranchId = selectedBranch || branches.find(b => b.isDefault)?._id || branches[0]?._id;
+      const targetBranchId = selectedBranch;
       // Calculate target global stock after returning
       const newGlobalQty = Math.max(0, (returnProduct.globalQty || returnProduct.qty || 0) - returnQty);
 
       // Create a completed stock adjustment to adjust both the global and branch-specific stocks
-      await http.post('/products/stock-adjustments', {
+      const res = await http.post('/products/stock-adjustments', {
         code: `TRA-NCC-${Date.now().toString().slice(-6)}`,
         branchId: targetBranchId || undefined,
         balanceDate: new Date().toISOString().slice(0, 10),
-        status: 'completed', // auto complete to trigger database adjustments
+        status: 'draft',
         note: `[TRẢ HÀNG NCC] ${returnProduct.name} (NCC: ${returnProduct.supplierName || 'Mặc định'}). Lý do: ${returnNote}`,
         items: [{
           productId: returnProduct._id,
           actualStock: newGlobalQty
         }]
       });
+
+      await http.post(`/products/stock-adjustments/${res.data._id}/complete`);
 
       setToast({ 
         message: `Đã tạo phiếu trả hàng NCC thành công cho ${returnQty} sản phẩm ${returnProduct.code}.`, 
@@ -243,38 +259,65 @@ export function StorageDurationPage() {
   };
 
   // Export CSV helper
-  const handleExportCSV = () => {
-    if (items.length === 0) {
+  const handleExportCSV = async () => {
+    if (total === 0) {
       setToast({ message: 'Không có dữ liệu để xuất file.', type: 'error' });
       return;
     }
     
-    // Build CSV content
-    const headers = ['Mã sản phẩm', 'Tên sản phẩm', 'Danh mục', 'Nhà cung cấp', 'Giá nhập', 'Giá bán', 'Số lượng tồn', 'Số ngày lưu kho từ đầu', 'Số ngày từ XNK cuối', 'Số ngày từ lần bán cuối'];
-    const rows = items.map(item => [
-      item.code,
-      `"${item.name.replace(/"/g, '""')}"`,
-      item.categoryName || '',
-      item.supplierName || '',
-      item.cost || 0,
-      item.price || 0,
-      item.qty || 0,
-      item.daysFromStart,
-      item.daysFromLast,
-      item.daysFromLastSold !== null ? item.daysFromLastSold : 'Chưa bán'
-    ]);
-    
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `bao_cao_thoi_gian_luu_kho_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    setToast({ message: 'Xuất file dữ liệu CSV thành công!', type: 'success' });
+    try {
+      setToast({ message: 'Đang tải dữ liệu để xuất CSV...', type: 'success' });
+      
+      const params: any = {
+        page: 1,
+        limit: 5000,
+        q: search || undefined,
+        categoryId: selectedCategory || undefined,
+        tab: activeTab,
+        minStartDays: minStartDays ? Number(minStartDays) : undefined,
+        minSoldDays: minSoldDays ? Number(minSoldDays) : undefined,
+        minStock: minStock ? Number(minStock) : undefined,
+        branchId: selectedBranch || undefined
+      };
+
+      const res = await productApi.getStorageDuration(params);
+      const exportItems = res.items || [];
+
+      if (exportItems.length === 0) {
+        setToast({ message: 'Không có dữ liệu để xuất.', type: 'error' });
+        return;
+      }
+
+      // Build CSV content
+      const headers = ['Mã sản phẩm', 'Tên sản phẩm', 'Danh mục', 'Nhà cung cấp', 'Giá nhập', 'Giá bán', 'Số lượng tồn', 'Số ngày lưu kho từ đầu', 'Số ngày từ XNK cuối', 'Số ngày từ lần bán cuối'];
+      const rows = exportItems.map(item => [
+        item.code,
+        `"${item.name.replace(/"/g, '""')}"`,
+        item.categoryName || '',
+        item.supplierName || '',
+        item.cost || 0,
+        item.price || 0,
+        item.qty || 0,
+        item.daysFromStart,
+        item.daysFromLast,
+        item.daysFromLastSold !== null ? item.daysFromLastSold : 'Chưa bán'
+      ]);
+      
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `bao_cao_thoi_gian_luu_kho_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setToast({ message: 'Xuất file dữ liệu CSV thành công!', type: 'success' });
+    } catch (err) {
+      console.error('Lỗi khi xuất CSV', err);
+      setToast({ message: 'Có lỗi xảy ra khi xuất dữ liệu.', type: 'error' });
+    }
   };
 
   // Format helper functions

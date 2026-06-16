@@ -9,7 +9,7 @@ export interface PaginatedResponse<T> {
 }
 
 export const productApi = {
-  getProducts: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+  getProducts: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IProduct>>('/products/products', { params });
     return response.data;
   },
@@ -40,7 +40,7 @@ export const productApi = {
     return response.data;
   },
 
-  getCategories: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+  getCategories: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<ICategory>>('/products/categories', { params });
     return response.data;
   },
@@ -48,7 +48,7 @@ export const productApi = {
   // Note: Backend might not have exact endpoints for inventories and logs matching these formats perfectly,
   // but we build the interface as requested and target logical endpoint names. 
   // In reality, getInventories might need to query branch-stocks or similar.
-  getInventories: async (params?: { page?: number; limit?: number; q?: string; branchId?: string; sort?: string; order?: 'asc' | 'desc'; [key: string]: any }) => {
+  getInventories: async (params?: { page?: number; limit?: number; q?: string; branchId?: string; sort?: string; order?: 'asc' | 'desc';[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IInventory>>('/products/inventories', { params });
     return response.data;
   },
@@ -57,12 +57,12 @@ export const productApi = {
     return response.data;
   },
 
-  getProductLogs: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+  getProductLogs: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IProductHistory>>('/products/edit-logs', { params });
     return response.data;
   },
 
-  getBatches: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+  getBatches: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IBatch>>('/products/batches', { params });
     return response.data;
   },
@@ -87,12 +87,23 @@ export const productApi = {
     return response.data;
   },
 
-  getStorageDuration: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+  importBatches: async (file: File, mode: 'create' | 'upsert' = 'upsert') => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('mode', mode);
+    const response = await http.post<{
+      success: boolean;
+      summary: { created: number; updated: number; skipped: number; errors: string[] };
+    }>('/products/batches/import', form);
+    return response.data;
+  },
+
+  getStorageDuration: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IStorageDuration> & { kpis?: { totalProducts: number; unsoldLong: number; slowSelling: number; totalValue: number } }>('/products/storage-duration', { params });
     return response.data;
   },
 
-  getTrademarks: async (params?: { page?: number; limit?: number; q?: string; [key: string]: any }) => {
+  getTrademarks: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<ITrademark>>('/products/trademarks', { params });
     return response.data;
   }

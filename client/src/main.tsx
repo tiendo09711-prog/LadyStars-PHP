@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Navigate, createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppLayout } from './core/layout/AppLayout';
 import { LoginPage } from './modules/auth/LoginPage';
 import { DashboardPage } from './modules/dashboard/DashboardPage';
@@ -95,8 +95,6 @@ import { InventoryByStoreStatusPage } from './modules/reports/InventoryByStoreSt
 import { InventoryByProductStatusPage } from './modules/reports/InventoryByProductStatusPage';
 import { InventoryByBatchPage } from './modules/reports/InventoryByBatchPage';
 import { InventoryTransfersByProductPage } from './modules/reports/InventoryTransfersByProductPage';
-import { ProductImportPage } from './modules/warehouse/ProductImportPage';
-import { ProductExportPage } from './modules/warehouse/ProductExportPage';
 import { SalesChannelPage } from './modules/sales/SalesChannelPage';
 import { SalesChannelSubPage } from './modules/sales/SalesChannelSubPage';
 import { RetailInvoiceCreatePage } from './modules/sales/RetailInvoiceCreatePage';
@@ -133,8 +131,8 @@ const router = createBrowserRouter([
       { path: 'warehouse/transactions/vouchers/import', element: <VoucherImportPage /> },
       { path: 'warehouse/transactions/vouchers/export', element: <VoucherExportPage /> },
       { path: 'warehouse/transactions/vouchers/excel', element: <VoucherExcelImportPage /> },
-      { path: 'warehouse/transactions/products/import', element: <ProductImportPage /> },
-      { path: 'warehouse/transactions/products/export', element: <ProductExportPage /> },
+      { path: 'warehouse/transactions/products/import', element: <Navigate to="/warehouse/transactions/vouchers/import" replace /> },
+      { path: 'warehouse/transactions/products/export', element: <Navigate to="/warehouse/transactions/vouchers/export" replace /> },
       { path: 'warehouse/transfers', element: <WarehouseTransferPage /> },
       { path: 'warehouse/transfers/create', element: <WarehouseTransferCreatePage /> },
       { path: 'warehouse/transfers/:id', element: <WarehouseTransferDetailPage /> },
@@ -195,7 +193,7 @@ const router = createBrowserRouter([
       { path: 'settings', element: <SettingsPage /> },
 
       // ── Báo Cáo ──────────────────────────────────────────────
-{ path: 'reports/revenue/time', element: <RevenueByTimePage /> },
+      { path: 'reports/revenue/time', element: <RevenueByTimePage /> },
       { path: 'reports/revenue/store', element: <RevenueByStorePage /> },
       { path: 'reports/revenue/brand', element: <RevenueByBrandPage /> },
       { path: 'reports/revenue/staff', element: <RevenueByStaffPage /> },

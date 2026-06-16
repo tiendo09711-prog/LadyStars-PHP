@@ -21,7 +21,7 @@ function lineDiscount(base: number, discountValue: unknown, discountType: unknow
   return Math.min(base, Math.max(discount, 0));
 }
 
-async function moveProductQty({
+export async function moveProductQty({
   productId,
   branchId,
   sourceType,
@@ -305,4 +305,4 @@ export async function completeStockAdjustment(stockId: string) {
   return stock;
 }
 
-export { moveProductQty };
+

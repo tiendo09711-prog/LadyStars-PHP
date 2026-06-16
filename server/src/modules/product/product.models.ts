@@ -219,8 +219,9 @@ export const StockAdjustment = model('StockAdjustment', new Schema({
 }, { timestamps: true }));
 
 const BatchSchema = new Schema({
-  batchNumber: { type: String, required: true, unique: true },
+  batchNumber: { type: String, required: true },
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   cost: money,
   qty: { type: Number, default: 0 },
   manufactureDate: Date,
@@ -230,6 +231,7 @@ const BatchSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
+BatchSchema.index({ batchNumber: 1, productId: 1, branchId: 1 }, { unique: true });
 BatchSchema.index({ batchNumber: 'text', note: 'text' });
 
 BatchSchema.pre('find', function(next) {
