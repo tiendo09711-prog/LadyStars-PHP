@@ -32,7 +32,7 @@ export async function seedProduct(productCode: string) {
       $set: {
         code: productCode,
         name: 'Sản phẩm Test E2E',
-        retailPrice: 500000,
+        price: 500000,
         totalStock: 1000,
         qty: 1000,
         stockHCM: 100,

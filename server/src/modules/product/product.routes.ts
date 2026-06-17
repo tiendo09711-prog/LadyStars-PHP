@@ -453,6 +453,28 @@ router.get('/refunds/:id', async (req, res) => {
   res.json(item);
 });
 
+router.patch('/refunds/:id', async (req, res) => {
+  const before = await ProductRefund.findById(req.params.id);
+  if (!before) return res.status(404).json({ message: 'Not found' });
+  if (before.status === 'completed') return res.status(422).json({ message: 'Completed refund cannot be edited' });
+
+  let item;
+  if (req.body.status === 'completed') {
+    await ProductRefund.findByIdAndUpdate(req.params.id, { note: req.body.note, code: req.body.code });
+    item = await completeProductRefund(req.params.id);
+  } else {
+    item = await ProductRefund.findByIdAndUpdate(req.params.id, {
+      code: req.body.code || before.code,
+      note: req.body.note,
+      status: req.body.status || before.status
+    }, { new: true, runValidators: true });
+  }
+
+  const populated = await populateRefund(ProductRefund.findById(item?._id));
+  await writeAuditLog(req, { action: 'sales_refund.update', module: 'sales', resource: 'ProductRefund', resourceId: item?.id, before, after: populated });
+  res.json(populated);
+});
+
 router.delete('/refunds/:id', async (req, res) => {
   const item = await ProductRefund.findById(req.params.id);
   if (!item) return res.status(404).json({ message: 'Not found' });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ShoppingCart, ArrowRightLeft, Building2, Combine, Split,
   FileDown, Truck, FilePlus, Trash2, PlusCircle, FileCheck, Printer, ChevronDown, X
@@ -17,6 +17,38 @@ export function OrdersManagePage() {
   const [handovers, setHandovers] = useState<any[]>([]);
   const [activeItems, setActiveItems] = useState<Record<string, any>[]>([]);
   const [onSuccessCb, setOnSuccessCb] = useState<(() => void) | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportExcel = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await http.post('/orders/manage/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data.success) {
+        alert(res.data.message || 'Nhập dữ liệu thành công!');
+        window.location.reload(); // Reload to fetch fresh data
+      } else {
+        alert('Có lỗi xảy ra: ' + res.data.message);
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi nhập dữ liệu!');
+    } finally {
+      // Clear the input so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     http.get('/system/branches')
@@ -219,14 +251,17 @@ export function OrdersManagePage() {
     }
   ];
 
-  const extraHeaderButtons = (
-    <button className="btn btn-outline" type="button" onClick={() => alert('Vui lòng chọn đơn hàng bên dưới, sau đó thao tác in từ chi tiết hoặc nhấn Export dữ liệu để in hàng loạt.')}>
-      <Printer size={16} /> In đơn <ChevronDown size={16} style={{ marginLeft: 4 }} />
-    </button>
-  );
+
 
   return (
     <>
+      <input 
+        type="file" 
+        accept=".xlsx,.xls,.xlsm" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        onChange={handleFileChange} 
+      />
       <DataModulePage
         title="Quản lý đơn hàng"
         subtitle="Danh sách các đơn hàng trong hệ thống theo trạng thái"
@@ -306,7 +341,7 @@ export function OrdersManagePage() {
           { label: 'Khiếu nại', value: 'Khiếu nại' },
         ]}
         bulkActionGroups={bulkActionGroups}
-        extraHeaderButtons={extraHeaderButtons}
+        onImportExcel={handleImportExcel}
       />
 
       {statusModalOpen && (

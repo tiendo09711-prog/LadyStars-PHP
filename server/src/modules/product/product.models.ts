@@ -120,6 +120,7 @@ const SaleItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   amount: { type: Number, default: 0 },
   value: money,
+  cost: money,
   discountValue: money,
   discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
   total: money,

@@ -7,6 +7,7 @@
     "start": "node dist/app.js",
     "seed": "tsx src/seed.ts",
     "load": "tsx src/scripts/load-csv.ts",
+    "import-real": "tsx src/scripts/import-real-data.ts",
     "load-edit-logs": "tsx src/scripts/load-edit-logs.ts"
   },
   "dependencies": {

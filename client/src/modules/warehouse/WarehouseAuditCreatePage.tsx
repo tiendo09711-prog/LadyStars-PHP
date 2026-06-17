@@ -38,12 +38,7 @@ type CheckProductLine = {
   description: string;
 };
 
-const MOCK_PRODUCTS: Product[] = [
-  { _id: 'mock-1', code: 'SP001', name: 'Kem chống nắng LadyStars SPF 50+', price: 150000, cost: 90000, qty: 120, unit: 'tuýp' },
-  { _id: 'mock-2', code: 'SP002', name: 'Sữa rửa mặt dịu nhẹ LadyStars', price: 120000, cost: 70000, qty: 85, unit: 'chai' },
-  { _id: 'mock-3', code: 'SP003', name: 'Serum tế bào gốc trẻ hóa da', price: 450000, cost: 280000, qty: 40, unit: 'lọ' },
-  { _id: 'mock-4', code: 'SP004', name: 'Son dưỡng môi nhung mịn LadyStars', price: 95000, cost: 55000, qty: 150, unit: 'thỏi' },
-];
+
 
 export function WarehouseAuditCreatePage() {
   const navigate = useNavigate();

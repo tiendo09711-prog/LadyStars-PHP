@@ -86,7 +86,8 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
               code: '',
               note: '',
               status: 'draft'
-            }
+            },
+            hideImport: true
           }
         ]}
       />

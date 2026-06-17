@@ -88,6 +88,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
               status: 'draft',
             },
             hideEdit: true,
+            hideImport: true,
             customActions: [
               {
                 label: 'Trả hàng - Đổi hàng',
@@ -125,6 +126,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
               note: '',
             },
             hideEdit: true,
+            hideImport: true,
             customActions: [
               {
                 label: 'Trả hàng - Đổi hàng',
@@ -162,6 +164,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
               note: '',
             },
             hideEdit: true,
+            hideImport: true,
             customActions: [
               {
                 label: 'Trả hàng - Đổi hàng',

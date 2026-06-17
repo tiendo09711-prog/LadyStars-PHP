@@ -18,7 +18,7 @@ export function JournalEntriesPage() {
 
   const fetchData = async () => {
     try {
-      let url = `/accounting/cash-transactions?page=${page}&limit=${limit}`;
+      let url = `/accounting/logbooks?page=${page}&limit=${limit}`;
       if (transactionId) url += `&transactionId=${transactionId}`;
       if (voucherId) url += `&voucherId=${voucherId}`;
       
@@ -88,7 +88,7 @@ export function JournalEntriesPage() {
     }));
 
     try {
-      const res = await http.post('/accounting/cash-transactions/bulk', { items: uploadItems });
+      const res = await http.post('/accounting/logbooks/bulk', { items: uploadItems });
       alert(`Đã upload thành công ${res.data.processed} giao dịch`);
       fetchData();
     } catch (err: any) {
@@ -131,7 +131,7 @@ export function JournalEntriesPage() {
 
     try {
       for (const id of selectedIds) {
-        await http.delete(`/accounting/cash-transactions/${id}`);
+        await http.delete(`/accounting/logbooks/${id}`);
       }
       setSelectedIds([]);
       fetchData();
@@ -145,13 +145,13 @@ export function JournalEntriesPage() {
       ['ID', 'Ngày tạo', 'Loại', 'Đối tượng', 'Chứng từ', 'Số tiền', 'Nợ', 'Có', 'Ghi chú'].join(','),
       ...items.map(item => [
         `"${item.transactionId || ''}"`,
-        `"${item.date ? new Date(item.date).toLocaleDateString('vi-VN') : ''}"`,
+        `"${item.date || ''}"`,
         `"${item.type || ''}"`,
-        `"${item.targetCode || ''} ${item.targetName || ''}"`,
-        `"${item.voucherType || ''} ${item.voucherId || ''}"`,
-        item.revenue || 0,
-        `"${item.accountCode || ''}"`,
-        `"${item.contraAccountCode || ''}"`,
+        `""`,
+        `"${item.voucherId || ''}"`,
+        item.debit || item.credit || 0,
+        `"${item.account || ''}"`,
+        `"${item.contraAccount || ''}"`,
         `"${item.description || ''}"`
       ].join(','))
     ].join('\n');
@@ -309,20 +309,18 @@ export function JournalEntriesPage() {
                   </td>
                   <td>
                     <div className="je-link">{item.transactionId}</div>
-                    <div style={{ color: '#64748b', fontSize: 11 }}>{formatDate(item.date)}</div>
+                    <div style={{ color: '#64748b', fontSize: 11 }}>{item.date || ''}</div>
                   </td>
-                  <td>{item.type}</td>
+                  <td>Bút toán</td>
                   <td className="je-text-left">
-                    <div>{item.targetCode}</div>
-                    {item.targetName && <div className="je-link">{item.targetName}</div>}
+                    <div>{item.account}</div>
                   </td>
                   <td className="je-text-left">
-                    {item.voucherType && `${item.voucherType}: `} 
                     {item.voucherId && <span className="je-link">{item.voucherId}</span>}
                   </td>
-                  <td className="je-text-right">{formatMoney(item.revenue)}</td>
-                  <td>{item.accountCode}</td>
-                  <td>{item.contraAccountCode}</td>
+                  <td className="je-text-right">{formatMoney(item.debit || item.credit)}</td>
+                  <td>{item.account}</td>
+                  <td>{item.contraAccount}</td>
                   <td className="je-text-left">{item.description}</td>
                   <td>
                     <Plus size={14} className="je-plus-icon" />
