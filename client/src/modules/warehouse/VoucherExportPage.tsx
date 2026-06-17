@@ -53,9 +53,9 @@ export function VoucherExportPage() {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
+  const [warehouse, setWarehouse] = useState('');
   const [exportType, setExportType] = useState('Xuất trả hàng');
-  const [supplierCustomer, setSupplierCustomer] = useState('Nhà cung cấp A');
+  const [supplierCustomer, setSupplierCustomer] = useState('');
   const [tags, setTags] = useState('');
   const [note, setNote] = useState('');
   const [showProductNoteAll, setShowProductNoteAll] = useState(false);
@@ -104,7 +104,13 @@ export function VoucherExportPage() {
     fetchProducts();
     http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
-    http.get('/system/branches').then(res => setSysBranches(res.data.items || [])).catch(() => {});
+    http.get('/system/branches').then(res => {
+      const branches = res.data.items || [];
+      setSysBranches(branches);
+      if (branches.length > 0 && !warehouse) {
+        setWarehouse(branches[0].name);
+      }
+    }).catch(() => {});
   }, []);
 
   // Update remainQty when warehouse changes
@@ -340,9 +346,8 @@ export function VoucherExportPage() {
             <label className="form-field">
               <span>Kho hàng *</span>
               <select value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
-                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm</option>
-                <option value="Kho Hà Nội">Kho Hà Nội</option>
-                <option value="Kho HCM">Kho HCM</option>
+                <option value="">-- Chọn kho xuất --</option>
+                {sysBranches.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
               </select>
             </label>
 
