@@ -99,6 +99,7 @@ export async function buildSalePaymentPayload(payload: any) {
       productId: product._id,
       amount,
       value: unitValue,
+      cost: toNumber(product.cost),
       discountValue,
       discountType,
       total,

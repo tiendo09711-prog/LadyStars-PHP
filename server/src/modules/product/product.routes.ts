@@ -459,7 +459,7 @@ router.patch('/refunds/:id', async (req, res) => {
   if (before.status === 'completed') return res.status(422).json({ message: 'Completed refund cannot be edited' });
 
   let item;
-  if (req.body.status === 'completed' && before.status !== 'completed') {
+  if (req.body.status === 'completed') {
     await ProductRefund.findByIdAndUpdate(req.params.id, { note: req.body.note, code: req.body.code });
     item = await completeProductRefund(req.params.id);
   } else {

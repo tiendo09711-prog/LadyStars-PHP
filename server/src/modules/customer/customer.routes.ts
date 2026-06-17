@@ -25,33 +25,9 @@ customerRouter.get('/', (req, res, next) => {
     
     if (tag === 'all') {
       delete req.query.tags;
-    } else if (tag === 'high_value') {
+    } else if (['high_value', 'frequent', 'inactive', 'birthday_high_value'].includes(tag)) {
       delete req.query.tags;
-      (req as any).customFilter = { totalSpent: { $gte: 1000000 } };
-    } else if (tag === 'frequent') {
-      delete req.query.tags;
-      (req as any).customFilter = { purchaseCount: { $gte: 3 } };
-    } else if (tag === 'inactive') {
-      delete req.query.tags;
-      // Inactive: lastPurchaseDate < 30 days ago, or never bought anything
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      (req as any).customFilter = {
-        $or: [
-          { lastPurchaseDate: { $lt: thirtyDaysAgo } },
-          { lastPurchaseDate: null }
-        ]
-      };
-    } else if (tag === 'birthday_high_value') {
-      delete req.query.tags;
-      const currentMonth = new Date().getMonth() + 1; // 1-12
-      // We need to match the month of birthday. In mongo, it's $expr
-      (req as any).customFilter = {
-        totalSpent: { $gte: 1000000 },
-        $expr: {
-          $eq: [{ $month: '$birthday' }, currentMonth]
-        }
-      };
+      (req as any).customFilter = { tags: tag };
     }
   }
   next();
