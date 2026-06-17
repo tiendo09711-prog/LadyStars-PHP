@@ -29,7 +29,7 @@ export function crudController<T>(model: Model<T>) {
   return {
     async list(req: Request, res: Response) {
       const page = Math.max(Number(req.query.page ?? 1), 1);
-      const limit = Math.min(Math.max(Number(req.query.limit ?? 1000), 1), 1000);
+      const limit = Math.min(Math.max(Number(req.query.limit ?? 1000), 1), 5000);
       const q = String(req.query.q ?? '').trim();
       const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
       const sortOrder = req.query.order === 'asc' ? 1 : -1;
