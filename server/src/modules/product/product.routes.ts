@@ -312,11 +312,14 @@ router.use('/batches', crudRoutes(Batch));
 
 router.get('/sales', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
-  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 100);
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 5000);
 
   const filter: any = {};
   if (req.query.code) {
     filter.code = new RegExp(String(req.query.code).trim(), 'i');
+  }
+  if (req.query.status) {
+    filter.status = String(req.query.status).trim();
   }
   if (req.query.customerPhone) {
     const customers = await Customer.find({
@@ -420,10 +423,13 @@ router.delete('/sales/:id', async (req, res) => {
 
 router.get('/refunds', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
-  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 100);
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 5000);
+  const filter: any = {};
+  if (req.query.code) filter.code = new RegExp(String(req.query.code).trim(), 'i');
+  if (req.query.status) filter.status = String(req.query.status).trim();
   const [items, total] = await Promise.all([
-    populateRefund(ProductRefund.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)),
-    ProductRefund.countDocuments(),
+    populateRefund(ProductRefund.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)),
+    ProductRefund.countDocuments(filter),
   ]);
   res.json({ items, total, page, limit });
 });

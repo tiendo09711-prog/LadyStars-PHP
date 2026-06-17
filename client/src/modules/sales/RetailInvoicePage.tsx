@@ -41,7 +41,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   useEffect(() => {
     if (showConfirmModal) {
       setLoadingConfirm(true);
-      http.get('/products/sales?limit=100')
+      http.get('/products/sales?status=payment_confirm_pending&limit=5000')
         .then(res => {
           // Filter completed sales (they've been paid)
           const items = (res.data.items || []).filter((inv: any) => inv.status === 'completed');
@@ -120,7 +120,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             label: 'Tất cả',
             title: 'Hóa đơn bán lẻ - Tất cả',
             subtitle: 'Danh sách tất cả hóa đơn bán lẻ (từ kho thật)',
-            endpoint: `/products/sales?channel=${channel}`,
+            endpoint: `/products/sales?channel=${channel}&limit=5000`,
             icon: <FileSpreadsheet size={24} />,
             primaryActionLabel: 'Thêm hóa đơn lẻ',
             onPrimaryActionClick: () => setShowBranchModal(true),
@@ -169,9 +169,9 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             label: 'Xác nhận thanh toán',
             title: 'Bán lẻ - Xác nhận thanh toán',
             subtitle: 'Danh sách giao dịch chuyển khoản chờ xác nhận',
-            endpoint: `/products/sales?status=completed&channel=${channel}`,
+            endpoint: `/products/sales?status=payment_confirm_pending&channel=${channel}&limit=5000`,
             icon: <WalletCards size={24} />,
-            primaryActionLabel: 'Thêm xác nhận thanh toán',
+            primaryActionLabel: undefined,
             onPrimaryActionClick: () => {
               setConfirmForm({
                 orderId: '',

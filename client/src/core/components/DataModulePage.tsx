@@ -72,13 +72,12 @@ export type DataModulePageProps = {
   actions?: RowAction[];
   customActions?: { label: string; icon?: ReactNode; onClick: (item: Record<string, any>) => void; variant?: string }[];
   onPrimaryActionClick?: () => void;
+  onImportExcel?: () => void;
   bulkActionGroups?: BulkActionGroup[];
   extraHeaderButtons?: ReactNode;
   hideImport?: boolean;
   hideCreate?: boolean;
   hideEdit?: boolean;
-  hidePrimaryActionInDropdown?: boolean;
-  onImportExcel?: () => void;
 };
 
 function getValue(item: Record<string, any>, key: string) {
@@ -119,14 +118,13 @@ export function DataModulePage({
   normalizePayload,
   actions = [],
   onPrimaryActionClick,
+  onImportExcel,
   bulkActionGroups,
   extraHeaderButtons,
   hideImport,
   hideCreate,
   hideEdit,
-  hidePrimaryActionInDropdown = false,
   customActions,
-  onImportExcel,
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -340,21 +338,21 @@ export function DataModulePage({
                       event.stopPropagation();
                       setShowPrimaryDropdown((current) => !current);
                       setShowToolsDropdown(false);
+                      if (onImportExcel) {
+                        onImportExcel();
+                        return;
+                      }
                     }}
                   >
                     <ChevronDown size={16} />
                   </button>
                   {showPrimaryDropdown && (
                     <div className="dropdown-menu primary-action-menu">
-                      {!hidePrimaryActionInDropdown && (
-                        <>
-                          <button className="dropdown-item" type="button" onClick={runPrimaryCreate}>
-                            <Plus size={16} />
-                            <span>{primaryActionLabel}</span>
-                          </button>
-                          <div className="dropdown-separator" />
-                        </>
-                      )}
+                      <button className="dropdown-item" type="button" onClick={runPrimaryCreate}>
+                        <Plus size={16} />
+                        <span>{primaryActionLabel}</span>
+                      </button>
+                      <div className="dropdown-separator" />
                       {primaryActions?.map((action, index) => (
                         <button
                           key={`${action.label}-${index}`}
@@ -402,11 +400,7 @@ export function DataModulePage({
                     type="button"
                     onClick={() => {
                       setShowToolsDropdown(false);
-                      if (onImportExcel) {
-                        onImportExcel();
-                      } else {
-                        alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.');
-                      }
+                      alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.');
                     }}
                   >
                     <FileUp size={16} /> Nhập dữ liệu

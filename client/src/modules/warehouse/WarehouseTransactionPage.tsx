@@ -69,7 +69,7 @@ export function WarehouseTransactionPage() {
           label: 'Phiếu xuất nhập kho',
           title: 'Phiếu xuất nhập kho',
           subtitle: 'Quản lý thông tin phiếu xuất và nhập kho',
-          endpoint: '/warehouse/vouchers',
+          endpoint: '/warehouse/vouchers?limit=5000',
           icon: <ReceiptText size={24} />,
           extraHeaderButtons: (
             <TransactionActionDropdown
@@ -138,7 +138,7 @@ export function WarehouseTransactionPage() {
           label: 'Sản phẩm xuất nhập kho',
           title: 'Sản phẩm xuất nhập kho',
           subtitle: 'Quản lý danh sách chi tiết các mặt hàng xuất nhập kho',
-          endpoint: '/warehouse/products',
+          endpoint: '/warehouse/products?limit=5000',
           icon: <Boxes size={24} />,
           extraHeaderButtons: (
             <TransactionActionDropdown

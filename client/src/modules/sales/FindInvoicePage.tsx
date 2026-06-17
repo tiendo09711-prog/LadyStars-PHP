@@ -63,6 +63,7 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
       if (toDate) params.append('toDate', toDate);
       if (channel) params.append('channel', channel);
       
+      params.set('limit', '5000');
       const response = await http.get(`/products/sales?${params.toString()}`);
       setInvoices(response.data.items ?? []);
     } catch (err: any) {
@@ -90,7 +91,7 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
     // Trigger reloading with empty params
     setTimeout(() => {
       setLoading(true);
-      http.get('/products/sales')
+      http.get(`/products/sales?channel=${channel}&limit=5000`)
         .then(res => setInvoices(res.data.items ?? []))
         .catch(err => setError('Không thể tải dữ liệu hóa đơn.'))
         .finally(() => setLoading(false));
