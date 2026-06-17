@@ -61,6 +61,7 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
       if (customerPhone.trim()) params.append('customerPhone', customerPhone.trim());
       if (fromDate) params.append('fromDate', fromDate);
       if (toDate) params.append('toDate', toDate);
+      if (channel) params.append('channel', channel);
       
       const response = await http.get(`/products/sales?${params.toString()}`);
       setInvoices(response.data.items ?? []);

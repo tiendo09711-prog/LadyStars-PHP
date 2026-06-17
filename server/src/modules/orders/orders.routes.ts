@@ -11,6 +11,11 @@ import {
   OrderHistory,
 } from './orders.models.js';
 import { Product } from '../product/product.models.js';
+import multer from 'multer';
+import xlsx from 'xlsx';
+import fs from 'fs';
+
+const upload = multer({ dest: 'uploads/' });
 
 const router = Router();
 
@@ -76,6 +81,115 @@ router.post('/packaging/:id/pack', async (req, res) => {
     res.json({ success: true, order, isFullyScanned: markAsPacked });
   } catch (err: any) {
     res.status(500).json({ message: err.message || 'Lỗi server' });
+  }
+});
+
+router.post('/manage/import', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn file' });
+    }
+
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+
+    const rows = data.slice(6) as any[];
+    let successCount = 0;
+    const userId = (req as any).user?.sub;
+
+    let currentOrder: any = null;
+    const ordersToSave: any[] = [];
+
+    for (const row of rows) {
+      if (!Array.isArray(row) || row.length === 0) continue;
+
+      const customerName = row[0];
+      const customerPhone = row[1];
+      const sku = row[6];
+      const quantity = Number(row[7]) || 1;
+      const price = Number(row[8]) || 0;
+
+      if (!customerName && !customerPhone) {
+        if (currentOrder && sku) {
+          currentOrder.products.push({
+            productId: null,
+            sku: sku,
+            productName: sku,
+            quantity: quantity,
+            scannedQuantity: 0,
+            _price: price
+          });
+        }
+        continue;
+      }
+
+      const addressPart1 = row[2] || '';
+      const addressPart2 = row[3] || '';
+      const addressPart3 = row[4] || '';
+      const shippingAddress = [addressPart1, addressPart2, addressPart3].filter(Boolean).join(' - ');
+
+      const transferMoney = Number(row[9]) || 0;
+      const discount = Number(row[10]) || 0;
+      const codAmount = Number(row[11]) || 0;
+      const paymentMethod = transferMoney > 0 ? 'Chuyển khoản' : 'COD';
+      const note = [row[12], row[13]].filter(Boolean).join(' | ');
+
+      currentOrder = new Order({
+        orderCode: `ORD-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
+        customerName: customerName || 'Khách lẻ',
+        customerPhone: customerPhone || '',
+        shippingAddress,
+        paymentMethod,
+        status: 'Cần xử lí',
+        deliveryStatus: 'Chờ lấy hàng',
+        note,
+        codAmount,
+        userId,
+        products: []
+      });
+
+      if (sku) {
+        currentOrder.products.push({
+          productId: null,
+          sku: sku,
+          productName: sku,
+          quantity: quantity,
+          scannedQuantity: 0,
+          _price: price
+        });
+      }
+
+      ordersToSave.push(currentOrder);
+    }
+
+    for (const order of ordersToSave) {
+      let total = 0;
+      for (const p of order.products) {
+        if (p.sku) {
+          const prod = await Product.findOne({ code: p.sku });
+          if (prod) {
+            p.productId = prod._id;
+            p.productName = prod.name;
+            if (!p._price) p._price = (prod as any).price || 0;
+          }
+        }
+        total += p.quantity * (p._price || 0);
+      }
+      order.totalAmount = total;
+      
+      await order.save();
+      successCount++;
+    }
+
+    fs.unlinkSync(req.file.path);
+    return res.json({ success: true, message: `Đã nhập thành công ${successCount} đơn hàng!` });
+  } catch (err: any) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ success: false, message: err.message || 'Lỗi server khi nhập file' });
   }
 });
 

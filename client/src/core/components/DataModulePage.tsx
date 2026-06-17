@@ -78,6 +78,7 @@ export type DataModulePageProps = {
   hideCreate?: boolean;
   hideEdit?: boolean;
   hidePrimaryActionInDropdown?: boolean;
+  onImportExcel?: () => void;
 };
 
 function getValue(item: Record<string, any>, key: string) {
@@ -125,6 +126,7 @@ export function DataModulePage({
   hideEdit,
   hidePrimaryActionInDropdown = false,
   customActions,
+  onImportExcel,
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -400,7 +402,11 @@ export function DataModulePage({
                     type="button"
                     onClick={() => {
                       setShowToolsDropdown(false);
-                      alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.');
+                      if (onImportExcel) {
+                        onImportExcel();
+                      } else {
+                        alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.');
+                      }
                     }}
                   >
                     <FileUp size={16} /> Nhập dữ liệu

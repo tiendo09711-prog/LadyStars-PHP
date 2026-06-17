@@ -120,7 +120,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             label: 'Tất cả',
             title: 'Hóa đơn bán lẻ - Tất cả',
             subtitle: 'Danh sách tất cả hóa đơn bán lẻ (từ kho thật)',
-            endpoint: '/products/sales',
+            endpoint: `/products/sales?channel=${channel}`,
             icon: <FileSpreadsheet size={24} />,
             primaryActionLabel: 'Thêm hóa đơn lẻ',
             onPrimaryActionClick: () => setShowBranchModal(true),
@@ -152,6 +152,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               status: 'draft',
             },
             hideEdit: true,
+            hideImport: true,
             customActions: [
               {
                 label: 'Trả hàng - Đổi hàng',
@@ -168,7 +169,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             label: 'Xác nhận thanh toán',
             title: 'Bán lẻ - Xác nhận thanh toán',
             subtitle: 'Danh sách giao dịch chuyển khoản chờ xác nhận',
-            endpoint: '/products/sales?status=completed',
+            endpoint: `/products/sales?status=completed&channel=${channel}`,
             icon: <WalletCards size={24} />,
             primaryActionLabel: 'Thêm xác nhận thanh toán',
             onPrimaryActionClick: () => {
@@ -219,6 +220,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               transactionContent: '',
               confirmedBy: '',
             },
+            hideImport: true,
           },
         ]}
       />
