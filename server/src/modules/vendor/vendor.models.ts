@@ -54,7 +54,7 @@ const PurchaseItemSchema = new Schema({
   note: String,
 }, { _id: false });
 
-export const VendorPurchase = model('VendorPurchase', new Schema({
+const VendorPurchaseSchema = new Schema({
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
   code: { type: String, required: true, unique: true },
@@ -69,7 +69,10 @@ export const VendorPurchase = model('VendorPurchase', new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
   items: [PurchaseItemSchema],
-}, { timestamps: true }));
+}, { timestamps: true });
+VendorPurchaseSchema.index({ createdAt: -1, status: 1 });
+VendorPurchaseSchema.index({ vendorId: 1, createdAt: -1 });
+export const VendorPurchase = model('VendorPurchase', VendorPurchaseSchema);
 
 export const VendorRefund = model('VendorRefund', new Schema({
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },

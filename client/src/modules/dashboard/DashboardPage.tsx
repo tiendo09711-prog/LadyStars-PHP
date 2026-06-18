@@ -135,6 +135,7 @@ export function DashboardPage() {
   const [dailyLoading, setDailyLoading] = useState(false);
 
   const storeMenuRef = useRef<HTMLDivElement | null>(null);
+  const forceRefreshRef = useRef(false);
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -148,34 +149,55 @@ export function DashboardPage() {
 
   useEffect(() => {
     let active = true;
-    const params = new URLSearchParams();
-    if (selectedStores.length) params.set('stores', selectedStores.join(','));
-    params.set('date', dateRange);
-    params.set('chartRange', chartRange);
-    params.set('orderRange', orderRange);
-    params.set('topRange', topRange);
-    params.set('topLimit', String(topLimit));
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      const params = new URLSearchParams();
+      if (selectedStores.length) params.set('stores', selectedStores.join(','));
+      params.set('date', dateRange);
+      params.set('chartRange', chartRange);
+      params.set('orderRange', orderRange);
+      params.set('topRange', topRange);
+      params.set('topLimit', String(topLimit));
+      if (forceRefreshRef.current) {
+        params.set('refresh', String(Date.now()));
+        forceRefreshRef.current = false;
+      }
 
-    setLoading(true);
-    setError('');
-    http.get(`/dashboard?${params.toString()}`)
-      .then((response) => {
-        if (!active) return;
-        setData(response.data);
-        setLastUpdated(new Date());
-      })
-      .catch((err: any) => {
-        if (!active) return;
-        setError(err.response?.data?.message ?? 'Không thể tải dữ liệu tổng quan.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      setLoading(true);
+      setError('');
+      http.get(`/dashboard?${params.toString()}`, { signal: controller.signal })
+        .then((response) => {
+          if (!active) return;
+          setData(response.data);
+          setLastUpdated(new Date());
+        })
+        .catch((err: any) => {
+          if (!active || err.code === 'ERR_CANCELED') return;
+          setError(err.response?.data?.message ?? 'Không thể tải dữ liệu tổng quan.');
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 250);
 
     return () => {
       active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
     };
   }, [selectedStores, dateRange, chartRange, orderRange, topRange, topLimit, refreshKey]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setRefreshKey((value) => value + 1);
+    }, 15_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const refreshDashboard = () => {
+    forceRefreshRef.current = true;
+    setRefreshKey((value) => value + 1);
+  };
 
   const stores = data?.availableStores ?? [];
   const salesChannels = data?.salesChannels ?? [];
@@ -249,7 +271,7 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="dv-hero-buttons">
-            <button type="button" className="dv-ghost-button" onClick={() => setRefreshKey((value) => value + 1)} data-testid="refresh-dashboard"><RefreshCcw size={16} /> Làm mới</button>
+            <button type="button" className="dv-ghost-button" onClick={refreshDashboard} data-testid="refresh-dashboard"><RefreshCcw size={16} /> Làm mới</button>
             <button type="button" className="dv-primary-button" onClick={() => { setTempColumns(columns); setShowColumns(true); }} data-testid="display-settings-button"><Settings2 size={16} /> Hiển thị</button>
           </div>
         </div>

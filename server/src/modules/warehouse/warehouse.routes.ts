@@ -49,7 +49,7 @@ async function distinctValues(Model: any, fields: string[]) {
 
 async function listRecords(Model: any, filter: any, req: any, sortField = 'dateObj') {
   const page = Math.max(Number(req.query.page || 1), 1);
-  const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+  const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
   const [items, total] = await Promise.all([
     Model.find(filter).sort({ [sortField]: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     Model.countDocuments(filter),

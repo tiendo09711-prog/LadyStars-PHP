@@ -18,7 +18,7 @@ export function InventoryList() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
-  const limit = 20;
+  const limit = 15;
 
   const load = async () => {
     setLoading(true);

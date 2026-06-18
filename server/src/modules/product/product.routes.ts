@@ -323,7 +323,7 @@ router.use('/batches', crudRoutes(Batch));
 
 router.get('/sales', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
-  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 5000);
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
 
   const filter: any = {};
   if (req.query.code) {
@@ -434,7 +434,7 @@ router.delete('/sales/:id', async (req, res) => {
 
 router.get('/refunds', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
-  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 5000);
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
   const filter: any = {};
   if (req.query.code) filter.code = new RegExp(String(req.query.code).trim(), 'i');
   if (req.query.status) filter.status = String(req.query.status).trim();
@@ -510,7 +510,7 @@ router.post('/stock-adjustments/:id/complete', async (req, res) => {
 router.get('/storage-duration', async (req, res) => {
   try {
     const page = Math.max(Number(req.query.page ?? 1), 1);
-    const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 100);
     const q = req.query.q ? String(req.query.q).trim() : '';
     const categoryId = req.query.categoryId ? String(req.query.categoryId) : '';
     const trademarkId = req.query.trademarkId ? String(req.query.trademarkId) : '';
@@ -804,7 +804,7 @@ router.get('/storage-duration', async (req, res) => {
 router.get('/inventories', async (req, res) => {
   try {
     const page = Math.max(Number(req.query.page ?? 1), 1);
-    const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 5000);
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
     const q = req.query.q ? String(req.query.q).trim() : '';
     const branchId = req.query.branchId ? String(req.query.branchId).trim() : '';
     const categoryId = req.query.categoryId ? String(req.query.categoryId).trim() : '';
@@ -940,7 +940,7 @@ router.get('/inventories', async (req, res) => {
 router.get('/edit-logs', async (req, res) => {
   try {
     const page = Math.max(Number(req.query.page ?? 1), 1);
-    const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 100);
     const q = req.query.q ? String(req.query.q).trim() : '';
     const logType = req.query.logType ? String(req.query.logType).trim() : '';
     const logAction = req.query.logAction ? String(req.query.logAction).trim() : '';

@@ -5,7 +5,7 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
-  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 200);
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 200);
   const filter: Record<string, unknown> = {};
 
   if (req.query.userId) filter.userId = req.query.userId;

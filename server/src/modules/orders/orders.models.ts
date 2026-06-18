@@ -37,6 +37,8 @@ const OrderSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 OrderSchema.index({ orderCode: 'text', customerName: 'text', customerPhone: 'text' });
+OrderSchema.index({ createdAt: -1, source: 1, status: 1 });
+OrderSchema.index({ warehouse: 1, createdAt: -1, status: 1 });
 export const Order = model('Order', OrderSchema);
 
 // 2. Đơn trùng (Chỉ giữ lại, có thể refactor liên kết sau nếu cần)

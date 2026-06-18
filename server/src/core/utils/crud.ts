@@ -1,6 +1,7 @@
 import mongoose, { Model } from 'mongoose';
 import type { Request, Response } from 'express';
 import { writeAuditLog } from '../audit/audit.service.js';
+import { cacheKey, deleteCachePrefix, getCachedJson, setCachedJson } from '../cache/cache.js';
 
 function cleanPayload(value: any): any {
   if (Array.isArray(value)) return value.map(cleanPayload);
@@ -12,6 +13,7 @@ function cleanPayload(value: any): any {
 
 export function crudController<T>(model: Model<T>) {
   const modelName = model.modelName;
+  const listCachePrefix = `crud:${modelName}:list`;
   const hasPath = (path: string) => Boolean(model.schema.path(path));
   const withUserFields = (req: Request, payload: Record<string, any>, isCreate: boolean) => {
     const userId = (req as any).user?.sub;
@@ -29,7 +31,7 @@ export function crudController<T>(model: Model<T>) {
   return {
     async list(req: Request, res: Response) {
       const page = Math.max(Number(req.query.page ?? 1), 1);
-      const limit = Math.min(Math.max(Number(req.query.limit ?? 1000), 1), 5000);
+      const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
       const q = String(req.query.q ?? '').trim();
       const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
       const sortOrder = req.query.order === 'asc' ? 1 : -1;
@@ -60,11 +62,32 @@ export function crudController<T>(model: Model<T>) {
         }
       }
 
+      const shouldCache = limit <= 100;
+      const key = cacheKey(listCachePrefix, {
+        page,
+        limit,
+        q,
+        sortField,
+        sortOrder,
+        query: req.query,
+        customFilter: (req as any).customFilter || {},
+      });
+      if (shouldCache) {
+        const cached = await getCachedJson<Record<string, unknown>>(key);
+        if (cached) {
+          res.setHeader('X-Cache', 'HIT');
+          return res.json(cached);
+        }
+      }
+
       const [items, total] = await Promise.all([
         model.find(filter).sort({ [sortField]: sortOrder }).skip((page - 1) * limit).limit(limit),
         model.countDocuments(filter),
       ]);
-      res.json({ items, total, page, limit });
+      const payload = { items, total, page, limit };
+      if (shouldCache) await setCachedJson(key, payload, 10);
+      res.setHeader('X-Cache', 'MISS');
+      res.json(payload);
     },
 
     async detail(req: Request, res: Response) {
@@ -81,6 +104,7 @@ export function crudController<T>(model: Model<T>) {
         resourceId: (item as any).id,
         after: item,
       });
+      await deleteCachePrefix(listCachePrefix);
       res.status(201).json(item);
     },
     async update(req: Request, res: Response) {
@@ -95,6 +119,7 @@ export function crudController<T>(model: Model<T>) {
         before,
         after: item,
       });
+      await deleteCachePrefix(listCachePrefix);
       res.json(item);
     },
     async remove(req: Request, res: Response) {
@@ -107,6 +132,7 @@ export function crudController<T>(model: Model<T>) {
         resourceId: (item as any).id,
         before: item,
       });
+      await deleteCachePrefix(listCachePrefix);
       res.status(204).send();
     },
   };

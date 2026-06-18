@@ -591,7 +591,7 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 20;
+  const limit = 15;
 
   const [detailItem, setDetailItem] = useState<IProduct | null>(null);
   const [editItem, setEditItem] = useState<IProduct | null | undefined>(undefined);

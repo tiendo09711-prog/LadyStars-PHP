@@ -51,7 +51,7 @@ export function ProductHistory() {
   const [total, setTotal] = useState(0);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const limit = 20;
+  const limit = 15;
 
   const exportColumns: ColumnOption[] = useMemo(
     () => [

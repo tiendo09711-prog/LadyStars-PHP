@@ -118,7 +118,14 @@ const InventoryCheckProductSchema = new Schema({
   description: String,
 }, { timestamps: true, strict: false });
 
-InventoryCheckProductSchema.index({ productName: 'text', warehouse: 'text' });
+InventoryCheckProductSchema.index({ externalId: 1, sourceView: 1 });
+InventoryCheckProductSchema.index({
+  externalId: 'text',
+  productCode: 'text',
+  barcode: 'text',
+  productName: 'text',
+  branchName: 'text',
+});
 export const InventoryCheckProduct = model('InventoryCheckProduct', InventoryCheckProductSchema);
 
 const WarehouseDraftVoucherSchema = new Schema({

@@ -16,6 +16,9 @@ import {
   X,
 } from 'lucide-react';
 import { http } from '../api/http';
+import { Pagination } from './Pagination';
+
+const DEFAULT_PAGE_SIZE = 15;
 
 export type DataField = {
   key: string;
@@ -127,8 +130,11 @@ export function DataModulePage({
   customActions,
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -155,41 +161,52 @@ export function DataModulePage({
     return () => window.removeEventListener('click', handleClose);
   }, [showPrimaryDropdown, showToolsDropdown, rowActionOpen]);
 
-  const load = async () => {
+  const load = async (signal?: AbortSignal) => {
     setLoading(true);
     setError('');
     try {
-      const response = await http.get(endpoint);
+      const [path, rawQuery = ''] = endpoint.split('?');
+      const params = new URLSearchParams(rawQuery);
+      params.set('page', String(page));
+      params.set('limit', String(DEFAULT_PAGE_SIZE));
+      if (appliedSearch) params.set('q', appliedSearch);
+      else params.delete('q');
+      if (quickFilter) params.set('status', quickFilter);
+      else params.delete('status');
+      const response = await http.get(`${path}?${params.toString()}`, { signal });
       const responseItems = Array.isArray(response.data) ? response.data : response.data.items ?? [];
       setItems(responseItems);
+      setTotal(Array.isArray(response.data) ? responseItems.length : Number(response.data.total ?? responseItems.length));
       setSelectedIds(new Set());
     } catch (err: any) {
+      if (err.code === 'ERR_CANCELED') return;
       setError(err.response?.data?.message ?? 'Không tải được dữ liệu.');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
-  }, [endpoint]);
+    const timeout = window.setTimeout(() => {
+      setPage(1);
+      setAppliedSearch(search.trim());
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [endpoint, quickFilter]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [endpoint, page, appliedSearch, quickFilter]);
 
   const filteredItems = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter((item) => {
-      const textMatch = q
-        ? fields.some((field) => String(getValue(item, field.key) ?? '').toLowerCase().includes(q))
-        : true;
-      const quickMatch = quickFilter
-        ? Object.values(item).some((value) => {
-            const strVal = String(value).toLowerCase();
-            const filterVals = quickFilter.toLowerCase().split(',');
-            return filterVals.some((fv) => strVal === fv.trim());
-          })
-        : true;
-      return textMatch && quickMatch;
-    });
-  }, [fields, items, quickFilter, search]);
+    return items;
+  }, [items]);
 
   useEffect(() => {
     setSelectedIds((current) => {
@@ -388,7 +405,7 @@ export function DataModulePage({
             </button>
             {showToolsDropdown && (
               <div className="dropdown-menu tools-menu">
-                <button className="dropdown-item" type="button" onClick={load}>
+                <button className="dropdown-item" type="button" onClick={() => void load()}>
                   <RefreshCw size={16} /> Làm mới
                 </button>
                 <button className="dropdown-item" type="button" onClick={exportCsv}>
@@ -454,7 +471,7 @@ export function DataModulePage({
             <div>
               <h2>{title}</h2>
               <div className="data-card-meta">
-                <span className="record-badge">{filteredItems.length} bản ghi</span>
+                <span className="record-badge">{total} bản ghi</span>
                 {selectedIds.size > 0 && <span className="selected-badge">{selectedIds.size} đã chọn</span>}
               </div>
             </div>
@@ -464,7 +481,7 @@ export function DataModulePage({
             <div className="data-alert" role="alert">
               <AlertCircle size={17} />
               <span>{error}</span>
-              <button type="button" onClick={load}>Thử lại</button>
+              <button type="button" onClick={() => void load()}>Thử lại</button>
             </div>
           )}
 
@@ -599,6 +616,7 @@ export function DataModulePage({
               </tbody>
             </table>
           </div>
+          <Pagination page={page} total={total} limit={DEFAULT_PAGE_SIZE} onPageChange={setPage} />
         </section>
       </div>
 
