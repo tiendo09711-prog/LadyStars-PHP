@@ -44,6 +44,18 @@ export const productApi = {
     const response = await http.get<PaginatedResponse<ICategory>>('/products/categories', { params });
     return response.data;
   },
+  createCategory: async (data: Partial<ICategory> & { [key: string]: any }) => {
+    const response = await http.post<ICategory>('/products/categories', data);
+    return response.data;
+  },
+  updateCategory: async (id: string, data: Partial<ICategory> & { [key: string]: any }) => {
+    const response = await http.patch<ICategory>(`/products/categories/${id}`, data);
+    return response.data;
+  },
+  deleteCategory: async (id: string) => {
+    const response = await http.delete(`/products/categories/${id}`);
+    return response.data;
+  },
 
   // Note: Backend might not have exact endpoints for inventories and logs matching these formats perfectly,
   // but we build the interface as requested and target logical endpoint names. 
