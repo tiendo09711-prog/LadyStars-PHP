@@ -8,6 +8,19 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
+export interface ProductWarehouseStock {
+  _id: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode?: string;
+  quantity: number;
+}
+
+export interface ProductSavePayload extends Partial<IProduct> {
+  initialStocks?: Array<{ warehouseId: string; quantity: number }>;
+  stockAdjustment?: { warehouseId: string; quantity: number };
+}
+
 export const productApi = {
   getProducts: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IProduct>>('/products/products', { params });
@@ -19,14 +32,20 @@ export const productApi = {
     return response.data;
   },
 
-  createProduct: async (data: Partial<IProduct>) => {
-    const { qty: _qty, availableStock: _availableStock, ...payload } = data;
+  createProduct: async (data: ProductSavePayload) => {
+    const { qty: _qty, availableStock: _availableStock, trademarkName: _trademarkName, supplierName: _supplierName, ...payload } = data;
     const response = await http.post<IProduct>('/products/products', payload);
     return response.data;
   },
 
-  updateProduct: async (id: string, data: Partial<IProduct>) => {
-    const response = await http.patch<IProduct>(`/products/products/${id}`, data);
+  updateProduct: async (id: string, data: ProductSavePayload) => {
+    const { qty: _qty, availableStock: _availableStock, trademarkName: _trademarkName, supplierName: _supplierName, initialStocks: _initialStocks, ...payload } = data;
+    const response = await http.patch<IProduct>(`/products/products/${id}`, payload);
+    return response.data;
+  },
+
+  getProductStocks: async (id: string) => {
+    const response = await http.get<{ items: ProductWarehouseStock[]; totalQuantity: number }>(`/products/products/${id}/stocks`);
     return response.data;
   },
 

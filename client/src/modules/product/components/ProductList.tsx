@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   ArrowDown,
   ArrowUp,
@@ -25,8 +24,19 @@ import {
   UploadCloud,
   X,
 } from 'lucide-react';
+import {
+  code128 as renderCode128,
+  code39 as renderCode39,
+  drawingSVG,
+  ean13 as renderEan13,
+  qrcode as renderQrCode,
+} from '@bwip-js/generic';
 import * as XLSX from 'xlsx';
-import { productApi } from '../../../core/api/product.api';
+import {
+  productApi,
+  type ProductSavePayload,
+  type ProductWarehouseStock,
+} from '../../../core/api/product.api';
 import { http } from '../../../core/api/http';
 import { Pagination } from '../../../core/components/Pagination';
 import type { ICategory, IProduct } from '../../../types/product.type';
@@ -34,6 +44,15 @@ import { ExportExcelModal, type ColumnOption } from './ExportExcelModal';
 
 function formatMoney(value?: number) {
   return `${Number(value || 0).toLocaleString('vi-VN')} đ`;
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function getStatusClass(status?: string) {
@@ -48,6 +67,7 @@ interface BranchOption {
   name: string;
   code?: string;
   isDefault?: boolean;
+  isActive?: boolean;
 }
 
 type BarcodeType = 'EAN13' | 'C128' | 'C39' | 'C128A' | 'QRCODE';
@@ -81,59 +101,8 @@ const PAPER_TEMPLATES: PaperTemplate[] = [
   { id: 'a4-48', title: 'Mẫu giấy 48 nhãn', size: 'Khổ A4, Tomy 132, 45.7mm x 21.2mm', widthMm: 210, heightMm: 297, columns: 4, rows: 12, previewClass: 'sheet' },
 ];
 
-const CODE39_PATTERNS: Record<string, string> = {
-  '0': 'nnnwwnwnn', '1': 'wnnwnnnnw', '2': 'nnwwnnnnw', '3': 'wnwwnnnnn', '4': 'nnnwwnnnw',
-  '5': 'wnnwwnnnn', '6': 'nnwwwnnnn', '7': 'nnnwnnwnw', '8': 'wnnwnnwnn', '9': 'nnwwnnwnn',
-  A: 'wnnnnwnnw', B: 'nnwnnwnnw', C: 'wnwnnwnnn', D: 'nnnnwwnnw', E: 'wnnnwwnnn',
-  F: 'nnwnwwnnn', G: 'nnnnnwwnw', H: 'wnnnnwwnn', I: 'nnwnnwwnn', J: 'nnnnwwwnn',
-  K: 'wnnnnnnww', L: 'nnwnnnnww', M: 'wnwnnnnwn', N: 'nnnnwnnww', O: 'wnnnwnnwn',
-  P: 'nnwnwnnwn', Q: 'nnnnnnwww', R: 'wnnnnnwwn', S: 'nnwnnnwwn', T: 'nnnnwnwwn',
-  U: 'wwnnnnnnw', V: 'nwwnnnnnw', W: 'wwwnnnnnn', X: 'nwnnwnnnw', Y: 'wwnnwnnnn',
-  Z: 'nwwnwnnnn', '-': 'nwnnnnwnw', '.': 'wwnnnnwnn', ' ': 'nwwnnnwnn', '*': 'nwnnwnwnn',
-  '$': 'nwnwnwnnn', '/': 'nwnwnnnwn', '+': 'nwnnnwnwn', '%': 'nnnwnwnwn',
-};
-
 function normalizeBarcodeValue(product: IProduct) {
   return String(product.barcode || product.code || product._id || '').trim();
-}
-
-function buildCode39Svg(value: string, height = 42) {
-  const encoded = `*${value.toUpperCase().replace(/[^0-9A-Z .\-/$+%]/g, '-')}*`;
-  let x = 0;
-  const bars: string[] = [];
-
-  encoded.split('').forEach((char) => {
-    const pattern = CODE39_PATTERNS[char] || CODE39_PATTERNS['-'];
-    pattern.split('').forEach((widthFlag, index) => {
-      const width = widthFlag === 'w' ? 3 : 1;
-      if (index % 2 === 0) {
-        bars.push(`<rect x="${x}" y="0" width="${width}" height="${height}" />`);
-      }
-      x += width;
-    });
-    x += 1;
-  });
-
-  return `<svg class="barcode-svg" viewBox="0 0 ${x} ${height}" preserveAspectRatio="none" role="img">${bars.join('')}</svg>`;
-}
-
-function buildQrLikeSvg(value: string) {
-  const size = 21;
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-
-  const cells: string[] = [];
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const finder = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13);
-      const dark = finder ? x === 0 || y === 0 || x === 6 || y === 6 || (x > 1 && x < 5 && y > 1 && y < 5) : ((x * 17 + y * 23 + hash) % 5) < 2;
-      if (dark) cells.push(`<rect x="${x}" y="${y}" width="1" height="1" />`);
-    }
-  }
-
-  return `<svg class="barcode-svg qr" viewBox="0 0 ${size} ${size}" preserveAspectRatio="xMidYMid meet" role="img">${cells.join('')}</svg>`;
 }
 
 function computeEan13CheckDigit(value: string) {
@@ -142,48 +111,62 @@ function computeEan13CheckDigit(value: string) {
   return String((10 - (sum % 10)) % 10);
 }
 
-function buildEan13Svg(value: string, height = 42) {
-  const numeric = value.replace(/\D/g, '');
-  if (numeric.length < 12) return buildCode39Svg(value, height);
-
-  const base = numeric.slice(0, 12);
-  const ean = numeric.length >= 13 ? numeric.slice(0, 13) : `${base}${computeEan13CheckDigit(base)}`;
-  const leftOdd: Record<string, string> = {
-    '0': '0001101', '1': '0011001', '2': '0010011', '3': '0111101', '4': '0100011',
-    '5': '0110001', '6': '0101111', '7': '0111011', '8': '0110111', '9': '0001011',
-  };
-  const leftEven: Record<string, string> = {
-    '0': '0100111', '1': '0110011', '2': '0011011', '3': '0100001', '4': '0011101',
-    '5': '0111001', '6': '0000101', '7': '0010001', '8': '0001001', '9': '0010111',
-  };
-  const right: Record<string, string> = {
-    '0': '1110010', '1': '1100110', '2': '1101100', '3': '1000010', '4': '1011100',
-    '5': '1001110', '6': '1010000', '7': '1000100', '8': '1001000', '9': '1110100',
-  };
-  const parity: Record<string, string> = {
-    '0': 'OOOOOO', '1': 'OOEOEE', '2': 'OOEEOE', '3': 'OOEEEO', '4': 'OEOOEE',
-    '5': 'OEEOOE', '6': 'OEEEOO', '7': 'OEOEOE', '8': 'OEOEEO', '9': 'OEEOEO',
-  };
-
-  let pattern = '101';
-  const leftParity = parity[ean[0]] || parity['0'];
-  for (let index = 1; index <= 6; index += 1) {
-    pattern += leftParity[index - 1] === 'O' ? leftOdd[ean[index]] : leftEven[ean[index]];
-  }
-  pattern += '01010';
-  for (let index = 7; index <= 12; index += 1) {
-    pattern += right[ean[index]];
-  }
-  pattern += '101';
-
-  const bars = pattern.split('').map((bit, index) => bit === '1' ? `<rect x="${index}" y="0" width="1" height="${height}" />` : '').join('');
-  return `<svg class="barcode-svg" viewBox="0 0 ${pattern.length} ${height}" preserveAspectRatio="none" role="img">${bars}</svg>`;
+function decorateBarcodeSvg(svg: string, type: BarcodeType, standard: string, value: string) {
+  const classes = type === 'QRCODE' ? 'barcode-svg qr' : 'barcode-svg';
+  return svg.replace(
+    '<svg ',
+    `<svg class="${classes}" data-barcode-type="${type}" data-barcode-standard="${standard}" role="img" aria-label="${escapeHtml(`${type}: ${value}`)}" `,
+  );
 }
 
 function buildBarcodeSvg(value: string, type: BarcodeType) {
-  if (type === 'QRCODE') return buildQrLikeSvg(value);
-  if (type === 'EAN13') return buildEan13Svg(value || '0');
-  return buildCode39Svg(value || '0');
+  const text = value.trim() || '0';
+
+  try {
+    if (type === 'QRCODE') {
+      const svg = renderQrCode(
+        { bcid: 'qrcode', text, scale: 2, paddingwidth: 2, paddingheight: 2 },
+        drawingSVG(),
+      );
+      return decorateBarcodeSvg(svg, type, 'qrcode', text);
+    }
+
+    if (type === 'EAN13') {
+      const numeric = text.replace(/\D/g, '');
+      if (numeric.length >= 12) {
+        const base = numeric.slice(0, 12);
+        const ean = `${base}${computeEan13CheckDigit(base)}`;
+        const svg = renderEan13(
+          { bcid: 'ean13', text: ean, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
+          drawingSVG(),
+        );
+        return decorateBarcodeSvg(svg, type, 'ean13', ean);
+      }
+    }
+
+    if (type === 'C39') {
+      const code39Text = text.toUpperCase().replace(/[^0-9A-Z .\-/$+%]/g, '-');
+      const svg = renderCode39(
+        { bcid: 'code39', text: code39Text, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
+        drawingSVG(),
+      );
+      return decorateBarcodeSvg(svg, type, 'code39', code39Text);
+    }
+
+    const svg = renderCode128(
+      { bcid: 'code128', text, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
+      drawingSVG(),
+    );
+    return decorateBarcodeSvg(svg, type, 'code128', text);
+  } catch (error) {
+    console.error(`Không thể tạo mã ${type}:`, error);
+    const fallbackText = text.replace(/[^\x20-\x7E]/g, '?') || '0';
+    const svg = renderCode128(
+      { bcid: 'code128', text: fallbackText, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
+      drawingSVG(),
+    );
+    return decorateBarcodeSvg(svg, type, 'code128-fallback', fallbackText);
+  }
 }
 
 function BarcodeSvg({ value, type }: { value: string; type: BarcodeType }) {
@@ -315,17 +298,28 @@ function DetailModal({ product, onClose }: { product: IProduct; onClose: () => v
 
 interface ProductFormProps {
   product?: IProduct | null;
-  onSave: (data: Partial<IProduct>) => void;
+  onSave: (data: ProductSavePayload) => void;
   onClose: () => void;
   saving: boolean;
   error?: string;
 }
 
 function ProductForm({ product, onSave, onClose, saving, error }: ProductFormProps) {
-  const navigate = useNavigate();
   const isEdit = Boolean(product);
   const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'product', status: 'Mới' });
   const [categories, setCategories] = useState<ICategory[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(true);
+  const [createOnMultipleWarehouses, setCreateOnMultipleWarehouses] = useState(false);
+  const [singleWarehouseId, setSingleWarehouseId] = useState('');
+  const [singleQuantity, setSingleQuantity] = useState('0');
+  const [warehouseQuantities, setWarehouseQuantities] = useState<Record<string, string>>({});
+  const [productStocks, setProductStocks] = useState<ProductWarehouseStock[]>([]);
+  const [loadingStocks, setLoadingStocks] = useState(isEdit);
+  const [selectedStockWarehouseId, setSelectedStockWarehouseId] = useState('');
+  const [stockQuantity, setStockQuantity] = useState('');
+  const [initialStockQuantity, setInitialStockQuantity] = useState<number | null>(null);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -346,8 +340,113 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    setLoadingBranches(true);
+    http
+      .get('/system/branches', { params: { limit: 1000 } })
+      .then((response) => {
+        if (!mounted) return;
+        const activeBranches: BranchOption[] = (response.data?.items || [])
+          .filter((branch: BranchOption) => branch.isActive !== false);
+        setBranches(activeBranches);
+        setWarehouseQuantities(Object.fromEntries(activeBranches.map((branch) => [branch._id, '0'])));
+        if (!isEdit) {
+          const defaultBranch = activeBranches.find((branch) => branch.isDefault) || activeBranches[0];
+          setSingleWarehouseId(defaultBranch?._id || '');
+        }
+      })
+      .catch((loadError) => {
+        console.error('Lỗi tải kho hàng:', loadError);
+        if (mounted) setFormError('Không tải được danh sách kho hàng.');
+      })
+      .finally(() => {
+        if (mounted) setLoadingBranches(false);
+      });
+
+    if (product?._id) {
+      setLoadingStocks(true);
+      productApi
+        .getProductStocks(product._id)
+        .then((response) => {
+          if (mounted) setProductStocks(response.items || []);
+        })
+        .catch((loadError) => {
+          console.error('Lỗi tải tồn kho sản phẩm:', loadError);
+          if (mounted) setFormError('Không tải được tồn kho theo kho hàng.');
+        })
+        .finally(() => {
+          if (mounted) setLoadingStocks(false);
+        });
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [isEdit, product?._id]);
+
   const updateField = (key: keyof IProduct, value: string | number) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const isValidQuantity = (value: string) => /^\d+$/.test(value);
+
+  const handleStockWarehouseChange = (warehouseId: string) => {
+    const stock = productStocks.find((item) => item.warehouseId === warehouseId);
+    setSelectedStockWarehouseId(warehouseId);
+    setStockQuantity(stock ? String(stock.quantity) : '');
+    setInitialStockQuantity(stock?.quantity ?? null);
+    setFormError('');
+  };
+
+  const handleSubmit = () => {
+    if (!form.code?.trim() || !form.name?.trim()) {
+      setFormError('Mã và tên sản phẩm là bắt buộc.');
+      return;
+    }
+
+    const payload: ProductSavePayload = { ...form };
+    delete payload.trademarkName;
+    delete payload.supplierName;
+
+    if (!isEdit) {
+      if (createOnMultipleWarehouses) {
+        const initialStocks = branches.map((branch) => ({
+          warehouseId: branch._id,
+          quantity: Number(warehouseQuantities[branch._id] || 0),
+        }));
+        if (initialStocks.some((line) => !Number.isInteger(line.quantity) || line.quantity < 0)) {
+          setFormError('Số lượng tồn kho phải là số nguyên không âm.');
+          return;
+        }
+        payload.initialStocks = initialStocks;
+      } else {
+        if (!singleWarehouseId) {
+          setFormError('Vui lòng chọn kho hàng.');
+          return;
+        }
+        if (!isValidQuantity(singleQuantity)) {
+          setFormError('Số lượng tồn kho ban đầu phải là số nguyên không âm.');
+          return;
+        }
+        payload.initialStocks = [{ warehouseId: singleWarehouseId, quantity: Number(singleQuantity) }];
+      }
+    } else if (selectedStockWarehouseId) {
+      if (!isValidQuantity(stockQuantity)) {
+        setFormError('Số lượng tồn kho phải là số nguyên không âm.');
+        return;
+      }
+      const nextQuantity = Number(stockQuantity);
+      if (initialStockQuantity !== nextQuantity) {
+        payload.stockAdjustment = {
+          warehouseId: selectedStockWarehouseId,
+          quantity: nextQuantity,
+        };
+      }
+    }
+
+    setFormError('');
+    onSave(payload);
   };
 
   const fields: Array<{
@@ -388,8 +487,6 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     { key: 'size', label: 'Kích cỡ' },
     { key: 'origin', label: 'Xuất xứ' },
     { key: 'categoryId', label: 'Danh mục' },
-    { key: 'trademarkName', label: 'Thương hiệu' },
-    { key: 'supplierName', label: 'Nhà cung cấp' },
   ];
 
   return (
@@ -409,7 +506,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
           </button>
         </div>
 
-        {error ? <div className="form-error">{error}</div> : null}
+        {error || formError ? <div className="form-error">{formError || error}</div> : null}
 
         <div className="form-grid">
           {fields.map((field) => {
@@ -472,46 +569,143 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
             );
           })}
 
-          <div
-            style={{
-              gridColumn: '1 / -1',
-              padding: 14,
-              borderRadius: 16,
-              border: '1px solid #fed7aa',
-              background: '#fff7ed',
-              color: '#9a3412',
-              lineHeight: 1.6,
-              fontSize: 13,
-            }}
-          >
-            <strong>Lưu ý:</strong> Không cập nhật tồn kho tại đây. Nếu cần nhập hoặc điều chỉnh số lượng, hãy dùng{' '}
-            <span
-              role="link"
-              tabIndex={0}
-              style={{ fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}
-              onClick={() => {
-                onClose();
-                navigate(`/warehouse/transactions/vouchers/import${product?._id ? `?productId=${product._id}` : ''}`);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onClose();
-                  navigate(`/warehouse/transactions/vouchers/import${product?._id ? `?productId=${product._id}` : ''}`);
-                }
-              }}
-            >
-              phần xuất nhập kho
-            </span>
-            .
-          </div>
+          {!isEdit ? (
+            <section style={{ gridColumn: '1 / -1', display: 'grid', gap: 14, padding: 16, border: '1px solid #bfdbfe', borderRadius: 16, background: '#f8fbff' }}>
+              <div>
+                <strong style={{ color: '#0f172a' }}>Tồn kho ban đầu</strong>
+                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>Tạo tồn kho cho một kho hoặc phân bổ theo nhiều kho hàng.</p>
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                <input
+                  type="checkbox"
+                  checked={createOnMultipleWarehouses}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setCreateOnMultipleWarehouses(checked);
+                    setFormError('');
+                    if (checked) {
+                      setSingleWarehouseId('');
+                      setSingleQuantity('');
+                      setWarehouseQuantities(Object.fromEntries(branches.map((branch) => [branch._id, '0'])));
+                    } else {
+                      const defaultBranch = branches.find((branch) => branch.isDefault) || branches[0];
+                      setSingleWarehouseId(defaultBranch?._id || '');
+                      setSingleQuantity('0');
+                    }
+                  }}
+                />
+                Tạo mới trên nhiều kho
+              </label>
+
+              {!createOnMultipleWarehouses ? (
+                <div className="form-grid">
+                  <label className="form-field">
+                    <span>Kho hàng *</span>
+                    <select value={singleWarehouseId} onChange={(event) => setSingleWarehouseId(event.target.value)} disabled={loadingBranches}>
+                      <option value="">{loadingBranches ? 'Đang tải kho hàng...' : '-- Chọn kho hàng --'}</option>
+                      {branches.map((branch) => (
+                        <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>Số lượng tồn kho ban đầu *</span>
+                    <input
+                      aria-label="Số lượng tồn kho ban đầu"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={singleQuantity}
+                      onChange={(event) => {
+                        if (/^\d*$/.test(event.target.value)) setSingleQuantity(event.target.value);
+                      }}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <strong>Tồn kho theo từng kho hàng</strong>
+                  <div className="products-table-wrap">
+                    <table className="data-table">
+                      <thead><tr><th>Kho hàng</th><th style={{ width: 220 }}>Số lượng tồn</th></tr></thead>
+                      <tbody>
+                        {branches.map((branch) => (
+                          <tr key={branch._id}>
+                            <td>{branch.name}{branch.code ? ` (${branch.code})` : ''}</td>
+                            <td>
+                              <input
+                                aria-label={`Số lượng tồn ${branch.name}`}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={warehouseQuantities[branch._id] ?? '0'}
+                                onChange={(event) => {
+                                  if (!/^\d*$/.test(event.target.value)) return;
+                                  setWarehouseQuantities((current) => ({ ...current, [branch._id]: event.target.value }));
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : (
+            <section style={{ gridColumn: '1 / -1', display: 'grid', gap: 14, padding: 16, border: '1px solid #bfdbfe', borderRadius: 16, background: '#f8fbff' }}>
+              <div>
+                <strong style={{ color: '#0f172a' }}>Chỉnh tồn kho theo kho hàng</strong>
+                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>
+                  Tổng tồn kho hiện tại: <strong>{productStocks.reduce((sum, item) => sum + item.quantity, 0).toLocaleString('vi-VN')}</strong>
+                </p>
+              </div>
+              <div className="form-grid">
+                <label className="form-field">
+                  <span>Kho hàng</span>
+                  <select
+                    value={selectedStockWarehouseId}
+                    onChange={(event) => handleStockWarehouseChange(event.target.value)}
+                    disabled={loadingStocks || productStocks.length === 0}
+                  >
+                    <option value="">{loadingStocks ? 'Đang tải tồn kho...' : productStocks.length ? '-- Chọn kho hàng --' : 'Sản phẩm chưa có tồn kho theo kho'}</option>
+                    {productStocks.map((stock) => (
+                      <option key={stock._id} value={stock.warehouseId}>{stock.warehouseName}{stock.warehouseCode ? ` (${stock.warehouseCode})` : ''}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="form-field">
+                  <span>Số lượng tồn kho</span>
+                  <input
+                    aria-label="Số lượng tồn kho"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={stockQuantity}
+                    disabled={!selectedStockWarehouseId}
+                    onChange={(event) => {
+                      if (/^\d*$/.test(event.target.value)) setStockQuantity(event.target.value);
+                    }}
+                  />
+                </label>
+              </div>
+              {selectedStockWarehouseId && initialStockQuantity !== null && isValidQuantity(stockQuantity) ? (
+                <div style={{ color: '#475569', fontSize: 13 }}>
+                  Tồn trước khi chỉnh: <strong>{initialStockQuantity}</strong>
+                  {' · '}Chênh lệch: <strong>{Number(stockQuantity) - initialStockQuantity >= 0 ? '+' : ''}{Number(stockQuantity) - initialStockQuantity}</strong>
+                </div>
+              ) : null}
+            </section>
+          )}
         </div>
 
         <div className="modal-footer">
           <button className="btn btn-light" type="button" onClick={onClose} disabled={saving}>
             Hủy
           </button>
-          <button className="btn btn-primary" type="button" onClick={() => onSave(form)} disabled={saving}>
+          <button className="btn btn-primary" type="button" onClick={handleSubmit} disabled={saving || loadingBranches || loadingStocks}>
             {saving ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Tạo sản phẩm'}
           </button>
         </div>
@@ -835,6 +1029,7 @@ function buildPrintDocument({
   storeName,
   showCode,
   showName,
+  showThreeLineName,
   showPrice,
   showOldPrice,
   currencySuffix,
@@ -848,6 +1043,7 @@ function buildPrintDocument({
   storeName: string;
   showCode: boolean;
   showName: boolean;
+  showThreeLineName: boolean;
   showPrice: boolean;
   showOldPrice: boolean;
   currencySuffix: string;
@@ -857,13 +1053,14 @@ function buildPrintDocument({
   const labelHeight = paper.rows ? paper.heightMm / paper.rows : paper.heightMm;
   const labelHtml = labels.map((product) => {
     const value = normalizeBarcodeValue(product);
+    const safeCurrencySuffix = escapeHtml(currencySuffix);
     return `<article class="print-label">
-      ${showStore ? `<div class="print-store">${storeName}</div>` : ''}
+      ${showStore && storeName.trim() ? `<div class="print-store">${escapeHtml(storeName)}</div>` : ''}
       ${buildBarcodeSvg(value, barcodeType)}
-      ${showCode ? `<div class="print-code">${value}</div>` : ''}
-      ${showName ? `<div class="print-name">${product.name}</div>` : ''}
-      ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${currencySuffix}</div>` : ''}
-      ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${currencySuffix}</div>` : ''}
+      ${showCode ? `<div class="print-code">${escapeHtml(value)}</div>` : ''}
+      ${showName ? `<div class="print-name${showThreeLineName ? ' three' : ''}">${escapeHtml(product.name)}</div>` : ''}
+      ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
+      ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
     </article>`;
   }).join('');
 
@@ -879,6 +1076,7 @@ function buildPrintDocument({
       .barcode-svg.qr { height: ${Math.max(8, labelHeight * 0.46)}mm; }
       .print-code { font-size: 7px; line-height: 1.1; }
       .print-name { font-size: 8px; line-height: 1.05; max-height: 16px; overflow: hidden; }
+      .print-name.three { max-height: 25px; }
       .print-price { font-size: 9px; font-weight: 800; line-height: 1.1; }
       .print-old-price { font-size: 8px; text-decoration: line-through; color: #6b7280; }
     </style></head><body><main class="sheet">${labelHtml}</main><script>window.onload = () => window.print();</script></body></html>`;
@@ -895,10 +1093,11 @@ function BarcodePrintWorkspace({
 }) {
   const [rows, setRows] = useState(() => products.map((product) => ({ product, qty: 1 })));
   const [barcodeType, setBarcodeType] = useState<BarcodeType>('EAN13');
-  const [paperId, setPaperId] = useState(PAPER_TEMPLATES[1].id);
+  const [paperId, setPaperId] = useState(PAPER_TEMPLATES[0].id);
   const [showAllPapers, setShowAllPapers] = useState(false);
   const [showStore, setShowStore] = useState(true);
-  const [storeName, setStoreName] = useState('LADYSTARS');
+  const [storeName, setStoreName] = useState('');
+  const [loadingStoreName, setLoadingStoreName] = useState(true);
   const [showCode, setShowCode] = useState(false);
   const [showName, setShowName] = useState(true);
   const [showPrice, setShowPrice] = useState(true);
@@ -907,11 +1106,136 @@ function BarcodePrintWorkspace({
   const [currencySuffix, setCurrencySuffix] = useState('đ');
   const [marginLeft, setMarginLeft] = useState(0);
   const [marginTop, setMarginTop] = useState(0);
+  const [barcodeSearch, setBarcodeSearch] = useState('');
+  const [barcodeSearchResults, setBarcodeSearchResults] = useState<IProduct[]>([]);
+  const [barcodeSearchLoading, setBarcodeSearchLoading] = useState(false);
+  const [barcodeSearchError, setBarcodeSearchError] = useState('');
+  const [barcodeSearchOpen, setBarcodeSearchOpen] = useState(false);
   const [openPrintAction, setOpenPrintAction] = useState(false);
-  const selectedPaper = PAPER_TEMPLATES.find((paper) => paper.id === paperId) || PAPER_TEMPLATES[1];
+  const barcodeSearchRequestRef = useRef(0);
+  const barcodeSearchBlurTimerRef = useRef<number | null>(null);
+  const selectedPaper = PAPER_TEMPLATES.find((paper) => paper.id === paperId) || PAPER_TEMPLATES[0];
   const visiblePapers = showAllPapers ? PAPER_TEMPLATES : PAPER_TEMPLATES.slice(0, 1);
   const previewProduct = rows[0]?.product || products[0];
-  const previewBarcodeValue = previewProduct ? normalizeBarcodeValue(previewProduct) : 'LADYSTARS';
+  const previewBarcodeValue = previewProduct ? normalizeBarcodeValue(previewProduct) : '';
+  const rowIds = useMemo(() => new Set(rows.map((row) => row.product._id)), [rows]);
+
+  useEffect(() => {
+    let active = true;
+    http.get('/settings/store')
+      .then((response) => {
+        if (active) setStoreName(String(response.data?.shopName || ''));
+      })
+      .catch(() => {
+        if (active) setStoreName('');
+      })
+      .finally(() => {
+        if (active) setLoadingStoreName(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const fetchProductsForBarcodeSearch = async (query: string) => {
+    const responses = await Promise.allSettled([
+      productApi.getProducts({ page: 1, limit: 8, q: query }),
+      productApi.getProducts({ page: 1, limit: 8, code: query }),
+      productApi.getProducts({ page: 1, limit: 8, barcode: query }),
+    ]);
+    const successfulResponses = responses
+      .filter((response): response is PromiseFulfilledResult<Awaited<ReturnType<typeof productApi.getProducts>>> => response.status === 'fulfilled')
+      .map((response) => response.value);
+    if (successfulResponses.length === 0) throw new Error('Không thể tải kết quả tìm kiếm sản phẩm.');
+
+    const uniqueProducts = new Map<string, IProduct>();
+    successfulResponses
+      .flatMap((response) => response.items || [])
+      .forEach((product) => uniqueProducts.set(product._id, product));
+    return Array.from(uniqueProducts.values()).slice(0, 8);
+  };
+
+  useEffect(() => {
+    const query = barcodeSearch.trim();
+    if (!query) {
+      setBarcodeSearchResults([]);
+      setBarcodeSearchLoading(false);
+      setBarcodeSearchError('');
+      setBarcodeSearchOpen(false);
+      return;
+    }
+
+    const requestId = barcodeSearchRequestRef.current + 1;
+    barcodeSearchRequestRef.current = requestId;
+    setBarcodeSearchLoading(true);
+    setBarcodeSearchError('');
+    setBarcodeSearchOpen(true);
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const productsFound = await fetchProductsForBarcodeSearch(query);
+        if (barcodeSearchRequestRef.current !== requestId) return;
+        setBarcodeSearchResults(productsFound);
+      } catch (error) {
+        if (barcodeSearchRequestRef.current !== requestId) return;
+        console.error('Lỗi tìm sản phẩm để in mã vạch:', error);
+        setBarcodeSearchResults([]);
+        setBarcodeSearchError('Không thể tìm sản phẩm. Vui lòng thử lại.');
+      } finally {
+        if (barcodeSearchRequestRef.current === requestId) setBarcodeSearchLoading(false);
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [barcodeSearch]);
+
+  const addProductToPrint = (product: IProduct) => {
+    setRows((current) => {
+      const existing = current.find((row) => row.product._id === product._id);
+      if (existing) {
+        return current.map((row) => row.product._id === product._id ? { ...row, qty: row.qty + 1 } : row);
+      }
+      return [...current, { product, qty: 1 }];
+    });
+    setBarcodeSearch('');
+    setBarcodeSearchResults([]);
+    setBarcodeSearchOpen(false);
+  };
+
+  const handleBarcodeSearchKeyDown = async (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+
+    const query = barcodeSearch.trim().toLocaleLowerCase('vi-VN');
+    if (!query) return;
+
+    let productsFound = barcodeSearchResults;
+    if (barcodeSearchLoading || productsFound.length === 0) {
+      const requestId = barcodeSearchRequestRef.current + 1;
+      barcodeSearchRequestRef.current = requestId;
+      setBarcodeSearchLoading(true);
+      setBarcodeSearchError('');
+      setBarcodeSearchOpen(true);
+      try {
+        productsFound = await fetchProductsForBarcodeSearch(barcodeSearch.trim());
+        if (barcodeSearchRequestRef.current !== requestId) return;
+        setBarcodeSearchResults(productsFound);
+      } catch (error) {
+        if (barcodeSearchRequestRef.current !== requestId) return;
+        console.error('Lỗi đọc barcode từ máy quét:', error);
+        setBarcodeSearchError('Không thể tìm sản phẩm từ mã vừa quét.');
+        return;
+      } finally {
+        if (barcodeSearchRequestRef.current === requestId) setBarcodeSearchLoading(false);
+      }
+    }
+
+    const exactMatch = productsFound.find((product) => (
+      [product.barcode, product.code]
+        .some((value) => String(value || '').trim().toLocaleLowerCase('vi-VN') === query)
+    ));
+    if (exactMatch || productsFound[0]) addProductToPrint(exactMatch || productsFound[0]);
+  };
 
   const updateQty = (productId: string, qty: number) => {
     setRows((current) => current.map((row) => row.product._id === productId ? { ...row, qty: Math.max(1, qty || 1) } : row));
@@ -951,15 +1275,17 @@ function BarcodePrintWorkspace({
       storeName,
       showCode,
       showName,
+      showThreeLineName,
       showPrice,
       showOldPrice,
       currencySuffix,
     });
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Trình duyệt đang chặn cửa sổ in. Vui lòng cho phép pop-up để xem và in.');
       return;
     }
+    printWindow.opener = null;
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
@@ -968,13 +1294,16 @@ function BarcodePrintWorkspace({
   return (
     <div className="barcode-page">
       <div className="barcode-page-header">
-        <div>
-          <button className="btn btn-light" type="button" onClick={onBack}>Quay lại danh sách</button>
-          <h2>In mã vạch sản phẩm</h2>
-          <p>Đang in tem cho {rows.length.toLocaleString('vi-VN')} sản phẩm đã chọn.</p>
+        <div className="barcode-heading">
+          <button className="btn btn-light barcode-back-button" type="button" onClick={onBack}>Quay lại danh sách</button>
+          <div>
+            <span className="barcode-eyebrow">Không gian in tem</span>
+            <h2>In mã vạch sản phẩm</h2>
+            <p>{rows.length.toLocaleString('vi-VN')} sản phẩm • {rows.reduce((total, row) => total + row.qty, 0).toLocaleString('vi-VN')} tem sẽ in</p>
+          </div>
         </div>
-        <div className="products-bulk-menu">
-          <button className="btn products-dropdown-button" type="button" onClick={() => setOpenPrintAction((current) => !current)}>
+        <div className="products-bulk-menu products-floating-menu">
+          <button className="btn products-dropdown-button" type="button" aria-expanded={openPrintAction} onClick={() => setOpenPrintAction((current) => !current)}>
             <span>Thao tác</span>
             <ChevronDown size={15} />
           </button>
@@ -995,11 +1324,74 @@ function BarcodePrintWorkspace({
 
       <div className="barcode-layout">
         <section className="barcode-card barcode-products-card">
-          <div className="barcode-card-title"><PackageCheck size={18} /> <strong>Sản phẩm tự chọn</strong></div>
-          <div className="barcode-branch-select">- Lấy giá sản phẩm theo chi nhánh -</div>
-          <div className="barcode-search-row">
-            <button className="btn btn-light" type="button"><Search size={15} /></button>
-            <input value="" readOnly placeholder="Nhập sản phẩm" />
+          <div className="barcode-card-title">
+            <span><PackageCheck size={18} /> <strong>Sản phẩm đã chọn</strong></span>
+            <span className="barcode-card-count">{rows.length.toLocaleString('vi-VN')} sản phẩm</span>
+          </div>
+          <div className="barcode-toolbar">
+            <div className="barcode-product-search">
+              <label className="barcode-search-row">
+                <Search size={16} />
+                <input
+                  value={barcodeSearch}
+                  onChange={(event) => setBarcodeSearch(event.target.value)}
+                  onFocus={() => {
+                    if (barcodeSearchBlurTimerRef.current !== null) {
+                      window.clearTimeout(barcodeSearchBlurTimerRef.current);
+                      barcodeSearchBlurTimerRef.current = null;
+                    }
+                    if (barcodeSearch.trim()) setBarcodeSearchOpen(true);
+                  }}
+                  onBlur={() => {
+                    barcodeSearchBlurTimerRef.current = window.setTimeout(() => {
+                      setBarcodeSearchOpen(false);
+                      barcodeSearchBlurTimerRef.current = null;
+                    }, 120);
+                  }}
+                  onKeyDown={handleBarcodeSearchKeyDown}
+                  placeholder="Tìm hoặc quét tên, mã sản phẩm, barcode"
+                  autoComplete="off"
+                  aria-expanded={barcodeSearchOpen}
+                  aria-controls="barcode-product-results"
+                />
+                {barcodeSearch ? (
+                  <button type="button" onClick={() => setBarcodeSearch('')} aria-label="Xóa từ khóa tìm kiếm">
+                    <X size={15} />
+                  </button>
+                ) : null}
+              </label>
+              {barcodeSearchOpen ? (
+                <div className="barcode-search-dropdown" id="barcode-product-results" role="listbox">
+                  {barcodeSearchLoading ? <div className="barcode-search-state">Đang tìm sản phẩm...</div> : null}
+                  {!barcodeSearchLoading && barcodeSearchError ? <div className="barcode-search-state error">{barcodeSearchError}</div> : null}
+                  {!barcodeSearchLoading && !barcodeSearchError && barcodeSearchResults.length === 0 ? (
+                    <div className="barcode-search-state">Không tìm thấy sản phẩm phù hợp.</div>
+                  ) : null}
+                  {!barcodeSearchLoading && barcodeSearchResults.map((product) => {
+                    const alreadyAdded = rowIds.has(product._id);
+                    return (
+                      <button
+                        className="barcode-search-result"
+                        type="button"
+                        role="option"
+                        key={product._id}
+                        onClick={() => addProductToPrint(product)}
+                      >
+                        <span className="barcode-search-result-main">
+                          <strong>{product.name}</strong>
+                          <small>{product.code}{product.barcode ? ` • ${product.barcode}` : ''}</small>
+                        </span>
+                        <span className="barcode-search-result-side">
+                          <strong>{formatMoney(product.price)}</strong>
+                          <small>{alreadyAdded ? 'Đã có • thêm 1 tem' : 'Thêm sản phẩm'}</small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+            <span className="barcode-toolbar-note">Giá bán hiện tại</span>
           </div>
           <div className="products-table-wrap">
             <table className="data-table barcode-table">
@@ -1022,8 +1414,8 @@ function BarcodePrintWorkspace({
                     <td>{row.product.code}</td>
                     <td>{row.product.name}</td>
                     <td className="products-price">{formatMoney(row.product.price)}</td>
-                    <td><input className="barcode-qty" type="number" min={1} value={row.qty} onChange={(event) => updateQty(row.product._id, Number(event.target.value))} /></td>
-                    <td><button className="icon-button danger" type="button" onClick={() => removeRow(row.product._id)}><Trash2 size={15} /></button></td>
+                    <td><input aria-label={`Số lượng tem ${row.product.name}`} className="barcode-qty" type="number" min={1} value={row.qty} onChange={(event) => updateQty(row.product._id, Number(event.target.value))} /></td>
+                    <td><button className="icon-button danger" aria-label={`Xóa ${row.product.name} khỏi danh sách in`} type="button" onClick={() => removeRow(row.product._id)}><Trash2 size={15} /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -1035,13 +1427,15 @@ function BarcodePrintWorkspace({
           <section className="barcode-card">
             <div className="barcode-card-title"><Settings size={18} /> <strong>Cấu hình in tem</strong></div>
             <div className="barcode-preview-label">
-              {showStore ? <div className="barcode-preview-store">{storeName}</div> : null}
+              {showStore && storeName.trim() ? <div className="barcode-preview-store">{storeName}</div> : null}
               <BarcodeSvg value={previewBarcodeValue} type={barcodeType} />
               {showCode ? <div className="barcode-preview-code">{previewBarcodeValue}</div> : null}
               {showName ? <div className={`barcode-preview-name ${showThreeLineName ? 'three' : ''}`}>{previewProduct?.name || 'Tên sản phẩm'}</div> : null}
-              {showPrice ? <div className="barcode-preview-price">{formatMoney(previewProduct?.price || 0)}</div> : null}
+              {showPrice ? <div className="barcode-preview-price">{Number(previewProduct?.price || 0).toLocaleString('vi-VN')} {currencySuffix}</div> : null}
+              {showOldPrice && previewProduct?.oldPrice ? <div className="barcode-preview-old-price">{Number(previewProduct.oldPrice).toLocaleString('vi-VN')} {currencySuffix}</div> : null}
             </div>
 
+            <div className="barcode-settings">
             <label className="barcode-config-row">
               <span>Loại mã</span>
               <select value={barcodeType} onChange={(event) => setBarcodeType(event.target.value as BarcodeType)}>
@@ -1053,13 +1447,14 @@ function BarcodePrintWorkspace({
               </select>
             </label>
             <label className="barcode-switch-row"><input type="checkbox" checked={showStore} onChange={(event) => setShowStore(event.target.checked)} /> Hiện tên shop</label>
-            {showStore ? <input className="barcode-text-input" value={storeName} onChange={(event) => setStoreName(event.target.value)} /> : null}
+            {showStore ? <input aria-label="Tên shop trên tem" className="barcode-text-input" value={storeName} onChange={(event) => setStoreName(event.target.value)} disabled={loadingStoreName} placeholder={loadingStoreName ? 'Đang tải tên cửa hàng...' : 'Nhập tên shop'} /> : null}
             <label className="barcode-switch-row"><input type="checkbox" checked={showCode} onChange={(event) => setShowCode(event.target.checked)} /> Hiện mã sản phẩm</label>
             <label className="barcode-switch-row"><input type="checkbox" checked={showName} onChange={(event) => setShowName(event.target.checked)} /> Hiện tên sản phẩm</label>
-            <label className="barcode-switch-row"><input type="checkbox" checked={showThreeLineName} onChange={(event) => setShowThreeLineName(event.target.checked)} /> Hiện 3 dòng tên sản phẩm</label>
+            <label className={`barcode-switch-row ${!showName ? 'is-disabled' : ''}`}><input type="checkbox" checked={showThreeLineName} disabled={!showName} onChange={(event) => setShowThreeLineName(event.target.checked)} /> Hiện 3 dòng tên sản phẩm</label>
             <label className="barcode-switch-row"><input type="checkbox" checked={showPrice} onChange={(event) => setShowPrice(event.target.checked)} /> Hiện giá sản phẩm</label>
             <label className="barcode-switch-row"><input type="checkbox" checked={showOldPrice} onChange={(event) => setShowOldPrice(event.target.checked)} /> Hiện giá cũ</label>
             <label className="barcode-config-row"><span>Đơn vị tiền sau giá bán</span><input value={currencySuffix} onChange={(event) => setCurrencySuffix(event.target.value)} /></label>
+            </div>
           </section>
 
           <section className="barcode-card">
@@ -1097,7 +1492,13 @@ function BarcodePrintWorkspace({
   );
 }
 
-export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
+export function ProductList({
+  onShowHistory,
+  onBarcodeWorkspaceChange,
+}: {
+  onShowHistory?: () => void;
+  onBarcodeWorkspaceChange?: (open: boolean) => void;
+}) {
   const [items, setItems] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftSearch, setDraftSearch] = useState('');
@@ -1258,7 +1659,7 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
     setSortOrder('desc');
   };
 
-  const handleSave = async (payload: Partial<IProduct>) => {
+  const handleSave = async (payload: ProductSavePayload) => {
     if (!payload.code?.trim() || !payload.name?.trim()) {
       setSaveError('Mã và tên sản phẩm là bắt buộc.');
       return;
@@ -1357,6 +1758,7 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
     }
     setOpenBulkMenu(false);
     setShowBarcodePrint(true);
+    onBarcodeWorkspaceChange?.(true);
   };
 
   const openBulkCategoryModal = async () => {
@@ -1446,7 +1848,10 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
     return (
       <BarcodePrintWorkspace
         products={selectedProducts}
-        onBack={() => setShowBarcodePrint(false)}
+        onBack={() => {
+          setShowBarcodePrint(false);
+          onBarcodeWorkspaceChange?.(false);
+        }}
         onClearSelection={() => setSelectedIds(new Set())}
       />
     );
@@ -1467,7 +1872,7 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
               </span>
               <span className="products-stat-chip">
                 <ShieldAlert size={14} />
-                Tồn kho vẫn cập nhật tại xuất nhập kho
+                Tổng tồn đồng bộ từ tồn kho từng kho
               </span>
             </div>
           </div>

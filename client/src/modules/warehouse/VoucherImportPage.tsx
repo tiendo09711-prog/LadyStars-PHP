@@ -58,7 +58,6 @@ export function VoucherImportPage() {
   const [searchParams] = useSearchParams();
   const initProductId = searchParams.get('productId');
   const [products, setProducts] = useState<Product[]>([]);
-  const [vendors, setVendors] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [sysBranches, setSysBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
@@ -125,7 +124,6 @@ export function VoucherImportPage() {
   }, [branchId]);
 
   useEffect(() => {
-    http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
   }, []);
 
@@ -419,10 +417,7 @@ export function VoucherImportPage() {
             {importType === 'Nhập mua' && (
               <label className="form-field">
                 <span>Nhà cung cấp</span>
-                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
-                  <option value="">-- Chọn nhà cung cấp --</option>
-                  {vendors.map(v => <option key={v._id} value={v.name}>{v.name}</option>)}
-                </select>
+                <input type="text" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Nhập tên nhà cung cấp..." />
               </label>
             )}
 

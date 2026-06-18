@@ -17,7 +17,6 @@ import { CustomerLevelPage } from './modules/customer/CustomerLevelPage';
 import { CustomerGroupPage } from './modules/customer/CustomerGroupPage';
 import { CustomerCareTypePage } from './modules/customer/CustomerCareTypePage';
 import { CustomerCareReasonPage } from './modules/customer/CustomerCareReasonPage';
-import { VendorPage } from './modules/vendor/VendorPage';
 import { AccountingPage } from './modules/accounting/AccountingPage';
 import { CashReceiptsPage } from './modules/accounting/CashReceiptsPage';
 import { CashReceiptCreatePage } from './modules/accounting/CashReceiptCreatePage';
@@ -146,13 +145,14 @@ const router = createBrowserRouter([
       { path: 'customers', element: <CustomerPage /> },
       { path: 'customers/list', element: <CustomerListPage /> },
       { path: 'customers/care', element: <CustomerCarePage /> },
-      { path: 'vendors', element: <VendorPage /> },
+      { path: 'vendors', element: <Navigate to="/products" replace /> },
 
       // ── Kênh bán ───────────────────────────────────────────────
       { path: 'sales-channels/:channel', element: <SalesChannelPage /> },
       { path: 'sales-channels/:channel/retail/create', element: <RetailInvoiceCreatePage /> },
       { path: 'sales-channels/:channel/wholesale/create', element: <WholesaleInvoiceCreatePage /> },
       { path: 'sales-channels/:channel/refund/create', element: <RefundInvoiceCreatePage /> },
+      { path: 'sales-channels/:channel/find', element: <Navigate to="/sales-channels/store" replace /> },
       { path: 'sales-channels/:channel/:action', element: <SalesChannelSubPage /> },
 
       // ── Vận hành ────────────────────────────────────────────

@@ -50,7 +50,6 @@ const MOCK_PRODUCTS: Product[] = [
 export function ProductExportPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [vendors, setVendors] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [sysBranches, setSysBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,7 +59,7 @@ export function ProductExportPage() {
   // Form states
   const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
   const [exportType, setExportType] = useState('Xuất trả hàng');
-  const [supplierCustomer, setSupplierCustomer] = useState('Nhà cung cấp A');
+  const [supplierCustomer, setSupplierCustomer] = useState('');
   const [tags, setTags] = useState('');
   const [note, setNote] = useState('');
   const [showProductNoteAll, setShowProductNoteAll] = useState(false);
@@ -106,7 +105,6 @@ export function ProductExportPage() {
       }
     };
     fetchProducts();
-    http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
     http.get('/system/branches').then(res => setSysBranches(res.data.items || [])).catch(() => {});
   }, []);
@@ -393,10 +391,7 @@ export function ProductExportPage() {
             {exportType === 'Xuất trả hàng' && (
               <label className="form-field">
                 <span>Nhà cung cấp (Hoàn trả)</span>
-                <select value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)}>
-                  <option value="">-- Chọn nhà cung cấp --</option>
-                  {vendors.map(v => <option key={v._id} value={v.name}>{v.name}</option>)}
-                </select>
+                <input type="text" value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)} placeholder="Nhập tên nhà cung cấp..." />
               </label>
             )}
 

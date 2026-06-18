@@ -92,7 +92,6 @@ export const megaMenuGroups = [
       { text: 'Tồn kho', href: '/product/item/inventory?businessId=122623' },
       { text: 'Danh mục', href: '/product/category/index?businessId=122623' },
       { text: 'Thuộc tính', href: '/product/variant/index?businessId=122623' },
-      { text: 'Nhà cung cấp', href: '/supplier/manage/index?businessId=122623' },
       { text: 'Xuất nhập kho', href: '/inventory/bill/index?businessId=122623' },
       { text: 'Chuyển kho', href: '/inventory/transfer/index?businessId=122623' },
       { text: 'Kiểm kho', href: '/inventory/check/index?businessId=122623' },
@@ -112,7 +111,6 @@ export const megaMenuGroups = [
     items: [
       { text: 'Thêm gói sản phẩm', href: '/pos/bill/addpackage?businessId=122623' },
       { text: 'Bung gói sản phẩm', href: '/pos/bill/extractpackage?businessId=122623' },
-      { text: 'Tìm hóa đơn', href: '/pos/bill/lookup?businessId=122623' },
       { text: 'Bán lẻ', href: '/pos/bill/index?businessId=122623' },
       { text: 'Bán sỉ', href: '/pos/bill/wholesale?businessId=122623' },
       { text: 'Hóa đơn điện tử', href: '/pos/invoice/index?businessId=122623' },

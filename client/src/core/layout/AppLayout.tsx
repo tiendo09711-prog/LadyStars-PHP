@@ -64,7 +64,6 @@ const baseMenuGroups: MenuGroup[] = [
       { to: '/products/storage-duration', label: 'Thời gian lưu kho', icon: Clock },
       { to: '/products/inventory', label: 'Tồn kho', icon: Package },
       { to: '/products/categories', label: 'Danh mục', icon: ClipboardList },
-      { to: '/vendors', label: 'Nhà cung cấp', icon: Building2 },
     ],
   },
   {
@@ -81,7 +80,6 @@ const baseMenuGroups: MenuGroup[] = [
   {
     label: 'Kênh bán - Cửa hàng',
     items: [
-      { to: '/sales-channels/store/find',      label: 'Tìm hóa đơn',          icon: Search },
       { to: '/sales-channels/store/retail',    label: 'Bán lẻ',                icon: ShoppingCart },
       { to: '/sales-channels/store/wholesale', label: 'Bán sỉ',                icon: ShoppingBag },
       { to: '/sales-channels/store/refund',    label: 'Trả hàng',              icon: RotateCcw },

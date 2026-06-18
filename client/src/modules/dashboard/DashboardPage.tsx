@@ -392,11 +392,11 @@ export function DashboardPage() {
             </div>
             <div className="dv-recent-list" data-testid="recent-sales-list">
               {filteredRecentSales.map((sale) => (
-                <a key={sale.id} className="dv-recent-item" href={`/sales-channels/store/find?code=${encodeURIComponent(sale.code)}`}>
+                <div key={sale.id} className="dv-recent-item">
                   <span className="dv-recent-icon"><ShoppingBag size={18} /></span>
                   <span className="dv-recent-info"><strong>{sale.customerName}</strong><small>{sale.type} {sale.branchName ? `(${sale.branchName})` : ''}</small><small>{formatSaleTime(sale.createdAt)}</small></span>
                   <span className="dv-recent-value">{fmt(sale.value)}</span>
-                </a>
+                </div>
               ))}
               {!filteredRecentSales.length && <div className="dv-empty-state">Chưa có giao dịch hoàn tất nào để hiển thị.</div>}
             </div>

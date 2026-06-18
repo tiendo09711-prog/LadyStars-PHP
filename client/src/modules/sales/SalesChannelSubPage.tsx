@@ -1,16 +1,11 @@
 import { Navigate, useParams } from 'react-router-dom';
 import { DataModulePage } from '../../core/components/DataModulePage';
-import { FindInvoicePage } from './FindInvoicePage';
 import { RetailInvoicePage } from './RetailInvoicePage';
 import { WholesaleInvoicePage } from './WholesaleInvoicePage';
 import { RefundInvoicePage } from './RefundInvoicePage';
 
 export function SalesChannelSubPage() {
-  const { channel = 'store', action = 'find' } = useParams<{ channel: string; action: string }>();
-
-  if (action === 'find') {
-    return <FindInvoicePage channel={channel} />;
-  }
+  const { channel = 'store', action = '' } = useParams<{ channel: string; action: string }>();
 
   if (action === 'retail') {
     return <RetailInvoicePage channel={channel} />;

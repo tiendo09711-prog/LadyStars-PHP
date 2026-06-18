@@ -45,7 +45,6 @@ type ExportLine = {
 export function VoucherExportPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [vendors, setVendors] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [sysBranches, setSysBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,7 +101,6 @@ export function VoucherExportPage() {
       }
     };
     fetchProducts();
-    http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
     http.get('/system/branches').then(res => {
       const branches = res.data.items || [];
@@ -364,10 +362,7 @@ export function VoucherExportPage() {
             {exportType === 'Xuất trả hàng' && (
               <label className="form-field">
                 <span>Nhà cung cấp (Hoàn trả)</span>
-                <select value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)}>
-                  <option value="">-- Chọn nhà cung cấp --</option>
-                  {vendors.map(v => <option key={v._id} value={v.name}>{v.name}</option>)}
-                </select>
+                <input type="text" value={supplierCustomer} onChange={(e) => setSupplierCustomer(e.target.value)} placeholder="Nhập tên nhà cung cấp..." />
               </label>
             )}
 
