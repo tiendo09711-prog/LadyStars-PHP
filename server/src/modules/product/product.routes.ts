@@ -72,7 +72,7 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'Không tìm thấy file tải lên' });
     }
 
-    const { warehouse, importMode } = req.body; // importMode: 'Thêm mới' | 'Cập nhật thông tin'
+    const { warehouse, importMode, branchId: requestedBranchId, branchCode: requestedBranchCode } = req.body; // importMode: 'Thêm mới' | 'Cập nhật thông tin'
     if (!warehouse) {
       return res.status(400).json({ message: 'Vui lòng chọn Kho hàng' });
     }
@@ -85,12 +85,23 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
       'Kho Hồ Chí Minh': 'HCM',
       'Kho chính': 'HN'
     };
-    const branchCode = branchMap[warehouse] || 'CN001';
-    let branch = await Branch.findOne({ code: branchCode });
+    const normalizedBranchCode = branchMap[warehouse] || String(requestedBranchCode || '').trim() || 'CN001';
+    let branch = null;
+
+    if (requestedBranchId && /^[0-9a-fA-F]{24}$/.test(String(requestedBranchId))) {
+      branch = await Branch.findById(String(requestedBranchId));
+    }
+    if (!branch && normalizedBranchCode) {
+      branch = await Branch.findOne({ code: normalizedBranchCode });
+    }
+    if (!branch && warehouse) {
+      branch = await Branch.findOne({ name: warehouse });
+    }
     if (!branch) {
       branch = await Branch.findOne({ isDefault: true }) || await Branch.findOne();
     }
     const branchId = branch?._id;
+    const warehouseName = warehouse || branch?.name || 'Kho mặc định';
 
     // 2. Parse Excel
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
@@ -171,7 +182,7 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
           id: 'TX-' + Math.floor(Math.random() * 900000 + 100000),
           voucherId,
           date,
-          warehouse,
+          warehouse: warehouseName,
           productCode: product.code,
           productName: product.name,
           type: 'import',
@@ -200,7 +211,7 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
       await InventoryVoucher.create({
         voucherId,
         date,
-        warehouse,
+        warehouse: warehouseName,
         type: 'import',
         supplier: '',
         spCount: created + updated,

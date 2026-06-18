@@ -42,7 +42,7 @@ export async function writeAuditLog(req: Request | undefined, input: AuditInput)
         const afterObj = plain(input.after) as any;
         const editorName = user?.name || 'Hệ thống';
 
-        if (input.action === 'crud.create' && afterObj) {
+        if ((input.action === 'crud.create' || input.action === 'product.create_master') && afterObj) {
           await ProductEditLog.create({
             productCode: afterObj.code || '',
             productName: afterObj.name || '',
