@@ -15,22 +15,14 @@ import {
 } from 'recharts';
 import {
   ArrowUpRight,
-  BellDot,
-  Check,
   ChevronDown,
   DollarSign,
   Filter,
-  LoaderCircle,
   Package,
-  RefreshCcw,
   RotateCcw,
-  Save,
-  Settings2,
   ShoppingBag,
-  Sparkles,
   Store,
   TrendingUp,
-  WalletCards,
   X,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
@@ -54,28 +46,13 @@ const CHART_TYPE_OPTIONS = [
 const ORDER_RANGE_OPTIONS = ['2 ngày', '7 ngày', '30 ngày'];
 const TOP_RANGE_OPTIONS = ['7 ngày', '14 ngày', '30 ngày'];
 const TOP_LIMIT_OPTIONS = [10, 20, 50];
-const DEFAULT_COLUMNS = {
-  channel: true,
-  revenue: true,
-  orders: true,
-  avgOrder: true,
-  avgProducts: false,
-  ads: true,
-  profit: true,
-  profitPercent: true,
+const RECENT_RANGE_OPTIONS = ['Hôm nay', '3 ngày', '7 ngày'];
+const DASHBOARD_FILTER_STORAGE = {
+  dateRange: 'dashboard.dateRange',
+  chartRange: 'dashboard.chartRange',
+  chartType: 'dashboard.chartType',
 };
-const COLUMN_DEFS = [
-  { id: 'channel', label: 'Kênh bán' },
-  { id: 'revenue', label: 'Doanh thu' },
-  { id: 'orders', label: 'Số đơn' },
-  { id: 'avgOrder', label: 'GTTB' },
-  { id: 'avgProducts', label: 'SLSPTB' },
-  { id: 'ads', label: 'Ads' },
-  { id: 'profit', label: 'Lợi nhuận' },
-  { id: 'profitPercent', label: '% LN / doanh thu' },
-] as const;
 
-type ColumnId = keyof typeof DEFAULT_COLUMNS;
 type DropdownOption = { value: string; label: string };
 type DashboardData = {
   totals: Record<string, number>;
@@ -94,6 +71,30 @@ function formatSaleTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function readStoredOption(key: string, fallback: string, options: readonly string[]) {
+  if (typeof window === 'undefined') return fallback;
+  const stored = window.localStorage.getItem(key);
+  return stored && options.includes(stored) ? stored : fallback;
+}
+
+function useStoredOption(key: string, fallback: string, options: readonly string[]) {
+  const [value, setValue] = useState(() => readStoredOption(key, fallback, options));
+  useEffect(() => {
+    window.localStorage.setItem(key, value);
+  }, [key, value]);
+  return [value, setValue] as const;
+}
+
+function isWithinRecentRange(value: string, range: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  if (range === '3 ngày') start.setDate(start.getDate() - 2);
+  if (range === '7 ngày') start.setDate(start.getDate() - 6);
+  return date >= start;
 }
 
 function ChartTooltip({ active, payload, label }: any) {
@@ -116,26 +117,22 @@ export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedStores, setSelectedStores] = useState<string[]>([]);
   const [storeMenuOpen, setStoreMenuOpen] = useState(false);
-  const [dateRange, setDateRange] = useState('Hôm nay');
-  const [chartRange, setChartRange] = useState('7 ngày');
-  const [chartType, setChartType] = useState('bar_compare');
+  const [dateRange, setDateRange] = useStoredOption(DASHBOARD_FILTER_STORAGE.dateRange, 'Hôm nay', DATE_OPTIONS);
+  const [chartRange, setChartRange] = useStoredOption(DASHBOARD_FILTER_STORAGE.chartRange, '7 ngày', CHART_RANGE_OPTIONS);
+  const [chartType, setChartType] = useStoredOption(DASHBOARD_FILTER_STORAGE.chartType, 'bar_compare', CHART_TYPE_OPTIONS.map((option) => option.value));
   const [orderRange, setOrderRange] = useState('2 ngày');
   const [topRange, setTopRange] = useState('7 ngày');
   const [topLimit, setTopLimit] = useState(10);
-  const [columns, setColumns] = useState(DEFAULT_COLUMNS);
-  const [tempColumns, setTempColumns] = useState(DEFAULT_COLUMNS);
-  const [showColumns, setShowColumns] = useState(false);
+  const [recentRange, setRecentRange] = useState('Hôm nay');
   const [showDailyModal, setShowDailyModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [dailyProducts, setDailyProducts] = useState<any[]>([]);
   const [dailyLoading, setDailyLoading] = useState(false);
 
   const storeMenuRef = useRef<HTMLDivElement | null>(null);
-  const forceRefreshRef = useRef(false);
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -158,10 +155,6 @@ export function DashboardPage() {
       params.set('orderRange', orderRange);
       params.set('topRange', topRange);
       params.set('topLimit', String(topLimit));
-      if (forceRefreshRef.current) {
-        params.set('refresh', String(Date.now()));
-        forceRefreshRef.current = false;
-      }
 
       setLoading(true);
       setError('');
@@ -169,7 +162,6 @@ export function DashboardPage() {
         .then((response) => {
           if (!active) return;
           setData(response.data);
-          setLastUpdated(new Date());
         })
         .catch((err: any) => {
           if (!active || err.code === 'ERR_CANCELED') return;
@@ -194,22 +186,13 @@ export function DashboardPage() {
     return () => window.clearInterval(interval);
   }, []);
 
-  const refreshDashboard = () => {
-    forceRefreshRef.current = true;
-    setRefreshKey((value) => value + 1);
-  };
-
   const stores = data?.availableStores ?? [];
-  const salesChannels = data?.salesChannels ?? [];
   const orderChannels = data?.orderChannels ?? [];
   const chartData = data?.chartData ?? [];
   const topProducts = data?.topProducts ?? [];
   const recentSales = data?.recentSales ?? [];
   const inventory = data?.inventory ?? { totalQty: 0, totalCostValue: 0, totalSaleValue: 0 };
-  const wallets = data?.wallets ?? { zaloOA: 0, shopeeWallet: 0, zaloWallet: 0, adsWallet: 0 };
-  const walletItems = data?.walletItems ?? [];
   const totals = data?.totals ?? {};
-  const visibleColumnCount = Object.values(columns).filter(Boolean).length || 1;
   const selectedStoreLabel = selectedStores.length === 0 ? 'Tất cả cửa hàng' : selectedStores.length === 1 ? selectedStores[0] : `${selectedStores.length} cửa hàng`;
   const chartMode = CHART_TYPE_OPTIONS.find((option) => option.value === chartType)?.label ?? chartType;
   const chartHasData = chartData.some((row) => row.revenue > 0 || row.prevRevenue > 0);
@@ -228,6 +211,7 @@ export function DashboardPage() {
     { label: 'Đơn hàng', value: orderRange },
     { label: 'Top SP', value: `${topRange} · Top ${topLimit}` },
   ];
+  const filteredRecentSales = recentSales.filter((sale) => isWithinRecentRange(sale.createdAt, recentRange));
 
   const openDailyProducts = async (payload: any) => {
     const fullDate = payload?.activePayload?.[0]?.payload?.fullDate;
@@ -256,27 +240,6 @@ export function DashboardPage() {
 
   return (
     <main className="dv-page" data-testid="dashboard-page">
-      <section className="dv-hero">
-        <div>
-          <span className="dv-eyebrow"><Sparkles size={14} /> Dashboard bán hàng</span>
-          <h1>Tổng quan vận hành</h1>
-          <p>Dữ liệu giờ bám theo bộ lọc đang chọn và các vùng chính đều có trạng thái rõ hơn để tránh cảm giác bấm mà như không đổi.</p>
-        </div>
-        <div className="dv-hero-actions">
-          <div className={`dv-sync-card ${loading ? 'is-loading' : ''}`} data-testid="dashboard-status">
-            <span>{loading ? <LoaderCircle size={18} /> : <Check size={18} />}</span>
-            <div>
-              <strong>{loading ? 'Đang cập nhật dữ liệu' : 'Dữ liệu đã đồng bộ'}</strong>
-              <small>{error || (lastUpdated ? `Làm mới lúc ${lastUpdated.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : 'Chưa có dữ liệu')}</small>
-            </div>
-          </div>
-          <div className="dv-hero-buttons">
-            <button type="button" className="dv-ghost-button" onClick={refreshDashboard} data-testid="refresh-dashboard"><RefreshCcw size={16} /> Làm mới</button>
-            <button type="button" className="dv-primary-button" onClick={() => { setTempColumns(columns); setShowColumns(true); }} data-testid="display-settings-button"><Settings2 size={16} /> Hiển thị</button>
-          </div>
-        </div>
-      </section>
-
       <section className="dv-filter-bar">
         <div className="dv-filter-main">
           <div className="dv-store-picker" ref={storeMenuRef}>
@@ -334,47 +297,6 @@ export function DashboardPage() {
           <section className="dv-surface">
             <div className="dv-surface-head">
               <div>
-                <h2>Kênh bán</h2>
-                <p>Bảng lấy trực tiếp từ giao dịch thực theo bộ lọc đang chọn.</p>
-              </div>
-              <span className="dv-head-tag">{selectedStoreLabel}</span>
-            </div>
-            <div className="dv-table-wrap">
-              <table className="dv-table" data-testid="sales-channels-table">
-                <thead>
-                  <tr>
-                    {columns.channel && <th>Kênh bán</th>}
-                    {columns.revenue && <th>Doanh thu</th>}
-                    {columns.orders && <th>Số đơn</th>}
-                    {columns.avgOrder && <th>GTTB</th>}
-                    {columns.avgProducts && <th>SLSPTB</th>}
-                    {columns.ads && <th>Ads</th>}
-                    {columns.profit && <th>Lợi nhuận</th>}
-                    {columns.profitPercent && <th>% LN / doanh thu</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {salesChannels.map((channel) => (
-                    <tr key={channel.type} className={channel.type === 'total' ? 'is-total' : ''}>
-                      {columns.channel && <td>{channel.label}</td>}
-                      {columns.revenue && <td>{fmt(channel.revenue)}</td>}
-                      {columns.orders && <td>{fmt(channel.orders)}</td>}
-                      {columns.avgOrder && <td>{fmt(channel.avgOrderValue)}</td>}
-                      {columns.avgProducts && <td>{channel.avgProducts || ''}</td>}
-                      {columns.ads && <td>{fmt(channel.ads)}</td>}
-                      {columns.profit && <td className={channel.profit < 0 ? 'is-danger' : ''}>{fmt(channel.profit)}</td>}
-                      {columns.profitPercent && <td>{channel.profitPercent ? `${channel.profitPercent}%` : ''}</td>}
-                    </tr>
-                  ))}
-                  {!salesChannels.length && <tr><td colSpan={visibleColumnCount} className="dv-empty">Chưa có dữ liệu</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className="dv-surface">
-            <div className="dv-surface-head">
-              <div>
                 <h2>Doanh thu theo thời gian</h2>
                 <p>{chartRange} gần nhất, dạng {chartMode.toLowerCase()}.</p>
               </div>
@@ -404,41 +326,25 @@ export function DashboardPage() {
             </div>
           </section>
 
-          <section className="dv-grid-two">
-            <section className="dv-surface">
-              <div className="dv-surface-head">
-                <div><h2>Đơn hàng</h2><p>Trạng thái đơn theo khoảng chọn.</p></div>
-                <Dropdown value={orderRange} options={ORDER_RANGE_OPTIONS.map((option) => ({ value: option, label: option }))} onChange={setOrderRange} testId="orders-range-filter" />
-              </div>
-              <div className="dv-table-wrap">
-                <table className="dv-table">
-                  <thead><tr><th>Gian hàng</th><th>Mới / chờ xử lý</th><th>Đóng gói</th><th>Đang chuyển</th><th>Hoàn hủy</th><th>Trả hàng</th></tr></thead>
-                  <tbody>
-                    {orderChannels.map((channel) => (
-                      <tr key={channel.label}>
-                        <td><span className={`dv-channel-icon ${channel.icon}`}>{channel.label?.[0] || 'A'}</span>{channel.label}</td>
-                        <td>{fmt(channel.newOrders)}</td><td>{fmt(channel.packing)}</td><td>{fmt(channel.shipping)}</td><td>{fmt(channel.cancelled)}</td><td>{fmt(channel.returned)}</td>
-                      </tr>
-                    ))}
-                    {!orderChannels.length && <tr><td colSpan={6} className="dv-empty">Chưa có dữ liệu</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className="dv-surface">
-              <div className="dv-surface-head"><div><h2>Giao dịch gần nhất</h2><p>Danh sách này theo cửa hàng đang chọn.</p></div></div>
-              <div className="dv-recent-list" data-testid="recent-sales-list">
-                {recentSales.map((sale) => (
-                  <a key={sale.id} className="dv-recent-item" href={`/sales-channels/store/find?code=${encodeURIComponent(sale.code)}`}>
-                    <span className="dv-recent-icon"><ShoppingBag size={18} /></span>
-                    <span className="dv-recent-info"><strong>{sale.customerName}</strong><small>{sale.type} {sale.branchName ? `(${sale.branchName})` : ''}</small><small>{formatSaleTime(sale.createdAt)}</small></span>
-                    <span className="dv-recent-value">{fmt(sale.value)}</span>
-                  </a>
-                ))}
-                {!recentSales.length && <div className="dv-empty-state">Chưa có giao dịch hoàn tất nào để hiển thị.</div>}
-              </div>
-            </section>
+          <section className="dv-surface">
+            <div className="dv-surface-head">
+              <div><h2>Đơn hàng</h2><p>Trạng thái đơn theo khoảng chọn.</p></div>
+              <Dropdown value={orderRange} options={ORDER_RANGE_OPTIONS.map((option) => ({ value: option, label: option }))} onChange={setOrderRange} testId="orders-range-filter" />
+            </div>
+            <div className="dv-table-wrap">
+              <table className="dv-table">
+                <thead><tr><th>Gian hàng</th><th>Mới / chờ xử lý</th><th>Đóng gói</th><th>Đang chuyển</th><th>Hoàn hủy</th><th>Trả hàng</th></tr></thead>
+                <tbody>
+                  {orderChannels.map((channel) => (
+                    <tr key={channel.label}>
+                      <td><span className={`dv-channel-icon ${channel.icon}`}>{channel.label?.[0] || 'A'}</span>{channel.label}</td>
+                      <td>{fmt(channel.newOrders)}</td><td>{fmt(channel.packing)}</td><td>{fmt(channel.shipping)}</td><td>{fmt(channel.cancelled)}</td><td>{fmt(channel.returned)}</td>
+                    </tr>
+                  ))}
+                  {!orderChannels.length && <tr><td colSpan={6} className="dv-empty">Chưa có dữ liệu</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <section className="dv-surface">
@@ -467,52 +373,36 @@ export function DashboardPage() {
               </table>
             </div>
           </section>
-        </div>
-
-        <aside className="dv-side-column">
-          <section className="dv-surface">
-            <div className="dv-surface-head"><div><h2>Số dư ví</h2><p>Danh sách ví lấy từ dữ liệu thực.</p></div></div>
-            <div className="dv-metric-grid">
-              <Metric icon={<BellDot size={18} />} label="Zalo OA" value={wallets.zaloOA} tone="violet" />
-              <Metric icon={<WalletCards size={18} />} label="Ví doanh thu" value={wallets.zaloWallet + wallets.shopeeWallet} tone="blue" />
-              <Metric icon={<DollarSign size={18} />} label="Ví Ads" value={wallets.adsWallet} tone="emerald" />
-            </div>
-            <div className="dv-wallet-list">
-              {walletItems.map((wallet) => <div className="dv-wallet-row" key={wallet.code}><span>{wallet.name}</span><strong>{fmt(wallet.balance)}</strong></div>)}
-              {!walletItems.length && <div className="dv-empty-state compact">Chưa có dữ liệu ví.</div>}
-            </div>
-          </section>
 
           <section className="dv-surface">
             <div className="dv-surface-head"><div><h2>Tồn kho</h2><p>Thay đổi theo cửa hàng đang chọn.</p></div><span className="dv-head-tag">{selectedStoreLabel}</span></div>
-            <div className="dv-stack-metrics">
+            <div className="dv-stack-metrics dv-inventory-row">
               <Metric icon={<Store size={18} />} label="Số lượng tồn" value={inventory.totalQty} tone="amber" testId="inventory-totalQty-value" />
               <Metric icon={<DollarSign size={18} />} label="Giá vốn tồn kho" value={inventory.totalCostValue} tone="emerald" />
               <Metric icon={<ArrowUpRight size={18} />} label="Giá bán quy đổi" value={inventory.totalSaleValue} tone="blue" />
             </div>
           </section>
+        </div>
+
+        <aside className="dv-side-column">
+          <section className="dv-surface">
+            <div className="dv-surface-head">
+              <div><h2>Giao dịch gần nhất</h2><p>Danh sách này theo cửa hàng đang chọn.</p></div>
+              <Dropdown value={recentRange} options={RECENT_RANGE_OPTIONS.map((option) => ({ value: option, label: option }))} onChange={setRecentRange} testId="recent-range-filter" />
+            </div>
+            <div className="dv-recent-list" data-testid="recent-sales-list">
+              {filteredRecentSales.map((sale) => (
+                <a key={sale.id} className="dv-recent-item" href={`/sales-channels/store/find?code=${encodeURIComponent(sale.code)}`}>
+                  <span className="dv-recent-icon"><ShoppingBag size={18} /></span>
+                  <span className="dv-recent-info"><strong>{sale.customerName}</strong><small>{sale.type} {sale.branchName ? `(${sale.branchName})` : ''}</small><small>{formatSaleTime(sale.createdAt)}</small></span>
+                  <span className="dv-recent-value">{fmt(sale.value)}</span>
+                </a>
+              ))}
+              {!filteredRecentSales.length && <div className="dv-empty-state">Chưa có giao dịch hoàn tất nào để hiển thị.</div>}
+            </div>
+          </section>
         </aside>
       </section>
-
-      {showColumns && (
-        <div className="dv-modal-backdrop">
-          <div className="dv-modal" data-testid="column-settings-modal">
-            <div className="dv-modal-head"><h3>Tùy chỉnh hiển thị</h3><button type="button" onClick={() => setShowColumns(false)}><X size={18} /></button></div>
-            <div className="dv-modal-body">
-              {COLUMN_DEFS.map((column) => (
-                <label key={column.id} className="dv-check-row" data-testid={`column-toggle-${column.id}`}>
-                  <input type="checkbox" checked={tempColumns[column.id]} onChange={(event) => setTempColumns({ ...tempColumns, [column.id]: event.target.checked })} />
-                  <span>{column.label}</span>
-                </label>
-              ))}
-            </div>
-            <div className="dv-modal-foot">
-              <button type="button" onClick={() => setTempColumns(DEFAULT_COLUMNS)}>Về mặc định</button>
-              <button type="button" className="primary" onClick={() => { setColumns(tempColumns); setShowColumns(false); }}><Save size={16} /> Lưu</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showDailyModal && (
         <div className="dv-modal-backdrop">

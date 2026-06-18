@@ -105,6 +105,16 @@
   background: #fff;
   color: #334155;
   cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.dv-ghost-button:hover,
+.dv-select-button:hover,
+.dv-store-trigger:hover {
+  border-color: #a78bfa;
+  color: #5b21b6;
+  box-shadow: 0 8px 18px rgba(124, 58, 237, 0.14);
+  transform: translateY(-1px);
 }
 
 .dv-primary-button,
@@ -143,6 +153,13 @@
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  animation: dv-popover-in 140ms ease both;
+}
+
+.dv-store-panel {
+  min-width: 244px;
+  padding: 10px;
+  border-color: rgba(124, 58, 237, 0.2);
 }
 
 .dv-store-list {
@@ -157,6 +174,49 @@
   gap: 10px;
   padding: 8px 10px;
   border-radius: 8px;
+}
+
+.dv-store-option {
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.dv-store-option:hover {
+  color: #5b21b6;
+  transform: translateX(2px);
+}
+
+.dv-store-option input {
+  accent-color: #7c3aed;
+}
+
+.dv-store-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.dv-store-actions button {
+  width: 100%;
+  border: 0;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 20px rgba(124, 58, 237, 0.18);
+}
+
+.dv-store-actions button:first-child {
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+}
+
+.dv-store-actions button:last-child {
+  background: linear-gradient(135deg, #f97316, #e11d48);
+}
+
+.dv-store-actions button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.18);
 }
 
 .dv-store-option:hover,
@@ -176,6 +236,13 @@
   background: transparent;
   text-align: left;
   cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.dv-select-options button:hover,
+.dv-select-options button.active {
+  color: #5b21b6;
+  transform: translateX(2px);
 }
 
 .dv-chip-row {
@@ -444,6 +511,12 @@
   padding: 0 18px 18px;
 }
 
+.dv-inventory-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .dv-info-metric {
   display: flex;
   align-items: center;
@@ -496,11 +569,23 @@
   color: #dc2626;
 }
 
+@keyframes dv-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 1100px) {
   .dv-summary-grid,
   .dv-chart-meta,
   .dv-grid-two,
-  .dv-layout {
+  .dv-layout,
+  .dv-inventory-row {
     grid-template-columns: 1fr;
   }
 }
