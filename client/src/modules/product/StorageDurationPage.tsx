@@ -28,7 +28,7 @@ export function StorageDurationPage() {
   // Pagination & counts
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 20;
+  const limit = 15;
 
   // Filters
   const [search, setSearch] = useState('');

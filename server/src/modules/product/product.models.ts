@@ -14,6 +14,7 @@ const CategorySchema = new Schema({
 }, { timestamps: true });
 
 CategorySchema.index({ name: 'text', code: 'text' });
+CategorySchema.index({ externalId: 1 }, { unique: true, sparse: true });
 export const Category = model('Category', CategorySchema);
 
 export const Trademark = model('Trademark', new Schema({
@@ -74,15 +75,19 @@ const ProductSchema = new Schema({
   parentName: String,
 }, { timestamps: true, strict: false });
 ProductSchema.index({ name: 'text', code: 'text' });
+ProductSchema.index({ externalId: 1 }, { unique: true, sparse: true });
 export const Product = model('Product', ProductSchema);
 
-export const ProductBranchStock = model('ProductBranchStock', new Schema({
+const ProductBranchStockSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
   qty: { type: Number, default: 0 },
   minQuantity: { type: Number, default: 0 },
   maxQuantity: { type: Number, default: 999999999 },
-}, { timestamps: true }).index({ productId: 1, branchId: 1 }, { unique: true }));
+}, { timestamps: true });
+ProductBranchStockSchema.index({ productId: 1, branchId: 1 }, { unique: true });
+ProductBranchStockSchema.index({ branchId: 1, qty: 1 });
+export const ProductBranchStock = model('ProductBranchStock', ProductBranchStockSchema);
 
 export const SaleChannel = model('SaleChannel', new Schema({
   name: { type: String, required: true },
@@ -136,7 +141,7 @@ const DeliverySchema = new Schema({
   status: { type: String, enum: ['wait', 'delivery', 'success', 'cancel'], default: 'wait' },
 }, { _id: false });
 
-export const SalePayment = model('SalePayment', new Schema({
+const SalePaymentSchema = new Schema({
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   customerId: { type: Schema.Types.ObjectId, ref: 'Customer' },
   code: { type: String, required: true, unique: true },
@@ -157,9 +162,15 @@ export const SalePayment = model('SalePayment', new Schema({
   completedAt: Date,
   delivery: DeliverySchema,
   items: [SaleItemSchema],
-}, { timestamps: true }));
+}, { timestamps: true });
+SalePaymentSchema.index({ status: 1, createdAt: -1 });
+SalePaymentSchema.index({ branchId: 1, status: 1, createdAt: -1 });
+SalePaymentSchema.index({ status: 1, completedAt: -1 });
+SalePaymentSchema.index({ saleChannelId: 1, status: 1, createdAt: -1 });
+SalePaymentSchema.index({ 'items.productId': 1, status: 1, createdAt: -1 });
+export const SalePayment = model('SalePayment', SalePaymentSchema);
 
-export const ProductRefund = model('ProductRefund', new Schema({
+const ProductRefundSchema = new Schema({
   paymentId: { type: Schema.Types.ObjectId, ref: 'SalePayment', required: true },
   code: { type: String, required: true, unique: true },
   discountValue: money,
@@ -182,7 +193,10 @@ export const ProductRefund = model('ProductRefund', new Schema({
     discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
     value: money,
   }],
-}, { timestamps: true }));
+}, { timestamps: true });
+ProductRefundSchema.index({ status: 1, createdAt: -1 });
+ProductRefundSchema.index({ 'items.productId': 1, status: 1, createdAt: -1 });
+export const ProductRefund = model('ProductRefund', ProductRefundSchema);
 
 export const ProductLog = model('ProductLog', new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },

@@ -4,7 +4,6 @@ import { productApi } from '../../core/api/product.api';
 import type { IProduct, IBatch } from '../../types/product.type';
 import { Pagination } from '../../core/components/Pagination';
 
-// ─── Delete Confirm Dialog ───────────────────────────────────────────────────
 function DeleteConfirm({ batch, onConfirm, onCancel }: { batch: IBatch; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div className="modal-backdrop" onClick={onCancel}>
@@ -30,7 +29,6 @@ function DeleteConfirm({ batch, onConfirm, onCancel }: { batch: IBatch; onConfir
   );
 }
 
-// ─── Detail Modal ────────────────────────────────────────────────────────────
 function DetailModal({ batch, onClose }: { batch: IBatch; onClose: () => void }) {
   const fmt = (v?: number) => `${Number(v || 0).toLocaleString('vi-VN')} đ`;
   const product = batch.productId as IProduct | null;
@@ -103,7 +101,6 @@ function DetailModal({ batch, onClose }: { batch: IBatch; onClose: () => void })
   );
 }
 
-// ─── Batch Form Modal ────────────────────────────────────────────────────────
 interface BatchFormProps {
   batch?: IBatch | null;
   onSave: (data: Partial<IBatch>) => void;
@@ -115,7 +112,6 @@ interface BatchFormProps {
 function BatchForm({ batch, onSave, onClose, saving, error }: BatchFormProps) {
   const isEdit = !!batch;
 
-  // Format Date object or Date string into YYYY-MM-DD for input[type=date]
   const formatDateForInput = (d?: string) => {
     if (!d) return '';
     return new Date(d).toISOString().slice(0, 10);
@@ -259,7 +255,6 @@ function BatchForm({ batch, onSave, onClose, saving, error }: BatchFormProps) {
   );
 }
 
-// ─── Import Modal ────────────────────────────────────────────────────────────
 function ImportModal({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -318,7 +313,6 @@ function ImportModal({ onClose, onImported }: { onClose: () => void; onImported:
   );
 }
 
-// ─── Main Component ──────────────────────────────────────────────────────────
 export function BatchPage() {
   const [items, setItems] = useState<IBatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -330,11 +324,10 @@ export function BatchPage() {
 
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 20;
+  const limit = 15;
 
-  // Modals
   const [detailItem, setDetailItem] = useState<IBatch | null>(null);
-  const [editItem, setEditItem] = useState<IBatch | null | undefined>(undefined); // undefined = closed, null = create new
+  const [editItem, setEditItem] = useState<IBatch | null | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<IBatch | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -492,128 +485,177 @@ export function BatchPage() {
 
   const thStyle = { cursor: 'pointer', userSelect: 'none' as const };
   const thInner = { display: 'flex', alignItems: 'center', gap: '4px' };
+  const statusOptions: Array<[string, string]> = [
+    ['', 'Tất cả'],
+    ['Còn hạn', 'Còn hạn'],
+    ['Sắp hết hạn', 'Sắp hết hạn'],
+    ['Hết hạn', 'Hết hạn'],
+    ['Ngừng sử dụng', 'Ngừng sử dụng'],
+  ];
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page batch-page">
       <div className="page-heading">
         <div className="page-title-block">
           <div className="page-icon"><Layers size={22} /></div>
           <div>
             <h1>Lô sản phẩm</h1>
-            <p>Quản lý chi tiết hạn dùng, số lô và số lượng tồn kho từng lô hàng</p>
+            <p>Quản lý hạn dùng, số lô và tồn kho theo từng lô hàng mà không thay đổi logic dữ liệu hiện có.</p>
           </div>
         </div>
       </div>
 
-      <div className="page-stack" style={{ marginTop: '24px' }}>
-        <div className="module-grid">
-          {/* Filter Panel */}
-          <aside className="filter-panel">
-            <div className="panel-title"><Filter size={18} /><span>Bộ lọc</span></div>
-            <form onSubmit={handleSearch}>
-              <label className="field-label">Tìm kiếm</label>
-              <div className="search-box">
-                <Search size={16} />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nhập số lô..." />
+      <div className="page-stack batch-page-stack">
+        <section className="data-card batch-toolbar-card">
+          <div className="batch-toolbar-top">
+            <div className="batch-toolbar-summary">
+              <div className="batch-toolbar-summary-title">
+                <Filter size={18} />
+                <span>Bộ lọc và thao tác</span>
               </div>
-              <label className="field-label" style={{ marginTop: '16px' }}>Trạng thái lô</label>
-              <div className="quick-filter-list">
-                {[
-                  ['', 'Tất cả'],
-                  ['Còn hạn', 'Còn hạn'],
-                  ['Sắp hết hạn', 'Sắp hết hạn'],
-                  ['Hết hạn', 'Hết hạn'],
-                  ['Ngừng sử dụng', 'Ngừng sử dụng'],
-                ].map(([val, label]) => (
-                  <button
-                    key={val}
-                    type="button"
-                    className={filterStatus === val ? 'active' : ''}
-                    onClick={() => { setFilterStatus(val); setPage(1); }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <button type="submit" style={{ marginTop: '12px' }} className="btn btn-outline full">
-                <Search size={15} /> Tìm kiếm
+              <p>Giữ nguyên search, filter trạng thái, import/export và các thao tác tạo sửa xóa hiện có.</p>
+            </div>
+
+            <div className="page-actions batch-toolbar-actions">
+              <button
+                className="btn btn-primary batch-btn-add"
+                aria-label="Thêm lô hàng"
+                onClick={() => { setSaveError(''); setEditItem(null); }}
+              >
+                <Plus size={15} /> Thêm mới
               </button>
-            </form>
-          </aside>
-
-          {/* Data Card */}
-          <section className="data-card">
-            <div className="data-card-header">
-              <div>
-                <h2>Danh sách lô hàng</h2>
-                <span className="record-badge">{total} bản ghi</span>
-              </div>
-              <div className="page-actions">
-                <button className="btn btn-light" onClick={load} title="Làm mới"><RefreshCw size={15} /> Làm mới</button>
-                <button className="btn btn-outline" onClick={() => setShowImport(true)}><FileUp size={15} /> Import</button>
-                <button className="btn btn-light" style={{ borderColor: '#bbf7d0', color: '#047857' }} onClick={handleExport}><FileDown size={15} /> Xuất Excel</button>
-                <button className="btn btn-primary" onClick={() => { setSaveError(''); setEditItem(null); }}><Plus size={15} /> Thêm lô hàng</button>
-              </div>
+              <button className="btn btn-outline" onClick={() => setShowImport(true)}>
+                <FileUp size={15} /> Import
+              </button>
+              <button
+                className="btn btn-light batch-btn-export"
+                aria-label="Xuất Excel"
+                onClick={handleExport}
+              >
+                <FileDown size={15} /> Xuất dữ liệu
+              </button>
+              <button className="btn btn-light" onClick={load} title="Làm mới">
+                <RefreshCw size={15} /> Làm mới
+              </button>
             </div>
+          </div>
 
-            <div className="table-scroll">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="check-cell"><input type="checkbox" /></th>
-                    <th style={thStyle} onClick={() => handleSort('batchNumber')}><div style={thInner}><SortIcon field="batchNumber" />Số lô</div></th>
-                    <th>Tên sản phẩm</th>
-                    <th style={thStyle} onClick={() => handleSort('cost')}><div style={thInner}><SortIcon field="cost" />Giá nhập</div></th>
-                    <th style={thStyle} onClick={() => handleSort('qty')}><div style={thInner}><SortIcon field="qty" />Số tồn</div></th>
-                    <th style={thStyle} onClick={() => handleSort('manufactureDate')}><div style={thInner}><SortIcon field="manufactureDate" />Ngày SX</div></th>
-                    <th style={thStyle} onClick={() => handleSort('expiryDate')}><div style={thInner}><SortIcon field="expiryDate" />Ngày hết hạn</div></th>
-                    <th>Số ngày còn hạn</th>
-                    <th style={thStyle} onClick={() => handleSort('status')}><div style={thInner}><SortIcon field="status" />Trạng thái</div></th>
-                    <th className="action-cell" style={{ width: 120 }}>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && <tr><td colSpan={10} className="empty-cell">Đang tải dữ liệu...</td></tr>}
-                  {!loading && items.length === 0 && <tr><td colSpan={10} className="empty-cell">Chưa có lô hàng nào được ghi nhận.</td></tr>}
-                  {!loading && items.map((item, index) => {
-                    const prod = item.productId as IProduct | null;
-                    return (
-                      <tr key={item._id}>
-                        <td className="check-cell"><input type="checkbox" /></td>
-                        <td><strong>{item.batchNumber}</strong></td>
-                        <td style={{ maxWidth: 220 }}>
-                          <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={prod?.name || ''}>
-                            {prod?.name || '—'}
-                          </div>
-                          {prod && <small style={{ color: '#64748b' }}>Mã SP: {prod.code}</small>}
-                        </td>
-                        <td>{fmt(item.cost)}</td>
-                        <td>{Number(item.qty || 0).toLocaleString('vi-VN')}</td>
-                        <td>{item.manufactureDate ? new Date(item.manufactureDate).toLocaleDateString('vi-VN') : '—'}</td>
-                        <td>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('vi-VN') : '—'}</td>
-                        <td>{getDaysRemaining(item.expiryDate)}</td>
-                        <td>
-                          <span className={`status-badge ${statusCls(item.status)}`}>
-                            {item.status || 'Còn hạn'}
-                          </span>
-                        </td>
-                        <td className="action-cell" style={{ whiteSpace: 'nowrap' }}>
-                          <button className="icon-button" title="Chi tiết" onClick={() => setDetailItem(item)}><Eye size={15} /></button>
-                          <button className="icon-button" title="Sửa" style={{ margin: '0 4px' }} onClick={() => { setSaveError(''); setEditItem(item); }}><Pencil size={15} /></button>
-                          <button className="icon-button danger" title="Xóa" onClick={() => setDeleteItem(item)}><Trash2 size={15} /></button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <form className="batch-filter-form" onSubmit={handleSearch}>
+            <label className="batch-filter-field">
+              <span>ID / Lô sản phẩm</span>
+              <div className="search-box batch-filter-input">
+                <Search size={16} />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Nhập số lô..."
+                />
+              </div>
+            </label>
+
+            <label className="batch-filter-field">
+              <span>Trạng thái</span>
+              <select
+                className="batch-filter-select"
+                value={filterStatus}
+                onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
+              >
+                {statusOptions.map(([value, label]) => (
+                  <option key={value || 'all'} value={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="batch-filter-actions">
+              <button type="submit" className="btn btn-primary" aria-label="Tìm kiếm">
+                <Search size={15} /> Lọc
+              </button>
             </div>
-            <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
-          </section>
-        </div>
+          </form>
+
+          <div className="quick-filter-list batch-quick-filter-list">
+            {statusOptions.map(([val, label]) => (
+              <button
+                key={val || 'all'}
+                type="button"
+                className={filterStatus === val ? 'active' : ''}
+                onClick={() => { setFilterStatus(val); setPage(1); }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="data-card batch-table-card">
+          <div className="data-card-header batch-table-header">
+            <div>
+              <h2>Danh sách lô hàng</h2>
+              <p className="batch-table-subtitle">Bảng dữ liệu đang giữ nguyên sort, modal thao tác và phân trang.</p>
+            </div>
+            <span className="record-badge">{total} bản ghi</span>
+          </div>
+
+          <div className="table-scroll">
+            <table className="data-table batch-data-table">
+              <thead>
+                <tr>
+                  <th className="check-cell"><input type="checkbox" /></th>
+                  <th>ID</th>
+                  <th style={thStyle} onClick={() => handleSort('batchNumber')}><div style={thInner}><SortIcon field="batchNumber" />Số lô</div></th>
+                  <th>Tên sản phẩm</th>
+                  <th style={thStyle} onClick={() => handleSort('status')}><div style={thInner}><SortIcon field="status" />Trạng thái</div></th>
+                  <th style={thStyle} onClick={() => handleSort('cost')}><div style={thInner}><SortIcon field="cost" />Giá nhập</div></th>
+                  <th style={thStyle} onClick={() => handleSort('manufactureDate')}><div style={thInner}><SortIcon field="manufactureDate" />Ngày sản xuất</div></th>
+                  <th style={thStyle} onClick={() => handleSort('expiryDate')}><div style={thInner}><SortIcon field="expiryDate" />Ngày hết hạn</div></th>
+                  <th>Số ngày còn hạn</th>
+                  <th style={thStyle} onClick={() => handleSort('qty')}><div style={thInner}><SortIcon field="qty" />Số tồn</div></th>
+                  <th className="action-cell" style={{ width: 120 }}>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading && <tr><td colSpan={11} className="empty-cell">Đang tải dữ liệu...</td></tr>}
+                {!loading && items.length === 0 && <tr><td colSpan={11} className="empty-cell">Chưa có lô hàng nào được ghi nhận.</td></tr>}
+                {!loading && items.map((item, index) => {
+                  const prod = item.productId as IProduct | null;
+                  const rowNumber = ((page - 1) * limit) + index + 1;
+
+                  return (
+                    <tr key={item._id}>
+                      <td className="check-cell"><input type="checkbox" /></td>
+                      <td className="batch-row-id">{rowNumber}</td>
+                      <td><strong>{item.batchNumber}</strong></td>
+                      <td style={{ maxWidth: 220 }}>
+                        <div className="batch-product-cell" title={prod?.name || ''}>
+                          {prod?.name || '—'}
+                        </div>
+                        {prod && <small style={{ color: '#64748b' }}>Mã SP: {prod.code}</small>}
+                      </td>
+                      <td>
+                        <span className={`status-badge ${statusCls(item.status)}`}>
+                          {item.status || 'Còn hạn'}
+                        </span>
+                      </td>
+                      <td>{fmt(item.cost)}</td>
+                      <td>{item.manufactureDate ? new Date(item.manufactureDate).toLocaleDateString('vi-VN') : '—'}</td>
+                      <td>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('vi-VN') : '—'}</td>
+                      <td>{getDaysRemaining(item.expiryDate)}</td>
+                      <td>{Number(item.qty || 0).toLocaleString('vi-VN')}</td>
+                      <td className="action-cell batch-action-cell">
+                        <button className="icon-button" title="Chi tiết" onClick={() => setDetailItem(item)}><Eye size={15} /></button>
+                        <button className="icon-button" title="Sửa" style={{ margin: '0 4px' }} onClick={() => { setSaveError(''); setEditItem(item); }}><Pencil size={15} /></button>
+                        <button className="icon-button danger" title="Xóa" onClick={() => setDeleteItem(item)}><Trash2 size={15} /></button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
+        </section>
       </div>
 
-      {/* Modals */}
       {detailItem && <DetailModal batch={detailItem} onClose={() => setDetailItem(null)} />}
       {editItem !== undefined && (
         <BatchForm

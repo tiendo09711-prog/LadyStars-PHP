@@ -7,7 +7,7 @@ export function JournalEntriesPage() {
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const limit = 50;
+  const limit = 15;
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
   // Filter state

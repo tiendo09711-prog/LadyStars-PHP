@@ -56,7 +56,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
             label: 'Trả hàng',
             title: 'Hóa đơn trả hàng',
             subtitle: 'Danh sách hóa đơn trả hàng từ khách hàng',
-            endpoint: '/products/refunds?limit=5000',
+            endpoint: '/products/refunds',
             icon: <FileSpreadsheet size={24} />,
             primaryActionLabel: 'Thêm mới',
             onPrimaryActionClick: () => setShowBranchModal(true),

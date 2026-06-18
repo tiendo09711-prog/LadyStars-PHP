@@ -22,7 +22,7 @@ export function StaffDebtPage() {
 
   useEffect(() => {
     setLoading(true);
-    http.get(`/accounting/debt/staff/summary?page=${page}&limit=50`)
+    http.get(`/accounting/debt/staff/summary?page=${page}&limit=15`)
       .then(res => {
         setItems(res.data.items || []);
         setTotal(res.data.total || 0);
@@ -78,11 +78,11 @@ export function StaffDebtPage() {
         </button>
         
         <div className="staff-pagination">
-          <span>{items.length > 0 ? (page - 1) * 50 + 1 : 0} - {Math.min(page * 50, total)} / {total.toLocaleString('vi-VN')}</span>
+          <span>{items.length > 0 ? (page - 1) * 15 + 1 : 0} - {Math.min(page * 15, total)} / {total.toLocaleString('vi-VN')}</span>
           <button className="pagination-btn" disabled={page === 1} onClick={() => setPage(1)}><ChevronsLeft size={16} /></button>
           <button className="pagination-btn" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}><ChevronLeft size={16} /></button>
-          <button className="pagination-btn" disabled={page * 50 >= total} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
-          <button className="pagination-btn" disabled={page * 50 >= total} onClick={() => setPage(Math.ceil(total / 50))}><ChevronsRight size={16} /></button>
+          <button className="pagination-btn" disabled={page * 15 >= total} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} /></button>
+          <button className="pagination-btn" disabled={page * 15 >= total} onClick={() => setPage(Math.ceil(total / 15))}><ChevronsRight size={16} /></button>
         </div>
       </div>
 

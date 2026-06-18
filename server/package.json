@@ -13,7 +13,8 @@
     "import-warehouse-transactions": "tsx src/scripts/import-warehouse-transactions-transfers.ts",
     "import-store-sales": "tsx src/scripts/import-store-sales.ts",
     "import-orders": "tsx src/scripts/import-orders-data.ts",
-    "load-edit-logs": "tsx src/scripts/load-edit-logs.ts"
+    "load-edit-logs": "tsx src/scripts/load-edit-logs.ts",
+    "sync-indexes": "tsx src/scripts/sync-performance-indexes.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +27,7 @@
     "mongoose": "^8.9.5",
     "morgan": "^1.10.0",
     "multer": "^2.2.0",
+    "redis": "^6.0.0",
     "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },

@@ -45,7 +45,7 @@ function SelectFilter({ value, onChange, options, placeholder }: { value: string
 export function WarehouseDraftPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('vouchers');
-  const [data, setData] = useState<ApiResult>({ items: [], total: 0, page: 1, limit: 50, meta: {} });
+  const [data, setData] = useState<ApiResult>({ items: [], total: 0, page: 1, limit: 15, meta: {} });
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [filters, setFilters] = useState({
@@ -60,7 +60,7 @@ export function WarehouseDraftPage() {
 
   const endpoint = activeTab === 'vouchers' ? '/warehouse/draft-vouchers' : '/warehouse/draft-products';
   const page = data.page || 1;
-  const limit = data.limit || 50;
+  const limit = data.limit || 15;
   const totalPages = Math.max(Math.ceil((data.total || 0) / limit), 1);
   const meta = data.meta || {};
 

@@ -43,7 +43,7 @@ function SelectFilter({ value, onChange, options, placeholder }: { value: string
 
 export function WarehouseHistoryPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('vouchers');
-  const [data, setData] = useState<ApiResult>({ items: [], total: 0, page: 1, limit: 50, meta: {} });
+  const [data, setData] = useState<ApiResult>({ items: [], total: 0, page: 1, limit: 15, meta: {} });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     warehouse: '',
@@ -59,7 +59,7 @@ export function WarehouseHistoryPage() {
 
   const endpoint = activeTab === 'vouchers' ? '/warehouse/history-vouchers' : '/warehouse/history-products';
   const page = data.page || 1;
-  const limit = data.limit || 50;
+  const limit = data.limit || 15;
   const totalPages = Math.max(Math.ceil((data.total || 0) / limit), 1);
   const meta = data.meta || {};
 

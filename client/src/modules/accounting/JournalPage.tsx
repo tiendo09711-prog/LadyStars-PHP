@@ -7,7 +7,7 @@ export function JournalPage() {
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const limit = 100; // fetch 100 lines at a time
+  const limit = 15;
   
   // Filter state
   const [transactionId, setTransactionId] = useState('');

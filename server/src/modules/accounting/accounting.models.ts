@@ -37,11 +37,15 @@ export const Receipt = model('Receipt', new Schema({
   ...FinanceSchema,
   customerId: { type: Schema.Types.ObjectId, ref: 'Customer' },
 }, { timestamps: true }));
+Receipt.schema.index({ branchId: 1, createdAt: -1 });
+Receipt.schema.index({ createdAt: -1 });
 
 export const ExpensePayment = model('ExpensePayment', new Schema({
   ...FinanceSchema,
   payPersonId: { type: Schema.Types.ObjectId, ref: 'PayPerson' },
 }, { timestamps: true }));
+ExpensePayment.schema.index({ branchId: 1, createdAt: -1 });
+ExpensePayment.schema.index({ createdAt: -1 });
 
 export const CashTransaction = model('CashTransaction', new Schema({
   transactionId: { type: String, required: true, unique: true },
@@ -60,6 +64,7 @@ export const CashTransaction = model('CashTransaction', new Schema({
   description: String,
   creatorName: String,
 }, { timestamps: true }));
+CashTransaction.schema.index({ date: -1, type: 1 });
 
 export const BankTransaction = model('BankTransaction', new Schema({
   transactionId: { type: String, required: true, unique: true },
@@ -78,6 +83,7 @@ export const BankTransaction = model('BankTransaction', new Schema({
   description: String,
   creatorName: String,
 }, { timestamps: true }));
+BankTransaction.schema.index({ date: -1, type: 1 });
 
 export const SummaryTransaction = model('SummaryTransaction', new Schema({
   transactionId: { type: String, required: true, unique: true },
@@ -92,6 +98,7 @@ export const SummaryTransaction = model('SummaryTransaction', new Schema({
   expense: { type: Number, default: 0 },
   description: String,
 }, { timestamps: true }));
+SummaryTransaction.schema.index({ date: -1, type: 1 });
 
 export const CustomerDebtSummary = model('CustomerDebtSummary', new Schema({
   code: { type: String, required: true },
@@ -119,6 +126,7 @@ export const CustomerDebtRecord = model('CustomerDebtRecord', new Schema({
   remainingDebt: { type: Number, default: 0 },
   salesperson: { type: String },
 }, { timestamps: true }));
+CustomerDebtRecord.schema.index({ customerCode: 1, dueDate: 1 });
 
 export const StaffDebtSummary = model('StaffDebtSummary', new Schema({
   staffName: { type: String, required: true },
@@ -152,6 +160,7 @@ export const VendorDebtRecord = model('VendorDebtRecord', new Schema({
   remainingDebt: { type: Number, default: 0 },
   purchaser: { type: String },
 }, { timestamps: true }));
+VendorDebtRecord.schema.index({ vendorCode: 1, dueDate: 1 });
 
 export const LogBookEntry = model('LogBookEntry', new Schema({
   date: { type: String },
@@ -162,6 +171,7 @@ export const LogBookEntry = model('LogBookEntry', new Schema({
   debit: { type: Number, default: null },
   credit: { type: Number, default: null },
 }, { timestamps: true }));
+LogBookEntry.schema.index({ createdAt: -1, transactionId: 1 });
 
 export const InstallmentCollection = model('InstallmentCollection', new Schema({
   transactionId: { type: String, required: true, unique: true },

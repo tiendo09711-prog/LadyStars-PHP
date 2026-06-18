@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Search, RotateCcw, FileDown, Calendar, User, Phone, ShoppingCart, FileText, AlertCircle } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { Pagination } from '../../core/components/Pagination';
+
+const PAGE_SIZE = 15;
 
 type ProductDetail = {
   _id: string;
@@ -45,6 +48,8 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   
   // Filters State
   const [invoiceCode, setInvoiceCode] = useState('');
@@ -52,7 +57,7 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-  const loadInvoices = async () => {
+  const loadInvoices = async (targetPage = page) => {
     setLoading(true);
     setError('');
     try {
@@ -63,9 +68,12 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
       if (toDate) params.append('toDate', toDate);
       if (channel) params.append('channel', channel);
       
-      params.set('limit', '5000');
+      params.set('page', String(targetPage));
+      params.set('limit', String(PAGE_SIZE));
       const response = await http.get(`/products/sales?${params.toString()}`);
       setInvoices(response.data.items ?? []);
+      setTotal(Number(response.data.total ?? response.data.items?.length ?? 0));
+      setPage(targetPage);
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || 'Không thể tải dữ liệu hóa đơn.');
@@ -75,12 +83,12 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
   };
 
   useEffect(() => {
-    loadInvoices();
+    loadInvoices(1);
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadInvoices();
+    loadInvoices(1);
   };
 
   const handleReset = () => {
@@ -88,14 +96,16 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
     setCustomerPhone('');
     setFromDate('');
     setToDate('');
-    // Trigger reloading with empty params
-    setTimeout(() => {
-      setLoading(true);
-      http.get(`/products/sales?channel=${channel}&limit=5000`)
-        .then(res => setInvoices(res.data.items ?? []))
-        .catch(err => setError('Không thể tải dữ liệu hóa đơn.'))
-        .finally(() => setLoading(false));
-    }, 50);
+    setPage(1);
+    setLoading(true);
+    setError('');
+    http.get('/products/sales', { params: { channel, page: 1, limit: PAGE_SIZE } })
+      .then((response) => {
+        setInvoices(response.data.items ?? []);
+        setTotal(Number(response.data.total ?? response.data.items?.length ?? 0));
+      })
+      .catch(() => setError('Không thể tải dữ liệu hóa đơn.'))
+      .finally(() => setLoading(false));
   };
 
   const exportCsv = () => {
@@ -168,7 +178,7 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
           </div>
         </div>
         <div className="page-actions">
-          <button className="btn btn-light" type="button" onClick={loadInvoices} title="Làm mới">
+          <button className="btn btn-light" type="button" onClick={() => void loadInvoices()} title="Làm mới">
             <RotateCcw size={16} /> Làm mới
           </button>
           <button className="btn btn-success" type="button" onClick={exportCsv} title="Xuất CSV">
@@ -259,7 +269,7 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
           <div className="data-card-header">
             <div>
               <h2>Danh sách hóa đơn tìm thấy</h2>
-              <span className="record-badge">{invoices.length} hóa đơn</span>
+              <span className="record-badge">{total} hóa đơn</span>
             </div>
             {error && <span className="error-chip"><AlertCircle size={14} style={{ marginRight: 4, display: 'inline' }} /> {error}</span>}
           </div>
@@ -367,6 +377,7 @@ export function FindInvoicePage({ channel = 'store' }: { channel?: string }) {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} total={total} limit={PAGE_SIZE} onPageChange={(nextPage) => void loadInvoices(nextPage)} />
         </section>
       </div>
     </div>

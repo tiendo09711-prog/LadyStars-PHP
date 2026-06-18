@@ -22,6 +22,12 @@ async function apiDashboard(page: any, query = '') {
 test.describe('Dashboard audit', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.removeItem('dashboard.dateRange');
+      localStorage.removeItem('dashboard.chartRange');
+      localStorage.removeItem('dashboard.chartType');
+    });
+    await page.reload();
     await expect(page.getByTestId('dashboard-page')).toBeVisible();
     await expect(page.getByTestId('summary-revenue-value')).toBeVisible();
   });
@@ -29,8 +35,12 @@ test.describe('Dashboard audit', () => {
   test('loads dashboard data from API', async ({ page }) => {
     const data = await apiDashboard(page);
     await expect(page.getByTestId('summary-revenue-value')).toHaveText(fmt(data.totals.revenue));
-    await expect(page.getByTestId('sales-channels-table')).toBeVisible();
     await expect(page.getByTestId('recent-sales-list')).toBeVisible();
+    await expect(page.getByTestId('sales-channels-table')).toHaveCount(0);
+    await expect(page.getByTestId('dashboard-status')).toHaveCount(0);
+    await expect(page.getByTestId('display-settings-button')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Số dư ví' })).toHaveCount(0);
+    await expect(page.getByTestId('recent-range-filter').getByRole('button')).toHaveText(/Hôm nay/);
   });
 
   test('date filter updates revenue to match API', async ({ page }) => {
@@ -61,15 +71,31 @@ test.describe('Dashboard audit', () => {
     await expect(page.getByTestId('inventory-totalQty-value')).toHaveText(fmt(chosenData.inventory.totalQty));
   });
 
-  test('chart mode and column settings respond', async ({ page }) => {
+  test('chart mode responds', async ({ page }) => {
     await page.getByTestId('chart-type-filter').getByRole('button').click();
     await page.getByRole('button', { name: 'Đường doanh thu' }).click();
     await expect(page.getByTestId('chart-shell')).toHaveAttribute('data-chart-type', 'line');
+  });
 
-    await page.getByTestId('display-settings-button').click();
-    await expect(page.getByTestId('column-settings-modal')).toBeVisible();
-    await page.getByTestId('column-toggle-ads').locator('input').uncheck();
-    await page.getByTestId('column-settings-modal').getByRole('button', { name: /lưu/i }).click();
-    await expect(page.getByRole('columnheader', { name: 'Ads' })).toHaveCount(0);
+  test('time filters persist after reload', async ({ page }) => {
+    await page.getByTestId('date-filter').getByRole('button').click();
+    await page.getByRole('button', { name: '30 ngày' }).click();
+
+    await page.getByTestId('chart-range-filter').getByRole('button').click();
+    await page.getByRole('button', { name: '14 ngày' }).click();
+
+    await page.getByTestId('chart-type-filter').getByRole('button').click();
+    await page.getByRole('button', { name: 'Đường doanh thu' }).click();
+
+    await page.reload();
+    await expect(page.getByTestId('date-filter').getByRole('button')).toHaveText(/30 ngày/);
+    await expect(page.getByTestId('chart-range-filter').getByRole('button')).toHaveText(/14 ngày/);
+    await expect(page.getByTestId('chart-shell')).toHaveAttribute('data-chart-type', 'line');
+  });
+
+  test('recent sales range filter responds', async ({ page }) => {
+    await page.getByTestId('recent-range-filter').getByRole('button').click();
+    await page.getByRole('button', { name: '3 ngày' }).click();
+    await expect(page.getByTestId('recent-range-filter').getByRole('button')).toHaveText(/3 ngày/);
   });
 });

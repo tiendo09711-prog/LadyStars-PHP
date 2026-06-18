@@ -32,6 +32,8 @@ router.get('/installment-services', async (req, res) => {
 
 router.get('/accounts-list', async (req, res) => {
   const { code, name, status, accountId, search } = req.query;
+  const page = Math.max(Number(req.query.page || 1), 1);
+  const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
   const query: any = {};
   if (code) query.code = new RegExp(String(code), 'i');
   if (name) query.name = new RegExp(String(name), 'i');
@@ -45,27 +47,53 @@ router.get('/accounts-list', async (req, res) => {
     ];
   }
 
-  const items = await AccountingAccount.find(query).sort({ code: 1 });
-  res.json({ items, total: items.length });
+  const [items, total] = await Promise.all([
+    AccountingAccount.find(query).sort({ code: 1 }).skip((page - 1) * limit).limit(limit),
+    AccountingAccount.countDocuments(query),
+  ]);
+  res.json({ items, total, page, limit });
 });
-router.get('/invoices', async (_req, res) => {
-  const items = await SalePayment.find({ status: { $in: ['completed', 'refunded'] } }).sort({ createdAt: -1 }).limit(100);
-  res.json({ items, total: items.length, page: 1, limit: 100 });
+router.get('/invoices', async (req, res) => {
+  const page = Math.max(Number(req.query.page || 1), 1);
+  const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
+  const filter = { status: { $in: ['completed', 'refunded'] } };
+  const [items, total] = await Promise.all([
+    SalePayment.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    SalePayment.countDocuments(filter),
+  ]);
+  res.json({ items, total, page, limit });
 });
-router.get('/reports/sales', async (_req, res) => {
-  const sales = await SalePayment.find({ status: { $in: ['completed', 'refunded'] } });
-  const revenue = sales.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
-  const paid = sales.reduce((sum, item) => sum + Number(item.valuePayment ?? 0), 0);
-  const cost = sales.reduce((sum, item) => sum + Number(item.totalCost ?? 0), 0);
+router.get('/reports/sales', async (req, res) => {
+  const page = Math.max(Number(req.query.page || 1), 1);
+  const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
+  const filter = { status: { $in: ['completed', 'refunded'] } };
+  const [sales, total, summaryRows] = await Promise.all([
+    SalePayment.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    SalePayment.countDocuments(filter),
+    SalePayment.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          revenue: { $sum: '$value' },
+          paid: { $sum: '$valuePayment' },
+          cost: { $sum: '$totalCost' },
+        },
+      },
+    ]),
+  ]);
+  const summary = summaryRows[0] ?? { revenue: 0, paid: 0, cost: 0 };
   res.json({
     items: sales,
-    total: sales.length,
+    total,
+    page,
+    limit,
     summary: {
-      orders: sales.length,
-      revenue,
-      paid,
-      debt: revenue - paid,
-      grossProfit: revenue - cost,
+      orders: total,
+      revenue: summary.revenue,
+      paid: summary.paid,
+      debt: summary.revenue - summary.paid,
+      grossProfit: summary.revenue - summary.cost,
     },
   });
 });
@@ -98,7 +126,7 @@ router.get('/debt/customers/stats', async (req, res) => {
 });
 
 router.get('/debt/customers/summary', async (req, res) => {
-  const { tab, page = 1, limit = 50 } = req.query;
+  const { tab, page = 1, limit = 15 } = req.query;
   const skip = (Number(page) - 1) * Number(limit);
   
   let query: any = {};
@@ -170,7 +198,7 @@ router.get('/debt/customers/records', async (req, res) => {
 });
 
 router.get('/debt/staff/summary', async (req, res) => {
-  const { page = 1, limit = 50 } = req.query;
+  const { page = 1, limit = 15 } = req.query;
   const skip = (Number(page) - 1) * Number(limit);
   const items = await StaffDebtSummary.find().sort({ createdAt: -1 }).skip(skip).limit(Number(limit));
   const total = await StaffDebtSummary.countDocuments();
@@ -206,7 +234,7 @@ router.get('/debt/vendors/stats', async (req, res) => {
 });
 
 router.get('/debt/vendors/summary', async (req, res) => {
-  const { tab, page = 1, limit = 50 } = req.query;
+  const { tab, page = 1, limit = 15 } = req.query;
   const skip = (Number(page) - 1) * Number(limit);
   
   let query: any = {};

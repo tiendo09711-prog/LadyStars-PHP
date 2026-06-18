@@ -7,6 +7,7 @@ import { Order } from '../orders/orders.models.js';
 import { Product, ProductBranchStock, ProductRefund, SalePayment } from '../product/product.models.js';
 import { Project, Task } from '../task/task.models.js';
 import { Vendor, VendorPurchase } from '../vendor/vendor.models.js';
+import { cacheKey, getCachedJson, setCachedJson } from '../../core/cache/cache.js';
 
 const router = Router();
 
@@ -100,6 +101,21 @@ function iconForChannel(name: string) {
 router.get('/', async (req, res) => {
   try {
     const { stores, date, chartRange, topRange, topLimit, orderRange } = req.query;
+    const overviewCacheKey = cacheKey('dashboard:overview', {
+      stores: stores || '',
+      date: date || 'Hôm nay',
+      chartRange: chartRange || '7 ngày',
+      topRange: topRange || '7 ngày',
+      topLimit: topLimit || '10',
+      orderRange: orderRange || '2 ngày',
+    });
+    if (!req.query.refresh) {
+      const cached = await getCachedJson<Record<string, unknown>>(overviewCacheKey);
+      if (cached) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cached);
+      }
+    }
     const { filter: dateFilter } = makeDateRange(date);
     const { filter: chartFilter, startDate: chartStart, endDate: chartEnd } = makeDateRange(chartRange || '7 ngày');
     const { filter: topDateFilter } = makeDateRange(topRange || '7 ngày');
@@ -392,7 +408,7 @@ router.get('/', async (req, res) => {
       type: sale.saleChannelId?.name || sale.saleType || 'Bán lẻ',
     }));
 
-    res.json({
+    const payload = {
       totals: {
         products,
         lowStock,
@@ -420,7 +436,10 @@ router.get('/', async (req, res) => {
       walletItems,
       recentSales,
       availableStores,
-    });
+    };
+    await setCachedJson(overviewCacheKey, payload, 12);
+    res.setHeader('X-Cache', 'MISS');
+    res.json(payload);
   } catch (error) {
     console.error('Dashboard route failed', error);
     res.status(500).json({ message: 'Không thể tải dữ liệu tổng quan' });
