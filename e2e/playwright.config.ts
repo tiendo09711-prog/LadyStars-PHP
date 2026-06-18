@@ -5,6 +5,8 @@ import path from 'path';
 // Load .env from root
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+const baseURL = process.env.E2E_BASE_URL || 'http://localhost:5173';
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
@@ -14,7 +16,7 @@ export default defineConfig({
   reporter: 'html',
   timeout: 30000,
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL,
     trace: 'on-first-retry',
   },
 

@@ -11,7 +11,7 @@ test.describe('Products Main Page - Automation', () => {
 
     await expect(page.locator('h1', { hasText: 'Sản phẩm' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Thêm sản phẩm' }).click();
+    await page.getByRole('button', { name: 'Thêm mới', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Thêm sản phẩm' })).toBeVisible();
 
     await page.locator('.form-field').filter({ hasText: 'Mã sản phẩm *' }).locator('input').fill(testProductCode);
@@ -47,12 +47,14 @@ test.describe('Products Main Page - Automation', () => {
     await expect(page.getByRole('heading', { name: 'Sửa sản phẩm' })).not.toBeVisible();
     await expect(row).toContainText('Sản phẩm Test E2E Update');
 
-    await page.getByRole('button', { name: 'Import' }).click();
+    await page.getByRole('button', { name: 'Mở menu thêm mới' }).click();
+    await page.getByRole('button', { name: 'Nhập từ file' }).click();
     await expect(page.getByRole('heading', { name: 'Nhập dữ liệu sản phẩm' })).toBeVisible();
     await page.getByRole('button', { name: 'Hủy' }).click();
     await expect(page.getByRole('heading', { name: 'Nhập dữ liệu sản phẩm' })).not.toBeVisible();
 
-    await page.getByRole('button', { name: 'Xuất Excel' }).click();
+    await page.getByRole('button', { name: 'Thao tác' }).click();
+    await page.getByRole('button', { name: 'Xuất dữ liệu' }).click();
     await expect(page.getByRole('heading', { name: 'Xuất Excel - Danh sách sản phẩm' })).toBeVisible();
     await page.getByRole('button', { name: 'Đóng' }).click();
     await expect(page.getByRole('heading', { name: 'Xuất Excel - Danh sách sản phẩm' })).not.toBeVisible();

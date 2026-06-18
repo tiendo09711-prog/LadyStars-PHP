@@ -5,15 +5,22 @@ import {
   ArrowUp,
   ArrowUpDown,
   Boxes,
+  CheckSquare,
+  ChevronDown,
   Clock3,
+  Download,
   Eye,
   FileDown,
   FileUp,
+  PackageCheck,
   Pencil,
   Plus,
+  Printer,
   RefreshCw,
   Search,
+  Settings,
   ShieldAlert,
+  Tag,
   Trash2,
   UploadCloud,
   X,
@@ -41,6 +48,146 @@ interface BranchOption {
   name: string;
   code?: string;
   isDefault?: boolean;
+}
+
+type BarcodeType = 'EAN13' | 'C128' | 'C39' | 'C128A' | 'QRCODE';
+
+interface PaperTemplate {
+  id: string;
+  title: string;
+  size: string;
+  widthMm: number;
+  heightMm: number;
+  columns: number;
+  rows?: number;
+  previewClass: 'roll' | 'sheet' | 'jewelry';
+}
+
+const PRODUCT_STATUS_OPTIONS = ['Mới', 'Đang bán', 'Ngừng bán', 'Hết hàng'];
+
+const PAPER_TEMPLATES: PaperTemplate[] = [
+  { id: 'roll-105x22-3', title: 'Mẫu giấy cuộn 3 nhãn', size: 'Khổ 105x22mm.', widthMm: 105, heightMm: 22, columns: 3, previewClass: 'roll' },
+  { id: 'roll-70x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 70x22mm.', widthMm: 70, heightMm: 22, columns: 2, previewClass: 'roll' },
+  { id: 'a4-65', title: 'Mẫu giấy 65 nhãn', size: 'Khổ A4, Tomy 145 - 210x297mm.', widthMm: 210, heightMm: 297, columns: 5, rows: 13, previewClass: 'sheet' },
+  { id: 'roll-77x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 77x22mm.', widthMm: 77, heightMm: 22, columns: 2, previewClass: 'roll' },
+  { id: 'roll-40x25-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 40x25mm.', widthMm: 40, heightMm: 25, columns: 1, previewClass: 'roll' },
+  { id: 'a4-180', title: 'Mẫu giấy 180 nhãn', size: 'Khổ A4 - 20x15mm.', widthMm: 210, heightMm: 297, columns: 10, rows: 18, previewClass: 'sheet' },
+  { id: 'roll-50x40-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 50x40mm.', widthMm: 50, heightMm: 40, columns: 2, previewClass: 'roll' },
+  { id: 'roll-40x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 40x30mm.', widthMm: 40, heightMm: 30, columns: 1, previewClass: 'roll' },
+  { id: 'roll-50x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 50x30mm.', widthMm: 50, heightMm: 30, columns: 1, previewClass: 'roll' },
+  { id: 'roll-30x20-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 30x20mm.', widthMm: 30, heightMm: 20, columns: 2, previewClass: 'roll' },
+  { id: 'jewelry-80x10', title: 'Mẫu tem trang sức / kính mắt', size: 'Khổ 80x10mm.', widthMm: 80, heightMm: 10, columns: 1, previewClass: 'jewelry' },
+  { id: 'a4-30', title: 'Mẫu giấy 30 nhãn', size: 'Khổ A4, Tomy 144 - 67x28mm.', widthMm: 210, heightMm: 297, columns: 3, rows: 10, previewClass: 'sheet' },
+  { id: 'a4-48', title: 'Mẫu giấy 48 nhãn', size: 'Khổ A4, Tomy 132, 45.7mm x 21.2mm', widthMm: 210, heightMm: 297, columns: 4, rows: 12, previewClass: 'sheet' },
+];
+
+const CODE39_PATTERNS: Record<string, string> = {
+  '0': 'nnnwwnwnn', '1': 'wnnwnnnnw', '2': 'nnwwnnnnw', '3': 'wnwwnnnnn', '4': 'nnnwwnnnw',
+  '5': 'wnnwwnnnn', '6': 'nnwwwnnnn', '7': 'nnnwnnwnw', '8': 'wnnwnnwnn', '9': 'nnwwnnwnn',
+  A: 'wnnnnwnnw', B: 'nnwnnwnnw', C: 'wnwnnwnnn', D: 'nnnnwwnnw', E: 'wnnnwwnnn',
+  F: 'nnwnwwnnn', G: 'nnnnnwwnw', H: 'wnnnnwwnn', I: 'nnwnnwwnn', J: 'nnnnwwwnn',
+  K: 'wnnnnnnww', L: 'nnwnnnnww', M: 'wnwnnnnwn', N: 'nnnnwnnww', O: 'wnnnwnnwn',
+  P: 'nnwnwnnwn', Q: 'nnnnnnwww', R: 'wnnnnnwwn', S: 'nnwnnnwwn', T: 'nnnnwnwwn',
+  U: 'wwnnnnnnw', V: 'nwwnnnnnw', W: 'wwwnnnnnn', X: 'nwnnwnnnw', Y: 'wwnnwnnnn',
+  Z: 'nwwnwnnnn', '-': 'nwnnnnwnw', '.': 'wwnnnnwnn', ' ': 'nwwnnnwnn', '*': 'nwnnwnwnn',
+  '$': 'nwnwnwnnn', '/': 'nwnwnnnwn', '+': 'nwnnnwnwn', '%': 'nnnwnwnwn',
+};
+
+function normalizeBarcodeValue(product: IProduct) {
+  return String(product.barcode || product.code || product._id || '').trim();
+}
+
+function buildCode39Svg(value: string, height = 42) {
+  const encoded = `*${value.toUpperCase().replace(/[^0-9A-Z .\-/$+%]/g, '-')}*`;
+  let x = 0;
+  const bars: string[] = [];
+
+  encoded.split('').forEach((char) => {
+    const pattern = CODE39_PATTERNS[char] || CODE39_PATTERNS['-'];
+    pattern.split('').forEach((widthFlag, index) => {
+      const width = widthFlag === 'w' ? 3 : 1;
+      if (index % 2 === 0) {
+        bars.push(`<rect x="${x}" y="0" width="${width}" height="${height}" />`);
+      }
+      x += width;
+    });
+    x += 1;
+  });
+
+  return `<svg class="barcode-svg" viewBox="0 0 ${x} ${height}" preserveAspectRatio="none" role="img">${bars.join('')}</svg>`;
+}
+
+function buildQrLikeSvg(value: string) {
+  const size = 21;
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  const cells: string[] = [];
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const finder = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13);
+      const dark = finder ? x === 0 || y === 0 || x === 6 || y === 6 || (x > 1 && x < 5 && y > 1 && y < 5) : ((x * 17 + y * 23 + hash) % 5) < 2;
+      if (dark) cells.push(`<rect x="${x}" y="${y}" width="1" height="1" />`);
+    }
+  }
+
+  return `<svg class="barcode-svg qr" viewBox="0 0 ${size} ${size}" preserveAspectRatio="xMidYMid meet" role="img">${cells.join('')}</svg>`;
+}
+
+function computeEan13CheckDigit(value: string) {
+  const digits = value.slice(0, 12).split('').map(Number);
+  const sum = digits.reduce((total, digit, index) => total + digit * (index % 2 === 0 ? 1 : 3), 0);
+  return String((10 - (sum % 10)) % 10);
+}
+
+function buildEan13Svg(value: string, height = 42) {
+  const numeric = value.replace(/\D/g, '');
+  if (numeric.length < 12) return buildCode39Svg(value, height);
+
+  const base = numeric.slice(0, 12);
+  const ean = numeric.length >= 13 ? numeric.slice(0, 13) : `${base}${computeEan13CheckDigit(base)}`;
+  const leftOdd: Record<string, string> = {
+    '0': '0001101', '1': '0011001', '2': '0010011', '3': '0111101', '4': '0100011',
+    '5': '0110001', '6': '0101111', '7': '0111011', '8': '0110111', '9': '0001011',
+  };
+  const leftEven: Record<string, string> = {
+    '0': '0100111', '1': '0110011', '2': '0011011', '3': '0100001', '4': '0011101',
+    '5': '0111001', '6': '0000101', '7': '0010001', '8': '0001001', '9': '0010111',
+  };
+  const right: Record<string, string> = {
+    '0': '1110010', '1': '1100110', '2': '1101100', '3': '1000010', '4': '1011100',
+    '5': '1001110', '6': '1010000', '7': '1000100', '8': '1001000', '9': '1110100',
+  };
+  const parity: Record<string, string> = {
+    '0': 'OOOOOO', '1': 'OOEOEE', '2': 'OOEEOE', '3': 'OOEEEO', '4': 'OEOOEE',
+    '5': 'OEEOOE', '6': 'OEEEOO', '7': 'OEOEOE', '8': 'OEOEEO', '9': 'OEEOEO',
+  };
+
+  let pattern = '101';
+  const leftParity = parity[ean[0]] || parity['0'];
+  for (let index = 1; index <= 6; index += 1) {
+    pattern += leftParity[index - 1] === 'O' ? leftOdd[ean[index]] : leftEven[ean[index]];
+  }
+  pattern += '01010';
+  for (let index = 7; index <= 12; index += 1) {
+    pattern += right[ean[index]];
+  }
+  pattern += '101';
+
+  const bars = pattern.split('').map((bit, index) => bit === '1' ? `<rect x="${index}" y="0" width="1" height="${height}" />` : '').join('');
+  return `<svg class="barcode-svg" viewBox="0 0 ${pattern.length} ${height}" preserveAspectRatio="none" role="img">${bars}</svg>`;
+}
+
+function buildBarcodeSvg(value: string, type: BarcodeType) {
+  if (type === 'QRCODE') return buildQrLikeSvg(value);
+  if (type === 'EAN13') return buildEan13Svg(value || '0');
+  return buildCode39Svg(value || '0');
+}
+
+function BarcodeSvg({ value, type }: { value: string; type: BarcodeType }) {
+  return <span className="barcode-art" dangerouslySetInnerHTML={{ __html: buildBarcodeSvg(value, type) }} />;
 }
 
 function DeleteConfirm({
@@ -580,6 +727,376 @@ function ImportModal({
   );
 }
 
+function BulkStatusModal({
+  selectedCount,
+  statusOptions,
+  loading,
+  onClose,
+  onApply,
+}: {
+  selectedCount: number;
+  statusOptions: string[];
+  loading: boolean;
+  onClose: () => void;
+  onApply: (status: string) => void;
+}) {
+  const [status, setStatus] = useState(statusOptions[0] || 'Mới');
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card products-bulk-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>Sửa trạng thái sản phẩm</h2>
+            <p>Áp dụng cho {selectedCount.toLocaleString('vi-VN')} sản phẩm đã chọn.</p>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} disabled={loading}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="products-modal-body">
+          <label className="form-field">
+            <span>Trạng thái bán</span>
+            <select value={status} onChange={(event) => setStatus(event.target.value)} disabled={loading}>
+              {statusOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-light" type="button" onClick={onClose} disabled={loading}>Hủy</button>
+          <button className="btn btn-primary" type="button" onClick={() => onApply(status)} disabled={loading || !status}>
+            {loading ? 'Đang cập nhật...' : 'Cập nhật'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkCategoryModal({
+  selectedCount,
+  categories,
+  loading,
+  onClose,
+  onApply,
+}: {
+  selectedCount: number;
+  categories: ICategory[];
+  loading: boolean;
+  onClose: () => void;
+  onApply: (category: ICategory) => void;
+}) {
+  const [categoryId, setCategoryId] = useState('');
+  const selectedCategory = categories.find((category) => category._id === categoryId);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card products-bulk-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h2>Cập nhật danh mục</h2>
+            <p>Áp dụng cho {selectedCount.toLocaleString('vi-VN')} sản phẩm đã chọn.</p>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} disabled={loading}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="products-modal-body">
+          <label className="form-field">
+            <span>Danh mục</span>
+            <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} disabled={loading}>
+              <option value="">Chọn danh mục</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>{category.name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-light" type="button" onClick={onClose} disabled={loading}>Hủy</button>
+          <button className="btn btn-primary" type="button" onClick={() => selectedCategory && onApply(selectedCategory)} disabled={loading || !selectedCategory}>
+            {loading ? 'Đang cập nhật...' : 'Cập nhật'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildPrintDocument({
+  rows,
+  barcodeType,
+  paper,
+  marginLeft,
+  marginTop,
+  showStore,
+  storeName,
+  showCode,
+  showName,
+  showPrice,
+  showOldPrice,
+  currencySuffix,
+}: {
+  rows: Array<{ product: IProduct; qty: number }>;
+  barcodeType: BarcodeType;
+  paper: PaperTemplate;
+  marginLeft: number;
+  marginTop: number;
+  showStore: boolean;
+  storeName: string;
+  showCode: boolean;
+  showName: boolean;
+  showPrice: boolean;
+  showOldPrice: boolean;
+  currencySuffix: string;
+}) {
+  const labels = rows.flatMap((row) => Array.from({ length: Math.max(1, row.qty) }, () => row.product));
+  const labelWidth = paper.rows ? paper.widthMm / paper.columns : paper.widthMm / paper.columns;
+  const labelHeight = paper.rows ? paper.heightMm / paper.rows : paper.heightMm;
+  const labelHtml = labels.map((product) => {
+    const value = normalizeBarcodeValue(product);
+    return `<article class="print-label">
+      ${showStore ? `<div class="print-store">${storeName}</div>` : ''}
+      ${buildBarcodeSvg(value, barcodeType)}
+      ${showCode ? `<div class="print-code">${value}</div>` : ''}
+      ${showName ? `<div class="print-name">${product.name}</div>` : ''}
+      ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${currencySuffix}</div>` : ''}
+      ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${currencySuffix}</div>` : ''}
+    </article>`;
+  }).join('');
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>In mã vạch sản phẩm</title>
+    <style>
+      @page { size: ${paper.rows ? 'A4' : `${paper.widthMm}mm ${paper.heightMm}mm`}; margin: ${marginTop}mm 0 0 ${marginLeft}mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
+      .sheet { display: grid; grid-template-columns: repeat(${paper.columns}, ${labelWidth}mm); align-content: start; }
+      .print-label { width: ${labelWidth}mm; height: ${labelHeight}mm; padding: 1.2mm 2mm; overflow: hidden; text-align: center; break-inside: avoid; }
+      .print-store { font-size: 8px; font-weight: 700; line-height: 1; }
+      .barcode-svg { width: 100%; height: ${Math.max(7, labelHeight * 0.35)}mm; display: block; fill: #000; }
+      .barcode-svg.qr { height: ${Math.max(8, labelHeight * 0.46)}mm; }
+      .print-code { font-size: 7px; line-height: 1.1; }
+      .print-name { font-size: 8px; line-height: 1.05; max-height: 16px; overflow: hidden; }
+      .print-price { font-size: 9px; font-weight: 800; line-height: 1.1; }
+      .print-old-price { font-size: 8px; text-decoration: line-through; color: #6b7280; }
+    </style></head><body><main class="sheet">${labelHtml}</main><script>window.onload = () => window.print();</script></body></html>`;
+}
+
+function BarcodePrintWorkspace({
+  products,
+  onBack,
+  onClearSelection,
+}: {
+  products: IProduct[];
+  onBack: () => void;
+  onClearSelection: () => void;
+}) {
+  const [rows, setRows] = useState(() => products.map((product) => ({ product, qty: 1 })));
+  const [barcodeType, setBarcodeType] = useState<BarcodeType>('EAN13');
+  const [paperId, setPaperId] = useState(PAPER_TEMPLATES[1].id);
+  const [showAllPapers, setShowAllPapers] = useState(false);
+  const [showStore, setShowStore] = useState(true);
+  const [storeName, setStoreName] = useState('LADYSTARS');
+  const [showCode, setShowCode] = useState(false);
+  const [showName, setShowName] = useState(true);
+  const [showPrice, setShowPrice] = useState(true);
+  const [showOldPrice, setShowOldPrice] = useState(false);
+  const [showThreeLineName, setShowThreeLineName] = useState(false);
+  const [currencySuffix, setCurrencySuffix] = useState('đ');
+  const [marginLeft, setMarginLeft] = useState(0);
+  const [marginTop, setMarginTop] = useState(0);
+  const [openPrintAction, setOpenPrintAction] = useState(false);
+  const selectedPaper = PAPER_TEMPLATES.find((paper) => paper.id === paperId) || PAPER_TEMPLATES[1];
+  const visiblePapers = showAllPapers ? PAPER_TEMPLATES : PAPER_TEMPLATES.slice(0, 1);
+  const previewProduct = rows[0]?.product || products[0];
+  const previewBarcodeValue = previewProduct ? normalizeBarcodeValue(previewProduct) : 'LADYSTARS';
+
+  const updateQty = (productId: string, qty: number) => {
+    setRows((current) => current.map((row) => row.product._id === productId ? { ...row, qty: Math.max(1, qty || 1) } : row));
+  };
+
+  const removeRow = (productId: string) => {
+    setRows((current) => current.filter((row) => row.product._id !== productId));
+  };
+
+  const exportRows = () => {
+    const mappedRows = rows.map((row) => ({
+      'Mã sản phẩm': row.product.code,
+      'Tên sản phẩm': row.product.name,
+      'Mã vạch': normalizeBarcodeValue(row.product),
+      'Giá bán': row.product.price || 0,
+      'Số lượng tem': row.qty,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(mappedRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'In ma vach');
+    XLSX.writeFile(workbook, `in-ma-vach-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const openPrintPreview = (paper: PaperTemplate) => {
+    if (rows.length === 0) {
+      alert('Vui lòng giữ lại ít nhất một sản phẩm để in mã vạch.');
+      return;
+    }
+
+    const html = buildPrintDocument({
+      rows,
+      barcodeType,
+      paper,
+      marginLeft,
+      marginTop,
+      showStore,
+      storeName,
+      showCode,
+      showName,
+      showPrice,
+      showOldPrice,
+      currencySuffix,
+    });
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      alert('Trình duyệt đang chặn cửa sổ in. Vui lòng cho phép pop-up để xem và in.');
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  return (
+    <div className="barcode-page">
+      <div className="barcode-page-header">
+        <div>
+          <button className="btn btn-light" type="button" onClick={onBack}>Quay lại danh sách</button>
+          <h2>In mã vạch sản phẩm</h2>
+          <p>Đang in tem cho {rows.length.toLocaleString('vi-VN')} sản phẩm đã chọn.</p>
+        </div>
+        <div className="products-bulk-menu">
+          <button className="btn products-dropdown-button" type="button" onClick={() => setOpenPrintAction((current) => !current)}>
+            <span>Thao tác</span>
+            <ChevronDown size={15} />
+          </button>
+          {openPrintAction ? (
+            <div className="products-floating-dropdown products-bulk-dropdown">
+              <button className="products-dropdown-item" type="button" onClick={() => { setOpenPrintAction(false); exportRows(); }}>
+                <Download size={15} />
+                <span>Xuất dữ liệu</span>
+              </button>
+              <button className="products-dropdown-item danger" type="button" onClick={() => { setRows([]); onClearSelection(); setOpenPrintAction(false); }}>
+                <Trash2 size={15} />
+                <span>Xóa danh sách toàn bộ đã chọn</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="barcode-layout">
+        <section className="barcode-card barcode-products-card">
+          <div className="barcode-card-title"><PackageCheck size={18} /> <strong>Sản phẩm tự chọn</strong></div>
+          <div className="barcode-branch-select">- Lấy giá sản phẩm theo chi nhánh -</div>
+          <div className="barcode-search-row">
+            <button className="btn btn-light" type="button"><Search size={15} /></button>
+            <input value="" readOnly placeholder="Nhập sản phẩm" />
+          </div>
+          <div className="products-table-wrap">
+            <table className="data-table barcode-table">
+              <thead>
+                <tr>
+                  <th>Mã</th>
+                  <th>Mã sản phẩm</th>
+                  <th>Tên sản phẩm</th>
+                  <th>Giá bán lẻ</th>
+                  <th>SL</th>
+                  <th>Xóa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 ? (
+                  <tr><td colSpan={6} className="empty-cell">Chưa có sản phẩm để in.</td></tr>
+                ) : rows.map((row) => (
+                  <tr key={row.product._id}>
+                    <td>{normalizeBarcodeValue(row.product)}</td>
+                    <td>{row.product.code}</td>
+                    <td>{row.product.name}</td>
+                    <td className="products-price">{formatMoney(row.product.price)}</td>
+                    <td><input className="barcode-qty" type="number" min={1} value={row.qty} onChange={(event) => updateQty(row.product._id, Number(event.target.value))} /></td>
+                    <td><button className="icon-button danger" type="button" onClick={() => removeRow(row.product._id)}><Trash2 size={15} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside className="barcode-side">
+          <section className="barcode-card">
+            <div className="barcode-card-title"><Settings size={18} /> <strong>Cấu hình in tem</strong></div>
+            <div className="barcode-preview-label">
+              {showStore ? <div className="barcode-preview-store">{storeName}</div> : null}
+              <BarcodeSvg value={previewBarcodeValue} type={barcodeType} />
+              {showCode ? <div className="barcode-preview-code">{previewBarcodeValue}</div> : null}
+              {showName ? <div className={`barcode-preview-name ${showThreeLineName ? 'three' : ''}`}>{previewProduct?.name || 'Tên sản phẩm'}</div> : null}
+              {showPrice ? <div className="barcode-preview-price">{formatMoney(previewProduct?.price || 0)}</div> : null}
+            </div>
+
+            <label className="barcode-config-row">
+              <span>Loại mã</span>
+              <select value={barcodeType} onChange={(event) => setBarcodeType(event.target.value as BarcodeType)}>
+                <option value="EAN13">EAN13</option>
+                <option value="C128">C128</option>
+                <option value="C39">C39</option>
+                <option value="C128A">C128A</option>
+                <option value="QRCODE">QRCODE</option>
+              </select>
+            </label>
+            <label className="barcode-switch-row"><input type="checkbox" checked={showStore} onChange={(event) => setShowStore(event.target.checked)} /> Hiện tên shop</label>
+            {showStore ? <input className="barcode-text-input" value={storeName} onChange={(event) => setStoreName(event.target.value)} /> : null}
+            <label className="barcode-switch-row"><input type="checkbox" checked={showCode} onChange={(event) => setShowCode(event.target.checked)} /> Hiện mã sản phẩm</label>
+            <label className="barcode-switch-row"><input type="checkbox" checked={showName} onChange={(event) => setShowName(event.target.checked)} /> Hiện tên sản phẩm</label>
+            <label className="barcode-switch-row"><input type="checkbox" checked={showThreeLineName} onChange={(event) => setShowThreeLineName(event.target.checked)} /> Hiện 3 dòng tên sản phẩm</label>
+            <label className="barcode-switch-row"><input type="checkbox" checked={showPrice} onChange={(event) => setShowPrice(event.target.checked)} /> Hiện giá sản phẩm</label>
+            <label className="barcode-switch-row"><input type="checkbox" checked={showOldPrice} onChange={(event) => setShowOldPrice(event.target.checked)} /> Hiện giá cũ</label>
+            <label className="barcode-config-row"><span>Đơn vị tiền sau giá bán</span><input value={currencySuffix} onChange={(event) => setCurrencySuffix(event.target.value)} /></label>
+          </section>
+
+          <section className="barcode-card">
+            <div className="barcode-card-title"><Tag size={18} /> <strong>Chọn khổ giấy và in</strong></div>
+            <div className="barcode-margin-row">
+              <label>Trái: <input type="number" value={marginLeft} onChange={(event) => setMarginLeft(Number(event.target.value))} /></label>
+              <label>Trên: <input type="number" value={marginTop} onChange={(event) => setMarginTop(Number(event.target.value))} /></label>
+            </div>
+            <button className="barcode-show-all" type="button" onClick={() => setShowAllPapers((current) => !current)}>
+              {showAllPapers ? 'Thu gọn khổ giấy' : 'Hiển thị tất cả khổ giấy'}
+            </button>
+            <div className="barcode-paper-list">
+              {visiblePapers.map((paper) => (
+                <article className="barcode-paper-item" key={paper.id}>
+                  <label>
+                    <input type="radio" checked={paperId === paper.id} onChange={() => setPaperId(paper.id)} />
+                    <span><strong>{paper.title}</strong><em>- {paper.size}</em></span>
+                  </label>
+                  <div className={`barcode-paper-preview ${paper.previewClass}`} aria-hidden="true" />
+                  <button className="btn barcode-print-button" type="button" onClick={() => openPrintPreview(paper)}>
+                    <Eye size={15} />
+                    Xem và in
+                  </button>
+                </article>
+              ))}
+            </div>
+            <button className="btn barcode-print-main" type="button" onClick={() => openPrintPreview(selectedPaper)}>
+              <Printer size={15} />
+              Xem và in khổ đang chọn
+            </button>
+          </section>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
   const [items, setItems] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -601,6 +1118,16 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
   const [saveError, setSaveError] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [openAddMenu, setOpenAddMenu] = useState(false);
+  const [openBulkMenu, setOpenBulkMenu] = useState(false);
+  const [openBulkStatusMenu, setOpenBulkStatusMenu] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [showBarcodePrint, setShowBarcodePrint] = useState(false);
+  const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
+  const [showBulkCategoryModal, setShowBulkCategoryModal] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [importResult, setImportResult] = useState<{
     created: number;
     updated: number;
@@ -631,6 +1158,62 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
     ],
     [],
   );
+
+  const selectedProducts = useMemo(
+    () => items.filter((item) => selectedIds.has(item._id)),
+    [items, selectedIds],
+  );
+
+  const statusOptions = useMemo(() => {
+    const values = new Set(PRODUCT_STATUS_OPTIONS);
+    items.forEach((item) => {
+      if (item.status) values.add(item.status);
+    });
+    return Array.from(values);
+  }, [items]);
+
+  const allCurrentPageSelected = items.length > 0 && items.every((item) => selectedIds.has(item._id));
+
+  const toggleCurrentPageSelection = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allCurrentPageSelected) {
+        items.forEach((item) => next.delete(item._id));
+      } else {
+        items.forEach((item) => next.add(item._id));
+      }
+      return next;
+    });
+  };
+
+  const toggleRowSelection = (productId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const requireSelection = () => {
+    if (selectedIds.size > 0) return true;
+    alert('Vui lòng tích chọn ít nhất một sản phẩm trước khi thao tác.');
+    return false;
+  };
+
+  const ensureCategories = async () => {
+    if (categories.length > 0 || loadingCategories) return;
+    setLoadingCategories(true);
+    try {
+      const response = await productApi.getCategories({ limit: 1000 });
+      setCategories(response.items || []);
+    } catch (error) {
+      console.error('Lỗi tải danh mục sản phẩm:', error);
+      alert('Không tải được danh mục sản phẩm.');
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -714,6 +1297,75 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
     }
   };
 
+  const handleBulkStatus = async (status: string) => {
+    if (!requireSelection()) return;
+    setBulkLoading(true);
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => productApi.updateProduct(id, { status })));
+      setShowBulkStatusModal(false);
+      setOpenBulkMenu(false);
+      setOpenBulkStatusMenu(false);
+      await load();
+    } catch (error) {
+      console.error('Lỗi đổi trạng thái sản phẩm:', error);
+      alert('Đổi trạng thái sản phẩm thất bại.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkCategory = async (category: ICategory) => {
+    if (!requireSelection()) return;
+    setBulkLoading(true);
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => productApi.updateProduct(id, { categoryId: category._id, categoryName: category.name })));
+      setShowBulkCategoryModal(false);
+      setOpenBulkMenu(false);
+      await load();
+    } catch (error) {
+      console.error('Lỗi cập nhật danh mục sản phẩm:', error);
+      alert('Cập nhật danh mục thất bại.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!requireSelection()) return;
+    const ok = window.confirm(`Bạn có chắc muốn xóa ${selectedIds.size.toLocaleString('vi-VN')} sản phẩm đã chọn không?`);
+    if (!ok) return;
+
+    setBulkLoading(true);
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => productApi.deleteProduct(id)));
+      setSelectedIds(new Set());
+      setOpenBulkMenu(false);
+      await load();
+    } catch (error) {
+      console.error('Lỗi xóa nhiều sản phẩm:', error);
+      alert('Xóa các dòng đã chọn thất bại.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const openBarcodePrint = () => {
+    if (!requireSelection()) return;
+    if (selectedProducts.length === 0) {
+      alert('Vui lòng tích chọn sản phẩm đang hiển thị trên trang này để in mã vạch.');
+      return;
+    }
+    setOpenBulkMenu(false);
+    setShowBarcodePrint(true);
+  };
+
+  const openBulkCategoryModal = async () => {
+    if (!requireSelection()) return;
+    setOpenBulkMenu(false);
+    await ensureCategories();
+    setShowBulkCategoryModal(true);
+  };
+
   const handleExcelExport = async (
     exportType: 'current' | 'all',
     filename: string,
@@ -790,6 +1442,16 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
     return sortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />;
   };
 
+  if (showBarcodePrint) {
+    return (
+      <BarcodePrintWorkspace
+        products={selectedProducts}
+        onBack={() => setShowBarcodePrint(false)}
+        onClearSelection={() => setSelectedIds(new Set())}
+      />
+    );
+  }
+
   return (
     <div className="products-panel">
       <section className="products-control-card">
@@ -811,31 +1473,86 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
           </div>
 
           <div className="products-action-row">
-            <button className="btn btn-light" type="button" onClick={() => void load()} title="Làm mới dữ liệu">
-              <RefreshCw size={15} />
-              Làm mới
-            </button>
-            <button className="btn btn-light" type="button" onClick={onShowHistory} title="Xem lịch sử sửa xóa">
-              <Clock3 size={15} />
-              Lịch sử
-            </button>
-            <button className="btn btn-outline" type="button" onClick={() => setShowImport(true)}>
-              <FileUp size={15} />
-              Import
-            </button>
-            <button
-              className="btn btn-light"
-              type="button"
-              style={{ borderColor: '#bbf7d0', color: '#047857' }}
-              onClick={() => setShowExportModal(true)}
-            >
-              <FileDown size={15} />
-              Xuất Excel
-            </button>
-            <button className="btn btn-primary" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>
-              <Plus size={15} />
-              Thêm sản phẩm
-            </button>
+            <div className="products-primary-actions">
+              <div className="products-split-add products-floating-menu">
+                <button className="btn products-add-button" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>
+                  <Plus size={15} />
+                  Thêm mới
+                </button>
+                <button className="btn products-add-button products-split-toggle" type="button" onClick={() => setOpenAddMenu((current) => !current)} aria-label="Mở menu thêm mới">
+                  <ChevronDown size={15} />
+                </button>
+                {openAddMenu ? (
+                  <div className="products-floating-dropdown products-add-dropdown">
+                    <button className="products-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImport(true); }}>
+                      <FileUp size={15} />
+                      <span>Nhập từ file</span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="products-bulk-menu products-floating-menu">
+                <button className="btn products-dropdown-button" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
+                  <span>Thao tác</span>
+                  <ChevronDown size={15} />
+                </button>
+                {openBulkMenu ? (
+                  <div className="products-floating-dropdown products-bulk-dropdown">
+                    <button className="products-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
+                      <FileDown size={15} />
+                      <span>Xuất dữ liệu</span>
+                    </button>
+                    <button className="products-dropdown-item" type="button" onClick={openBarcodePrint}>
+                      <Printer size={15} />
+                      <span>In mã vạch</span>
+                    </button>
+                    <div className="products-dropdown-group">
+                      <button className="products-dropdown-item" type="button" onClick={() => {
+                        if (!requireSelection()) return;
+                        setOpenBulkStatusMenu((current) => !current);
+                      }}>
+                        <RefreshCw size={15} />
+                        <span>Đổi trạng thái sản phẩm</span>
+                        <ChevronDown size={14} />
+                      </button>
+                      {openBulkStatusMenu ? (
+                        <div className="products-sub-dropdown">
+                          {statusOptions.map((status) => (
+                            <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
+                              {status}
+                            </button>
+                          ))}
+                          <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
+                            Tùy chọn khác...
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                    <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
+                      <Trash2 size={15} />
+                      <span>Xóa các dòng đã chọn</span>
+                    </button>
+                    <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
+                      <CheckSquare size={15} />
+                      <span>Cập nhật danh mục</span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
+            </div>
+
+            <div className="products-secondary-actions">
+              <button className="btn btn-light" type="button" onClick={() => void load()} title="Làm mới dữ liệu">
+                <RefreshCw size={15} />
+                Làm mới
+              </button>
+              <button className="btn btn-light" type="button" onClick={onShowHistory} title="Xem lịch sử sửa xóa">
+                <Clock3 size={15} />
+                Lịch sử
+              </button>
+            </div>
           </div>
         </div>
 
@@ -896,7 +1613,12 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
             <thead>
               <tr>
                 <th className="check-cell">
-                  <input type="checkbox" aria-label="Chọn tất cả sản phẩm" />
+                  <input
+                    type="checkbox"
+                    aria-label="Chọn tất cả sản phẩm"
+                    checked={allCurrentPageSelected}
+                    onChange={toggleCurrentPageSelection}
+                  />
                 </th>
                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('code')}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -964,7 +1686,12 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
                 ? items.map((item) => (
                     <tr key={item._id}>
                       <td className="check-cell">
-                        <input type="checkbox" aria-label={`Chọn sản phẩm ${item.code}`} />
+                        <input
+                          type="checkbox"
+                          aria-label={`Chọn sản phẩm ${item.code}`}
+                          checked={selectedIds.has(item._id)}
+                          onChange={() => toggleRowSelection(item._id)}
+                        />
                       </td>
                       <td>
                         <span className="products-code">{item.code}</span>
@@ -1108,6 +1835,26 @@ export function ProductList({ onShowHistory }: { onShowHistory?: () => void }) {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {showBulkStatusModal ? (
+        <BulkStatusModal
+          selectedCount={selectedIds.size}
+          statusOptions={statusOptions}
+          loading={bulkLoading}
+          onClose={() => setShowBulkStatusModal(false)}
+          onApply={(status) => void handleBulkStatus(status)}
+        />
+      ) : null}
+
+      {showBulkCategoryModal ? (
+        <BulkCategoryModal
+          selectedCount={selectedIds.size}
+          categories={categories}
+          loading={bulkLoading || loadingCategories}
+          onClose={() => setShowBulkCategoryModal(false)}
+          onApply={(category) => void handleBulkCategory(category)}
+        />
       ) : null}
 
       {showExportModal ? (
