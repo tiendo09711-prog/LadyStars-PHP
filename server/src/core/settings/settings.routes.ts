@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { requireOwner } from '../middleware/auth.js';
 import { User } from '../auth/user.model.js';
+import { normalizeRole, normalizeStatus } from '../auth/role.utils.js';
 import { writeAuditLog } from '../audit/audit.service.js';
 import { StoreSetting } from './settings.model.js';
 
@@ -45,14 +46,15 @@ function authPayload(user: any) {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role,
-    status: user.status,
+    role: normalizeRole(user.role, Boolean(user.isRootOwner)),
+    status: normalizeStatus(user.status),
   };
 }
 
 function signToken(user: any) {
+  const role = normalizeRole(user.role, Boolean(user.isRootOwner));
   return jwt.sign(
-    { sub: user.id, role: user.role, tokenVersion: user.tokenVersion ?? 0 },
+    { sub: user.id, role, tokenVersion: user.tokenVersion ?? 0 },
     env.jwtSecret,
     { expiresIn: '7d' },
   );

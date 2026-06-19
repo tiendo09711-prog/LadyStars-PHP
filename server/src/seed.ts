@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { connectDatabase } from './config/database.js';
 import { User } from './core/auth/user.model.js';
+import { ACTIVE_STATUS, ADMIN_ROLE } from './core/auth/role.utils.js';
 import { StoreSetting } from './core/settings/settings.model.js';
 import { Category, PaymentMethod, Product, SaleChannel } from './modules/product/product.models.js';
 
@@ -8,7 +9,7 @@ await connectDatabase();
 const passwordHash = await bcrypt.hash('123456789', 10);
 const admin = await User.findOneAndUpdate(
   { email: 'admin@myerp.local' },
-  { name: 'Admin', email: 'admin@myerp.local', passwordHash, role: 'owner', status: 'open', isRootOwner: true, isActive: true },
+  { name: 'Admin', email: 'admin@myerp.local', passwordHash, role: ADMIN_ROLE, status: ACTIVE_STATUS, isRootOwner: true, isActive: true },
   { upsert: true, new: true }
 );
 await StoreSetting.findOneAndUpdate(
