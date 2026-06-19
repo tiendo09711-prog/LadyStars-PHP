@@ -8,6 +8,7 @@ import { Customer } from '../customer/customer.models.js';
 import { Order } from '../orders/orders.models.js';
 import multer from 'multer';
 import * as xlsx from 'xlsx';
+import mongoose from 'mongoose';
 import { InventoryProduct, InventoryVoucher } from '../warehouse/warehouse.models.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -53,8 +54,74 @@ function parseNumber(value: any): number {
   return Number(normalized) || 0;
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function sanitizeProductPayload(raw: any) {
+  const payload = { ...raw };
+  for (const key of [
+    '_id',
+    'createdAt',
+    'updatedAt',
+    '__v',
+    'qty',
+    'availableStock',
+    'initialStocks',
+    'stockAdjustment',
+    'trademarkName',
+    'supplierName',
+  ]) {
+    delete payload[key];
+  }
+  return payload;
+}
+
+function normalizeStockLines(raw: unknown) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+
+  return raw.map((line: any, index) => {
+    const warehouseId = String(line?.warehouseId || '').trim();
+    const quantity = Number(line?.quantity);
+    if (!mongoose.isValidObjectId(warehouseId)) {
+      const error: any = new Error(`Kho hàng ở dòng ${index + 1} không hợp lệ.`);
+      error.status = 400;
+      throw error;
+    }
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      const error: any = new Error(`Số lượng tồn kho ở dòng ${index + 1} phải là số nguyên không âm.`);
+      error.status = 400;
+      throw error;
+    }
+    if (seen.has(warehouseId)) {
+      const error: any = new Error('Không được gửi trùng kho hàng trong cùng một yêu cầu.');
+      error.status = 400;
+      throw error;
+    }
+    seen.add(warehouseId);
+    return { warehouseId, quantity };
+  });
+}
+
+async function getStockTotals(productIds: mongoose.Types.ObjectId[]) {
+  if (!productIds.length) return new Map<string, number>();
+  const totals = await ProductBranchStock.aggregate([
+    { $match: { productId: { $in: productIds } } },
+    { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
+  ]);
+  return new Map(totals.map((row: any) => [String(row._id), Number(row.quantity || 0)]));
+}
+
 async function populateSale(query: any) {
-  return query.populate('items.productId', 'code name price cost qty unit type allowsSale').populate('saleChannelId', 'name').populate('customerId', 'name code phone');
+  return query
+    .populate('items.productId', 'code name price cost qty unit type allowsSale')
+    .populate('saleChannelId', 'name')
+    .populate('customerId', 'name code phone')
+    .populate('branchId', 'name code address phone')
+    .populate('userId', 'name email')
+    .populate('authorId', 'name email')
+    .populate('typePayment.methodId', 'name code');
 }
 
 async function populateRefund(query: any) {
@@ -234,19 +301,240 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
   }
 });
 
-router.post('/products', async (req, res) => {
-  const payload = { ...req.body, qty: 0 };
-  delete (payload as any).availableStock;
+router.get('/products', async (req, res) => {
+  try {
+    const page = Math.max(Number(req.query.page ?? 1), 1);
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
+    const q = String(req.query.q ?? '').trim();
+    const sortField = String(req.query.sort || 'createdAt');
+    const sortOrder = req.query.order === 'asc' ? 1 : -1;
+    const filter: any = {};
 
-  const item = await Product.create(payload);
-  await writeAuditLog(req, {
-    action: 'product.create_master',
-    module: 'Product',
-    resource: 'Product',
-    resourceId: item.id,
-    after: item,
-  });
-  res.status(201).json(item);
+    if (q) {
+      const query = new RegExp(escapeRegex(q), 'i');
+      filter.$or = [{ name: query }, { code: query }, { barcode: query }];
+    }
+    for (const field of ['status', 'code', 'barcode', 'categoryId']) {
+      const value = String(req.query[field] || '').trim();
+      if (!value) continue;
+      if (field === 'categoryId' && mongoose.isValidObjectId(value)) filter[field] = value;
+      else filter[field] = new RegExp(`^${escapeRegex(value)}$`, 'i');
+    }
+
+    const [items, total] = await Promise.all([
+      Product.find(filter).sort({ [sortField]: sortOrder }).skip((page - 1) * limit).limit(limit).lean(),
+      Product.countDocuments(filter),
+    ]);
+    const totals = await getStockTotals(items.map((item: any) => item._id));
+    res.json({
+      items: items.map((item: any) => ({ ...item, qty: totals.get(String(item._id)) || 0 })),
+      total,
+      page,
+      limit,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Không thể tải danh sách sản phẩm.' });
+  }
+});
+
+router.get('/products/:id/stocks', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Sản phẩm không hợp lệ.' });
+    const product = await Product.findById(req.params.id).select('_id');
+    if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
+
+    const rows = await ProductBranchStock.find({ productId: product._id })
+      .populate('branchId', 'name code isActive')
+      .sort({ createdAt: 1 })
+      .lean();
+    const items = rows
+      .filter((row: any) => row.branchId)
+      .map((row: any) => ({
+        _id: String(row._id),
+        warehouseId: String(row.branchId._id),
+        warehouseName: row.branchId.name,
+        warehouseCode: row.branchId.code,
+        quantity: Number(row.qty || 0),
+      }));
+    res.json({ items, totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0) });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Không thể tải tồn kho theo kho hàng.' });
+  }
+});
+
+router.get('/products/:id', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Sản phẩm không hợp lệ.' });
+    const item = await Product.findById(req.params.id).lean();
+    if (!item) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
+    const totals = await getStockTotals([item._id]);
+    res.json({ ...item, qty: totals.get(String(item._id)) || 0 });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Không thể tải sản phẩm.' });
+  }
+});
+
+router.post('/products', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    const payload = sanitizeProductPayload(req.body);
+    const initialStocks = normalizeStockLines(req.body.initialStocks);
+    if (!String(payload.code || '').trim() || !String(payload.name || '').trim()) {
+      return res.status(400).json({ message: 'Mã và tên sản phẩm là bắt buộc.' });
+    }
+
+    const warehouseIds = initialStocks.map((line) => line.warehouseId);
+    const warehouses = warehouseIds.length
+      ? await Branch.find({ _id: { $in: warehouseIds }, isActive: { $ne: false } }).select('_id')
+      : [];
+    if (warehouses.length !== warehouseIds.length) {
+      return res.status(400).json({ message: 'Có kho hàng không tồn tại hoặc đã ngừng hoạt động.' });
+    }
+
+    let created: any;
+    await session.withTransaction(async () => {
+      const [item] = await Product.create([{ ...payload, qty: 0 }], { session });
+      created = item;
+      let runningTotal = 0;
+
+      for (const line of initialStocks) {
+        if (line.quantity === 0) continue;
+        await ProductBranchStock.create([{
+          productId: item._id,
+          branchId: line.warehouseId,
+          qty: line.quantity,
+          minQuantity: item.minQuantity,
+          maxQuantity: item.maxQuantity,
+        }], { session });
+        await ProductLog.create([{
+          productId: item._id,
+          sourceType: 'PRODUCT_CREATE_INITIAL_STOCK',
+          sourceId: item._id,
+          amount: line.quantity,
+          valueBefore: item.price,
+          valueAfter: item.price,
+          amountBefore: runningTotal,
+          amountAfter: runningTotal + line.quantity,
+        }], { session });
+        runningTotal += line.quantity;
+      }
+
+      item.qty = runningTotal;
+      await item.save({ session });
+      await ProductEditLog.create([{
+        productCode: item.code,
+        productName: item.name,
+        logType: 'Tạo sản phẩm',
+        logAction: `Tạo sản phẩm với tổng tồn ban đầu ${runningTotal}`,
+        createdBy: (req as any).user?.name || (req as any).user?.email || 'Admin',
+      }], { session });
+    });
+
+    await writeAuditLog(req, {
+      action: 'product.create_with_initial_stock',
+      module: 'Product',
+      resource: 'Product',
+      resourceId: created.id,
+      after: created,
+    });
+    res.status(201).json(created);
+  } catch (err: any) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'Mã sản phẩm đã tồn tại.' });
+    res.status(err.status || 500).json({ message: err.message || 'Không thể tạo sản phẩm.' });
+  } finally {
+    await session.endSession();
+  }
+});
+
+router.patch('/products/:id', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Sản phẩm không hợp lệ.' });
+    const productPayload = sanitizeProductPayload(req.body);
+    const adjustment = req.body.stockAdjustment;
+    let normalizedAdjustment: { warehouseId: string; quantity: number } | undefined;
+
+    if (adjustment !== undefined) {
+      [normalizedAdjustment] = normalizeStockLines([adjustment]);
+      const warehouse = await Branch.findById(normalizedAdjustment.warehouseId).select('_id');
+      if (!warehouse) return res.status(400).json({ message: 'Kho hàng không tồn tại.' });
+    }
+
+    let updated: any;
+    let before: any;
+    await session.withTransaction(async () => {
+      before = await Product.findById(req.params.id).session(session);
+      if (!before) {
+        const error: any = new Error('Không tìm thấy sản phẩm.');
+        error.status = 404;
+        throw error;
+      }
+
+      if (Object.keys(productPayload).length) {
+        await Product.updateOne({ _id: before._id }, { $set: productPayload }, { runValidators: true, session });
+      }
+
+      if (normalizedAdjustment) {
+        const stock = await ProductBranchStock.findOne({
+          productId: before._id,
+          branchId: normalizedAdjustment.warehouseId,
+        }).session(session);
+        if (!stock) {
+          const error: any = new Error('Sản phẩm chưa có bản ghi tồn kho tại kho hàng đã chọn.');
+          error.status = 422;
+          throw error;
+        }
+
+        const quantityBefore = Number(stock.qty || 0);
+        stock.qty = normalizedAdjustment.quantity;
+        await stock.save({ session });
+
+        const totals = await ProductBranchStock.aggregate([
+          { $match: { productId: before._id } },
+          { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
+        ]).session(session);
+        const totalQuantity = Number(totals[0]?.quantity || 0);
+        await Product.updateOne({ _id: before._id }, { $set: { qty: totalQuantity } }, { session });
+
+        if (quantityBefore !== normalizedAdjustment.quantity) {
+          await ProductLog.create([{
+            productId: before._id,
+            sourceType: 'PRODUCT_EDIT_ADJUSTMENT',
+            sourceId: before._id,
+            amount: normalizedAdjustment.quantity - quantityBefore,
+            valueBefore: before.price,
+            valueAfter: productPayload.price ?? before.price,
+            amountBefore: quantityBefore,
+            amountAfter: normalizedAdjustment.quantity,
+          }], { session });
+        }
+      }
+
+      updated = await Product.findById(before._id).session(session);
+      await ProductEditLog.create([{
+        productCode: updated.code,
+        productName: updated.name,
+        logType: 'Sửa sản phẩm',
+        logAction: normalizedAdjustment ? 'Cập nhật thông tin và tồn kho một kho hàng' : 'Cập nhật thông tin sản phẩm',
+        createdBy: (req as any).user?.name || (req as any).user?.email || 'Admin',
+      }], { session });
+    });
+
+    await writeAuditLog(req, {
+      action: normalizedAdjustment ? 'product.update_with_stock_adjustment' : 'product.update_master',
+      module: 'Product',
+      resource: 'Product',
+      resourceId: updated.id,
+      before,
+      after: updated,
+    });
+    res.json(updated);
+  } catch (err: any) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'Mã sản phẩm đã tồn tại.' });
+    res.status(err.status || 500).json({ message: err.message || 'Không thể cập nhật sản phẩm.' });
+  } finally {
+    await session.endSession();
+  }
 });
 router.use('/products', crudRoutes(Product));
 router.use('/branch-stocks', crudRoutes(ProductBranchStock));
@@ -326,26 +614,42 @@ router.get('/sales', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
 
   const filter: any = {};
-  if (req.query.code) {
-    filter.code = new RegExp(String(req.query.code).trim(), 'i');
+  const invoiceCode = String(req.query.invoiceCode ?? req.query.code ?? '').trim();
+  if (invoiceCode) {
+    filter.code = new RegExp(escapeRegex(invoiceCode), 'i');
   }
   if (req.query.status) {
     filter.status = String(req.query.status).trim();
   }
-  if (req.query.customerPhone) {
+  const storeId = String(req.query.storeId ?? req.query.branchId ?? '').trim();
+  if (storeId && mongoose.isValidObjectId(storeId)) {
+    filter.branchId = new mongoose.Types.ObjectId(storeId);
+  }
+
+  const customerKeyword = String(req.query.customerKeyword ?? req.query.customerPhone ?? '').trim();
+  if (customerKeyword) {
+    const keyword = new RegExp(escapeRegex(customerKeyword), 'i');
     const customers = await Customer.find({
-      phone: new RegExp(String(req.query.customerPhone).trim(), 'i')
+      $or: [{ name: keyword }, { phone: keyword }, { code: keyword }],
     }).select('_id');
     filter.customerId = { $in: customers.map(c => c._id) };
   }
-  if (req.query.fromDate || req.query.toDate) {
+
+  const productKeyword = String(req.query.productKeyword ?? '').trim();
+  if (productKeyword) {
+    const keyword = new RegExp(escapeRegex(productKeyword), 'i');
+    const products = await Product.find({
+      $or: [{ name: keyword }, { code: keyword }],
+    }).select('_id');
+    filter['items.productId'] = { $in: products.map(product => product._id) };
+  }
+
+  const dateFrom = String(req.query.dateFrom ?? req.query.fromDate ?? '').trim();
+  const dateTo = String(req.query.dateTo ?? req.query.toDate ?? '').trim();
+  if (dateFrom || dateTo) {
     filter.createdAt = {};
-    if (req.query.fromDate) filter.createdAt.$gte = new Date(String(req.query.fromDate));
-    if (req.query.toDate) {
-      const end = new Date(String(req.query.toDate));
-      end.setHours(23, 59, 59, 999);
-      filter.createdAt.$lte = end;
-    }
+    if (dateFrom) filter.createdAt.$gte = new Date(`${dateFrom}T00:00:00.000+07:00`);
+    if (dateTo) filter.createdAt.$lte = new Date(`${dateTo}T23:59:59.999+07:00`);
   }
 
   const [items, total] = await Promise.all([

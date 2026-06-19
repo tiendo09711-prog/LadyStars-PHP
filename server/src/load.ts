@@ -191,7 +191,6 @@ async function load() {
   const permissionKeys = [
     'products.index', 'products.stock.index', 'products.price-setting', 'products.sale-channel', 'products.delivery-partner',
     'sales.payment.index', 'sales.payment.refund', 'sales.print', 'customers.index', 'customers.groups',
-    'vendors.index', 'vendors.groups', 'vendors.purchases.index', 'vendors.refunds.index', 'vendors.transfers.index',
     'accountings.index', 'accountings.payments', 'accountings.refunds', 'accountings.invoices',
     'projects.index', 'projects.create', 'tasks.index', 'tasks.create', 'print-forms.forms.index',
   ];
@@ -212,7 +211,6 @@ async function load() {
     ['Hàng hóa', '/products', 'product'],
     ['Bán hàng', '/sales', 'sale'],
     ['Khách hàng', '/customers', 'customer'],
-    ['Nhà cung cấp', '/vendors', 'vendor'],
     ['Kế toán', '/accounting', 'accounting'],
     ['Công việc', '/tasks', 'task'],
     ['Mẫu in', '/print-forms', 'print-forms'],

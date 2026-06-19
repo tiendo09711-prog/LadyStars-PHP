@@ -28,18 +28,15 @@ export function BankReceiptCreatePage() {
   // Data for targets
   const [dbCustomers, setDbCustomers] = useState<any[]>([]);
   const [dbStaffs, setDbStaffs] = useState<any[]>([]);
-  const [dbVendors, setDbVendors] = useState<any[]>([]);
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
 
   useEffect(() => {
     Promise.all([
       http.get('/staff'),
-      http.get('/customers/customers'),
-      http.get('/vendors/vendors')
-    ]).then(([staffRes, custRes, vendorRes]) => {
+      http.get('/customers/customers')
+    ]).then(([staffRes, custRes]) => {
       setDbStaffs(staffRes.data?.items || []);
       setDbCustomers(custRes.data?.items || []);
-      setDbVendors(vendorRes.data?.items || []);
     }).catch(err => console.error("Error fetching target dependencies:", err));
   }, []);
 
@@ -59,7 +56,6 @@ export function BankReceiptCreatePage() {
   const getTargetList = () => {
     if (form.targetType === 'Khách hàng') return dbCustomers;
     if (form.targetType === 'Nhân viên') return dbStaffs;
-    if (form.targetType === 'Nhà cung cấp') return dbVendors;
     return [];
   };
 

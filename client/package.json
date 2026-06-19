@@ -7,6 +7,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bwip-js/generic": "^4.11.1",
     "@vitejs/plugin-react": "latest",
     "axios": "^1.7.9",
     "lucide-react": "^0.469.0",

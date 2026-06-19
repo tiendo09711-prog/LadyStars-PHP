@@ -1,442 +1,732 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileSpreadsheet, WalletCards, Warehouse, MapPin, Phone, X, ArrowRight, Check } from 'lucide-react';
-import { TabbedModulePage } from '../../core/components/TabbedModulePage';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  AlertCircle,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  LoaderCircle,
+  MoreHorizontal,
+  Package,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Store,
+  UserRound,
+  Warehouse,
+  X,
+} from 'lucide-react';
 import { http } from '../../core/api/http';
 
 type RetailInvoicePageProps = {
   channel: string;
 };
 
-export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
-  const [showBranchModal, setShowBranchModal] = useState(false);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = useState('');
-  const [loadingBranches, setLoadingBranches] = useState(false);
-  const [branchError, setBranchError] = useState('');
-  const navigate = useNavigate();
+type Filters = {
+  invoiceCode: string;
+  storeId: string;
+  dateFrom: string;
+  dateTo: string;
+  customerKeyword: string;
+  productKeyword: string;
+};
 
-  // states for confirm modal
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [unpaidInvoices, setUnpaidInvoices] = useState<any[]>([]);
-  const [loadingConfirm, setLoadingConfirm] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  
-  const [confirmForm, setConfirmForm] = useState({
-    orderId: '',
-    senderName: '',
-    transactionCode: '',
-    bankName: '',
-    bankAccountNo: '',
-    transactionDate: new Date().toISOString().slice(0,10),
-    store: '',
-    transactionContent: '',
-    confirmedBy: '',
-  });
+type Branch = {
+  _id: string;
+  name?: string;
+  code?: string;
+  address?: string;
+  phone?: string;
+  isDefault?: boolean;
+};
+
+type Invoice = Record<string, any>;
+
+const PAGE_SIZE = 15;
+const EMPTY_FILTERS: Filters = {
+  invoiceCode: '',
+  storeId: '',
+  dateFrom: '',
+  dateTo: '',
+  customerKeyword: '',
+  productKeyword: '',
+};
+
+const money = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
+  maximumFractionDigits: 0,
+});
+
+function safeMoney(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? money.format(amount) : '—';
+}
+
+function safeDate(value: unknown) {
+  if (!value) return '—';
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : date.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+}
+
+function productLines(invoice: Invoice) {
+  return Array.isArray(invoice.items) ? invoice.items : [];
+}
+
+function productName(item: any) {
+  return item?.productId?.name || item?.productName || item?.productId?.code || 'Sản phẩm chưa có tên';
+}
+
+function productCode(item: any) {
+  return item?.productId?.code || item?.productCode || '';
+}
+
+function totalQuantity(invoice: Invoice) {
+  return productLines(invoice).reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
+}
+
+function grossValue(invoice: Invoice) {
+  return productLines(invoice).reduce(
+    (sum, item) => sum + (Number(item?.value) || 0) * (Number(item?.amount) || 0),
+    0,
+  );
+}
+
+function statusMeta(status: unknown) {
+  const value = String(status || '').toLowerCase();
+  if (value === 'completed') return { label: 'Hoàn tất', tone: 'success' };
+  if (value === 'cancelled') return { label: 'Đã hủy', tone: 'danger' };
+  if (value === 'refunded') return { label: 'Đã hoàn', tone: 'neutral' };
+  if (value === 'draft') return { label: 'Nháp', tone: 'warning' };
+  return { label: status ? String(status) : '—', tone: 'neutral' };
+}
+
+function paymentRows(invoice: Invoice) {
+  const rows = Array.isArray(invoice.typePayment)
+    ? invoice.typePayment
+        .map((entry: any) => ({
+          label: entry?.methodId?.name || entry?.methodId?.code || 'Thanh toán',
+          amount: Number(entry?.amount),
+        }))
+        .filter((entry: any) => Number.isFinite(entry.amount) && entry.amount > 0)
+    : [];
+  if (rows.length > 0) return rows;
+  const paid = Number(invoice.valuePayment);
+  return Number.isFinite(paid) && paid > 0 ? [{ label: 'Đã thanh toán', amount: paid }] : [];
+}
+
+export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [rowActionOpen, setRowActionOpen] = useState<string | null>(null);
+  const [showBranchModal, setShowBranchModal] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
+  const [branchLoading, setBranchLoading] = useState(false);
+  const [branchError, setBranchError] = useState('');
+  const [detail, setDetail] = useState<Invoice | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, total);
 
   useEffect(() => {
-    http.get('/auth/me').then(res => setCurrentUser(res.data)).catch(() => {});
+    const params = new URLSearchParams(location.search);
+    const retiredTab = params.get('tab');
+    if (retiredTab && ['confirm', 'payment-confirmation', 'payment_confirm_pending'].includes(retiredTab)) {
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
+  const loadBranches = async () => {
+    setBranchLoading(true);
+    setBranchError('');
+    try {
+      const response = await http.get('/system/branches', { params: { limit: 5000 } });
+      const items = Array.isArray(response.data) ? response.data : response.data.items ?? [];
+      setBranches(items);
+      const defaultBranch = items.find((branch: Branch) => branch.isDefault) || items[0];
+      setSelectedBranchId((current) => current || defaultBranch?._id || '');
+      if (items.length === 0) setBranchError('Chưa có cửa hàng/kho hàng để tạo hóa đơn.');
+    } catch (err: any) {
+      setBranchError(err.response?.data?.message || 'Không tải được danh sách cửa hàng/kho hàng.');
+    } finally {
+      setBranchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadBranches();
   }, []);
 
-  useEffect(() => {
-    if (showConfirmModal) {
-      setLoadingConfirm(true);
-      http.get('/products/sales?status=payment_confirm_pending&limit=100')
-        .then(res => {
-          // Filter completed sales (they've been paid)
-          const items = (res.data.items || []).filter((inv: any) => inv.status === 'completed');
-          setUnpaidInvoices(items);
-        })
-        .finally(() => setLoadingConfirm(false));
-    }
-  }, [showConfirmModal]);
-
-  const handleOrderSelect = (orderId: string) => {
-    const inv = unpaidInvoices.find(i => i.id === orderId);
-    if (inv) {
-      setConfirmForm(prev => ({
-        ...prev,
-        orderId: inv.id,
-        senderName: inv.customerName || '',
-        store: inv.branchName || inv.orderSource || '',
-        transactionContent: `Thanh toán cho đơn hàng ${inv.id}`,
-        confirmedBy: currentUser?.name || 'Admin'
-      }));
-    } else {
-      setConfirmForm(prev => ({ ...prev, orderId }));
-    }
-  };
-
-  const handleSaveConfirm = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const loadInvoices = async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError('');
     try {
-      // Confirm payment is now just a note/record - the sale is already completed
-      // Nothing to update in the new model, just close the modal
-      alert('Chức năng này đã được tự động xử lý khi tạo đơn hàng mới.');
-      setShowConfirmModal(false);
-    } catch (err) {
-      console.error(err);
-      alert('Có lỗi xảy ra');
+      const params: Record<string, string | number> = {
+        page,
+        limit: PAGE_SIZE,
+        channel,
+      };
+      Object.entries(appliedFilters).forEach(([key, value]) => {
+        if (value) params[key] = value;
+      });
+      const response = await http.get('/products/sales', { params, signal });
+      const items = Array.isArray(response.data) ? response.data : response.data.items ?? [];
+      setInvoices(items);
+      setTotal(Array.isArray(response.data) ? items.length : Number(response.data.total ?? items.length));
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      if (err.code === 'ERR_CANCELED') return;
+      setInvoices([]);
+      setTotal(0);
+      setError(err.response?.data?.message || 'Không tải được dữ liệu hóa đơn bán lẻ.');
+    } finally {
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (showBranchModal) {
-      setLoadingBranches(true);
-      setBranchError('');
-      http.get('/system/branches')
-        .then((res) => {
-          const list = res.data.items ?? [];
-          setBranches(list);
-          if (list.length > 0) {
-            const defaultBranch = list.find((b: any) => b.isDefault) || list[0];
-            setSelectedBranchId(defaultBranch._id);
-          } else {
-            setBranchError('Không tìm thấy kho hàng nào. Vui lòng tạo kho hàng trước.');
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          setBranchError('Lỗi tải danh sách kho hàng. Vui lòng kiểm tra lại kết nối.');
-        })
-        .finally(() => {
-          setLoadingBranches(false);
-        });
-    }
-  }, [showBranchModal]);
+    const controller = new AbortController();
+    void loadInvoices(controller.signal);
+    return () => controller.abort();
+  }, [appliedFilters, channel, page]);
 
-  const handleConfirmBranch = () => {
+  useEffect(() => {
+    if (!rowActionOpen) return;
+    const close = () => setRowActionOpen(null);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [rowActionOpen]);
+
+  const selectedAll = invoices.length > 0 && invoices.every((invoice) => selectedIds.has(invoice._id));
+
+  const branchName = useMemo(
+    () => branches.find((branch) => branch._id === draftFilters.storeId)?.name,
+    [branches, draftFilters.storeId],
+  );
+
+  const applyFilters = (event: FormEvent) => {
+    event.preventDefault();
+    setPage(1);
+    setAppliedFilters({ ...draftFilters });
+  };
+
+  const resetFilters = () => {
+    setDraftFilters(EMPTY_FILTERS);
+    setPage(1);
+    setAppliedFilters(EMPTY_FILTERS);
+  };
+
+  const openBranchPicker = async () => {
+    setShowBranchModal(true);
+    if (branches.length === 0 && !branchLoading) await loadBranches();
+  };
+
+  const continueCreate = () => {
     if (!selectedBranchId) return;
-    setShowBranchModal(false);
     navigate(`/sales-channels/${channel}/retail/create?branchId=${selectedBranchId}`);
   };
 
+  const openDetail = async (invoice: Invoice) => {
+    setRowActionOpen(null);
+    setDetail(invoice);
+    setDetailLoading(true);
+    setDetailError('');
+    try {
+      const response = await http.get(`/products/sales/${invoice._id}`);
+      setDetail(response.data);
+    } catch (err: any) {
+      setDetailError(err.response?.data?.message || 'Không tải được chi tiết hóa đơn.');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const toggleAll = (checked: boolean) => {
+    setSelectedIds(checked ? new Set(invoices.map((invoice) => invoice._id)) : new Set());
+  };
+
+  const toggleOne = (id: string, checked: boolean) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
   return (
-    <>
-      <TabbedModulePage
-        tabs={[
-          {
-            key: 'all',
-            label: 'Tất cả',
-            title: 'Hóa đơn bán lẻ - Tất cả',
-            subtitle: 'Danh sách tất cả hóa đơn bán lẻ (từ kho thật)',
-            endpoint: `/products/sales?channel=${channel}`,
-            icon: <FileSpreadsheet size={24} />,
-            primaryActionLabel: 'Thêm hóa đơn lẻ',
-            onPrimaryActionClick: () => setShowBranchModal(true),
-            fields: [
-              { key: 'createdAt', label: 'Ngày tạo' },
-              { key: 'code', label: 'Mã hóa đơn' },
-              { key: 'customerId.name', label: 'Khách hàng' },
-              { key: 'amountProducts', label: 'Số lượng SP' },
-              { key: 'value', label: 'Tổng tiền', type: 'money' },
-              { key: 'status', label: 'Trạng thái', type: 'status' },
-            ],
-            formFields: [
-              { key: 'code', label: 'Mã hóa đơn', required: true },
-              { key: 'note', label: 'Ghi chú', type: 'textarea' },
-              {
-                key: 'status',
-                label: 'Trạng thái',
-                type: 'select',
-                options: [
-                  { label: 'draft', value: 'draft' },
-                  { label: 'completed', value: 'completed' },
-                  { label: 'cancelled', value: 'cancelled' },
-                ],
-              },
-            ],
-            createDefaults: {
-              code: '',
-              note: '',
-              status: 'draft',
-            },
-            hideEdit: true,
-            hideImport: true,
-            customActions: [
-              {
-                label: 'Trả hàng - Đổi hàng',
-                onClick: (item) => navigate(`/sales-channels/${channel}/refund/create?saleId=${item._id}`),
-              },
-              {
-                label: 'Sửa thông tin',
-                onClick: (item) => navigate(`/sales-channels/${channel}/retail/create?editId=${item._id}`),
-              }
-            ],
-          },
-          {
-            key: 'confirm',
-            label: 'Xác nhận thanh toán',
-            title: 'Bán lẻ - Xác nhận thanh toán',
-            subtitle: 'Danh sách giao dịch chuyển khoản chờ xác nhận',
-            endpoint: `/products/sales?status=payment_confirm_pending&channel=${channel}`,
-            icon: <WalletCards size={24} />,
-            primaryActionLabel: undefined,
-            onPrimaryActionClick: () => {
-              setConfirmForm({
-                orderId: '',
-                senderName: '',
-                transactionCode: '',
-                bankName: '',
-                bankAccountNo: '',
-                transactionDate: new Date().toISOString().slice(0,10),
-                store: '',
-                transactionContent: '',
-                confirmedBy: currentUser?.name || 'Admin',
-              });
-              setShowConfirmModal(true);
-            },
-            fields: [
-              { key: 'orderId', label: 'ID đơn hàng' },
-              { key: 'senderName', label: 'Khách chuyển khoản' },
-              { key: 'transactionCode', label: 'Mã giao dịch' },
-              { key: 'bankName', label: 'Ngân hàng' },
-              { key: 'bankAccountNo', label: 'Số tài khoản' },
-              { key: 'transactionDate', label: 'Ngày giao dịch' },
-              { key: 'store', label: 'Cửa hàng' },
-              { key: 'transactionContent', label: 'Nội dung giao dịch' },
-              { key: 'confirmedBy', label: 'Người xác nhận' },
-            ],
-            formFields: [
-              { key: 'orderId', label: 'ID đơn hàng', required: true },
-              { key: 'senderName', label: 'Khách chuyển khoản', required: true },
-              { key: 'transactionCode', label: 'Mã giao dịch', required: true },
-              { key: 'bankName', label: 'Ngân hàng', required: true },
-              { key: 'bankAccountNo', label: 'Số tài khoản' },
-              { key: 'transactionDate', label: 'Ngày giao dịch' },
-              { key: 'store', label: 'Cửa hàng' },
-              { key: 'transactionContent', label: 'Nội dung giao dịch', type: 'textarea' },
-              { key: 'confirmedBy', label: 'Người xác nhận' },
-            ],
-            createDefaults: {
-              tabs: ['confirm'],
-              orderId: '',
-              senderName: '',
-              transactionCode: '',
-              bankName: '',
-              bankAccountNo: '',
-              transactionDate: new Date().toLocaleDateString('vi-VN'),
-              store: '',
-              transactionContent: '',
-              confirmedBy: '',
-            },
-            hideImport: true,
-          },
-        ]}
-      />
+    <div className="retail-invoice-page">
+      <style>{retailStyles}</style>
+
+      <div className="retail-tabbar" role="tablist" aria-label="Hóa đơn bán lẻ">
+        <button className="active" type="button" role="tab" aria-selected="true">Tất cả</button>
+      </div>
+
+      <form className="retail-filterbar" onSubmit={applyFilters}>
+        <label>
+          <span>ID hóa đơn</span>
+          <div className="retail-input">
+            <Search size={15} />
+            <input
+              value={draftFilters.invoiceCode}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, invoiceCode: event.target.value }))}
+              placeholder="Nhập mã hóa đơn"
+            />
+          </div>
+        </label>
+
+        <label>
+          <span>Cửa hàng</span>
+          <div className="retail-select">
+            <Store size={15} />
+            <select
+              value={draftFilters.storeId}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, storeId: event.target.value }))}
+              aria-label="Cửa hàng"
+            >
+              <option value="">Tất cả cửa hàng</option>
+              {branches.map((branch) => (
+                <option key={branch._id} value={branch._id}>{branch.name || branch.code || branch._id}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} />
+          </div>
+        </label>
+
+        <fieldset className="retail-date-range">
+          <legend><CalendarDays size={14} /> Thời gian</legend>
+          <input
+            type="date"
+            value={draftFilters.dateFrom}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, dateFrom: event.target.value }))}
+            aria-label="Từ ngày"
+          />
+          <span>—</span>
+          <input
+            type="date"
+            value={draftFilters.dateTo}
+            min={draftFilters.dateFrom || undefined}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, dateTo: event.target.value }))}
+            aria-label="Đến ngày"
+          />
+        </fieldset>
+
+        <label>
+          <span>Khách hàng</span>
+          <div className="retail-input">
+            <UserRound size={15} />
+            <input
+              value={draftFilters.customerKeyword}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, customerKeyword: event.target.value }))}
+              placeholder="Tên hoặc số điện thoại"
+            />
+          </div>
+        </label>
+
+        <label>
+          <span>Sản phẩm</span>
+          <div className="retail-input">
+            <Package size={15} />
+            <input
+              value={draftFilters.productKeyword}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
+              placeholder="Mã hoặc tên sản phẩm"
+            />
+          </div>
+        </label>
+
+        <div className="retail-filter-actions">
+          <button className="retail-btn primary" type="submit"><Search size={15} /> Lọc</button>
+          <button className="retail-btn ghost" type="button" onClick={resetFilters}>Đặt lại</button>
+        </div>
+      </form>
+
+      <div className="retail-actionbar">
+        <div className="retail-actionbar-left">
+          <button className="retail-btn success" type="button" onClick={() => void openBranchPicker()}>
+            <Plus size={16} /> Thêm hóa đơn lẻ
+          </button>
+          {selectedIds.size > 0 && <span className="retail-selected">{selectedIds.size} hóa đơn đã chọn</span>}
+        </div>
+        <div className="retail-actionbar-right">
+          {branchName && appliedFilters.storeId === draftFilters.storeId && (
+            <span className="retail-filter-chip"><Store size={13} /> {branchName}</span>
+          )}
+          <span><strong>{total.toLocaleString('vi-VN')}</strong> bản ghi</span>
+          <span>{rangeStart.toLocaleString('vi-VN')} - {rangeEnd.toLocaleString('vi-VN')}</span>
+          <button
+            className="retail-icon-btn"
+            type="button"
+            title="Làm mới"
+            aria-label="Làm mới"
+            onClick={() => void loadInvoices()}
+          >
+            <RefreshCw size={15} />
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="retail-alert" role="alert">
+          <AlertCircle size={18} />
+          <div><strong>Không tải được dữ liệu</strong><span>{error}</span></div>
+          <button type="button" onClick={() => void loadInvoices()}>Thử lại</button>
+        </div>
+      )}
+
+      <section className="retail-table-card" aria-label="Danh sách hóa đơn bán lẻ">
+        <div className="retail-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th className="check"><input type="checkbox" checked={selectedAll} onChange={(event) => toggleAll(event.target.checked)} aria-label="Chọn tất cả" /></th>
+                <th>Người tạo / Ngày tạo</th>
+                <th>ID hóa đơn</th>
+                <th>Khách hàng</th>
+                <th>Sản phẩm</th>
+                <th className="number">Giá trị hàng hóa</th>
+                <th className="number">Tổng SL</th>
+                <th className="number">Giảm giá</th>
+                <th className="number">Tổng tiền</th>
+                <th>Thanh toán</th>
+                <th>Trạng thái</th>
+                <th className="action">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && Array.from({ length: 7 }).map((_, index) => (
+                <tr className="retail-skeleton" key={index}>
+                  {Array.from({ length: 12 }).map((__, cellIndex) => <td key={cellIndex}><span /></td>)}
+                </tr>
+              ))}
+
+              {!loading && !error && invoices.length === 0 && (
+                <tr>
+                  <td colSpan={12}>
+                    <div className="retail-empty">
+                      <Package size={30} />
+                      <strong>Không có hóa đơn phù hợp</strong>
+                      <span>Hãy thay đổi bộ lọc hoặc tạo hóa đơn bán lẻ mới.</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !error && invoices.map((invoice) => {
+                const items = productLines(invoice);
+                const firstItem = items[0];
+                const customer = invoice.customerId;
+                const creator = invoice.authorId?.name || invoice.userId?.name;
+                const payments = paymentRows(invoice);
+                const status = statusMeta(invoice.status);
+                return (
+                  <tr key={invoice._id}>
+                    <td className="check">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(invoice._id)}
+                        onChange={(event) => toggleOne(invoice._id, event.target.checked)}
+                        aria-label={`Chọn hóa đơn ${invoice.code || invoice._id}`}
+                      />
+                    </td>
+                    <td>
+                      <div className="retail-stack">
+                        <strong>{creator || '—'}</strong>
+                        <span>{safeDate(invoice.createdAt)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <button className="retail-invoice-link" type="button" onClick={() => void openDetail(invoice)}>
+                        {invoice.code || '—'}
+                      </button>
+                    </td>
+                    <td>
+                      <div className="retail-stack">
+                        <strong>{customer?.name || 'Khách lẻ'}</strong>
+                        <span>{customer?.phone || '—'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {firstItem ? (
+                        <div className="retail-product-cell">
+                          <strong title={productName(firstItem)}>{productName(firstItem)}</strong>
+                          <span>{productCode(firstItem) || '—'}</span>
+                          {items.length > 1 && <em>+{items.length - 1} sản phẩm khác</em>}
+                        </div>
+                      ) : '—'}
+                    </td>
+                    <td className="number">{items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}</td>
+                    <td className="number">{items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}</td>
+                    <td className="number discount">{Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</td>
+                    <td className="number total">{safeMoney(invoice.value)}</td>
+                    <td>
+                      {payments.length > 0 ? (
+                        <div className="retail-payments">
+                          {payments.map((payment, index) => (
+                            <span key={`${payment.label}-${index}`}><small>{payment.label}</small>{safeMoney(payment.amount)}</span>
+                          ))}
+                        </div>
+                      ) : '—'}
+                    </td>
+                    <td><span className={`retail-status ${status.tone}`}>{status.label}</span></td>
+                    <td className="action">
+                      <div className="retail-row-menu">
+                        <button
+                          className="retail-icon-btn"
+                          type="button"
+                          aria-label={`Thao tác hóa đơn ${invoice.code || invoice._id}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setRowActionOpen((current) => current === invoice._id ? null : invoice._id);
+                          }}
+                        >
+                          <MoreHorizontal size={17} />
+                        </button>
+                        {rowActionOpen === invoice._id && (
+                          <div className="retail-menu" onClick={(event) => event.stopPropagation()}>
+                            <button type="button" onClick={() => void openDetail(invoice)}><Eye size={15} /> Xem chi tiết</button>
+                            {invoice.status !== 'cancelled' && (
+                              <>
+                                <button type="button" onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}>
+                                  <RefreshCw size={15} /> Sửa thông tin
+                                </button>
+                                <button type="button" onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${invoice._id}`)}>
+                                  <RotateCcw size={15} /> Trả / đổi hàng
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="retail-pagination">
+          <span>Hiển thị {rangeStart.toLocaleString('vi-VN')} - {rangeEnd.toLocaleString('vi-VN')} / {total.toLocaleString('vi-VN')}</span>
+          <div>
+            <button type="button" disabled={page <= 1 || loading} onClick={() => setPage((current) => current - 1)} aria-label="Trang trước"><ChevronLeft size={16} /></button>
+            <strong>Trang {page} / {totalPages}</strong>
+            <button type="button" disabled={page >= totalPages || loading} onClick={() => setPage((current) => current + 1)} aria-label="Trang sau"><ChevronRight size={16} /></button>
+          </div>
+        </div>
+      </section>
 
       {showBranchModal && (
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 1000 }}>
-          <div className="modal-card" style={{ maxWidth: '600px', width: '100%', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: '#f8fafc', padding: '0', overflow: 'hidden' }}>
-            <div className="modal-header" style={{ padding: '24px 28px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', width: '42px', height: '42px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}>
-                  <Warehouse size={22} color="#ffffff" />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#ffffff', margin: 0 }}>Chọn Kho / Chi Nhánh</h2>
-                  <p style={{ fontSize: '13px', color: '#94a3b8', margin: '2px 0 0 0' }}>Bán lẻ cần xác định kho xuất hàng tương ứng</p>
-                </div>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => setShowBranchModal(false)}
-                style={{ background: 'rgba(255, 255, 255, 0.05)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', transition: 'all 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(244, 63, 94, 0.15)'; e.currentTarget.style.color = '#f43f5e'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.color = '#94a3b8'; }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div style={{ padding: '24px 28px', maxHeight: '400px', overflowY: 'auto' }}>
-              {loadingBranches ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '12px' }}>
-                  <div style={{ width: '36px', height: '36px', border: '3px solid rgba(99, 102, 241, 0.1)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-                  <span style={{ color: '#94a3b8', fontSize: '14px' }}>Đang tải danh sách kho...</span>
-                </div>
+        <div className="retail-modal-backdrop" role="presentation">
+          <div className="retail-modal branch-modal" role="dialog" aria-modal="true" aria-labelledby="branch-title">
+            <header>
+              <div><Warehouse size={20} /><h2 id="branch-title">Chọn kho hàng</h2></div>
+              <button type="button" onClick={() => setShowBranchModal(false)} aria-label="Đóng"><X size={18} /></button>
+            </header>
+            <div className="retail-modal-body">
+              {branchLoading ? (
+                <div className="retail-modal-state"><LoaderCircle className="spin" size={24} /> Đang tải kho hàng...</div>
               ) : branchError ? (
-                <div style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.2)', borderRadius: '10px', padding: '16px', color: '#fda4af', fontSize: '14px', textAlign: 'center' }}>
-                  {branchError}
-                </div>
+                <div className="retail-modal-error"><AlertCircle size={18} /> {branchError}<button type="button" onClick={() => void loadBranches()}>Thử lại</button></div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="retail-branch-list">
                   {branches.map((branch) => {
-                    const isSelected = selectedBranchId === branch._id;
+                    const active = selectedBranchId === branch._id;
                     return (
-                      <div 
-                        key={branch._id}
-                        onClick={() => setSelectedBranchId(branch._id)}
-                        style={{ 
-                          padding: '16px',
-                          borderRadius: '12px',
-                          border: isSelected ? '2px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.06)',
-                          background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          transition: 'all 0.2s',
-                          boxShadow: isSelected ? '0 4px 12px rgba(99, 102, 241, 0.1)' : 'none'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) {
-                            e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.06)';
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-                          }
-                        }}
-                      >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, marginRight: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '15px', fontWeight: '600', color: '#ffffff' }}>{branch.name}</span>
-                            <span style={{ background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.08)', color: isSelected ? '#a5b4fc' : '#94a3b8', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                              {branch.code}
-                            </span>
-                            {branch.isDefault && (
-                              <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' }}>
-                                Mặc định
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {branch.address && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b' }}>
-                                <MapPin size={13} style={{ flexShrink: 0 }} />
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{branch.address}</span>
-                              </div>
-                            )}
-                            {branch.phone && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b' }}>
-                                <Phone size={13} style={{ flexShrink: 0 }} />
-                                <span>{branch.phone}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', border: isSelected ? '2px solid #6366f1' : '2px solid rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: isSelected ? '#6366f1' : 'transparent', transition: 'all 0.2s' }}>
-                          {isSelected && <Check size={12} color="#ffffff" strokeWidth={3} />}
-                        </div>
-                      </div>
+                      <button className={active ? 'active' : ''} type="button" key={branch._id} onClick={() => setSelectedBranchId(branch._id)}>
+                        <Store size={18} />
+                        <span><strong>{branch.name || 'Cửa hàng'}</strong><small>{[branch.code, branch.address].filter(Boolean).join(' · ') || '—'}</small></span>
+                        {active && <Check size={17} />}
+                      </button>
                     );
                   })}
                 </div>
               )}
             </div>
-
-            <div style={{ padding: '20px 28px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: 'rgba(0, 0, 0, 0.15)' }}>
-              <button 
-                className="btn btn-light" 
-                type="button" 
-                onClick={() => setShowBranchModal(false)}
-                style={{ borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: '500', color: '#94a3b8', border: '1px solid rgba(255, 255, 255, 0.08)', background: 'transparent' }}
-              >
-                Hủy
-              </button>
-              <button 
-                className="btn btn-primary" 
-                type="button" 
-                disabled={!selectedBranchId || loadingBranches}
-                onClick={handleConfirmBranch}
-                style={{ 
-                  borderRadius: '8px', 
-                  padding: '10px 22px', 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', 
-                  border: 'none', 
-                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  opacity: (!selectedBranchId || loadingBranches) ? 0.6 : 1,
-                  cursor: (!selectedBranchId || loadingBranches) ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Tiếp tục <ArrowRight size={16} />
-              </button>
-            </div>
+            <footer>
+              <button className="retail-btn ghost" type="button" onClick={() => setShowBranchModal(false)}>Hủy</button>
+              <button className="retail-btn success" type="button" disabled={!selectedBranchId || branchLoading} onClick={continueCreate}>Chọn</button>
+            </footer>
           </div>
         </div>
       )}
 
-      {showConfirmModal && (
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', zIndex: 1000 }}>
-          <div className="modal-card" style={{ maxWidth: '600px', width: '100%', borderRadius: '16px', background: '#ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
-            <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ background: '#e0e7ff', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
-                  <WalletCards size={20} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Thêm xác nhận thanh toán</h2>
-                  <p style={{ fontSize: '13px', color: '#64748b', margin: '2px 0 0 0' }}>Ghi nhận khách đã chuyển khoản cho đơn hàng</p>
-                </div>
-              </div>
-              <button type="button" onClick={() => setShowConfirmModal(false)} style={{ background: '#f1f5f9', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
+      {detail && (
+        <div className="retail-modal-backdrop" role="presentation">
+          <div className="retail-modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+            <header>
+              <div><Eye size={20} /><h2 id="detail-title">{detail.code || 'Chi tiết hóa đơn'}</h2></div>
+              <button type="button" onClick={() => setDetail(null)} aria-label="Đóng"><X size={18} /></button>
+            </header>
+            <div className="retail-modal-body">
+              {detailLoading ? (
+                <div className="retail-modal-state"><LoaderCircle className="spin" size={24} /> Đang tải chi tiết hóa đơn...</div>
+              ) : detailError ? (
+                <div className="retail-modal-error"><AlertCircle size={18} /> {detailError}</div>
+              ) : (
+                <InvoiceDetail invoice={detail} />
+              )}
             </div>
-            <form onSubmit={handleSaveConfirm}>
-              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '65vh', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Chọn đơn hàng chưa thanh toán <span style={{ color: '#ef4444' }}>*</span></label>
-                  {loadingConfirm ? (
-                    <div style={{ padding: '10px', color: '#64748b', fontSize: '13px' }}>Đang tải danh sách đơn hàng...</div>
-                  ) : (
-                    <select required value={confirmForm.orderId} onChange={(e) => handleOrderSelect(e.target.value)} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px', color: '#1e293b', background: '#f8fafc' }}>
-                      <option value="">-- Bấm để chọn mã đơn hàng --</option>
-                      {unpaidInvoices.map(inv => (
-                        <option key={inv.id} value={inv.id}>{inv.id} - Khách: {inv.customerName} - {inv.totalAmount?.toLocaleString('vi-VN')}đ</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Khách chuyển khoản <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input required type="text" placeholder="Tên người chuyển khoản" value={confirmForm.senderName} onChange={(e) => setConfirmForm(p => ({...p, senderName: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã giao dịch <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input required type="text" placeholder="Ví dụ: FT20394..." value={confirmForm.transactionCode} onChange={(e) => setConfirmForm(p => ({...p, transactionCode: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ngân hàng nhận <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input required type="text" placeholder="Ví dụ: Vietcombank" value={confirmForm.bankName} onChange={(e) => setConfirmForm(p => ({...p, bankName: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Số tài khoản nhận</label>
-                    <input type="text" placeholder="Số tài khoản của shop" value={confirmForm.bankAccountNo} onChange={(e) => setConfirmForm(p => ({...p, bankAccountNo: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ngày giao dịch</label>
-                    <input type="date" value={confirmForm.transactionDate} onChange={(e) => setConfirmForm(p => ({...p, transactionDate: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Người xác nhận</label>
-                    <input type="text" readOnly value={confirmForm.confirmedBy} onChange={(e) => setConfirmForm(p => ({...p, confirmedBy: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px', background: '#f8fafc', color: '#64748b' }} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nội dung giao dịch / Ghi chú</label>
-                  <textarea rows={3} placeholder="Nội dung chuyển khoản..." value={confirmForm.transactionContent} onChange={(e) => setConfirmForm(p => ({...p, transactionContent: e.target.value}))} style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical', fontSize: '14px' }} />
-                </div>
-              </div>
-              <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc' }}>
-                <button type="button" onClick={() => setShowConfirmModal(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>Hủy bỏ</button>
-                <button type="submit" disabled={!confirmForm.orderId} style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: '#ffffff', fontWeight: '600', cursor: confirmForm.orderId ? 'pointer' : 'not-allowed', opacity: confirmForm.orderId ? 1 : 0.6, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>Lưu xác nhận</button>
-              </div>
-            </form>
+            <footer>
+              <button className="retail-btn ghost" type="button" onClick={() => setDetail(null)}>Đóng</button>
+              {detail.status !== 'cancelled' && (
+                <button className="retail-btn primary" type="button" onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${detail._id}`)}>
+                  <RotateCcw size={15} /> Trả / đổi hàng
+                </button>
+              )}
+            </footer>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
+
+function InvoiceDetail({ invoice }: { invoice: Invoice }) {
+  const items = productLines(invoice);
+  const payments = paymentRows(invoice);
+  const customer = invoice.customerId;
+  const branch = invoice.branchId;
+  const status = statusMeta(invoice.status);
+
+  return (
+    <div className="retail-detail-grid">
+      <div className="retail-detail-main">
+        <section className="retail-detail-card">
+          <h3>Khách hàng</h3>
+          <div className="retail-info-grid">
+            <span><small>Tên khách hàng</small><strong>{customer?.name || 'Khách lẻ'}</strong></span>
+            <span><small>Số điện thoại</small><strong>{customer?.phone || '—'}</strong></span>
+            <span><small>Mã khách hàng</small><strong>{customer?.code || '—'}</strong></span>
+            <span><small>Trạng thái</small><strong><em className={`retail-status ${status.tone}`}>{status.label}</em></strong></span>
+          </div>
+        </section>
+
+        <section className="retail-detail-card">
+          <h3>Sản phẩm ({items.length})</h3>
+          <div className="retail-detail-table">
+            <table>
+              <thead><tr><th>#</th><th>Sản phẩm</th><th className="number">SL</th><th className="number">Giá bán</th><th className="number">Thành tiền</th></tr></thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={item._id || `${productCode(item)}-${index}`}>
+                    <td>{index + 1}</td>
+                    <td><div className="retail-stack"><strong>{productName(item)}</strong><span>{productCode(item) || '—'}</span></div></td>
+                    <td className="number">{(Number(item.amount) || 0).toLocaleString('vi-VN')}</td>
+                    <td className="number">{safeMoney(item.value)}</td>
+                    <td className="number total">{safeMoney((Number(item.value) || 0) * (Number(item.amount) || 0))}</td>
+                  </tr>
+                ))}
+                {items.length === 0 && <tr><td colSpan={5} className="retail-detail-empty">Không có dòng sản phẩm.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {invoice.note && <section className="retail-detail-card"><h3>Ghi chú</h3><p className="retail-note">{invoice.note}</p></section>}
+      </div>
+
+      <aside className="retail-detail-side">
+        <section className="retail-detail-card">
+          <h3>Thanh toán</h3>
+          <dl className="retail-money-summary">
+            <div><dt>Giá trị hàng hóa</dt><dd>{items.length ? safeMoney(grossValue(invoice)) : '—'}</dd></div>
+            <div><dt>Giảm giá</dt><dd className="discount">{Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</dd></div>
+            <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(invoice.value)}</dd></div>
+            <div><dt>Đã thanh toán</dt><dd>{safeMoney(invoice.valuePayment)}</dd></div>
+          </dl>
+          {payments.length > 0 && (
+            <div className="retail-payment-breakdown">
+              {payments.map((payment, index) => <span key={`${payment.label}-${index}`}><small>{payment.label}</small><strong>{safeMoney(payment.amount)}</strong></span>)}
+            </div>
+          )}
+        </section>
+
+        <section className="retail-detail-card">
+          <h3>Thông tin hóa đơn</h3>
+          <div className="retail-detail-info">
+            <span><Store size={15} /><div><small>Cửa hàng / Kho</small><strong>{branch?.name || branch?.code || '—'}</strong></div></span>
+            <span><UserRound size={15} /><div><small>Người tạo</small><strong>{invoice.authorId?.name || invoice.userId?.name || '—'}</strong></div></span>
+            <span><CalendarDays size={15} /><div><small>Ngày tạo</small><strong>{safeDate(invoice.createdAt)}</strong></div></span>
+          </div>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+const retailStyles = `
+.retail-invoice-page{display:flex;flex-direction:column;min-width:0;background:#f4f6f8;border:1px solid #dce2e8;border-radius:10px;overflow:hidden;color:#273142}
+.retail-tabbar{display:flex;min-height:42px;padding:0 14px;background:#fff;border-bottom:1px solid #dce2e8}
+.retail-tabbar button{padding:0 14px;border:0;border-bottom:2px solid transparent;background:transparent;color:#51606f;font-weight:650;cursor:pointer}
+.retail-tabbar button.active{color:#087fdb;border-bottom-color:#168cf0}
+.retail-filterbar{display:grid;grid-template-columns:minmax(140px,.8fr) minmax(160px,1fr) minmax(275px,1.35fr) minmax(180px,1fr) minmax(180px,1fr) auto;gap:10px;align-items:end;padding:16px;background:#f8fafc;border-bottom:1px solid #dce2e8}
+.retail-filterbar label{display:flex;flex-direction:column;gap:5px;min-width:0}.retail-filterbar label>span{font-size:11px;font-weight:700;color:#627080}
+.retail-input,.retail-select{height:36px;display:flex;align-items:center;gap:7px;padding:0 10px;background:#fff;border:1px solid #cfd7df;border-radius:5px;color:#7a8794}
+.retail-input:focus-within,.retail-select:focus-within,.retail-date-range:focus-within{border-color:#168cf0;box-shadow:0 0 0 2px rgba(22,140,240,.1)}
+.retail-input input,.retail-select select{min-width:0;width:100%;border:0;outline:0;background:transparent;color:#273142;font:inherit;font-size:13px}
+.retail-select select{appearance:none}.retail-select svg:last-child{margin-left:auto}
+.retail-date-range{height:36px;display:flex;align-items:center;gap:5px;margin:0;padding:0 8px;background:#fff;border:1px solid #cfd7df;border-radius:5px;min-width:0}
+.retail-date-range legend{display:flex;align-items:center;gap:4px;padding:0 4px;color:#627080;font-size:10px;font-weight:700}
+.retail-date-range input{min-width:0;width:50%;border:0;outline:0;background:transparent;color:#273142;font:inherit;font-size:12px}
+.retail-filter-actions{display:flex;gap:6px}.retail-btn{height:36px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 13px;border:1px solid transparent;border-radius:5px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.retail-btn:disabled{opacity:.55;cursor:not-allowed}.retail-btn.primary{background:#078ba2;color:#fff}.retail-btn.success{background:#2eaa51;color:#fff}.retail-btn.ghost{background:#fff;border-color:#cfd7df;color:#4b5967}
+.retail-actionbar{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:#fff;border-bottom:1px solid #dce2e8}
+.retail-actionbar-left,.retail-actionbar-right{display:flex;align-items:center;gap:12px}.retail-actionbar-right{font-size:12px;color:#687685}.retail-selected,.retail-filter-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:4px;background:#eaf5ff;color:#0874c9;font-size:12px;font-weight:650}
+.retail-icon-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d4dbe2;border-radius:5px;background:#fff;color:#657383;cursor:pointer}.retail-icon-btn:hover{background:#f2f6f9;color:#168cf0}
+.retail-alert{display:flex;align-items:center;gap:10px;margin:12px 16px 0;padding:11px 12px;border:1px solid #f2b8b5;border-radius:6px;background:#fff4f3;color:#b42318}.retail-alert div{display:flex;flex:1;flex-direction:column;gap:2px}.retail-alert span{font-size:12px}.retail-alert button{border:0;background:transparent;color:#b42318;font-weight:750;cursor:pointer}
+.retail-table-card{min-width:0;background:#fff}.retail-table-scroll{overflow:auto}.retail-table-card table{width:100%;min-width:1460px;border-collapse:separate;border-spacing:0;font-size:12px}
+.retail-table-card th{position:sticky;top:0;z-index:1;padding:8px 10px;background:#eef1f5;border-bottom:1px solid #bdc7d1;border-right:1px solid #d6dde4;color:#344150;font-size:11px;font-weight:750;text-align:left;white-space:nowrap}
+.retail-table-card td{padding:9px 10px;border-bottom:1px solid #e0e5ea;border-right:1px solid #e4e9ee;vertical-align:top;background:#fff}.retail-table-card tbody tr:hover td{background:#f7fbfe}
+.retail-table-card .check{width:38px;text-align:center}.retail-table-card .number{text-align:right;white-space:nowrap}.retail-table-card .action{width:62px;text-align:center}
+.retail-stack,.retail-product-cell,.retail-payments{display:flex;flex-direction:column;gap:3px}.retail-stack strong,.retail-product-cell strong{font-weight:650;color:#25313e}.retail-stack span,.retail-product-cell span{color:#718091;font-size:11px}
+.retail-product-cell{max-width:240px}.retail-product-cell strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.retail-product-cell em{color:#0874c9;font-size:11px;font-style:normal;font-weight:650}
+.retail-invoice-link{padding:0;border:0;background:transparent;color:#087fdb;font-weight:700;cursor:pointer}.retail-invoice-link:hover{text-decoration:underline}
+.retail-table-card td.discount{color:#ef6c3b}.retail-table-card td.total{color:#19913b;font-weight:750}
+.retail-payments span{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}.retail-payments small{color:#718091}
+.retail-status{display:inline-flex;padding:3px 7px;border-radius:999px;background:#eef1f4;color:#5d6874;font-size:11px;font-style:normal;font-weight:700;white-space:nowrap}.retail-status.success{background:#e8f7ed;color:#218a3d}.retail-status.warning{background:#fff4dd;color:#9b6400}.retail-status.danger{background:#ffebea;color:#c0342b}
+.retail-row-menu{position:relative;display:inline-flex}.retail-menu{position:absolute;z-index:20;top:36px;right:0;width:170px;padding:5px;background:#fff;border:1px solid #d5dde5;border-radius:6px;box-shadow:0 10px 25px rgba(32,50,68,.18);text-align:left}
+.retail-menu button{width:100%;display:flex;align-items:center;gap:8px;padding:8px;border:0;border-radius:4px;background:transparent;color:#344150;font-size:12px;cursor:pointer}.retail-menu button:hover{background:#eef6fc;color:#0874c9}
+.retail-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#7a8794}.retail-empty strong{color:#3b4855;font-size:14px}
+.retail-skeleton td span{display:block;height:13px;border-radius:4px;background:linear-gradient(90deg,#edf1f4 25%,#f7f9fa 45%,#edf1f4 65%);background-size:200% 100%;animation:retailShimmer 1.3s infinite}
+.retail-pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid #dce2e8;color:#687685;font-size:12px}.retail-pagination>div{display:flex;align-items:center;gap:8px}.retail-pagination button{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d5dde5;border-radius:4px;background:#fff;cursor:pointer}.retail-pagination button:disabled{opacity:.45;cursor:not-allowed}
+.retail-modal-backdrop{position:fixed;z-index:1000;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.58)}
+.retail-modal{width:min(520px,100%);max-height:calc(100vh - 36px);display:flex;flex-direction:column;background:#fff;border-radius:7px;box-shadow:0 22px 55px rgba(0,0,0,.24);overflow:hidden}
+.retail-modal.detail-modal{width:min(1040px,100%)}.retail-modal header,.retail-modal footer{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #dce2e8}.retail-modal footer{justify-content:flex-end;gap:8px;border-top:1px solid #dce2e8;border-bottom:0}
+.retail-modal header>div{display:flex;align-items:center;gap:9px}.retail-modal h2{margin:0;font-size:16px}.retail-modal header>button{border:0;background:transparent;color:#667484;cursor:pointer}
+.retail-modal-body{padding:14px;overflow:auto}.retail-modal-state{min-height:150px;display:flex;align-items:center;justify-content:center;gap:9px;color:#718091}.retail-modal-error{display:flex;align-items:center;gap:8px;padding:11px;border-radius:5px;background:#fff2f1;color:#b42318}.retail-modal-error button{margin-left:auto;border:0;background:transparent;color:inherit;font-weight:700;cursor:pointer}
+.retail-branch-list{display:flex;flex-direction:column;gap:8px}.retail-branch-list>button{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:12px;border:1px solid #d5dde5;border-radius:6px;background:#fff;color:#526170;text-align:left;cursor:pointer}.retail-branch-list>button.active{border-color:#2eaa51;background:#f0fbf3;color:#218a3d}.retail-branch-list span{display:flex;flex-direction:column;gap:3px}.retail-branch-list small{color:#718091}
+.retail-detail-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,.8fr);gap:14px}.retail-detail-main,.retail-detail-side{display:flex;flex-direction:column;gap:12px}
+.retail-detail-card{border:1px solid #d9e0e6;border-radius:6px;overflow:hidden}.retail-detail-card h3{margin:0;padding:10px 12px;background:#f3f5f7;border-bottom:1px solid #d9e0e6;font-size:13px}.retail-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:12px}.retail-info-grid span{display:flex;flex-direction:column;gap:3px}.retail-info-grid small,.retail-detail-info small{color:#718091}
+.retail-detail-table{overflow:auto}.retail-detail-table table{min-width:620px}.retail-detail-table th{position:static}.retail-detail-empty{text-align:center;color:#718091}.retail-note{margin:0;padding:12px;white-space:pre-wrap}
+.retail-money-summary{margin:0;padding:12px}.retail-money-summary>div{display:flex;justify-content:space-between;gap:12px;padding:7px 0}.retail-money-summary dt{color:#627080}.retail-money-summary dd{margin:0;font-weight:700}.retail-money-summary .discount{color:#ef6c3b}.retail-money-summary .grand{border-top:1px solid #dce2e8;font-size:14px}.retail-money-summary .grand dd{color:#19913b}
+.retail-payment-breakdown{display:flex;flex-direction:column;gap:6px;padding:0 12px 12px}.retail-payment-breakdown span{display:flex;justify-content:space-between;padding:7px 8px;border-radius:4px;background:#f4f7f9}.retail-payment-breakdown small{color:#627080}
+.retail-detail-info{display:flex;flex-direction:column;gap:12px;padding:12px}.retail-detail-info>span{display:flex;align-items:flex-start;gap:9px}.retail-detail-info>span>div{display:flex;flex-direction:column;gap:3px}
+.spin{animation:retailSpin 1s linear infinite}@keyframes retailSpin{to{transform:rotate(360deg)}}@keyframes retailShimmer{to{background-position:-200% 0}}
+@media(max-width:1180px){.retail-filterbar{grid-template-columns:repeat(3,minmax(180px,1fr))}.retail-filter-actions{grid-column:auto}}
+@media(max-width:760px){.retail-invoice-page{border-radius:0}.retail-filterbar{grid-template-columns:1fr}.retail-date-range{width:100%}.retail-actionbar{align-items:flex-start;flex-direction:column}.retail-actionbar-right{width:100%;flex-wrap:wrap}.retail-detail-grid{grid-template-columns:1fr}.retail-info-grid{grid-template-columns:1fr}.retail-pagination{align-items:flex-start;flex-direction:column;gap:8px}}
+`;

@@ -21,11 +21,12 @@ const TAB_META: Record<ProductTab, { label: string; description: string; icon: t
 
 export function ProductMainPage() {
   const [activeTab, setActiveTab] = useState<ProductTab>('products');
+  const [barcodeWorkspaceOpen, setBarcodeWorkspaceOpen] = useState(false);
   const activeMeta = useMemo(() => TAB_META[activeTab], [activeTab]);
 
   return (
     <div className="products-workspace">
-      <section className="products-hero">
+      {!barcodeWorkspaceOpen ? <section className="products-hero">
         <div className="products-hero-copy">
           <span className="products-hero-kicker">
             <Sparkles size={14} />
@@ -62,14 +63,19 @@ export function ProductMainPage() {
             );
           })}
         </div>
-      </section>
+      </section> : null}
 
       <div
         id="products-panel-products"
         role="tabpanel"
         hidden={activeTab !== 'products'}
       >
-        {activeTab === 'products' && <ProductList onShowHistory={() => setActiveTab('history')} />}
+        {activeTab === 'products' && (
+          <ProductList
+            onShowHistory={() => setActiveTab('history')}
+            onBarcodeWorkspaceChange={setBarcodeWorkspaceOpen}
+          />
+        )}
       </div>
 
       <div

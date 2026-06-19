@@ -1,55 +1,86 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  DollarSign, 
-  FileText, 
-  Mail, 
-  Phone, 
-  Save, 
-  Tag, 
-  User, 
-  Warehouse, 
-  Briefcase, 
-  Percent, 
-  Facebook, 
-  MapPin, 
-  CreditCard, 
-  Info,
-  CheckCircle,
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
   AlertCircle,
-  Search
+  ArrowLeft,
+  CheckCircle,
+  CreditCard,
+  LoaderCircle,
+  Package,
+  Plus,
+  Save,
+  Search,
+  Store,
+  Trash2,
+  User,
+  Warehouse,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
 
-const getStockForWarehouse = (prod: any, wh: string) => {
-  if (!wh) return prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
-  return prod.totalStock ?? prod.qty ?? 0;
+type SaleLine = {
+  productId: string;
+  code: string;
+  name: string;
+  quantity: number;
+  price: number;
+  stock: number;
+  originalQuantity: number;
 };
 
+type PaymentMethodOption = {
+  _id: string;
+  name: string;
+  code: string;
+  sortOrder?: number;
+  isActive?: boolean;
+};
+
+type PaymentLine = {
+  key: string;
+  methodId: string;
+  amount: number;
+};
+
+const createPaymentLine = (methodId = '', amount = 0): PaymentLine => ({
+  key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  methodId,
+  amount,
+});
+
+const getAvailableStock = (product: any) =>
+  Number(product?.selectedStock ?? product?.totalStock ?? product?.qty ?? 0);
+
+const formatMoney = (value: number) =>
+  new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(value) || 0);
+
 export function RetailInvoiceCreatePage() {
-  const { channel } = useParams();
+  const { channel = 'store' } = useParams();
   const [searchParams] = useSearchParams();
-  const branchId = searchParams.get('branchId');
+  const requestedBranchId = searchParams.get('branchId') || '';
   const editId = searchParams.get('editId');
   const navigate = useNavigate();
 
-  // Branch details state
   const [branch, setBranch] = useState<any>(null);
-  const [loadingBranch, setLoadingBranch] = useState(false);
+  const [activeBranchId, setActiveBranchId] = useState(requestedBranchId);
+  const [dbProducts, setDbProducts] = useState<any[]>([]);
+  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
+  const [dbStaffs, setDbStaffs] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
+  const [products, setProducts] = useState<SaleLine[]>([]);
+  const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Form state
   const [form, setForm] = useState({
-    id: 'HDLE-' + Math.floor(100000 + Math.random() * 900000), // Random unique invoice ID
-    date: new Date().toLocaleString('vi-VN'),
-    type: 'Xuất bán lẻ [L]',
+    invoiceCode: '',
     salesperson: '',
-    phone: '',
     customerName: '',
+    phone: '',
     email: '',
     facebook: '',
     dob: '',
@@ -58,167 +89,274 @@ export function RetailInvoiceCreatePage() {
     cardId: '',
     customerLevel: '',
     orderSource: 'Cửa hàng',
-    productCode: '',
-    productName: '',
     discount: 0,
-    discountType: 'fixed',
-    vat: 0,
+    discountType: 'fixed' as 'fixed' | 'percentage',
     coupon: '',
-    paymentMethod: 'Tiền mặt',
-    totalAmount: 0,
     note: '',
-    status: 'Mới',
   });
 
-  const [dbProducts, setDbProducts] = useState<any[]>([]);
-  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
-  const [dbStaffs, setDbStaffs] = useState<any[]>([]);
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-  const [maxStock, setMaxStock] = useState(0);
-
-  // Local helper states for pricing calculation
-  const [price, setPrice] = useState<number>(0);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [useAutoCalculate, setUseAutoCalculate] = useState<boolean>(true);
-
-  // Error and saving states
-  const [isSaving, setIsSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-
-  // Fetch branch details
   useEffect(() => {
-    if (branchId) {
-      setLoadingBranch(true);
-      http.get(`/system/branches/${branchId}`)
-        .then((res) => {
-          setBranch(res.data);
-        })
-        .catch((err) => {
-          console.error("Lỗi lấy thông tin kho:", err);
-        })
-        .finally(() => {
-          setLoadingBranch(false);
-        });
-    }
-  }, [branchId]);
+    let cancelled = false;
 
-  useEffect(() => {
-    // Fetch users, customers, and products
-    Promise.all([
-      http.get('/auth/me'),
-      http.get('/staff'),
-      http.get('/customers/customers'),
-      http.get('/products/inventories', { params: { limit: 5000 } })
-    ]).then(([meRes, staffRes, custRes, prodRes]) => {
-      setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
-      setDbStaffs(staffRes.data?.items || []);
-      setDbCustomers(custRes.data?.items || []);
-      setDbProducts(prodRes.data?.items || []);
-      
-      // Load edit data
-      if (editId) {
-        http.get(`/products/sales/${editId}`).then(res => {
-          const sale = res.data;
-          setForm(prev => ({
-            ...prev,
-            id: sale.code + '-S', // append S to indicate it's an edited version
-            customerName: sale.customerId?.name || sale.customerName || '',
-            phone: sale.customerId?.phone || sale.customerPhone || '',
+    const load = async () => {
+      setLoading(true);
+      setErrorMessage('');
+      try {
+        const [meRes, staffRes, customerRes, methodRes, editRes] = await Promise.all([
+          http.get('/auth/me'),
+          http.get('/staff'),
+          http.get('/customers/customers', { params: { limit: 5000 } }),
+          http.get('/products/payment-methods', { params: { limit: 5000 } }),
+          editId ? http.get(`/products/sales/${editId}`) : Promise.resolve(null),
+        ]);
+
+        if (cancelled) return;
+
+        const sale = editRes?.data;
+        const saleBranchId = sale?.branchId?._id || sale?.branchId || '';
+        const targetBranchId = requestedBranchId || saleBranchId;
+        if (!targetBranchId) throw new Error('Hóa đơn bán lẻ cần một cửa hàng/kho xuất hàng.');
+
+        const [branchRes, productRes] = await Promise.all([
+          http.get(`/system/branches/${targetBranchId}`),
+          http.get('/products/inventories', { params: { branchId: targetBranchId, limit: 5000 } }),
+        ]);
+
+        if (cancelled) return;
+
+        const methods = (methodRes.data?.items || [])
+          .filter((method: PaymentMethodOption) => method.isActive !== false)
+          .sort((a: PaymentMethodOption, b: PaymentMethodOption) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+        const inventoryProducts = productRes.data?.items || [];
+
+        setActiveBranchId(targetBranchId);
+        setBranch(branchRes.data);
+        setDbProducts(inventoryProducts);
+        setDbCustomers(customerRes.data?.items || []);
+        setDbStaffs(staffRes.data?.items || []);
+        setPaymentMethods(methods);
+        setForm((current) => ({
+          ...current,
+          salesperson: meRes.data?.name || '',
+        }));
+
+        if (sale) {
+          setForm((current) => ({
+            ...current,
+            invoiceCode: sale.code || '',
+            salesperson: sale.authorId?.name || sale.userId?.name || current.salesperson,
+            customerName: sale.customerId?.name || '',
+            phone: sale.customerId?.phone || '',
             email: sale.customerId?.email || '',
             address: sale.customerId?.address || '',
             note: sale.note || '',
-            discount: sale.discountValue || 0,
-            discountType: 'fixed', // Since we saved it as 'number', we fallback to fixed
+            discount: Number(sale.discountValue) || 0,
+            discountType: sale.discountType === 'percent' ? 'percentage' : 'fixed',
           }));
-          
-          if (sale.items && sale.items.length > 0) {
-            const item = sale.items[0];
-            const p = (prodRes.data?.items || []).find((p: any) => p._id === item.productId || p._id === item.productId?._id);
-            if (p) {
-              setForm(prev => ({
-                ...prev,
-                productCode: p.code,
-                productName: p.name,
-              }));
-            }
-            setPrice(item.value || 0);
-            setQuantity(item.amount || 1);
-            setUseAutoCalculate(false);
-          }
-        }).catch(err => console.error("Lỗi lấy thông tin hóa đơn cũ:", err));
+
+          setProducts((sale.items || []).map((item: any) => {
+            const productId = item.productId?._id || item.productId;
+            const inventory = inventoryProducts.find((product: any) => product._id === productId);
+            const originalQuantity = Number(item.amount) || 1;
+            return {
+              productId,
+              code: item.productId?.code || inventory?.code || '',
+              name: item.productId?.name || inventory?.name || 'Sản phẩm',
+              quantity: originalQuantity,
+              price: Number(item.value) || 0,
+              stock: getAvailableStock(inventory),
+              originalQuantity,
+            };
+          }));
+
+          const existingPayments = (sale.typePayment || [])
+            .map((line: any) => ({
+              key: `${line.methodId?._id || line.methodId}-${Math.random().toString(36).slice(2)}`,
+              methodId: line.methodId?._id || line.methodId || '',
+              amount: Number(line.amount) || 0,
+            }))
+            .filter((line: PaymentLine) => line.methodId);
+          setPaymentLines(
+            existingPayments.length > 0
+              ? existingPayments
+              : [createPaymentLine(methods[0]?._id || '', Number(sale.valuePayment || sale.value) || 0)],
+          );
+        } else {
+          setPaymentLines([createPaymentLine(methods[0]?._id || '', 0)]);
+        }
+      } catch (err: any) {
+        if (!cancelled) setErrorMessage(err.response?.data?.message || err.message || 'Không tải được dữ liệu tạo hóa đơn.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    }).catch(err => console.error("Error fetching dependencies:", err));
-  }, [editId]);
+    };
 
-  // Handle auto-calculation
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, requestedBranchId]);
+
+  const subtotal = useMemo(
+    () => products.reduce((sum, product) => sum + product.price * product.quantity, 0),
+    [products],
+  );
+  const discountAmount = useMemo(() => {
+    const entered = Math.max(0, Number(form.discount) || 0);
+    return form.discountType === 'percentage'
+      ? Math.min(subtotal, subtotal * Math.min(entered, 100) / 100)
+      : Math.min(subtotal, entered);
+  }, [form.discount, form.discountType, subtotal]);
+  const totalAmount = Math.max(0, Math.round(subtotal - discountAmount));
+  const paidAmount = paymentLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  const remainingAmount = totalAmount - paidAmount;
+
   useEffect(() => {
-    if (useAutoCalculate) {
-      const subtotal = price * quantity;
-      const discountVal = Number(form.discount) || 0;
-      const vatVal = Number(form.vat) || 0;
-      
-      const absoluteDiscount = form.discountType === 'percentage'
-        ? subtotal * (discountVal / 100)
-        : discountVal;
+    setPaymentLines((current) => {
+      if (current.length !== 1) return current;
+      if (current[0].amount === totalAmount) return current;
+      return [{ ...current[0], amount: totalAmount }];
+    });
+  }, [totalAmount]);
 
-      const discounted = Math.max(0, subtotal - absoluteDiscount);
-      const taxAmount = Math.round(discounted * (vatVal / 100));
-      const finalTotal = discounted + taxAmount;
+  const filteredProducts = useMemo(() => {
+    const keyword = productSearch.trim().toLowerCase();
+    if (!keyword) return [];
+    return dbProducts
+      .filter((product) => {
+        const matches = product.name?.toLowerCase().includes(keyword)
+          || product.code?.toLowerCase().includes(keyword)
+          || product.barcode?.toLowerCase().includes(keyword);
+        return matches && getAvailableStock(product) > 0;
+      })
+      .slice(0, 30);
+  }, [dbProducts, productSearch]);
 
-      setForm(prev => ({
-        ...prev,
-        totalAmount: finalTotal
-      }));
-    }
-  }, [price, quantity, form.discount, form.discountType, form.vat, useAutoCalculate]);
+  const customerSuggestions = useMemo(() => {
+    const keyword = form.customerName.trim().toLowerCase();
+    if (!keyword) return [];
+    return dbCustomers
+      .filter((customer) => customer.name?.toLowerCase().includes(keyword) || customer.phone?.includes(keyword))
+      .slice(0, 20);
+  }, [dbCustomers, form.customerName]);
 
-  const handleChange = (field: string, value: any) => {
-    setForm(prev => ({
-      ...prev,
-      [field]: value
+  const addProduct = (product: any) => {
+    const stock = getAvailableStock(product);
+    setProducts((current) => {
+      const index = current.findIndex((line) => line.productId === product._id);
+      if (index < 0) {
+        return [...current, {
+          productId: product._id,
+          code: product.code,
+          name: product.name,
+          quantity: 1,
+          price: Number(product.price) || 0,
+          stock,
+          originalQuantity: 0,
+        }];
+      }
+      return current.map((line, lineIndex) => {
+        if (lineIndex !== index) return line;
+        const maxQuantity = line.stock + line.originalQuantity;
+        return { ...line, quantity: Math.min(line.quantity + 1, maxQuantity) };
+      });
+    });
+    setProductSearch('');
+    setShowProductDropdown(false);
+  };
+
+  const updateProduct = (index: number, field: 'quantity' | 'price', value: number) => {
+    setProducts((current) => current.map((line, lineIndex) => {
+      if (lineIndex !== index) return line;
+      if (field === 'price') return { ...line, price: Math.max(0, value || 0) };
+      const maxQuantity = line.stock + line.originalQuantity;
+      return { ...line, quantity: Math.min(Math.max(1, value || 1), maxQuantity) };
     }));
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const removeProduct = (index: number) => {
+    setProducts((current) => current.filter((_, lineIndex) => lineIndex !== index));
+  };
+
+  const addPaymentLine = () => {
+    const usedMethods = new Set(paymentLines.map((line) => line.methodId));
+    const nextMethod = paymentMethods.find((method) => !usedMethods.has(method._id));
+    if (!nextMethod) {
+      setErrorMessage('Đã sử dụng tất cả phương thức thanh toán đang hoạt động.');
+      return;
+    }
+    setErrorMessage('');
+    setPaymentLines((current) => [...current, createPaymentLine(nextMethod._id, Math.max(0, remainingAmount))]);
+  };
+
+  const updatePaymentLine = (key: string, field: 'methodId' | 'amount', value: string | number) => {
+    setPaymentLines((current) => current.map((line) => (
+      line.key === key
+        ? { ...line, [field]: field === 'amount' ? Math.max(0, Number(value) || 0) : String(value) }
+        : line
+    )));
+  };
+
+  const removePaymentLine = (key: string) => {
+    setPaymentLines((current) => current.filter((line) => line.key !== key));
+  };
+
+  const selectCustomer = (customer: any) => {
+    setForm((current) => ({
+      ...current,
+      customerName: customer.name || '',
+      phone: customer.phone || '',
+      email: customer.email || '',
+      facebook: customer.facebook || '',
+      dob: customer.dob || '',
+      addressLocation: customer.addressLocation || '',
+      address: customer.address || '',
+      cardId: customer.cardId || '',
+      customerLevel: customer.customerLevel || '',
+    }));
+    setShowCustomerDropdown(false);
+  };
+
+  const handleSave = async (event: FormEvent) => {
+    event.preventDefault();
     setErrorMessage('');
 
-    if (!form.customerName.trim()) {
-      setErrorMessage('Vui lòng nhập tên khách hàng');
-      return;
+    if (!activeBranchId) return setErrorMessage('Vui lòng chọn cửa hàng/kho xuất hàng.');
+    if (!form.customerName.trim()) return setErrorMessage('Vui lòng nhập tên khách hàng.');
+    if (products.length === 0) return setErrorMessage('Vui lòng thêm ít nhất một sản phẩm.');
+    if (products.some((line) => line.quantity > line.stock + line.originalQuantity)) {
+      return setErrorMessage('Số lượng sản phẩm vượt quá tồn kho của cửa hàng.');
     }
-    if (!form.productCode.trim()) {
-      setErrorMessage('Vui lòng chọn sản phẩm');
-      return;
+    if (paymentLines.length === 0 || paymentLines.some((line) => !line.methodId || line.amount <= 0)) {
+      return setErrorMessage('Mỗi dòng thanh toán phải có phương thức và số tiền lớn hơn 0.');
     }
-
-    // Find productId from selected productCode
-    const selectedProduct = dbProducts.find((p: any) => p.code === form.productCode);
-    if (!selectedProduct) {
-      setErrorMessage('Sản phẩm không tồn tại trong hệ thống. Vui lòng chọn lại.');
-      return;
+    if (new Set(paymentLines.map((line) => line.methodId)).size !== paymentLines.length) {
+      return setErrorMessage('Một phương thức thanh toán chỉ được chọn một lần.');
     }
-    if (quantity <= 0) {
-      setErrorMessage('Số lượng phải lớn hơn 0');
-      return;
+    if (Math.abs(remainingAmount) > 0.5) {
+      return setErrorMessage(
+        remainingAmount > 0
+          ? `Còn thiếu ${formatMoney(remainingAmount)} đ tiền thanh toán.`
+          : `Số tiền thanh toán đang vượt ${formatMoney(Math.abs(remainingAmount))} đ.`,
+      );
     }
 
     setIsSaving(true);
     try {
-      // 1. Auto-save new customer if not found
-      let customerId = null;
-      const existingCustomer = dbCustomers.find(
-        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
-      );
-      
+      let customerId: string | null = null;
+      const normalizedPhone = form.phone.trim();
+      const existingCustomer = dbCustomers.find((customer) => (
+        normalizedPhone
+          ? customer.phone === normalizedPhone
+          : customer.name?.trim().toLowerCase() === form.customerName.trim().toLowerCase()
+      ));
+
       if (existingCustomer) {
         customerId = existingCustomer._id;
       } else {
-        const createCustRes = await http.post('/customers/customers', {
-          name: form.customerName,
-          phone: form.phone,
+        const customerResponse = await http.post('/customers/customers', {
+          name: form.customerName.trim(),
+          phone: normalizedPhone,
           email: form.email,
           facebook: form.facebook,
           dob: form.dob,
@@ -226,713 +364,302 @@ export function RetailInvoiceCreatePage() {
           customerLevel: form.customerLevel,
           addressLocation: form.addressLocation,
           address: form.address,
-        }).catch(e => console.log('Lỗi tạo khách hàng tự động:', e));
-
-        if (createCustRes && createCustRes.data) {
-          customerId = createCustRes.data._id;
-        }
+        });
+        customerId = customerResponse.data._id;
       }
 
-      // 3. Build SalePayment payload with proper ObjectId references
-      const absoluteDiscount = form.discountType === 'percentage'
-        ? (price * quantity) * ((Number(form.discount) || 0) / 100)
-        : (Number(form.discount) || 0);
+      if (editId) await http.post(`/products/sales/${editId}/cancel`);
 
-      const salePayload = {
-        branchId: branchId,
-        customerId: customerId,
+      const createResponse = await http.post('/products/sales', {
+        branchId: activeBranchId,
+        customerId,
         note: form.note,
         salesperson: form.salesperson,
         orderSource: form.orderSource,
-        paymentMethod: form.paymentMethod,
-        discountValue: absoluteDiscount,
-        discountType: 'number' as const,
+        discountValue: discountAmount,
+        discountType: 'number',
+        valuePayment: paidAmount,
+        typePayment: paymentLines.map((line) => ({ methodId: line.methodId, amount: line.amount })),
         status: 'draft',
-        // items drives inventory deduction in completeSalePayment()
-        items: [{
-          productId: selectedProduct._id,
-          amount: quantity,
-          value: price,
+        items: products.map((line) => ({
+          productId: line.productId,
+          amount: line.quantity,
+          value: line.price,
           discountValue: 0,
           discountType: 'number',
-        }],
-      };
+        })),
+      });
 
-      // If editing, cancel the old sale first
-      if (editId) {
-        await http.post(`/products/sales/${editId}/cancel`);
-      }
-
-      // 4. Create the sale (draft - no inventory change yet)
-      const createRes = await http.post('/products/sales', salePayload);
-      const saleId = createRes.data._id;
-
-      // 5. Complete it immediately → deducts inventory + records in salepayments
-      await http.post(`/products/sales/${saleId}/complete`);
-
-      setSuccessMessage(`✅ Hóa đơn đã được lưu & tồn kho đã được trừ tự động! Mã: ${createRes.data.code}`);
-      setTimeout(() => {
-        navigate(`/sales-channels/${channel}/retail`);
-      }, 1800);
+      await http.post(`/products/sales/${createResponse.data._id}/complete`);
+      setSuccessMessage(`Hóa đơn ${createResponse.data.code} đã được lưu và trừ tồn kho thành công.`);
+      window.setTimeout(() => navigate(`/sales-channels/${channel}/retail`), 1200);
     } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.response?.data?.message ?? 'Đã xảy ra lỗi khi lưu hóa đơn.');
+      setErrorMessage(err.response?.data?.message || 'Đã xảy ra lỗi khi lưu hóa đơn.');
       setIsSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="retail-create-loading">
+        <style>{styles}</style>
+        <LoaderCircle className="spin" size={28} />
+        <span>Đang tải dữ liệu bán lẻ...</span>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      
-      {/* Header Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
-            type="button" 
-            onClick={() => navigate(`/sales-channels/${channel}/retail`)}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              width: '40px', 
-              height: '40px', 
-              borderRadius: '10px', 
-              border: '1px solid #e2e8f0', 
-              background: '#ffffff', 
-              cursor: 'pointer',
-              color: '#475569',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#0f172a'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#475569'; }}
-          >
+    <div className="retail-create-page">
+      <style>{styles}</style>
+
+      <header className="retail-create-header">
+        <div>
+          <button type="button" onClick={() => navigate(`/sales-channels/${channel}/retail`)} aria-label="Quay lại">
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Thêm Hóa Đơn Lẻ Mới</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <Warehouse size={14} color="#64748b" />
-              <span style={{ fontSize: '13px', color: '#64748b' }}>
-                Kho xuất: {loadingBranch ? 'Đang tải...' : (branch ? `${branch.name} (${branch.code})` : 'Chưa chọn kho')}
-              </span>
-            </div>
+            <h1>{editId ? 'Tạo hóa đơn thay thế' : 'Thêm hóa đơn bán lẻ'}</h1>
+            <span><Warehouse size={14} /> {branch ? `${branch.name} (${branch.code || '—'})` : 'Chưa xác định kho'}</span>
           </div>
         </div>
+        <button className="create-save-top" type="submit" form="retail-create-form" disabled={isSaving}>
+          <Save size={16} /> {isSaving ? 'Đang lưu...' : 'Lưu hóa đơn'}
+        </button>
+      </header>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            type="button"
-            className="btn btn-light"
-            onClick={() => navigate(`/sales-channels/${channel}/retail`)}
-            style={{ borderRadius: '10px', padding: '10px 20px', fontSize: '14px', border: '1px solid #cbd5e1', background: '#ffffff', fontWeight: '600', color: '#475569' }}
-          >
-            Hủy bỏ
-          </button>
-          <button 
-            type="button"
-            disabled={isSaving}
-            onClick={handleSave}
-            style={{ 
-              borderRadius: '10px', 
-              padding: '10px 24px', 
-              fontSize: '14px', 
-              fontWeight: '600', 
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
-              color: '#ffffff',
-              border: 'none', 
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: isSaving ? 'not-allowed' : 'pointer',
-              opacity: isSaving ? 0.7 : 1
-            }}
-          >
-            <Save size={16} />
-            {isSaving ? 'Đang lưu...' : 'Lưu hóa đơn'}
-          </button>
-        </div>
-      </div>
+      {errorMessage && <div className="create-alert error"><AlertCircle size={18} /><span>{errorMessage}</span></div>}
+      {successMessage && <div className="create-alert success"><CheckCircle size={18} /><span>{successMessage}</span></div>}
 
-      {/* Alert Notices */}
-      {errorMessage && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '14px 18px', borderRadius: '10px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
-          <AlertCircle size={18} style={{ flexShrink: 0 }} />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      {successMessage && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ecfdf5', border: '1px solid #6ee7b7', color: '#047857', padding: '14px 18px', borderRadius: '10px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
-          <CheckCircle size={18} style={{ flexShrink: 0 }} />
-          <span>{successMessage}</span>
-        </div>
-      )}
-
-      {/* Main Grid Layout */}
-      <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px', alignItems: 'start' }}>
-        
-        {/* Left Side: Invoice Fields */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* Card 1: General Info & Staff */}
-          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: '#dbeafe', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-                <Briefcase size={15} />
-              </div>
-              <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Thông Tin Chung & Nhân Viên</h2>
-            </div>
-            
-            <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã hóa đơn <span style={{ color: '#ef4444' }}>*</span></span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#f8fafc' }}>
-                  <Info size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
-                    readOnly
-                    value={form.id} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#64748b' }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ngày lập hóa đơn <span style={{ color: '#ef4444' }}>*</span></span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <Calendar size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
-                    required
-                    value={form.date} 
-                    onChange={(e) => handleChange('date', e.target.value)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Kiểu hóa đơn <span style={{ color: '#ef4444' }}>*</span></span>
-                <select 
-                  value={form.type} 
-                  onChange={(e) => handleChange('type', e.target.value)}
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }}
-                >
-                  <option value="Xuất bán lẻ [L]">Xuất bán lẻ [L]</option>
-                  <option value="Xuất mẫu [M]">Xuất mẫu [M]</option>
-                  <option value="Tặng kèm [T]">Tặng kèm [T]</option>
-                  <option value="Khác">Khác</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nguồn đơn hàng</span>
-                <input 
-                  type="text" 
-                  value={form.orderSource} 
-                  onChange={(e) => handleChange('orderSource', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nhân viên bán hàng</span>
-                <select 
-                  value={form.salesperson} 
-                  onChange={(e) => handleChange('salesperson', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                >
-                  <option value="">-- Chọn nhân viên --</option>
-                  {dbStaffs.map(staff => (
-                    <option key={staff._id} value={staff.name}>{staff.name}</option>
-                  ))}
-                  {form.salesperson && !dbStaffs.some(s => s.name === form.salesperson) && (
+      <form id="retail-create-form" className="retail-create-layout" onSubmit={handleSave}>
+        <main>
+          <section className="create-card">
+            <h2><Store size={17} /> Thông tin chung</h2>
+            <div className="create-form-grid">
+              <label>
+                <span>Mã hóa đơn</span>
+                <input readOnly value={form.invoiceCode || 'Tự động khi lưu'} />
+              </label>
+              <label>
+                <span>Nhân viên bán hàng</span>
+                <select value={form.salesperson} onChange={(event) => setForm((current) => ({ ...current, salesperson: event.target.value }))}>
+                  <option value="">— Chọn nhân viên —</option>
+                  {dbStaffs.map((staff) => <option key={staff._id} value={staff.name}>{staff.name}</option>)}
+                  {form.salesperson && !dbStaffs.some((staff) => staff.name === form.salesperson) && (
                     <option value={form.salesperson}>{form.salesperson}</option>
                   )}
                 </select>
-              </div>
+              </label>
+              <label>
+                <span>Nguồn đơn hàng</span>
+                <input value={form.orderSource} onChange={(event) => setForm((current) => ({ ...current, orderSource: event.target.value }))} />
+              </label>
+              <label>
+                <span>Mã coupon</span>
+                <input value={form.coupon} onChange={(event) => setForm((current) => ({ ...current, coupon: event.target.value }))} />
+              </label>
             </div>
-          </div>
+          </section>
 
-          {/* Card 2: Customer Info */}
-          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: '#e0f2fe', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-                <User size={15} />
-              </div>
-              <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Thông Tin Khách Hàng</h2>
-            </div>
-            
-            <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tên khách hàng <span style={{ color: '#ef4444' }}>*</span></span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <User size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="Nhập họ tên khách hàng" 
-                    value={form.customerName} 
-                    onFocus={() => setShowCustomerDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
-                    onChange={(e) => {
-                      handleChange('customerName', e.target.value);
-                      setShowCustomerDropdown(true);
-                    }} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
-                </div>
-                {showCustomerDropdown && form.customerName.trim().length > 0 && dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
-                    {dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).map(c => (
-                      <div key={c._id} onMouseDown={(e) => {
-                        e.preventDefault();
-                        setForm(prev => ({
-                          ...prev, customerName: c.name, phone: c.phone || '', email: c.email || '', facebook: c.facebook || '',
-                          dob: c.dob || '', cardId: c.cardId || '', customerLevel: c.customerLevel || '', addressLocation: c.addressLocation || '', address: c.address || ''
-                        }));
-                        setShowCustomerDropdown(false);
-                      }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ fontWeight: '600', fontSize: '13px' }}>{c.name} - {c.phone}</div>
-                      </div>
+          <section className="create-card">
+            <h2><User size={17} /> Khách hàng</h2>
+            <div className="create-form-grid">
+              <label className="customer-search">
+                <span>Tên khách hàng *</span>
+                <input
+                  required
+                  value={form.customerName}
+                  placeholder="Nhập họ tên hoặc số điện thoại"
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  onBlur={() => window.setTimeout(() => setShowCustomerDropdown(false), 150)}
+                  onChange={(event) => {
+                    setForm((current) => ({ ...current, customerName: event.target.value }));
+                    setShowCustomerDropdown(true);
+                  }}
+                />
+                {showCustomerDropdown && customerSuggestions.length > 0 && (
+                  <div className="create-dropdown">
+                    {customerSuggestions.map((customer) => (
+                      <button type="button" key={customer._id} onMouseDown={(event) => event.preventDefault()} onClick={() => selectCustomer(customer)}>
+                        <strong>{customer.name}</strong><span>{customer.phone || '—'}</span>
+                      </button>
                     ))}
                   </div>
                 )}
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Số điện thoại</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <Phone size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
-                    placeholder="Nhập số điện thoại" 
-                    value={form.phone} 
-                    onChange={(e) => handleChange('phone', e.target.value)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Email</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <Mail size={14} color="#94a3b8" />
-                  <input 
-                    type="email" 
-                    placeholder="example@mail.com" 
-                    value={form.email} 
-                    onChange={(e) => handleChange('email', e.target.value)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ngày sinh</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <Calendar size={14} color="#94a3b8" />
-                  <input 
-                    type="date" 
-                    value={form.dob} 
-                    onChange={(e) => handleChange('dob', e.target.value)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Facebook</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <Facebook size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
-                    placeholder="Link hoặc tên Facebook" 
-                    value={form.facebook} 
-                    onChange={(e) => handleChange('facebook', e.target.value)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã thẻ thành viên / VIP</span>
-                <input 
-                  type="text" 
-                  placeholder="Mã thẻ khách hàng" 
-                  value={form.cardId} 
-                  onChange={(e) => handleChange('cardId', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Cấp độ thành viên</span>
-                <select 
-                  value={form.customerLevel} 
-                  onChange={(e) => handleChange('customerLevel', e.target.value)}
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }}
-                >
-                  <option value="">-- Chưa xếp hạng --</option>
-                  <option value="Thành viên">Thành viên</option>
-                  <option value="Thân thiết">Thân thiết</option>
-                  <option value="Vàng (Gold)">Vàng (Gold)</option>
-                  <option value="Kim cương (Diamond)">Kim cương (Diamond)</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Khu vực (Tỉnh, Quận, Phường)</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <MapPin size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
-                    placeholder="Tỉnh/Thành, Quận/Huyện, Phường/Xã" 
-                    value={form.addressLocation} 
-                    onChange={(e) => handleChange('addressLocation', e.target.value)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Địa chỉ chi tiết</span>
-                <input 
-                  type="text" 
-                  placeholder="Số nhà, ngõ ngách, tên đường..." 
-                  value={form.address} 
-                  onChange={(e) => handleChange('address', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
+              </label>
+              <label><span>Số điện thoại</span><input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} /></label>
+              <label><span>Email</span><input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /></label>
+              <label><span>Facebook</span><input value={form.facebook} onChange={(event) => setForm((current) => ({ ...current, facebook: event.target.value }))} /></label>
+              <label><span>Ngày sinh</span><input type="date" value={form.dob} onChange={(event) => setForm((current) => ({ ...current, dob: event.target.value }))} /></label>
+              <label><span>Mã thẻ</span><input value={form.cardId} onChange={(event) => setForm((current) => ({ ...current, cardId: event.target.value }))} /></label>
+              <label><span>Cấp độ thành viên</span><input value={form.customerLevel} onChange={(event) => setForm((current) => ({ ...current, customerLevel: event.target.value }))} /></label>
+              <label><span>Khu vực</span><input value={form.addressLocation} onChange={(event) => setForm((current) => ({ ...current, addressLocation: event.target.value }))} /></label>
+              <label className="wide"><span>Địa chỉ</span><input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></label>
             </div>
-          </div>
+          </section>
 
-
-
-          {/* Card 4: Product Info */}
-          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: '#ecfdf5', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
-                <Tag size={15} />
-              </div>
-              <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Thông Tin Sản Phẩm & Đơn Giá</h2>
+          <section className="create-card product-card">
+            <div className="create-card-heading">
+              <h2><Package size={17} /> Sản phẩm ({products.length})</h2>
+              <span>Tổng số lượng: {products.reduce((sum, line) => sum + line.quantity, 0)}</span>
             </div>
-            
-            <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2', position: 'relative' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tìm chọn sản phẩm <span style={{ color: '#ef4444' }}>*</span></span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <Search size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
-                    placeholder="Tìm theo mã hoặc tên sản phẩm..." 
-                    value={form.productName} 
-                    onFocus={() => setShowProductDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowProductDropdown(false), 200)}
-                    onChange={(e) => { handleChange('productName', e.target.value); setShowProductDropdown(true); }} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
-                  />
+            <div className="product-search">
+              <Search size={16} />
+              <input
+                id="retail-product-search"
+                value={productSearch}
+                placeholder="Tìm theo mã, barcode hoặc tên sản phẩm..."
+                onFocus={() => setShowProductDropdown(true)}
+                onBlur={() => window.setTimeout(() => setShowProductDropdown(false), 150)}
+                onChange={(event) => {
+                  setProductSearch(event.target.value);
+                  setShowProductDropdown(true);
+                }}
+              />
+              {showProductDropdown && filteredProducts.length > 0 && (
+                <div className="create-dropdown product-results">
+                  {filteredProducts.map((product) => (
+                    <button type="button" key={product._id} onMouseDown={(event) => event.preventDefault()} onClick={() => addProduct(product)}>
+                      <span><strong>{product.name}</strong><small>{product.code} · {formatMoney(product.price)} đ</small></span>
+                      <em>Tồn: {getAvailableStock(product)}</em>
+                    </button>
+                  ))}
                 </div>
-                {showProductDropdown && dbProducts.filter(p => {
-                  const matchesSearch = p.name?.toLowerCase().includes(form.productName.toLowerCase()) || p.code?.toLowerCase().includes(form.productName.toLowerCase());
-                  const stock = getStockForWarehouse(p, branch?.name);
-                  return matchesSearch && stock > 0;
-                }).length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '250px', overflowY: 'auto' }}>
-                    {dbProducts.filter(p => {
-                      const matchesSearch = p.name?.toLowerCase().includes(form.productName.toLowerCase()) || p.code?.toLowerCase().includes(form.productName.toLowerCase());
-                      const stock = getStockForWarehouse(p, branch?.name);
-                      return matchesSearch && stock > 0;
-                    }).map(p => {
-                      const stock = getStockForWarehouse(p, branch?.name);
-                      return (
-                        <div key={p.code} onMouseDown={(e) => {
-                          e.preventDefault();
-                          setForm(prev => ({ ...prev, productCode: p.code, productName: p.name }));
-                          setPrice(p.price || 0);
-                          setMaxStock(stock);
-                          setQuantity(1);
-                          setShowProductDropdown(false);
-                        }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between' }}>
-                          <div>
-                            <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{p.name}</div>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>Mã: {p.code} | Giá: {(p.price||0).toLocaleString()}đ</div>
-                          </div>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#10b981' }}>
-                            Tồn kho: {stock}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              )}
+            </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã sản phẩm (Tự điền)</span>
-                <input 
-                  type="text" 
-                  readOnly
-                  value={form.productCode} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#64748b', background: '#f8fafc' }} 
-                />
-              </div>
+            <div className="create-table-scroll">
+              <table>
+                <thead><tr><th>#</th><th>Sản phẩm</th><th className="number">Tồn</th><th className="number">Số lượng</th><th className="number">Đơn giá</th><th className="number">Thành tiền</th><th /></tr></thead>
+                <tbody>
+                  {products.map((line, index) => (
+                    <tr key={line.productId}>
+                      <td>{index + 1}</td>
+                      <td><div className="line-product"><strong>{line.name}</strong><span>{line.code}</span></div></td>
+                      <td className="number">{line.stock + line.originalQuantity}</td>
+                      <td className="number">
+                        <input
+                          aria-label={`Số lượng ${line.code}`}
+                          type="number"
+                          min={1}
+                          max={line.stock + line.originalQuantity}
+                          value={line.quantity}
+                          onChange={(event) => updateProduct(index, 'quantity', Number(event.target.value))}
+                        />
+                      </td>
+                      <td className="number">
+                        <input
+                          aria-label={`Đơn giá ${line.code}`}
+                          type="number"
+                          min={0}
+                          value={line.price}
+                          onChange={(event) => updateProduct(index, 'price', Number(event.target.value))}
+                        />
+                      </td>
+                      <td className="number line-total">{formatMoney(line.price * line.quantity)} đ</td>
+                      <td><button className="remove-line" type="button" onClick={() => removeProduct(index)} aria-label={`Xóa ${line.code}`}><Trash2 size={16} /></button></td>
+                    </tr>
+                  ))}
+                  {products.length === 0 && <tr><td colSpan={7}><div className="create-empty">Chưa có sản phẩm trong hóa đơn.</div></td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Đơn giá (VNĐ)</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
-                  <DollarSign size={14} color="#94a3b8" />
-                  <input 
-                    type="number" 
+        <aside>
+          <section className="create-card payment-card">
+            <h2><CreditCard size={17} /> Thanh toán</h2>
+            <dl className="payment-summary">
+              <div><dt>Tiền hàng</dt><dd>{formatMoney(subtotal)} đ</dd></div>
+              <div className="discount-row">
+                <dt>Giảm giá</dt>
+                <dd>
+                  <input type="number" min={0} value={form.discount || ''} onChange={(event) => setForm((current) => ({ ...current, discount: Number(event.target.value) || 0 }))} />
+                  <button type="button" onClick={() => setForm((current) => ({ ...current, discountType: current.discountType === 'fixed' ? 'percentage' : 'fixed' }))}>
+                    {form.discountType === 'percentage' ? '%' : 'đ'}
+                  </button>
+                </dd>
+              </div>
+              <div className="grand"><dt>Tổng thanh toán</dt><dd>{formatMoney(totalAmount)} đ</dd></div>
+            </dl>
+
+            <div className="payment-heading">
+              <strong>Phương thức thanh toán</strong>
+              <button type="button" onClick={addPaymentLine} disabled={paymentLines.length >= paymentMethods.length}>
+                <Plus size={14} /> Thêm phương thức
+              </button>
+            </div>
+
+            <div className="payment-lines">
+              {paymentLines.map((line) => (
+                <div className="payment-line" key={line.key}>
+                  <select
+                    aria-label="Phương thức thanh toán"
+                    value={line.methodId}
+                    onChange={(event) => updatePaymentLine(line.key, 'methodId', event.target.value)}
+                  >
+                    <option value="">— Chọn phương thức —</option>
+                    {paymentMethods.map((method) => (
+                      <option
+                        key={method._id}
+                        value={method._id}
+                        disabled={paymentLines.some((other) => other.key !== line.key && other.methodId === method._id)}
+                      >
+                        {method.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    aria-label="Số tiền thanh toán"
+                    type="number"
                     min={0}
-                    value={price || ''} 
-                    onChange={(e) => setPrice(Number(e.target.value) || 0)} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b' }} 
+                    value={line.amount || ''}
+                    onChange={(event) => updatePaymentLine(line.key, 'amount', event.target.value)}
                   />
+                  <button type="button" onClick={() => removePaymentLine(line.key)} disabled={paymentLines.length === 1} aria-label="Xóa phương thức thanh toán">
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>
-                  Số lượng {maxStock > 0 && <span style={{ color: '#10b981', fontWeight: '500' }}>(Tồn: {maxStock})</span>}
-                </span>
-                <input 
-                  type="number" 
-                  min={1}
-                  max={maxStock > 0 ? maxStock : undefined}
-                  value={quantity} 
-                  onChange={(e) => {
-                    let val = Math.max(1, Number(e.target.value) || 1);
-                    if (maxStock > 0 && val > maxStock) val = maxStock;
-                    setQuantity(val);
-                  }} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã giảm giá / Coupon</span>
-                <input 
-                  type="text" 
-                  placeholder="Mã coupon áp dụng" 
-                  value={form.coupon} 
-                  onChange={(e) => handleChange('coupon', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff' }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: 'span 2', marginTop: '8px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                <input 
-                  type="checkbox" 
-                  id="auto_calc"
-                  checked={useAutoCalculate} 
-                  onChange={(e) => setUseAutoCalculate(e.target.checked)} 
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                />
-                <label htmlFor="auto_calc" style={{ fontSize: '13px', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
-                  Tự động tính tổng tiền dựa trên đơn giá, số lượng, chiết khấu và VAT (%)
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Payment Summary & Action Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'sticky', top: '92px' }}>
-          
-          {/* Billing Card */}
-          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: '#fee2e2', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-                <CreditCard size={15} />
-              </div>
-              <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Thanh Toán & Tóm Tắt</h2>
+              ))}
             </div>
 
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              
-              {/* Calculations Breakdowns */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
-                  <span>Tạm tính (Sản phẩm):</span>
-                  <span style={{ fontWeight: '600', color: '#334155' }}>
-                    {(price * quantity).toLocaleString('vi-VN')} đ
-                  </span>
-                </div>
-
-                {/* Discount field */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>Chiết khấu trực tiếp:</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <input 
-                        type="number" 
-                        min={0}
-                        value={form.discount || ''}
-                        onChange={(e) => handleChange('discount', Number(e.target.value) || 0)}
-                        style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleChange('discountType', form.discountType === 'fixed' ? 'percentage' : 'fixed')}
-                        style={{
-                          border: '1px solid #cbd5e1',
-                          background: '#f8fafc',
-                          borderRadius: '6px',
-                          padding: '4px 6px',
-                          fontSize: '13px',
-                          fontWeight: '700',
-                          color: '#475569',
-                          cursor: 'pointer',
-                          width: '32px',
-                          textAlign: 'center'
-                        }}
-                      >
-                        {form.discountType === 'percentage' ? '%' : 'đ'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* VAT field */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>VAT (%):</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <input 
-                        type="number" 
-                        min={0}
-                        max={100}
-                        value={form.vat || ''}
-                        onChange={(e) => handleChange('vat', Number(e.target.value) || 0)}
-                        style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                      />
-                      <Percent size={13} color="#64748b" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total Amount field */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tổng tiền phải thanh toán</span>
-                {useAutoCalculate ? (
-                  <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#15803d', fontSize: '22px', fontWeight: '800', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                    {form.totalAmount.toLocaleString('vi-VN')} đ
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '2px solid #2563eb', borderRadius: '10px', padding: '0 12px', background: '#ffffff' }}>
-                    <DollarSign size={18} color="#2563eb" />
-                    <input 
-                      type="number" 
-                      min={0}
-                      value={form.totalAmount || ''} 
-                      onChange={(e) => handleChange('totalAmount', Number(e.target.value) || 0)} 
-                      style={{ border: 'none', background: 'transparent', outline: 'none', padding: '12px 0', width: '100%', color: '#0f172a', fontSize: '18px', fontWeight: '800' }} 
-                    />
-                  </div>
-                )}
-                {useAutoCalculate && (
-                  <span style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
-                    Tính toán tự động dựa trên chiết khấu & thuế VAT
-                  </span>
-                )}
-              </div>
-
-              {/* Payment Method Selector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Phương thức thanh toán</span>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                  {['Tiền mặt', 'Chuyển khoản', 'Quẹt thẻ', 'Khác'].map(method => {
-                    const isSelected = form.paymentMethod === method;
-                    return (
-                      <button 
-                        key={method}
-                        type="button"
-                        onClick={() => handleChange('paymentMethod', method)}
-                        style={{
-                          padding: '10px 8px',
-                          borderRadius: '8px',
-                          border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                          background: isSelected ? '#eff6ff' : '#ffffff',
-                          color: isSelected ? '#2563eb' : '#475569',
-                          fontWeight: '700',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        {method}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Order Status */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Trạng thái hóa đơn</span>
-                <select 
-                  value={form.status} 
-                  onChange={(e) => handleChange('status', e.target.value)}
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff', fontWeight: '600' }}
-                >
-                  <option value="Mới" style={{ color: '#b45309' }}>Mới (Chưa thanh toán)</option>
-                  <option value="Đã thanh toán" style={{ color: '#047857' }}>Đã thanh toán</option>
-                  <option value="Đã hủy" style={{ color: '#b91c1c' }}>Đã hủy</option>
-                </select>
-              </div>
-
-              {/* Note / Memo */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ghi chú hóa đơn</span>
-                <textarea 
-                  placeholder="Ghi chú thêm về đơn hàng hoặc giao hàng..." 
-                  value={form.note} 
-                  onChange={(e) => handleChange('note', e.target.value)} 
-                  rows={3} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff', resize: 'vertical' }}
-                />
-              </div>
-
+            <div className={`payment-balance ${Math.abs(remainingAmount) <= 0.5 ? 'balanced' : 'unbalanced'}`}>
+              <span>{remainingAmount >= 0 ? 'Còn phải thanh toán' : 'Thanh toán vượt'}</span>
+              <strong>{formatMoney(Math.abs(remainingAmount))} đ</strong>
             </div>
-          </div>
-          
-          {/* Quick Submit Block */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button 
-              type="submit"
-              disabled={isSaving}
-              style={{ 
-                width: '100%',
-                borderRadius: '10px', 
-                padding: '12px 24px', 
-                fontSize: '15px', 
-                fontWeight: '700', 
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
-                color: '#ffffff',
-                border: 'none', 
-                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                cursor: isSaving ? 'not-allowed' : 'pointer',
-                opacity: isSaving ? 0.7 : 1
-              }}
-            >
-              <Save size={18} />
-              {isSaving ? 'Đang lưu hóa đơn...' : 'Xác nhận & Lưu'}
+
+            <label className="note-field">
+              <span>Ghi chú hóa đơn</span>
+              <textarea rows={4} value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} />
+            </label>
+
+            <button className="submit-sale" type="submit" disabled={isSaving}>
+              <Save size={17} /> {isSaving ? 'Đang lưu hóa đơn...' : 'Xác nhận & Lưu'}
             </button>
-          </div>
-
-        </div>
-
+          </section>
+        </aside>
       </form>
-      
     </div>
   );
 }
+
+const styles = `
+.retail-create-page{max-width:1480px;margin:0 auto;padding:20px;color:#25313e;font-family:Inter,system-ui,sans-serif}
+.retail-create-loading{min-height:360px;display:flex;align-items:center;justify-content:center;gap:10px;color:#667586}.spin{animation:retailCreateSpin 1s linear infinite}@keyframes retailCreateSpin{to{transform:rotate(360deg)}}
+.retail-create-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.retail-create-header>div{display:flex;align-items:center;gap:12px}.retail-create-header>div>button{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d4dce4;border-radius:6px;background:#fff;cursor:pointer}.retail-create-header h1{margin:0;font-size:22px}.retail-create-header span{display:flex;align-items:center;gap:5px;margin-top:4px;color:#687786;font-size:12px}
+.create-save-top,.submit-sale{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:6px;background:#1677d2;color:#fff;font-weight:750;cursor:pointer}.create-save-top{height:38px;padding:0 16px}.create-save-top:disabled,.submit-sale:disabled{opacity:.6;cursor:not-allowed}
+.create-alert{display:flex;align-items:center;gap:9px;margin-bottom:14px;padding:11px 13px;border-radius:6px;font-size:13px}.create-alert.error{border:1px solid #efb3ae;background:#fff3f2;color:#b42318}.create-alert.success{border:1px solid #a8dfb5;background:#effbf2;color:#187b31}
+.retail-create-layout{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:18px;align-items:start}.retail-create-layout main{display:flex;flex-direction:column;gap:16px}.retail-create-layout aside{position:sticky;top:18px}
+.create-card{background:#fff;border:1px solid #d9e0e6;border-radius:8px;box-shadow:0 1px 2px rgba(20,35,50,.04);overflow:visible}.create-card>h2,.create-card-heading{display:flex;align-items:center;gap:8px;margin:0;padding:12px 15px;border-bottom:1px solid #e1e6eb;background:#f7f9fb;font-size:14px}.create-card-heading{justify-content:space-between}.create-card-heading h2{display:flex;align-items:center;gap:8px;margin:0;font-size:14px}.create-card-heading>span{color:#667586;font-size:12px}
+.create-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;padding:15px}.create-form-grid label,.note-field{display:flex;flex-direction:column;gap:5px;position:relative}.create-form-grid label.wide{grid-column:1/-1}.create-form-grid label>span,.note-field>span{color:#52616f;font-size:12px;font-weight:700}
+.create-form-grid input,.create-form-grid select,.note-field textarea{width:100%;min-width:0;padding:9px 10px;border:1px solid #cfd8e1;border-radius:5px;background:#fff;color:#25313e;font:inherit;font-size:13px;outline:0}.create-form-grid input:focus,.create-form-grid select:focus,.note-field textarea:focus{border-color:#168cf0;box-shadow:0 0 0 2px rgba(22,140,240,.1)}.create-form-grid input:read-only{background:#f4f6f8;color:#708090}
+.create-dropdown{position:absolute;z-index:30;top:100%;left:0;right:0;max-height:260px;margin-top:4px;padding:5px;overflow:auto;border:1px solid #ccd6df;border-radius:6px;background:#fff;box-shadow:0 12px 28px rgba(30,50,70,.17)}.create-dropdown button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px;border:0;border-radius:4px;background:transparent;color:#263442;text-align:left;cursor:pointer}.create-dropdown button:hover{background:#edf6fd}.create-dropdown button span{display:flex;flex-direction:column;gap:2px}.create-dropdown button span:last-child,.create-dropdown small{color:#718091;font-size:11px}.create-dropdown em{color:#23833c;font-size:12px;font-style:normal;font-weight:700}
+.product-search{position:relative;display:flex;align-items:center;gap:8px;margin:14px;padding:0 11px;border:1px solid #cfd8e1;border-radius:6px}.product-search>input{width:100%;padding:10px 0;border:0;outline:0;font:inherit;font-size:13px}.product-results{top:42px}
+.create-table-scroll{overflow:auto;border-top:1px solid #e1e6eb}.create-table-scroll table{width:100%;min-width:760px;border-collapse:collapse;font-size:12px}.create-table-scroll th{padding:8px 10px;background:#eef2f5;border-bottom:1px solid #c8d1da;color:#394754;text-align:left}.create-table-scroll td{padding:9px 10px;border-bottom:1px solid #e2e7ec}.create-table-scroll .number{text-align:right}.create-table-scroll input{width:92px;padding:6px;border:1px solid #cfd8e1;border-radius:4px;text-align:right}.line-product{display:flex;flex-direction:column;gap:2px}.line-product span{color:#718091;font-size:11px}.line-total{color:#148536;font-weight:750}.remove-line,.payment-line>button{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e0b7b3;border-radius:5px;background:#fff5f4;color:#c33930;cursor:pointer}.remove-line:disabled,.payment-line>button:disabled{opacity:.4;cursor:not-allowed}.create-empty{padding:40px;text-align:center;color:#718091}
+.payment-card{overflow:hidden}.payment-summary{margin:0;padding:13px 15px}.payment-summary>div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0}.payment-summary dt{color:#657483}.payment-summary dd{margin:0;font-weight:700}.payment-summary .grand{margin-top:6px;padding-top:12px;border-top:1px solid #dce3e9;font-size:15px}.payment-summary .grand dd{color:#168535;font-size:19px}.discount-row dd{display:flex;gap:4px}.discount-row input{width:86px;padding:6px;border:1px solid #cfd8e1;border-radius:4px;text-align:right}.discount-row button{width:34px;border:1px solid #cfd8e1;border-radius:4px;background:#f5f7f9;font-weight:750;cursor:pointer}
+.payment-heading{display:flex;align-items:center;justify-content:space-between;padding:10px 15px;border-top:1px solid #e1e6eb}.payment-heading strong{font-size:13px}.payment-heading button{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;color:#0878cc;font-weight:700;font-size:12px;cursor:pointer}.payment-heading button:disabled{opacity:.45;cursor:not-allowed}
+.payment-lines{display:flex;flex-direction:column;gap:8px;padding:0 15px 12px}.payment-line{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:7px}.payment-line select,.payment-line input{min-width:0;padding:8px;border:1px solid #cfd8e1;border-radius:5px;background:#fff;font:inherit;font-size:12px}.payment-line input{text-align:right}
+.payment-balance{display:flex;justify-content:space-between;gap:10px;margin:0 15px 14px;padding:10px;border-radius:5px;font-size:12px}.payment-balance.balanced{background:#edf9f0;color:#207b37}.payment-balance.unbalanced{background:#fff5e5;color:#956100}.note-field{padding:0 15px 14px}.note-field textarea{resize:vertical}.submit-sale{width:calc(100% - 30px);height:42px;margin:0 15px 15px}
+@media(max-width:1050px){.retail-create-layout{grid-template-columns:1fr}.retail-create-layout aside{position:static}}@media(max-width:680px){.retail-create-page{padding:12px}.retail-create-header{align-items:flex-start}.create-save-top{display:none}.create-form-grid{grid-template-columns:1fr}.create-form-grid label.wide{grid-column:auto}.payment-line{grid-template-columns:1fr 100px auto}}
+`;

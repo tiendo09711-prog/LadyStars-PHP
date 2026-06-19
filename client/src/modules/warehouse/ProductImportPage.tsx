@@ -49,7 +49,6 @@ const MOCK_PRODUCTS: Product[] = [
 export function ProductImportPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [vendors, setVendors] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [sysBranches, setSysBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +58,7 @@ export function ProductImportPage() {
   // Form states
   const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
   const [importType, setImportType] = useState('Nhập mua');
-  const [supplier, setSupplier] = useState('Nhà cung cấp A');
+  const [supplier, setSupplier] = useState('');
   const [tags, setTags] = useState('');
   const [note, setNote] = useState('');
   const [updatePriceFlag, setUpdatePriceFlag] = useState(false);
@@ -105,7 +104,6 @@ export function ProductImportPage() {
       }
     };
     fetchProducts();
-    http.get('/vendors/vendors').then(res => setVendors(res.data.items || [])).catch(() => {});
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
     http.get('/system/branches').then(res => setSysBranches(res.data.items || [])).catch(() => {});
   }, []);
@@ -382,10 +380,7 @@ export function ProductImportPage() {
             {importType === 'Nhập mua' && (
               <label className="form-field">
                 <span>Nhà cung cấp</span>
-                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
-                  <option value="">-- Chọn nhà cung cấp --</option>
-                  {vendors.map(v => <option key={v._id} value={v.name}>{v.name}</option>)}
-                </select>
+                <input type="text" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Nhập tên nhà cung cấp..." />
               </label>
             )}
 
