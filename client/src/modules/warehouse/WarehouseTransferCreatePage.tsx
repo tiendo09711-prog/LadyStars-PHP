@@ -1,609 +1,137 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ChevronRight, Plus, Shuffle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Settings2, Shuffle, ChevronRight } from 'lucide-react';
 import { http } from '../../core/api/http';
 
-type Product = {
-  _id: string;
-  code: string;
-  name: string;
-  price: number;
-  cost: number;
-  qty: number;
-  unit?: string;
-  stockCN?: number;
-  stockHanoi?: number;
-  stockHCM?: number;
-};
+type Warehouse = { value: string; label: string; code?: string };
+type Product = { _id: string; code: string; name: string; barcode?: string; unit?: string; cost?: number; qty?: number; selectedStock?: number };
+type Line = { productId: string; quantity: number; unit: string; batchCode: string; imei: string; note: string };
 
-type TransferLine = {
-  productId: string;
-  batchCode: string;
-  imei: string;
-  unit: string;
-  quantity: number;
-  note: string;
-};
-
-
+function stockOf(product?: Product) {
+  return Number(product?.selectedStock ?? product?.qty ?? 0);
+}
 
 export function WarehouseTransferCreatePage() {
   const navigate = useNavigate();
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const [fromWarehouse, setFromWarehouse] = useState('');
-  const [toWarehouse, setToWarehouse] = useState('');
-  const [sysBranches, setSysBranches] = useState<any[]>([]);
+  const [sourceWarehouseId, setSourceWarehouseId] = useState('');
+  const [destinationWarehouseId, setDestinationWarehouseId] = useState('');
   const [label, setLabel] = useState('');
   const [note, setNote] = useState('');
-  const [afterSubmitAction, setAfterSubmitAction] = useState<'detail' | 'continue'>('detail');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [lines, setLines] = useState<TransferLine[]>([]);
-  const [showConfig, setShowConfig] = useState(false);
-  const [colVisible, setColVisible] = useState({
-    stt: true, image: false, batch: true, imei: true, unit: true, note: false,
-  });
-
-  const getBranchStockKey = (branchId: string) => {
-    const branch = sysBranches.find(b => b._id === branchId);
-    const code = String(branch?.code || '').toUpperCase();
-    const name = String(branch?.name || '').toLowerCase();
-
-    if (code === 'HN' || name.includes('hà nội') || name.includes('ha noi')) return 'stockHanoi';
-    if (code === 'HCM' || name.includes('hcm') || name.includes('hồ chí minh') || name.includes('ho chi minh')) return 'stockHCM';
-    if (code === 'CN001' || name.includes('trung tâm') || name.includes('trung tam')) return 'stockCN';
-    return 'qty';
-  };
-
-  const getBranchInventoryFilter = (branchId: string) => {
-    const branch = sysBranches.find(b => b._id === branchId);
-    const code = String(branch?.code || '').toUpperCase();
-    const name = String(branch?.name || '').toLowerCase();
-
-    if (code === 'HN' || name.includes('hà nội') || name.includes('ha noi')) return 'hanoi';
-    if (code === 'HCM' || name.includes('hcm') || name.includes('hồ chí minh') || name.includes('ho chi minh')) return 'hcm';
-    return undefined;
-  };
-
-  const getProductStock = (product?: Product) => {
-    if (!product) return 0;
-    const key = getBranchStockKey(fromWarehouse) as keyof Product;
-    return Number(product[key] || 0);
-  };
+  const [submitForApproval, setSubmitForApproval] = useState(true);
+  const [search, setSearch] = useState('');
+  const [lines, setLines] = useState<Line[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const res = await http.get('/system/branches');
-        const branches = res.data?.items || [];
-        setSysBranches(branches);
-        if (branches.length > 0) {
-          setFromWarehouse(branches[0]._id);
-          setToWarehouse(branches.length > 1 ? branches[1]._id : branches[0]._id);
-        }
-      } catch (err) {}
-    };
-    fetchBranches();
+    http.get('/warehouse/transfers/meta').then((response) => {
+      const options: Warehouse[] = response.data?.warehouses || [];
+      setWarehouses(options);
+      if (options[0]) setSourceWarehouseId(options[0].value);
+      if (options[1]) setDestinationWarehouseId(options[1].value);
+    }).catch(() => setError('Không tải được danh sách kho.'));
   }, []);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      if (!fromWarehouse || !sysBranches.length) return;
-      try {
-        const response = await http.get('/products/inventories', {
-          params: { limit: 5000, branchId: getBranchInventoryFilter(fromWarehouse) }
-        });
-        const stockKey = getBranchStockKey(fromWarehouse) as keyof Product;
-        const items = (response.data?.items || [])
-          .map((item: Product) => ({ ...item, qty: Number(item[stockKey] || 0) }))
-          .filter((item: Product) => item.qty > 0);
+    if (!sourceWarehouseId) return;
+    http.get('/products/inventories', { params: { limit: 5000, branchId: sourceWarehouseId } })
+      .then((response) => {
+        const items = (response.data?.items || []).map((item: Product) => ({ ...item, qty: stockOf(item) })).filter((item: Product) => stockOf(item) > 0);
         setProducts(items);
-        setLines(prev => prev.filter(line => items.some((p: Product) => p._id === line.productId)));
-      } catch {
-        setProducts([]);
+        setLines((current) => current.filter((line) => items.some((product: Product) => product._id === line.productId)));
+      })
+      .catch(() => setProducts([]));
+  }, [sourceWarehouseId]);
+
+  const sourceName = warehouses.find((item) => item.value === sourceWarehouseId)?.label || 'Kho nguồn';
+  const destinationName = warehouses.find((item) => item.value === destinationWarehouseId)?.label || 'Kho đích';
+  const filteredProducts = products.filter((product) => `${product.code} ${product.name} ${product.barcode || ''}`.toLowerCase().includes(search.toLowerCase()));
+  const totalQty = useMemo(() => lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0), [lines]);
+
+  const createLine = (product?: Product): Line => ({ productId: product?._id || '', quantity: 1, unit: product?.unit || '', batchCode: '', imei: '', note: '' });
+  const addLine = () => setLines((current) => [...current, createLine(filteredProducts[0] || products[0])]);
+  const removeLine = (index: number) => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index));
+  const updateLine = (index: number, patch: Partial<Line>) => {
+    setLines((current) => current.map((line, lineIndex) => {
+      if (lineIndex !== index) return line;
+      const next = { ...line, ...patch };
+      if (patch.productId) {
+        const product = products.find((item) => item._id === patch.productId);
+        next.unit = product?.unit || '';
+        next.quantity = Math.min(Math.max(Number(next.quantity || 1), 1), Math.max(stockOf(product), 1));
       }
-    };
-    fetchProducts();
-  }, [fromWarehouse, sysBranches]);
-
-  // Xóa logic tự động thêm dòng đầu tiên nếu gây lỗi UI
-  // useEffect(() => {
-  //   if (products.length > 0 && lines.length === 0) {
-  //     setLines([createLine(products[0])]);
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [products]);
-
-  function createLine(product: Product): TransferLine {
-    return { productId: product._id, batchCode: '', imei: '', unit: product.unit || 'cái', quantity: 1, note: '' };
-  }
-
-  const addLine = () => {
-    if (!products.length) return;
-    setLines(prev => [...prev, createLine(products[0])]);
-  };
-
-  const removeLine = (i: number) => setLines(prev => prev.filter((_, idx) => idx !== i));
-
-  const updateLine = (i: number, field: keyof TransferLine, value: string | number) => {
-    setLines(prev => {
-      const next = [...prev];
-      const current = { ...next[i], [field]: value };
-      if (field === 'productId') {
-        const p = products.find(x => x._id === value);
-        if (p) {
-          current.unit = p.unit || 'cái';
-          current.quantity = Math.min(Math.max(Number(current.quantity || 1), 1), getProductStock(p));
-        }
+      if (patch.quantity !== undefined) {
+        const product = products.find((item) => item._id === next.productId);
+        next.quantity = Math.min(Math.max(Number(patch.quantity || 1), 1), Math.max(stockOf(product), 1));
       }
-      if (field === 'quantity') {
-        const p = products.find(x => x._id === current.productId);
-        const maxQty = getProductStock(p);
-        current.quantity = Math.min(Math.max(Number(value || 1), 1), maxQty || 1);
-      }
-      next[i] = current;
       return next;
-    });
+    }));
   };
 
-  const totalQty = useMemo(() => lines.reduce((s, l) => s + (l.quantity || 0), 0), [lines]);
-  const totalSP = lines.length;
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(''); setSuccess('');
+    if (!sourceWarehouseId || !destinationWarehouseId || sourceWarehouseId === destinationWarehouseId) return setError('Kho nguồn và kho đích không được trùng nhau.');
+    if (!lines.length) return setError('Vui lòng thêm ít nhất một sản phẩm.');
+    const productIds = new Set<string>();
+    for (const line of lines) {
+      const product = products.find((item) => item._id === line.productId);
+      if (!product) return setError('Vui lòng chọn sản phẩm hợp lệ.');
+      if (productIds.has(line.productId)) return setError('Không được chọn trùng sản phẩm trong cùng phiếu.');
+      productIds.add(line.productId);
+      if (!Number.isInteger(Number(line.quantity)) || Number(line.quantity) <= 0) return setError('Số lượng phải là số nguyên dương.');
+      if (Number(line.quantity) > stockOf(product)) return setError(`Sản phẩm ${product.code} vượt tồn kho nguồn (${stockOf(product)}).`);
+    }
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(''); setSuccessMsg('');
-    if (!lines.length) { setError('Vui lòng thêm ít nhất 1 sản phẩm.'); return; }
-    if (lines.some(l => !l.productId || l.quantity <= 0)) {
-      setError('Tất cả sản phẩm phải có số lượng > 0.'); return;
-    }
-    const overStockLine = lines.find(l => {
-      const product = products.find(p => p._id === l.productId);
-      return product && l.quantity > getProductStock(product);
-    });
-    if (overStockLine) {
-      const product = products.find(p => p._id === overStockLine.productId);
-      setError(`Sản phẩm ${product?.code || ''} vượt tồn kho. Tồn hiện tại: ${getProductStock(product)}, yêu cầu: ${overStockLine.quantity}`);
-      return;
-    }
     setSaving(true);
     try {
-      const fromBranch = sysBranches.find(b => b._id === fromWarehouse);
-      const toBranch = sysBranches.find(b => b._id === toWarehouse);
-
-      await http.post('/warehouse/transfers', {
-        id: `TRF${Date.now()}`, date: new Date().toISOString(),
-        tabs: ['all', 'draft'], type: 'Chuyển kho',
-        fromWarehouse, toWarehouse, 
-        warehouse: `${fromBranch?.name || fromWarehouse} -> ${toBranch?.name || toWarehouse}`,
-        label, note,
-        qty: totalQty, spCount: totalSP, creator: 'Current User',
-        lines: lines.map(l => ({ productId: l.productId, quantity: l.quantity, batchCode: l.batchCode, imei: l.imei, unit: l.unit, note: l.note })),
+      const response = await http.post('/warehouse/transfers', {
+        sourceWarehouseId,
+        destinationWarehouseId,
+        label,
+        note,
+        submitForApproval,
+        lines,
       });
-      setSuccessMsg('✓ Tạo phiếu chuyển kho thành công!');
-      if (afterSubmitAction === 'detail') {
-        setTimeout(() => navigate('/warehouse/transfers'), 1200);
-      } else {
-        setLines([createLine(products[0])]);
-        setNote(''); setLabel('');
-      }
+      setSuccess(submitForApproval ? 'Đã tạo phiếu và gửi Admin duyệt. Tồn kho chưa thay đổi.' : 'Đã lưu nháp. Tồn kho chưa thay đổi.');
+      setTimeout(() => navigate(`/warehouse/transfers/${response.data?._id || response.data?.id}`), 800);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
+      setError(err.response?.data?.message || 'Không lưu được phiếu chuyển kho.');
     } finally {
       setSaving(false);
     }
   };
 
-  const filtered = products.filter(
-    p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const colCount = 2 + (colVisible.stt ? 1 : 0) + (colVisible.image ? 1 : 0)
-    + (colVisible.batch ? 1 : 0) + (colVisible.imei ? 1 : 0)
-    + (colVisible.unit ? 1 : 0) + (colVisible.note ? 1 : 0);
-
   return (
-    <div className="workspace-page">
-
-      {/* ── HEADER ─────────────────────────────────── */}
+    <form className="workspace-page" onSubmit={submit}>
       <div className="page-heading">
         <div className="page-title-block">
-          <button
-            className="btn btn-light"
-            type="button"
-            onClick={() => navigate(-1)}
-            style={{ width: 42, height: 42, padding: 0, justifyContent: 'center', borderRadius: 10 }}
-            title="Quay lại"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div className="page-icon" style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', color: 'var(--primary)' }}>
-            <Shuffle size={22} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: 22 }}>Thêm mới phiếu chuyển kho</h1>
-            <p style={{ margin: '3px 0 0', color: 'var(--muted)', fontSize: 13 }}>
-              Tạo phiếu chuyển sản phẩm nội bộ giữa các kho/chi nhánh
-            </p>
-          </div>
+          <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transfers')}><ArrowLeft size={16} /> Quay lại</button>
+          <div className="page-icon"><Shuffle size={22} /></div>
+          <div><h1>Thêm mới phiếu chuyển kho</h1><p>Lưu nháp hoặc gửi Admin duyệt. Bước này không thay đổi tồn kho.</p></div>
         </div>
-        <div className="page-actions">
-          {error && (
-            <span style={{ background: 'var(--danger-soft)', color: '#b91c1c', padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
-              {error}
-            </span>
-          )}
-          {successMsg && (
-            <span style={{ background: 'var(--success-soft)', color: '#047857', padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
-              {successMsg}
-            </span>
-          )}
-          <button className="btn btn-light" type="button" onClick={() => navigate(-1)}>Hủy bỏ</button>
-          <button
-            className="btn btn-primary"
-            type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-            style={{ opacity: saving ? 0.7 : 1 }}
-          >
-            <Shuffle size={15} />
-            {saving ? 'Đang lưu...' : 'Lưu phiếu chuyển kho'}
-          </button>
-        </div>
+        <div className="page-actions"><button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transfers')}>Hủy</button><button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Đang lưu...' : (submitForApproval ? 'Lưu và gửi duyệt' : 'Lưu nháp')}</button></div>
       </div>
 
-      {/* ── WAREHOUSE ROUTE BANNER ──────────────────── */}
-      <div style={{
-        background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
-        border: '1px solid #bfdbfe',
-        borderRadius: 12,
-        padding: '14px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        flexWrap: 'wrap',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ background: 'var(--primary)', color: '#fff', borderRadius: 8, padding: '4px 12px', fontWeight: 800, fontSize: 13 }}>
-            {sysBranches.find(b => b._id === fromWarehouse)?.name || fromWarehouse}
-          </div>
-          <ChevronRight size={18} style={{ color: 'var(--primary)' }} />
-          <div style={{ background: 'var(--success)', color: '#fff', borderRadius: 8, padding: '4px 12px', fontWeight: 800, fontSize: 13 }}>
-            {sysBranches.find(b => b._id === toWarehouse)?.name || toWarehouse}
-          </div>
-        </div>
-        <div style={{ color: 'var(--muted)', fontSize: 13, marginLeft: 'auto' }}>
-          <strong style={{ color: '#0f172a' }}>{totalSP}</strong> sản phẩm &nbsp;·&nbsp;
-          Tổng SL: <strong style={{ color: 'var(--primary)' }}>{totalQty}</strong>
-        </div>
+      {error && <div className="data-alert" role="alert">{error}</div>}
+      {success && <div className="wr-notice">{success}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }}>
+        <section className="data-card">
+          <div className="data-card-header"><div><h2>Danh sách sản phẩm chuyển</h2><span className="record-badge">{lines.length} SP · {totalQty} SL</span></div><div className="search-box" style={{ minWidth: 260 }}><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm mã/tên/mã vạch sản phẩm" /></div><button className="btn btn-outline" type="button" onClick={addLine}><Plus size={15} /> Thêm dòng</button></div>
+          <div className="table-scroll"><table className="data-table"><thead><tr><th></th><th>Mã SP</th><th>Sản phẩm</th><th>Tồn kho nguồn</th><th>SL yêu cầu</th><th>ĐVT</th><th>Lô</th><th>IMEI</th><th>Ghi chú</th></tr></thead><tbody>{!lines.length && <tr><td className="empty-cell" colSpan={9}>Chưa có sản phẩm. Nhấn “Thêm dòng” để bắt đầu.</td></tr>}{lines.map((line, index) => { const product = products.find((item) => item._id === line.productId); return <tr key={index}><td><button className="icon-button danger" type="button" onClick={() => removeLine(index)}><Trash2 size={14} /></button></td><td><select value={line.productId} onChange={(event) => updateLine(index, { productId: event.target.value })}><option value="">Chọn</option>{filteredProducts.map((item) => <option key={item._id} value={item._id}>{item.code}</option>)}</select></td><td><strong>{product?.name || '-'}</strong><span className="wr-sub">{product?.barcode || ''}</span></td><td className="right">{stockOf(product).toLocaleString('vi-VN')}</td><td><input type="number" min={1} max={stockOf(product)} value={line.quantity || ''} onChange={(event) => updateLine(index, { quantity: Number(event.target.value) })} /></td><td><input value={line.unit} onChange={(event) => updateLine(index, { unit: event.target.value })} /></td><td><input value={line.batchCode} onChange={(event) => updateLine(index, { batchCode: event.target.value })} /></td><td><input value={line.imei} onChange={(event) => updateLine(index, { imei: event.target.value })} /></td><td><input value={line.note} onChange={(event) => updateLine(index, { note: event.target.value })} /></td></tr>; })}</tbody></table></div>
+        </section>
+
+        <aside style={{ display: 'grid', gap: 14 }}>
+          <div className="filter-panel"><div className="panel-title"><Shuffle size={16} /> Thông tin chuyển kho</div><label className="field-label">Kho nguồn</label><select value={sourceWarehouseId} onChange={(event) => setSourceWarehouseId(event.target.value)}>{warehouses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><div style={{ textAlign: 'center', padding: 8 }}><ChevronRight size={18} style={{ transform: 'rotate(90deg)' }} /></div><label className="field-label">Kho đích</label><select value={destinationWarehouseId} onChange={(event) => setDestinationWarehouseId(event.target.value)}>{warehouses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><label className="field-label">Nhãn phiếu</label><input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="VD: Chuyển hàng bổ sung" /><label className="field-label">Ghi chú</label><textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} /></div>
+          <div className="filter-panel" style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdf4)' }}><strong>{sourceName}</strong><ChevronRight size={18} /><strong>{destinationName}</strong><div style={{ marginTop: 10, color: 'var(--muted)' }}>{lines.length} sản phẩm · {totalQty} số lượng</div></div>
+          <div className="filter-panel"><label style={{ display: 'flex', gap: 10, alignItems: 'center', fontWeight: 700 }}><input type="checkbox" checked={submitForApproval} onChange={(event) => setSubmitForApproval(event.target.checked)} /> Gửi Admin duyệt sau khi lưu</label></div>
+          <button className="btn btn-primary full" type="submit" disabled={saving}>{saving ? 'Đang lưu...' : (submitForApproval ? 'Lưu và gửi duyệt' : 'Lưu nháp')}</button>
+        </aside>
       </div>
-
-      {/* ── MAIN BODY: 2 COLUMNS ────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, alignItems: 'start' }}>
-
-        {/* LEFT — Product table card */}
-        <div className="data-card" style={{ overflow: 'hidden' }}>
-          {/* Card header / toolbar */}
-          <div className="data-card-header">
-            <div>
-              <h2 style={{ fontSize: 15 }}>Danh sách sản phẩm chuyển</h2>
-              <span className="record-badge">{totalSP} SP · {totalQty} SL</span>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div className="search-box" style={{ minWidth: 220 }}>
-                <input
-                  type="text"
-                  placeholder="Tìm sản phẩm (F3)..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <button className="btn btn-outline" type="button" onClick={addLine} style={{ whiteSpace: 'nowrap' }}>
-                <Plus size={15} /> Thêm dòng
-              </button>
-              <div className="dropdown-container">
-                <button className="btn btn-light" type="button" onClick={() => setShowConfig(v => !v)} title="Tùy chỉnh cột">
-                  <Settings2 size={15} />
-                </button>
-                {showConfig && (
-                  <div className="dropdown-menu" style={{ minWidth: 180 }}>
-                    {([
-                      ['stt', 'STT'],
-                      ['image', 'Ảnh sản phẩm'],
-                      ['batch', 'Lô hàng'],
-                      ['imei', 'IMEI'],
-                      ['unit', 'Đơn vị tính'],
-                      ['note', 'Ghi chú dòng'],
-                    ] as [keyof typeof colVisible, string][]).map(([key, lbl]) => (
-                      <label key={key} className="dropdown-item" style={{ cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={colVisible[key]}
-                          onChange={e => setColVisible(v => ({ ...v, [key]: e.target.checked }))}
-                          style={{ accentColor: 'var(--primary)' }}
-                        />
-                        {lbl}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 44 }}></th>
-                  {colVisible.stt && <th style={{ width: 48 }}>STT</th>}
-                  {colVisible.image && <th style={{ width: 56 }}>Ảnh</th>}
-                  <th style={{ minWidth: 120 }}>Mã SP</th>
-                  <th style={{ minWidth: 200 }}>Tên sản phẩm</th>
-                  {colVisible.batch && <th style={{ minWidth: 110 }}>Lô hàng</th>}
-                  {colVisible.imei && <th style={{ minWidth: 130 }}>IMEI</th>}
-                  {colVisible.unit && <th style={{ minWidth: 90 }}>Đơn vị</th>}
-                  <th style={{ width: 90, textAlign: 'right' }}>Số lượng</th>
-                  {colVisible.note && <th style={{ minWidth: 140 }}>Ghi chú</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {lines.length === 0 && (
-                  <tr>
-                    <td colSpan={colCount} className="empty-cell">
-                      Chưa có sản phẩm — nhấn <strong>Thêm dòng</strong> để bắt đầu
-                    </td>
-                  </tr>
-                )}
-                {lines.map((line, i) => {
-                  const product = products.find(p => p._id === line.productId);
-                  return (
-                    <tr key={i}>
-                      <td style={{ padding: '8px 12px' }}>
-                        <button
-                          className="icon-button danger"
-                          type="button"
-                          onClick={() => removeLine(i)}
-                          title="Xóa dòng"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                      {colVisible.stt && (
-                        <td style={{ color: 'var(--muted)', fontWeight: 700, fontSize: 13 }}>{i + 1}</td>
-                      )}
-                      {colVisible.image && (
-                        <td>
-                          <div style={{
-                            width: 36, height: 36, borderRadius: 8,
-                            background: 'var(--border-soft)',
-                            border: '1px solid var(--border)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: 'var(--muted)', fontSize: 10,
-                          }}>IMG</div>
-                        </td>
-                      )}
-                      <td>
-                        <select
-                          style={{
-                            border: '1px solid var(--border)', borderRadius: 8,
-                            padding: '6px 8px', outline: 0, background: '#fff',
-                            minWidth: 120, width: '100%', fontSize: 13,
-                          }}
-                          value={line.productId}
-                          onChange={e => updateLine(i, 'productId', e.target.value)}
-                        >
-                          <option value="">-- Chọn --</option>
-                          {filtered.map(p => (
-                            <option key={p._id} value={p._id}>{p.code}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{product?.name || <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>Chọn sản phẩm</span>}</div>
-                        {product && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Tồn: {getProductStock(product)} {product.unit}</div>}
-                      </td>
-                      {colVisible.batch && (
-                        <td>
-                          <input
-                            type="text"
-                            style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', outline: 0, background: '#fff', width: '100%', fontSize: 13 }}
-                            placeholder="Lô..."
-                            value={line.batchCode}
-                            onChange={e => updateLine(i, 'batchCode', e.target.value)}
-                          />
-                        </td>
-                      )}
-                      {colVisible.imei && (
-                        <td>
-                          <input
-                            type="text"
-                            style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', outline: 0, background: '#fff', width: '100%', fontSize: 13 }}
-                            placeholder="IMEI..."
-                            value={line.imei}
-                            onChange={e => updateLine(i, 'imei', e.target.value)}
-                          />
-                        </td>
-                      )}
-                      {colVisible.unit && (
-                        <td>
-                          <input
-                            type="text"
-                            style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', outline: 0, background: '#fff', width: 80, fontSize: 13 }}
-                            value={line.unit}
-                            onChange={e => updateLine(i, 'unit', e.target.value)}
-                          />
-                        </td>
-                      )}
-                      <td style={{ textAlign: 'right' }}>
-                        <input
-                          type="number"
-                          min={1}
-                          max={getProductStock(product)}
-                          style={{
-                            border: '1px solid #bfdbfe', borderRadius: 8,
-                            padding: '6px 8px', outline: 0,
-                            background: 'var(--primary-soft)', color: 'var(--primary)',
-                            fontWeight: 800, width: 80, textAlign: 'right', fontSize: 14,
-                          }}
-                          value={line.quantity || ''}
-                          onChange={e => updateLine(i, 'quantity', Number(e.target.value))}
-                        />
-                      </td>
-                      {colVisible.note && (
-                        <td>
-                          <input
-                            type="text"
-                            style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', outline: 0, background: '#fff', width: '100%', fontSize: 13 }}
-                            placeholder="Ghi chú..."
-                            value={line.note}
-                            onChange={e => updateLine(i, 'note', e.target.value)}
-                          />
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-              {lines.length > 0 && (
-                <tfoot>
-                  <tr style={{ background: '#f8fafc' }}>
-                    <td
-                      colSpan={colCount - 1}
-                      style={{ textAlign: 'right', padding: '12px 14px', fontWeight: 700, fontSize: 13, color: 'var(--muted)' }}
-                    >
-                      Tổng số lượng:
-                    </td>
-                    <td style={{ textAlign: 'right', padding: '12px 14px', fontWeight: 800, fontSize: 16, color: 'var(--primary)' }}>
-                      {totalQty}
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-
-          {/* Add line button below table */}
-          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-soft)' }}>
-            <button className="btn btn-outline" type="button" onClick={addLine} style={{ fontSize: 13 }}>
-              <Plus size={14} /> Thêm sản phẩm
-            </button>
-          </div>
-        </div>
-
-        {/* RIGHT — Detail panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-          {/* Transfer info card */}
-          <div className="filter-panel" style={{ position: 'sticky', top: 88 }}>
-            <div className="panel-title">
-              <Shuffle size={16} style={{ color: 'var(--primary)' }} />
-              Thông tin chuyển kho
-            </div>
-
-            <label className="field-label">Từ kho</label>
-            <select
-              style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', outline: 0, background: '#fff', width: '100%', fontSize: 14, marginBottom: 2 }}
-              value={fromWarehouse}
-              onChange={e => setFromWarehouse(e.target.value)}
-            >
-              {sysBranches.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
-            </select>
-
-            <div style={{ textAlign: 'center', padding: '6px 0', color: 'var(--primary)' }}>
-              <ChevronRight size={18} style={{ transform: 'rotate(90deg)' }} />
-            </div>
-
-            <label className="field-label" style={{ marginTop: 0 }}>Đến kho</label>
-            <select
-              style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', outline: 0, background: '#fff', width: '100%', fontSize: 14 }}
-              value={toWarehouse}
-              onChange={e => setToWarehouse(e.target.value)}
-            >
-              {sysBranches.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
-            </select>
-
-            <label className="field-label">Nhãn phiếu</label>
-            <input
-              type="text"
-              style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', outline: 0, background: '#fff', width: '100%', fontSize: 14 }}
-              placeholder="Ví dụ: Chuyển hàng nội bộ Q2..."
-              value={label}
-              onChange={e => setLabel(e.target.value)}
-            />
-
-            <label className="field-label">Ghi chú</label>
-            <textarea
-              style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px', outline: 0, background: '#fff', width: '100%', fontSize: 14, resize: 'vertical', minHeight: 80 }}
-              placeholder="Ghi chú thêm..."
-              value={note}
-              onChange={e => setNote(e.target.value)}
-            />
-          </div>
-
-          {/* After-save card */}
-          <div className="filter-panel">
-            <div className="panel-title" style={{ marginBottom: 12, fontSize: 13 }}>Thao tác sau khi lưu</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { value: 'detail', label: 'Xem chi tiết phiếu chuyển kho' },
-                { value: 'continue', label: 'Tiếp tục lập phiếu mới' },
-              ].map(opt => (
-                <label
-                  key={opt.value}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                    padding: '10px 12px', borderRadius: 8, border: '1px solid',
-                    fontSize: 13, fontWeight: 600,
-                    borderColor: afterSubmitAction === opt.value ? '#bfdbfe' : 'var(--border)',
-                    background: afterSubmitAction === opt.value ? 'var(--primary-soft)' : '#fff',
-                    color: afterSubmitAction === opt.value ? 'var(--primary)' : '#475569',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="afterSubmit"
-                    checked={afterSubmitAction === opt.value as 'detail' | 'continue'}
-                    onChange={() => setAfterSubmitAction(opt.value as 'detail' | 'continue')}
-                    style={{ accentColor: 'var(--primary)' }}
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Summary card */}
-          {lines.length > 0 && (
-            <div className="filter-panel" style={{ background: 'linear-gradient(135deg, #eff6ff, #f0fdf4)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 700 }}>Số sản phẩm</span>
-                <strong style={{ color: '#0f172a' }}>{totalSP} SP</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 700 }}>Tổng số lượng</span>
-                <strong style={{ color: 'var(--primary)', fontSize: 18 }}>{totalQty}</strong>
-              </div>
-            </div>
-          )}
-
-          {/* Save button */}
-          <button
-            className="btn btn-primary full"
-            type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-            style={{ minHeight: 44, fontSize: 14, opacity: saving ? 0.7 : 1 }}
-          >
-            <Shuffle size={16} />
-            {saving ? 'Đang lưu...' : 'Lưu phiếu chuyển kho'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </form>
   );
 }

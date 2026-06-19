@@ -33,6 +33,7 @@ import {
   List,
 } from 'lucide-react';
 import { http } from '../api/http';
+import { canAccessPath, isAdminRole, normalizeRole, roleLabel } from '../auth/access';
 
 type MenuLeaf = {
   to: string;
@@ -305,7 +306,7 @@ export function AppLayout() {
   const [openMenuGroups, setOpenMenuGroups] = useState<Record<string, boolean>>(() => defaultMenuGroupState);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [reportSearch, setReportSearch] = useState('');
-  const isOwner = user?.role === 'owner';
+  const isAdmin = isAdminRole(user?.role);
 
   const isDesktopNav = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 981px)').matches;
   const closeAllMenus = () => {
@@ -327,7 +328,7 @@ export function AppLayout() {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
-  const menuGroups = useMemo<MenuGroup[]>(() => isOwner
+  const menuGroups = useMemo<MenuGroup[]>(() => isAdmin
     ? [
       ...baseMenuGroups,
       {
@@ -339,7 +340,7 @@ export function AppLayout() {
         ],
       },
     ]
-    : baseMenuGroups, [isOwner]);
+    : baseMenuGroups, [isAdmin]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -352,7 +353,7 @@ export function AppLayout() {
       http.get('/settings/store').catch(() => null),
     ])
       .then(([userResponse, settingResponse]) => {
-        setUser(userResponse.data);
+        setUser({ ...userResponse.data, role: normalizeRole(userResponse.data?.role) });
         if (settingResponse?.data) setStoreSettings(settingResponse.data);
       })
       .catch(() => {
@@ -360,6 +361,13 @@ export function AppLayout() {
         navigate('/login');
       });
   }, [navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!canAccessPath(user.role, location.pathname)) {
+      navigate('/', { replace: true });
+    }
+  }, [location.pathname, navigate, user]);
 
   useEffect(() => {
     const updateStoreSettings = (event: Event) => {
@@ -371,7 +379,8 @@ export function AppLayout() {
 
   useEffect(() => {
     const updateOwnerAccount = (event: Event) => {
-      setUser((event as CustomEvent<CurrentUser>).detail);
+      const detail = (event as CustomEvent<CurrentUser>).detail;
+      setUser({ ...detail, role: normalizeRole(detail?.role) });
     };
     window.addEventListener('owner-account-updated', updateOwnerAccount);
     return () => window.removeEventListener('owner-account-updated', updateOwnerAccount);
@@ -501,7 +510,7 @@ export function AppLayout() {
             <div className="user-dropdown-menu">
               <div className="user-dropdown-summary">
                 <strong>{user?.name ?? 'Admin'}</strong>
-                <span>Vai trò: {user?.role === 'owner' ? 'Chủ cửa hàng' : 'Nhân viên'}</span>
+                <span>Vai trò: {roleLabel(user?.role)}</span>
               </div>
               <button 
                 onClick={logout}
@@ -582,7 +591,7 @@ export function AppLayout() {
               </div>
             );
           })}
-          {isOwner && (
+          {isAdmin && (
             <div className="menu-group owner-setting-group" onMouseEnter={() => { if (isDesktopNav()) closeAllMenus(); }}>
               <NavLink className="sidebar-setting" to="/settings" onClick={() => setSidebarOpen(false)}>
                 <Settings size={16} className="menu-icon" />
@@ -602,7 +611,7 @@ export function AppLayout() {
             <strong>{storeSettings.shopName || 'LadyStars'}</strong>
             <span>{location.pathname === '/' ? 'Dashboard' : location.pathname}</span>
           </div>
-          <div className="app-header-user">{user?.role === 'owner' ? 'Chủ cửa hàng' : 'Nhân viên'}</div>
+          <div className="app-header-user">{roleLabel(user?.role)}</div>
         </header>
         <main className="content">
           <Outlet />

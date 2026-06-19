@@ -69,24 +69,114 @@ InventoryProductSchema.index({ id: 'text', voucherId: 'text', productCode: 'text
 export const InventoryProduct = model('InventoryProduct', InventoryProductSchema);
 
 
+const WarehouseTransferItemSchema = new Schema({
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  productCode: String,
+  productName: String,
+  barcode: String,
+  requestedQuantity: { type: Number, default: 0 },
+  approvedQuantity: { type: Number, default: 0 },
+  dispatchedQuantity: { type: Number, default: 0 },
+  receivedQuantity: { type: Number, default: 0 },
+  unitCostSnapshot: { type: Number, default: 0 },
+  unit: String,
+  batchCode: String,
+  imei: String,
+  note: String,
+}, { _id: true, strict: false });
+
 const WarehouseTransferSchema = new Schema({
   id: { type: String, required: true, unique: true },
+  code: { type: String, unique: true, sparse: true },
   tabs: [String],
   date: String,
+  dateObj: Date,
   type: String,
   warehouse: String,
-  fromWarehouse: String,
-  toWarehouse: String,
+  sourceWarehouseId: { type: Schema.Types.ObjectId, ref: 'Branch' },
+  destinationWarehouseId: { type: Schema.Types.ObjectId, ref: 'Branch' },
+  fromWarehouse: { type: Schema.Types.ObjectId, ref: 'Branch' },
+  toWarehouse: { type: Schema.Types.ObjectId, ref: 'Branch' },
+  sourceWarehouseName: String,
+  destinationWarehouseName: String,
   label: String,
+  status: {
+    type: String,
+    enum: [
+      'DRAFT',
+      'PENDING_REQUEST_APPROVAL',
+      'APPROVED_TO_DISPATCH',
+      'PENDING_DISPATCH_APPROVAL',
+      'IN_TRANSIT',
+      'PENDING_RECEIPT_APPROVAL',
+      'PENDING_RETURN_APPROVAL',
+      'COMPLETED',
+      'RETURNED',
+      'REJECTED',
+      'CANCELLED',
+    ],
+    default: 'DRAFT',
+  },
   qty: { type: Number, default: 0 },
   spCount: { type: Number, default: 0 },
   totalAmount: { type: Number, default: 0 },
   creator: String,
+  createdById: { type: Schema.Types.ObjectId, ref: 'User' },
+  requestedAt: Date,
+  requestApprovedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  requestApprovedAt: Date,
+  dispatchConfirmedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  dispatchConfirmedAt: Date,
+  dispatchApprovedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  dispatchApprovedAt: Date,
+  receiptConfirmedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  receiptConfirmedAt: Date,
+  receiptApprovedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  receiptApprovedAt: Date,
+  rejectedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  rejectedAt: Date,
+  rejectionReason: String,
+  cancelledById: { type: Schema.Types.ObjectId, ref: 'User' },
+  cancelledAt: Date,
+  cancelReason: String,
+  returnedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  returnedAt: Date,
+  returnReason: String,
+  sourceExportBillId: { type: Schema.Types.ObjectId, ref: 'InventoryVoucher' },
+  destinationImportBillId: { type: Schema.Types.ObjectId, ref: 'InventoryVoucher' },
+  returnBillId: { type: Schema.Types.ObjectId, ref: 'InventoryVoucher' },
+  importBatchId: String,
+  sourceFileName: String,
+  importedAt: Date,
+  source: { type: String, default: 'MANUAL' },
+  externalImportCode: String,
+  version: { type: Number, default: 0 },
   note: String,
+  lines: [WarehouseTransferItemSchema],
 }, { timestamps: true, strict: false });
 
 WarehouseTransferSchema.index({ id: 'text', warehouse: 'text', type: 'text', creator: 'text' });
+WarehouseTransferSchema.index({ status: 1, sourceWarehouseId: 1, destinationWarehouseId: 1, createdAt: -1 });
+WarehouseTransferSchema.index({ sourceExportBillId: 1 }, { sparse: true });
+WarehouseTransferSchema.index({ destinationImportBillId: 1 }, { sparse: true });
+WarehouseTransferSchema.index({ returnBillId: 1 }, { sparse: true });
+WarehouseTransferSchema.index({ importBatchId: 1, externalImportCode: 1 }, { unique: true, sparse: true });
 export const WarehouseTransfer = model('WarehouseTransfer', WarehouseTransferSchema);
+
+const TransferAuditLogSchema = new Schema({
+  transferRequestId: { type: Schema.Types.ObjectId, ref: 'WarehouseTransfer', required: true },
+  actionType: { type: String, required: true },
+  previousStatus: String,
+  nextStatus: String,
+  actorId: { type: Schema.Types.ObjectId, ref: 'User' },
+  actorRole: String,
+  reason: String,
+  metadata: Schema.Types.Mixed,
+}, { timestamps: true, strict: false });
+
+TransferAuditLogSchema.index({ transferRequestId: 1, createdAt: -1 });
+TransferAuditLogSchema.index({ actionType: 1, actorId: 1 });
+export const TransferAuditLog = model('TransferAuditLog', TransferAuditLogSchema);
 
 const InventoryCheckSchema = new Schema({
   id: { type: String, required: true, unique: true },

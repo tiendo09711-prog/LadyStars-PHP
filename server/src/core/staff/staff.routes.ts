@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { z } from 'zod';
 import { Types } from 'mongoose';
+import { z } from 'zod';
 import { User } from '../auth/user.model.js';
+import { ACTIVE_STATUS, EMPLOYEE_ROLE, LOCKED_STATUS, normalizeRole, normalizeStatus } from '../auth/role.utils.js';
 import { writeAuditLog } from '../audit/audit.service.js';
 import { AuditLog } from '../audit/audit.model.js';
+import { Branch } from '../org/branch.model.js';
 import { SalePayment, ProductRefund } from '../../modules/product/product.models.js';
 import { ExpensePayment, Receipt } from '../../modules/accounting/accounting.models.js';
 
@@ -15,27 +17,66 @@ const StaffInput = z.object({
   email: z.string().email(),
   password: z.string().min(6).optional(),
   phone: z.string().optional().or(z.literal('')),
-  status: z.enum(['open', 'lock']).default('open'),
+  status: z.enum([ACTIVE_STATUS, LOCKED_STATUS]).default(ACTIVE_STATUS),
+  assignedWarehouseIds: z.array(z.string().min(1)).min(1),
+  defaultWarehouseId: z.string().optional().or(z.literal('')),
 });
 
 const StaffUpdateInput = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional().or(z.literal('')),
-  status: z.enum(['open', 'lock']).optional(),
+  status: z.enum([ACTIVE_STATUS, LOCKED_STATUS]).optional(),
+  assignedWarehouseIds: z.array(z.string().min(1)).min(1).optional(),
+  defaultWarehouseId: z.string().optional().or(z.literal('')),
 });
 
 const ResetPasswordInput = z.object({ password: z.string().min(6) });
 
+function ensureEmployeeAccount(user: any) {
+  if (!user || normalizeRole(user.role, Boolean(user.isRootOwner)) !== EMPLOYEE_ROLE) {
+    const error = new Error('Employee not found');
+    (error as any).status = 404;
+    throw error;
+  }
+  return user;
+}
+
+function uniqueIds(values: unknown[]) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
+function warehouseSummary(value: any) {
+  if (!value) return null;
+  if (typeof value === 'string') return { _id: value, name: value, code: '' };
+  return {
+    _id: String(value._id || value.id || ''),
+    name: value.name || value.label || '',
+    code: value.code || '',
+  };
+}
+
 function publicUser(user: any) {
+  const assignedWarehouses = (Array.isArray(user.assignedWarehouseIds) ? user.assignedWarehouseIds : [])
+    .map(warehouseSummary)
+    .filter(Boolean);
+  const defaultWarehouse = warehouseSummary(user.defaultWarehouseId);
   return {
     id: user.id,
     _id: user._id,
     name: user.name,
     email: user.email,
     phone: user.phone,
-    role: user.role,
-    status: user.status,
+    role: EMPLOYEE_ROLE,
+    status: normalizeStatus(user.status),
+    assignedWarehouseIds: assignedWarehouses,
+    warehouseNames: assignedWarehouses.map((warehouse: any) => warehouse.name).filter(Boolean),
+    defaultWarehouseId: defaultWarehouse,
+    createdById: typeof user.createdById === 'string'
+      ? user.createdById
+      : user.createdById
+        ? { _id: String(user.createdById._id || user.createdById.id || ''), name: user.createdById.name || '', email: user.createdById.email || '' }
+        : null,
     lastLoginAt: user.lastLoginAt,
     lockedAt: user.lockedAt,
     createdAt: user.createdAt,
@@ -52,6 +93,38 @@ async function ensureEmailAvailable(email: string, ignoreId?: string) {
   }
 }
 
+async function resolveWarehouses(ids: string[], defaultWarehouseId?: string) {
+  const normalizedIds = uniqueIds(ids);
+  if (!normalizedIds.length) {
+    const error = new Error('Phải chọn ít nhất một kho cho nhân viên.');
+    (error as any).status = 422;
+    throw error;
+  }
+
+  const objectIds = normalizedIds.map((value) => {
+    if (!Types.ObjectId.isValid(value)) {
+      const error = new Error('Kho được phân công không hợp lệ.');
+      (error as any).status = 422;
+      throw error;
+    }
+    return new Types.ObjectId(value);
+  });
+
+  const warehouses = await Branch.find({ _id: { $in: objectIds }, isActive: { $ne: false } }).select('name code').lean();
+  if (warehouses.length !== normalizedIds.length) {
+    const error = new Error('Có kho không tồn tại hoặc đã ngừng hoạt động.');
+    (error as any).status = 422;
+    throw error;
+  }
+
+  const warehouseIds = warehouses.map((warehouse) => String(warehouse._id));
+  const fallbackDefault = warehouseIds.find((id) => id === String(defaultWarehouseId || '')) || warehouseIds[0];
+  return {
+    assignedWarehouseIds: warehouseIds.map((id) => new Types.ObjectId(id)),
+    defaultWarehouseId: fallbackDefault ? new Types.ObjectId(fallbackDefault) : undefined,
+  };
+}
+
 function dateRange(query: any) {
   const filter: Record<string, unknown> = {};
   const createdAt: Record<string, Date> = {};
@@ -65,113 +138,140 @@ function dateRange(query: any) {
   return filter;
 }
 
+async function findEmployee(id: string) {
+  const user = await User.findOne({ _id: id, deletedAt: { $exists: false } })
+    .populate('assignedWarehouseIds defaultWarehouseId createdById', 'name code email');
+  return ensureEmployeeAccount(user);
+}
+
 router.get('/', async (_req, res) => {
-  const items = await User.find({ role: 'staff', deletedAt: { $exists: false } }).sort({ createdAt: -1 });
+  const items = await User.find({ role: EMPLOYEE_ROLE, deletedAt: { $exists: false } })
+    .populate('assignedWarehouseIds defaultWarehouseId createdById', 'name code email')
+    .sort({ createdAt: -1 });
   res.json({ items: items.map(publicUser), total: items.length });
 });
 
 router.post('/', async (req, res) => {
   const input = StaffInput.extend({ password: z.string().min(6) }).parse(req.body);
   await ensureEmailAvailable(input.email);
-  const staff = await User.create({
+  const warehouses = await resolveWarehouses(input.assignedWarehouseIds, input.defaultWarehouseId);
+  const status = normalizeStatus(input.status);
+  const actorId = (req as any).user?.sub;
+  const employee = await User.create({
     name: input.name,
-    email: input.email,
+    email: input.email.toLowerCase(),
     phone: input.phone,
-    role: 'staff',
-    status: input.status,
+    role: EMPLOYEE_ROLE,
+    status,
     passwordHash: await bcrypt.hash(input.password, 10),
-    createdBy: (req as any).user?.sub,
+    assignedWarehouseIds: warehouses.assignedWarehouseIds,
+    defaultWarehouseId: warehouses.defaultWarehouseId,
+    branchId: warehouses.defaultWarehouseId,
+    createdBy: actorId,
+    createdById: actorId,
     isActive: true,
-    lockedAt: input.status === 'lock' ? new Date() : undefined,
+    lockedAt: status === LOCKED_STATUS ? new Date() : undefined,
   });
+  const populated = await User.findById(employee._id).populate('assignedWarehouseIds defaultWarehouseId createdById', 'name code email');
   await writeAuditLog(req, {
     action: 'staff.create',
     module: 'staff',
     resource: 'User',
-    resourceId: staff.id,
-    after: publicUser(staff),
+    resourceId: employee.id,
+    after: publicUser(populated),
   });
-  res.status(201).json(publicUser(staff));
+  res.status(201).json(publicUser(populated));
 });
 
 router.patch('/:id', async (req, res) => {
   const input = StaffUpdateInput.parse(req.body);
-  const staff = await User.findOne({ _id: req.params.id, role: 'staff', deletedAt: { $exists: false } });
-  if (!staff) return res.status(404).json({ message: 'Staff not found' });
-  if (input.email) await ensureEmailAvailable(input.email, staff.id);
-  const before = publicUser(staff);
-  if (input.name !== undefined) staff.name = input.name;
-  if (input.email !== undefined) staff.email = input.email;
-  if (input.phone !== undefined) staff.phone = input.phone;
-  if (input.status !== undefined && input.status !== staff.status) {
-    staff.status = input.status;
-    staff.lockedAt = input.status === 'lock' ? new Date() : undefined;
-    staff.tokenVersion = Number(staff.tokenVersion ?? 0) + 1;
+  const employee = await findEmployee(req.params.id);
+  if (input.email) await ensureEmailAvailable(input.email, employee.id);
+  const before = publicUser(employee);
+  if (input.name !== undefined) employee.name = input.name;
+  if (input.email !== undefined) employee.email = input.email.toLowerCase();
+  if (input.phone !== undefined) employee.phone = input.phone;
+  if (input.assignedWarehouseIds) {
+    const warehouses = await resolveWarehouses(input.assignedWarehouseIds, input.defaultWarehouseId || String(employee.defaultWarehouseId?._id || employee.defaultWarehouseId || ''));
+    employee.assignedWarehouseIds = warehouses.assignedWarehouseIds as any;
+    employee.defaultWarehouseId = warehouses.defaultWarehouseId as any;
+    employee.branchId = warehouses.defaultWarehouseId as any;
+  } else if (input.defaultWarehouseId !== undefined && input.defaultWarehouseId !== '') {
+    const currentAssigned = (Array.isArray(employee.assignedWarehouseIds) ? employee.assignedWarehouseIds : []).map((warehouse: any) => String(warehouse._id || warehouse));
+    const warehouses = await resolveWarehouses(currentAssigned, input.defaultWarehouseId);
+    employee.defaultWarehouseId = warehouses.defaultWarehouseId as any;
+    employee.branchId = warehouses.defaultWarehouseId as any;
   }
-  await staff.save();
+  if (input.status !== undefined) {
+    const nextStatus = normalizeStatus(input.status);
+    if (nextStatus !== normalizeStatus(employee.status)) {
+      employee.status = nextStatus;
+      employee.lockedAt = nextStatus === LOCKED_STATUS ? new Date() : undefined;
+      employee.tokenVersion = Number(employee.tokenVersion ?? 0) + 1;
+    }
+  }
+  await employee.save();
+  const refreshed = await User.findById(employee._id).populate('assignedWarehouseIds defaultWarehouseId createdById', 'name code email');
   await writeAuditLog(req, {
     action: 'staff.update',
     module: 'staff',
     resource: 'User',
-    resourceId: staff.id,
+    resourceId: employee.id,
     before,
-    after: publicUser(staff),
+    after: publicUser(refreshed),
   });
-  res.json(publicUser(staff));
+  res.json(publicUser(refreshed));
 });
 
 router.patch('/:id/lock', async (req, res) => {
-  const staff = await User.findOne({ _id: req.params.id, role: 'staff', deletedAt: { $exists: false } });
-  if (!staff) return res.status(404).json({ message: 'Staff not found' });
-  const before = publicUser(staff);
-  staff.status = 'lock';
-  staff.lockedAt = new Date();
-  staff.tokenVersion = Number(staff.tokenVersion ?? 0) + 1;
-  await staff.save();
-  await writeAuditLog(req, { action: 'staff.lock', module: 'staff', resource: 'User', resourceId: staff.id, before, after: publicUser(staff) });
-  res.json(publicUser(staff));
+  const employee = await findEmployee(req.params.id);
+  const before = publicUser(employee);
+  employee.status = LOCKED_STATUS;
+  employee.lockedAt = new Date();
+  employee.tokenVersion = Number(employee.tokenVersion ?? 0) + 1;
+  await employee.save();
+  const refreshed = await User.findById(employee._id).populate('assignedWarehouseIds defaultWarehouseId createdById', 'name code email');
+  await writeAuditLog(req, { action: 'staff.lock', module: 'staff', resource: 'User', resourceId: employee.id, before, after: publicUser(refreshed) });
+  res.json(publicUser(refreshed));
 });
 
 router.patch('/:id/open', async (req, res) => {
-  const staff = await User.findOne({ _id: req.params.id, role: 'staff', deletedAt: { $exists: false } });
-  if (!staff) return res.status(404).json({ message: 'Staff not found' });
-  const before = publicUser(staff);
-  staff.status = 'open';
-  staff.lockedAt = undefined;
-  staff.tokenVersion = Number(staff.tokenVersion ?? 0) + 1;
-  await staff.save();
-  await writeAuditLog(req, { action: 'staff.open', module: 'staff', resource: 'User', resourceId: staff.id, before, after: publicUser(staff) });
-  res.json(publicUser(staff));
+  const employee = await findEmployee(req.params.id);
+  const before = publicUser(employee);
+  employee.status = ACTIVE_STATUS;
+  employee.lockedAt = undefined;
+  employee.tokenVersion = Number(employee.tokenVersion ?? 0) + 1;
+  await employee.save();
+  const refreshed = await User.findById(employee._id).populate('assignedWarehouseIds defaultWarehouseId createdById', 'name code email');
+  await writeAuditLog(req, { action: 'staff.open', module: 'staff', resource: 'User', resourceId: employee.id, before, after: publicUser(refreshed) });
+  res.json(publicUser(refreshed));
 });
 
 router.delete('/:id', async (req, res) => {
-  const staff = await User.findOne({ _id: req.params.id, role: 'staff', deletedAt: { $exists: false } });
-  if (!staff) return res.status(404).json({ message: 'Staff not found' });
-  if (staff.status !== 'lock') return res.status(422).json({ message: 'Only locked staff accounts can be deleted' });
-  const before = publicUser(staff);
-  staff.deletedAt = new Date();
-  staff.isActive = false;
-  staff.tokenVersion = Number(staff.tokenVersion ?? 0) + 1;
-  await staff.save();
-  await writeAuditLog(req, { action: 'staff.delete_soft', module: 'staff', resource: 'User', resourceId: staff.id, before });
+  const employee = await findEmployee(req.params.id);
+  if (normalizeStatus(employee.status) !== LOCKED_STATUS) return res.status(422).json({ message: 'Only locked employee accounts can be deleted' });
+  const before = publicUser(employee);
+  employee.deletedAt = new Date();
+  employee.isActive = false;
+  employee.tokenVersion = Number(employee.tokenVersion ?? 0) + 1;
+  await employee.save();
+  await writeAuditLog(req, { action: 'staff.delete_soft', module: 'staff', resource: 'User', resourceId: employee.id, before });
   res.status(204).send();
 });
 
 router.post('/:id/reset-password', async (req, res) => {
   const input = ResetPasswordInput.parse(req.body);
-  const staff = await User.findOne({ _id: req.params.id, role: 'staff', deletedAt: { $exists: false } });
-  if (!staff) return res.status(404).json({ message: 'Staff not found' });
-  staff.passwordHash = await bcrypt.hash(input.password, 10);
-  staff.tokenVersion = Number(staff.tokenVersion ?? 0) + 1;
-  await staff.save();
-  await writeAuditLog(req, { action: 'staff.reset_password', module: 'staff', resource: 'User', resourceId: staff.id, metadata: { targetEmail: staff.email } });
+  const employee = await findEmployee(req.params.id);
+  employee.passwordHash = await bcrypt.hash(input.password, 10);
+  employee.tokenVersion = Number(employee.tokenVersion ?? 0) + 1;
+  await employee.save();
+  await writeAuditLog(req, { action: 'staff.reset_password', module: 'staff', resource: 'User', resourceId: employee.id, metadata: { targetEmail: employee.email } });
   res.json({ ok: true });
 });
 
 router.get('/:id/stats', async (req, res) => {
-  const staff = await User.findOne({ _id: req.params.id, role: 'staff' });
-  if (!staff) return res.status(404).json({ message: 'Staff not found' });
-  const userId = new Types.ObjectId(staff.id);
+  const employee = ensureEmployeeAccount(await User.findById(req.params.id));
+  const userId = new Types.ObjectId(employee.id);
   const range = dateRange(req.query);
   const userFilter = {
     ...range,
@@ -190,7 +290,7 @@ router.get('/:id/stats', async (req, res) => {
   const refundValue = refunds.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
 
   res.json({
-    staff: publicUser(staff),
+    staff: publicUser(employee),
     summary: {
       salesCount: sales.length,
       refundCount: refunds.length,
@@ -207,10 +307,9 @@ router.get('/:id/stats', async (req, res) => {
 });
 
 router.get('/:id/activity', async (req, res) => {
-  const staff = await User.findOne({ _id: req.params.id, role: 'staff' });
-  if (!staff) return res.status(404).json({ message: 'Staff not found' });
+  const employee = ensureEmployeeAccount(await User.findById(req.params.id));
   const range = dateRange(req.query);
-  const items = await AuditLog.find({ ...range, userId: staff._id }).sort({ createdAt: -1 }).limit(100);
+  const items = await AuditLog.find({ ...range, userId: employee._id }).sort({ createdAt: -1 }).limit(100);
   res.json({ items, total: items.length });
 });
 
