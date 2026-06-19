@@ -1,4 +1,4 @@
-import { Product, ProductBranchStock, ProductLog, ProductRefund, SalePayment, StockAdjustment } from './product.models.js';
+import { PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SalePayment, StockAdjustment } from './product.models.js';
 import { Customer } from '../customer/customer.models.js';
 
 class ProductFlowError extends Error {
@@ -109,7 +109,31 @@ export async function buildSalePaymentPayload(payload: any) {
 
   const orderDiscount = lineDiscount(grossValue, payload.discountValue, payload.discountType);
   const value = Math.max(grossValue - orderDiscount, 0);
-  const valuePayment = Math.min(toNumber(payload.valuePayment, value), value);
+  const rawPaymentLines = Array.isArray(payload.typePayment) ? payload.typePayment : [];
+  const paymentByMethod = new Map<string, number>();
+  for (const rawLine of rawPaymentLines) {
+    const methodId = String(rawLine?.methodId ?? '').trim();
+    const amount = toNumber(rawLine?.amount);
+    if (!methodId || amount <= 0) continue;
+    paymentByMethod.set(methodId, (paymentByMethod.get(methodId) ?? 0) + amount);
+  }
+
+  const typePayment = [...paymentByMethod.entries()].map(([methodId, amount]) => ({ methodId, amount }));
+  if (typePayment.length > 0) {
+    const activeMethodCount = await PaymentMethod.countDocuments({
+      _id: { $in: typePayment.map(line => line.methodId) },
+      isActive: { $ne: false },
+    });
+    if (activeMethodCount !== typePayment.length) {
+      throw new ProductFlowError('Payment method is invalid or inactive');
+    }
+  }
+
+  const paymentLineTotal = typePayment.reduce((sum, line) => sum + line.amount, 0);
+  const valuePayment = Math.min(toNumber(payload.valuePayment, typePayment.length > 0 ? paymentLineTotal : value), value);
+  if (typePayment.length > 0 && Math.abs(paymentLineTotal - valuePayment) > 0.5) {
+    throw new ProductFlowError('Payment method amounts must equal the paid amount');
+  }
 
   return {
     ...payload,
@@ -120,6 +144,7 @@ export async function buildSalePaymentPayload(payload: any) {
     discountType: payload.discountType === 'percent' ? 'percent' : 'number',
     value,
     valuePayment,
+    typePayment,
   };
 }
 

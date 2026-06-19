@@ -1,216 +1,727 @@
-import { type ReactNode, useState } from 'react';
-import { Boxes, ReceiptText, ArrowDownLeft, ArrowUpRight, FileUp, ChevronDown, Plus } from 'lucide-react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  Check,
+  ChevronDown,
+  Eye,
+  FileDown,
+  FileSpreadsheet,
+  Filter,
+  MoreHorizontal,
+  Plus,
+  Printer,
+  RefreshCw,
+  Search,
+  Settings2,
+  Trash2,
+  X,
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
-import { TabbedModulePage } from '../../core/components/TabbedModulePage';
+import { http } from '../../core/api/http';
+import { Pagination } from '../../core/components/Pagination';
+import './warehouseRecords.css';
 
-type ActionOption = {
+type TabKey = 'bills' | 'items';
+
+type SelectOption = {
+  value: string;
   label: string;
-  icon: ReactNode;
-  onClick: () => void;
+  code?: string;
 };
 
-function TransactionActionDropdown({ label, actions }: { label: string; actions: ActionOption[] }) {
-  const [open, setOpen] = useState(false);
+type TransactionMeta = {
+  warehouses: SelectOption[];
+  types: SelectOption[];
+  kinds: SelectOption[];
+};
+
+type TransactionRow = {
+  rowKey: string;
+  source: string;
+  sourceId: string;
+  itemSourceId?: string;
+  code?: string;
+  billCode?: string;
+  date: string;
+  warehouseId?: string;
+  warehouseName?: string;
+  fromWarehouseId?: string;
+  fromWarehouseName?: string;
+  toWarehouseId?: string;
+  toWarehouseName?: string;
+  productId?: string;
+  productCode?: string;
+  productName?: string;
+  barcode?: string;
+  imei?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalProductLines?: number;
+  totalQuantity?: number;
+  totalAmount?: number;
+  type: string;
+  kind: string;
+  kindLabel: string;
+  sourceModule: string;
+  createdByName?: string;
+  customerName?: string;
+  customerPhone?: string;
+  relatedCode?: string;
+  note?: string;
+  status?: string;
+  directionLabel: string;
+  directionTone: string;
+  canDelete: boolean;
+};
+
+type TransactionDetail = TransactionRow & {
+  items: TransactionRow[];
+};
+
+type FilterState = {
+  warehouseId: string;
+  billId: string;
+  type: string;
+  kind: string;
+  fromDate: string;
+  toDate: string;
+  productKeyword: string;
+};
+
+type ColumnDefinition = {
+  key: string;
+  label: string;
+  fixed?: boolean;
+};
+
+const LIMIT = 20;
+
+const emptyFilters: FilterState = {
+  warehouseId: '',
+  billId: '',
+  type: '',
+  kind: '',
+  fromDate: '',
+  toDate: '',
+  productKeyword: '',
+};
+
+const billColumns: ColumnDefinition[] = [
+  { key: 'identity', label: 'ID | Ngày', fixed: true },
+  { key: 'warehouse', label: 'Kho hàng' },
+  { key: 'products', label: 'SP' },
+  { key: 'quantity', label: 'SL' },
+  { key: 'amount', label: 'Tổng tiền thanh toán' },
+  { key: 'direction', label: 'Loại giao dịch' },
+  { key: 'creator', label: 'Người tạo' },
+  { key: 'note', label: 'Ghi chú' },
+];
+
+const itemColumns: ColumnDefinition[] = [
+  { key: 'identity', label: 'ID | Ngày', fixed: true },
+  { key: 'warehouse', label: 'Kho hàng' },
+  { key: 'product', label: 'Sản phẩm' },
+  { key: 'quantity', label: 'SL' },
+  { key: 'price', label: 'Giá' },
+  { key: 'direction', label: 'Loại giao dịch' },
+  { key: 'amount', label: 'Tổng tiền' },
+  { key: 'note', label: 'Ghi chú' },
+];
+
+function defaultVisibility(columns: ColumnDefinition[]) {
+  return Object.fromEntries(columns.map((column) => [column.key, true]));
+}
+
+function formatMoney(value?: number) {
+  return Number(value || 0).toLocaleString('vi-VN');
+}
+
+function formatDate(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN');
+}
+
+function warehouseDisplay(row: TransactionRow) {
+  if (row.kind === 'TRANSFER') {
+    return `${row.fromWarehouseName || 'Kho nguồn'} → ${row.toWarehouseName || 'Kho đích'}`;
+  }
+  return row.warehouseName || '-';
+}
+
+function getBillCode(row: TransactionRow) {
+  return row.code || row.billCode || row.sourceId;
+}
+
+function detailTitle(detail: TransactionDetail) {
+  if (detail.kind === 'TRANSFER') return `Phiếu chuyển kho: ${getBillCode(detail)}`;
+  if (detail.type === 'IMPORT') return `Hóa đơn nhập kho: ${getBillCode(detail)}`;
+  if (detail.type === 'EXPORT') return `Hóa đơn xuất kho: ${getBillCode(detail)}`;
+  return `Chi tiết phiếu: ${getBillCode(detail)}`;
+}
+
+export function WarehouseTransactionPage() {
+  const navigate = useNavigate();
+  const menuRootRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>('bills');
+  const [meta, setMeta] = useState<TransactionMeta>({ warehouses: [], types: [], kinds: [] });
+  const [rows, setRows] = useState<TransactionRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [draftFilters, setDraftFilters] = useState<Record<TabKey, FilterState>>({
+    bills: { ...emptyFilters },
+    items: { ...emptyFilters },
+  });
+  const [appliedFilters, setAppliedFilters] = useState<Record<TabKey, FilterState>>({
+    bills: { ...emptyFilters },
+    items: { ...emptyFilters },
+  });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [detail, setDetail] = useState<TransactionDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [deleteRows, setDeleteRows] = useState<TransactionRow[]>([]);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [columnModalOpen, setColumnModalOpen] = useState(false);
+  const [billVisibility, setBillVisibility] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('warehouse-transactions-bill-columns');
+    return saved ? { ...defaultVisibility(billColumns), ...JSON.parse(saved) } : defaultVisibility(billColumns);
+  });
+  const [itemVisibility, setItemVisibility] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('warehouse-transactions-item-columns');
+    return saved ? { ...defaultVisibility(itemColumns), ...JSON.parse(saved) } : defaultVisibility(itemColumns);
+  });
+  const [columnDraft, setColumnDraft] = useState<Record<string, boolean>>({});
+
+  const columns = activeTab === 'bills' ? billColumns : itemColumns;
+  const visibility = activeTab === 'bills' ? billVisibility : itemVisibility;
+  const currentFilters = draftFilters[activeTab];
+  const selectedRows = useMemo(() => rows.filter((row) => selectedIds.has(row.rowKey)), [rows, selectedIds]);
+  const visibleColumnCount = columns.filter((column) => visibility[column.key]).length;
+
+  const load = async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = {
+        ...appliedFilters[activeTab],
+        page,
+        limit: LIMIT,
+      };
+      const response = await http.get(`/warehouse/transactions/${activeTab}`, { params, signal });
+      setRows(response.data.items || []);
+      setTotal(Number(response.data.total || 0));
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      if (err.code === 'ERR_CANCELED') return;
+      setError(err.response?.data?.message || 'Không tải được dữ liệu xuất nhập kho.');
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    http.get('/warehouse/transactions/meta', { signal: controller.signal })
+      .then((response) => setMeta(response.data))
+      .catch((err) => {
+        if (err.code !== 'ERR_CANCELED') setError(err.response?.data?.message || 'Không tải được bộ lọc kho hàng.');
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [activeTab, page, appliedFilters]);
+
+  useEffect(() => {
+    const closeMenus = (event: MouseEvent) => {
+      if (!menuRootRef.current?.contains(event.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', closeMenus);
+    return () => document.removeEventListener('mousedown', closeMenus);
+  }, []);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(''), 4000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const updateFilter = (key: keyof FilterState, value: string) => {
+    setDraftFilters((current) => ({
+      ...current,
+      [activeTab]: { ...current[activeTab], [key]: value },
+    }));
+  };
+
+  const applyFilters = (event: FormEvent) => {
+    event.preventDefault();
+    setPage(1);
+    setAppliedFilters((current) => ({ ...current, [activeTab]: { ...draftFilters[activeTab] } }));
+  };
+
+  const resetFilters = () => {
+    setPage(1);
+    setDraftFilters((current) => ({ ...current, [activeTab]: { ...emptyFilters } }));
+    setAppliedFilters((current) => ({ ...current, [activeTab]: { ...emptyFilters } }));
+  };
+
+  const changeTab = (tab: TabKey) => {
+    setActiveTab(tab);
+    setPage(1);
+    setOpenMenu(null);
+    setSelectedIds(new Set());
+  };
+
+  const openDetail = async (row: TransactionRow, shouldPrint = false) => {
+    setOpenMenu(null);
+    setDetailLoading(true);
+    setError('');
+    try {
+      const response = await http.get(`/warehouse/transactions/bills/${row.source}/${row.sourceId}`);
+      setDetail(response.data);
+      if (shouldPrint) {
+        window.setTimeout(() => window.print(), 250);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không tải được chi tiết phiếu.');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const exportRows = (data: TransactionRow[], filename: string) => {
+    if (!data.length) {
+      setNotice('Không có dữ liệu để xuất.');
+      return;
+    }
+    const mapped = data.map((row) => activeTab === 'bills'
+      ? {
+          'ID phiếu': getBillCode(row),
+          Ngày: formatDate(row.date),
+          'Kho hàng': warehouseDisplay(row),
+          'Số sản phẩm': row.totalProductLines || 0,
+          'Số lượng': row.totalQuantity || 0,
+          'Tổng tiền': row.totalAmount || 0,
+          'Loại giao dịch': row.kindLabel,
+          'Người tạo': row.createdByName || '',
+          'Ghi chú': row.note || '',
+        }
+      : {
+          'ID phiếu': getBillCode(row),
+          Ngày: formatDate(row.date),
+          'Kho hàng': warehouseDisplay(row),
+          'Mã sản phẩm': row.productCode || '',
+          'Sản phẩm': row.productName || '',
+          'Mã vạch': row.barcode || '',
+          'Số lượng': row.quantity || 0,
+          Giá: row.unitPrice || 0,
+          'Tổng tiền': row.totalAmount || 0,
+          'Loại giao dịch': row.kindLabel,
+          'Ghi chú': row.note || '',
+        });
+    const worksheet = XLSX.utils.json_to_sheet(mapped);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, activeTab === 'bills' ? 'Phiếu XNK' : 'Sản phẩm XNK');
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+    setOpenMenu(null);
+  };
+
+  const requestDelete = (targets: TransactionRow[]) => {
+    if (!targets.length) {
+      setNotice('Vui lòng chọn ít nhất một phiếu.');
+      return;
+    }
+    if (targets.some((row) => !row.canDelete)) {
+      setNotice('Có phiếu liên kết phải hủy tại module nghiệp vụ gốc.');
+      return;
+    }
+    setDeleteRows(targets);
+    setOpenMenu(null);
+  };
+
+  const confirmDelete = async () => {
+    setDeleteLoading(true);
+    setError('');
+    try {
+      if (deleteRows.length === 1) {
+        const row = deleteRows[0];
+        const response = await http.delete(`/warehouse/transactions/bills/${row.source}/${row.sourceId}`);
+        setNotice(response.data.message || 'Đã xóa phiếu.');
+      } else {
+        const response = await http.post('/warehouse/transactions/bills/bulk-delete', {
+          rows: deleteRows.map((row) => ({ source: row.source, sourceId: row.sourceId })),
+        });
+        setNotice(response.data.message || 'Đã xóa các phiếu đã chọn.');
+      }
+      setDeleteRows([]);
+      await load();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không thể xóa phiếu.');
+      setDeleteRows([]);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const toggleAll = (checked: boolean) => {
+    setSelectedIds(checked ? new Set(rows.map((row) => row.rowKey)) : new Set());
+  };
+
+  const toggleRow = (rowKey: string, checked: boolean) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(rowKey);
+      else next.delete(rowKey);
+      return next;
+    });
+  };
+
+  const openColumnModal = () => {
+    setColumnDraft({ ...visibility });
+    setColumnModalOpen(true);
+    setOpenMenu(null);
+  };
+
+  const saveColumns = () => {
+    if (activeTab === 'bills') {
+      setBillVisibility(columnDraft);
+      localStorage.setItem('warehouse-transactions-bill-columns', JSON.stringify(columnDraft));
+    } else {
+      setItemVisibility(columnDraft);
+      localStorage.setItem('warehouse-transactions-item-columns', JSON.stringify(columnDraft));
+    }
+    setColumnModalOpen(false);
+  };
+
+  const resetColumns = () => {
+    setColumnDraft(defaultVisibility(columns));
+  };
+
+  const renderWarehouseCell = (row: TransactionRow) => (
+    <div className={row.kind === 'TRANSFER' ? 'wr-warehouse-transfer' : ''}>
+      {row.kind === 'TRANSFER' ? (
+        <>
+          <span>{row.fromWarehouseName || 'Kho nguồn'}</span>
+          <ArrowLeftRight size={14} />
+          <span>{row.toWarehouseName || 'Kho đích'}</span>
+        </>
+      ) : row.warehouseName || '-'}
+    </div>
+  );
 
   return (
-    <div className="primary-action-split has-menu">
-      <button
-        className="btn btn-primary primary-action-main"
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          setOpen((current) => !current);
-        }}
-      >
-        <Plus size={16} /> {label}
-      </button>
-      <button
-        className="btn btn-primary primary-action-toggle"
-        type="button"
-        aria-label="Mở lựa chọn xuất nhập kho"
-        aria-expanded={open}
-        onClick={(event) => {
-          event.stopPropagation();
-          setOpen((current) => !current);
-        }}
-      >
-        <ChevronDown size={16} />
-      </button>
-      {open && (
-        <div className="dropdown-menu primary-action-menu">
-          {actions.map((action, index) => (
-            <button
-              key={`${action.label}-${index}`}
-              className="dropdown-item"
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                action.onClick();
-              }}
-            >
-              {action.icon}
-              <span>{action.label}</span>
+    <div className="workspace-page warehouse-records" ref={menuRootRef}>
+      <section className="wr-card">
+        <div className="workspace-tabs wr-tabs" role="tablist" aria-label="Xuất nhập kho">
+          <button type="button" className={activeTab === 'bills' ? 'active' : ''} onClick={() => changeTab('bills')}>
+            Phiếu xuất nhập kho
+          </button>
+          <button type="button" className={activeTab === 'items' ? 'active' : ''} onClick={() => changeTab('items')}>
+            Sản phẩm xuất nhập kho
+          </button>
+        </div>
+
+        <form className="wr-filters" onSubmit={applyFilters}>
+          <select className="wr-filter" value={currentFilters.warehouseId} onChange={(event) => updateFilter('warehouseId', event.target.value)}>
+            <option value="">Kho hàng</option>
+            {meta.warehouses.map((warehouse) => <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>)}
+          </select>
+          <label className="wr-search-field">
+            <Search size={14} />
+            <input value={currentFilters.billId} onChange={(event) => updateFilter('billId', event.target.value)} placeholder="ID phiếu" />
+          </label>
+          <select className="wr-filter" value={currentFilters.type} onChange={(event) => updateFilter('type', event.target.value)}>
+            <option value="">Loại</option>
+            {meta.types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+          </select>
+          <select className="wr-filter wide" value={currentFilters.kind} onChange={(event) => updateFilter('kind', event.target.value)}>
+            <option value="">Kiểu</option>
+            {meta.kinds.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
+          </select>
+          {activeTab === 'items' && (
+            <label className="wr-search-field wide">
+              <Search size={14} />
+              <input value={currentFilters.productKeyword} onChange={(event) => updateFilter('productKeyword', event.target.value)} placeholder="Tên, mã, mã vạch sản phẩm" />
+            </label>
+          )}
+          <label className="wr-date-field">
+            <span>Từ</span>
+            <input type="date" value={currentFilters.fromDate} onChange={(event) => updateFilter('fromDate', event.target.value)} />
+          </label>
+          <label className="wr-date-field">
+            <span>Đến</span>
+            <input type="date" value={currentFilters.toDate} onChange={(event) => updateFilter('toDate', event.target.value)} />
+          </label>
+          <button className="btn btn-primary wr-filter-button" type="submit"><Filter size={15} /> Lọc</button>
+          <button className="btn btn-light wr-reset-button" type="button" onClick={resetFilters}>Đặt lại</button>
+        </form>
+
+        <div className="wr-actions">
+          <div className="wr-action-left">
+            <div className="wr-menu">
+              <button className="btn wr-create-button" type="button" onClick={() => setOpenMenu(openMenu === 'create' ? null : 'create')}>
+                <Plus size={15} /> Thêm mới <ChevronDown size={14} />
+              </button>
+              {openMenu === 'create' && (
+                <div className="wr-menu-panel wr-action-menu">
+                  <button type="button" onClick={() => navigate('/warehouse/transactions/vouchers/import')}><ArrowDownLeft size={15} /> Nhập kho</button>
+                  <button type="button" onClick={() => navigate('/warehouse/transactions/vouchers/export')}><ArrowUpRight size={15} /> Xuất kho</button>
+                  {activeTab === 'bills' && (
+                    <>
+                      <button type="button" onClick={() => navigate('/warehouse/transfers/create')}><ArrowLeftRight size={15} /> Chuyển kho</button>
+                      <button type="button" onClick={() => navigate('/warehouse/transactions/vouchers/excel')}><FileSpreadsheet size={15} /> Nhập từ Excel</button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="wr-menu">
+              <button className="btn btn-light" type="button" onClick={() => setOpenMenu(openMenu === 'actions' ? null : 'actions')}>
+                Thao tác <ChevronDown size={14} />
+              </button>
+              {openMenu === 'actions' && (
+                <div className="wr-menu-panel wr-action-menu">
+                  <button type="button" onClick={() => exportRows(selectedRows.length ? selectedRows : rows, `xuat-nhap-kho-${activeTab}`)}>
+                    <FileDown size={15} /> Xuất dữ liệu {selectedRows.length ? 'đã chọn' : 'trang này'}
+                  </button>
+                  {activeTab === 'bills' && (
+                    <button
+                      className="danger"
+                      type="button"
+                      disabled={!selectedRows.length || selectedRows.some((row) => !row.canDelete)}
+                      title={!selectedRows.length ? 'Vui lòng chọn phiếu' : selectedRows.some((row) => !row.canDelete) ? 'Có phiếu phải hủy tại module gốc' : ''}
+                      onClick={() => requestDelete(selectedRows)}
+                    >
+                      <Trash2 size={15} /> Xóa các phiếu đã chọn
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="wr-action-right">
+            <span className="wr-count">
+              {total ? `${(page - 1) * LIMIT + 1} - ${Math.min(page * LIMIT, total)} / ${total}` : '0 bản ghi'}
+              {selectedIds.size > 0 ? ` · ${selectedIds.size} đã chọn` : ''}
+            </span>
+            <button className="wr-icon-button" type="button" title="Làm mới" aria-label="Làm mới" onClick={() => void load()}>
+              <RefreshCw size={15} />
             </button>
-          ))}
+            <button className="wr-icon-button" type="button" title="Tùy chỉnh cột" aria-label="Tùy chỉnh cột" onClick={openColumnModal}>
+              <Settings2 size={15} />
+            </button>
+          </div>
+        </div>
+
+        {notice && <div className="wr-notice"><Check size={16} /> {notice}</div>}
+        {error && (
+          <div className="wr-error" role="alert">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+            <button type="button" onClick={() => void load()}>Thử lại</button>
+          </div>
+        )}
+
+        <div className="wr-table-wrap">
+          <table className="wr-table">
+            <thead>
+              <tr>
+                <th className="wr-checkbox-cell">
+                  <input type="checkbox" aria-label="Chọn tất cả" checked={rows.length > 0 && selectedIds.size === rows.length} onChange={(event) => toggleAll(event.target.checked)} />
+                </th>
+                {columns.map((column) => visibility[column.key] && <th key={column.key}>{column.label}</th>)}
+                <th className="wr-action-cell"><Settings2 size={14} /></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && Array.from({ length: 6 }).map((_, index) => (
+                <tr className="wr-skeleton" key={`loading-${index}`}>
+                  <td colSpan={visibleColumnCount + 2}><span /></td>
+                </tr>
+              ))}
+              {!loading && rows.length === 0 && (
+                <tr>
+                  <td className="wr-empty" colSpan={visibleColumnCount + 2}>Chưa có dữ liệu phù hợp với bộ lọc.</td>
+                </tr>
+              )}
+              {!loading && rows.map((row) => (
+                <tr key={row.rowKey}>
+                  <td className="wr-checkbox-cell">
+                    <input type="checkbox" aria-label={`Chọn ${getBillCode(row)}`} checked={selectedIds.has(row.rowKey)} onChange={(event) => toggleRow(row.rowKey, event.target.checked)} />
+                  </td>
+                  {visibility.identity && (
+                    <td className="wr-identity-cell">
+                      <button type="button" className="wr-link" onClick={() => void openDetail(row)}>{getBillCode(row)}</button>
+                      <span>{formatDate(row.date)}</span>
+                    </td>
+                  )}
+                  {visibility.warehouse && <td>{renderWarehouseCell(row)}</td>}
+                  {activeTab === 'bills' && visibility.products && <td className="right">{Number(row.totalProductLines || 0).toLocaleString('vi-VN')}</td>}
+                  {activeTab === 'items' && visibility.product && (
+                    <td className="wr-product">
+                      <strong>{row.productName || '-'}</strong>
+                      <small>{[row.productCode, row.barcode].filter(Boolean).join(' · ')}</small>
+                    </td>
+                  )}
+                  {visibility.quantity && <td className="right">{Number(activeTab === 'bills' ? row.totalQuantity : row.quantity || 0).toLocaleString('vi-VN')}</td>}
+                  {activeTab === 'items' && visibility.price && <td className="right">{formatMoney(row.unitPrice)}</td>}
+                  {visibility.amount && <td className="right">{formatMoney(row.totalAmount)}</td>}
+                  {visibility.direction && (
+                    <td>
+                      <span className={`wr-direction ${row.directionTone}`}>{row.directionLabel}</span>
+                      <small className="wr-kind">{row.kindLabel}</small>
+                    </td>
+                  )}
+                  {activeTab === 'bills' && visibility.creator && <td>{row.createdByName || '-'}</td>}
+                  {visibility.note && <td className="wr-note-cell" title={row.note || ''}>{row.note || '-'}</td>}
+                  <td className="wr-action-cell">
+                    <div className="wr-menu">
+                      <button className="wr-row-menu-button" type="button" aria-label={`Mở thao tác cho ${getBillCode(row)}`} onClick={() => setOpenMenu(openMenu === row.rowKey ? null : row.rowKey)}>
+                        <MoreHorizontal size={17} />
+                      </button>
+                      {openMenu === row.rowKey && (
+                        <div className="wr-menu-panel wr-row-menu">
+                          <button type="button" onClick={() => void openDetail(row)}><Eye size={15} /> Xem chi tiết phiếu</button>
+                          <button type="button" onClick={() => void openDetail(row, true)}><Printer size={15} /> In phiếu</button>
+                          <button type="button" onClick={() => exportRows([row], `phieu-${getBillCode(row)}`)}><FileDown size={15} /> Xuất Excel</button>
+                          {row.canDelete && activeTab === 'bills' && (
+                            <button className="danger" type="button" onClick={() => requestDelete([row])}><Trash2 size={15} /> Xóa phiếu</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <Pagination page={page} total={total} limit={LIMIT} onPageChange={setPage} />
+      </section>
+
+      {(detailLoading || detail) && (
+        <div className="modal-backdrop wr-modal-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.currentTarget === event.target && !detailLoading) setDetail(null);
+        }}>
+          <section className="wr-detail-modal" role="dialog" aria-modal="true" aria-label="Chi tiết phiếu xuất nhập kho">
+            {detailLoading && <div className="wr-detail-loading">Đang tải chi tiết phiếu...</div>}
+            {!detailLoading && detail && (
+              <>
+                <header className="wr-detail-header">
+                  <div>
+                    <span className="wr-detail-eyebrow">{detail.kindLabel}</span>
+                    <h2>{detailTitle(detail)}</h2>
+                  </div>
+                  <div className="wr-detail-actions">
+                    <button className="btn btn-light" type="button" onClick={() => window.print()}><Printer size={15} /> In phiếu</button>
+                    <button className="wr-icon-button" type="button" aria-label="Đóng chi tiết" onClick={() => setDetail(null)}><X size={17} /></button>
+                  </div>
+                </header>
+
+                <div className="wr-detail-summary">
+                  <div><span>Kho hàng</span><strong>{warehouseDisplay(detail)}</strong></div>
+                  <div><span>Ngày tạo</span><strong>{formatDate(detail.date)}</strong></div>
+                  <div><span>Người tạo</span><strong>{detail.createdByName || '-'}</strong></div>
+                  <div><span>Tổng tiền</span><strong>{formatMoney(detail.totalAmount)} đ</strong></div>
+                  {detail.customerName && <div><span>Khách hàng</span><strong>{detail.customerName}</strong></div>}
+                  {detail.relatedCode && <div><span>Phiếu liên quan</span><strong>{detail.relatedCode}</strong></div>}
+                  <div className="wide"><span>Ghi chú</span><strong>{detail.note || '-'}</strong></div>
+                </div>
+
+                <div className="wr-detail-table-wrap">
+                  <table className="wr-table wr-detail-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Sản phẩm</th>
+                        <th>Mã</th>
+                        <th>SL</th>
+                        <th>Giá</th>
+                        <th>Tổng</th>
+                        <th>Ghi chú</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.items.map((item, index) => (
+                        <tr key={item.rowKey}>
+                          <td className="center">{index + 1}</td>
+                          <td className="wr-product"><strong>{item.productName || '-'}</strong><small>{item.barcode || ''}</small></td>
+                          <td>{item.productCode || '-'}</td>
+                          <td className="right">{Number(item.quantity || 0).toLocaleString('vi-VN')}</td>
+                          <td className="right">{formatMoney(item.unitPrice)}</td>
+                          <td className="right">{formatMoney(item.totalAmount)}</td>
+                          <td>{item.note || '-'}</td>
+                        </tr>
+                      ))}
+                      {!detail.items.length && <tr><td className="wr-empty" colSpan={7}>Phiếu chưa có dòng sản phẩm.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+
+      {deleteRows.length > 0 && (
+        <div className="modal-backdrop wr-modal-backdrop" role="presentation">
+          <section className="wr-confirm-modal" role="dialog" aria-modal="true" aria-label="Xác nhận xóa phiếu">
+            <header>
+              <h2>Thông báo</h2>
+              <button className="wr-icon-button" type="button" aria-label="Đóng xác nhận" onClick={() => setDeleteRows([])}><X size={16} /></button>
+            </header>
+            <p>Bạn có chắc chắn muốn xóa {deleteRows.length > 1 ? `${deleteRows.length} phiếu đã chọn` : `phiếu ${getBillCode(deleteRows[0])}`}? Tồn kho sẽ được hoàn tác theo nghiệp vụ.</p>
+            <footer>
+              <button className="btn btn-light" type="button" onClick={() => setDeleteRows([])}>Hủy</button>
+              <button className="btn btn-danger" type="button" disabled={deleteLoading} onClick={() => void confirmDelete()}>
+                <Check size={15} /> {deleteLoading ? 'Đang xóa...' : 'Xóa'}
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      {columnModalOpen && (
+        <div className="modal-backdrop wr-modal-backdrop" role="presentation">
+          <section className="wr-column-modal" role="dialog" aria-modal="true" aria-label="Tùy chỉnh hiển thị">
+            <header>
+              <h2>Tùy chỉnh hiển thị</h2>
+              <button className="wr-icon-button" type="button" aria-label="Đóng tùy chỉnh cột" onClick={() => setColumnModalOpen(false)}><X size={16} /></button>
+            </header>
+            <div className="wr-column-list">
+              {columns.map((column) => (
+                <label key={column.key} className={column.fixed ? 'fixed' : ''}>
+                  <input
+                    type="checkbox"
+                    checked={columnDraft[column.key] !== false}
+                    disabled={column.fixed}
+                    onChange={(event) => setColumnDraft((current) => ({ ...current, [column.key]: event.target.checked }))}
+                  />
+                  <span>{column.label}</span>
+                </label>
+              ))}
+            </div>
+            <footer>
+              <button className="btn btn-light" type="button" onClick={resetColumns}>Quay về mặc định</button>
+              <button className="btn wr-save-button" type="button" onClick={saveColumns}><Check size={15} /> Lưu</button>
+            </footer>
+          </section>
         </div>
       )}
     </div>
   );
 }
-
-export function WarehouseTransactionPage() {
-  const navigate = useNavigate();
-
-  return (
-    <TabbedModulePage
-      tabs={[
-        {
-          key: 'vouchers',
-          label: 'Phiếu xuất nhập kho',
-          title: 'Phiếu xuất nhập kho',
-          subtitle: 'Quản lý thông tin phiếu xuất và nhập kho',
-          endpoint: '/warehouse/vouchers',
-          icon: <ReceiptText size={24} />,
-          extraHeaderButtons: (
-            <TransactionActionDropdown
-              label="Tạo phiếu XNK"
-              actions={[
-                {
-                  label: 'Nhập kho',
-                  icon: <ArrowDownLeft size={16} />,
-                  onClick: () => navigate('/warehouse/transactions/vouchers/import'),
-                },
-                {
-                  label: 'Xuất kho',
-                  icon: <ArrowUpRight size={16} />,
-                  onClick: () => navigate('/warehouse/transactions/vouchers/export'),
-                },
-                {
-                  label: 'Import xuất nhập kho',
-                  icon: <FileUp size={16} />,
-                  onClick: () => navigate('/warehouse/transactions/vouchers/excel'),
-                },
-              ]}
-            />
-          ),
-          fields: [
-            { key: 'voucherId', label: 'Mã phiếu' },
-            { key: 'date', label: 'Ngày' },
-            { key: 'warehouse', label: 'Kho hàng' },
-            { key: 'type', label: 'Kiểu giao dịch' },
-            { key: 'spCount', label: 'Số SP', type: 'number' },
-            { key: 'qty', label: 'Số lượng', type: 'number' },
-            { key: 'totalAmount', label: 'Tổng tiền', type: 'money' },
-            { key: 'discount', label: 'Chiết khấu', type: 'money' },
-            { key: 'creator', label: 'Người tạo' },
-            { key: 'customerPhone', label: 'SĐT Khách hàng' },
-            { key: 'note', label: 'Ghi chú' },
-          ],
-          formFields: [
-            { key: 'voucherId', label: 'Mã phiếu XNK', required: true },
-            { key: 'date', label: 'Ngày (dd/mm/yyyy)', required: true },
-            { key: 'warehouse', label: 'Kho hàng', required: true },
-            { key: 'type', label: 'Kiểu giao dịch', required: true },
-            { key: 'spCount', label: 'Số sản phẩm (SP)', type: 'number' },
-            { key: 'qty', label: 'Số lượng tổng (SL)', type: 'number' },
-            { key: 'totalAmount', label: 'Tổng tiền', type: 'number' },
-            { key: 'discount', label: 'Chiết khấu', type: 'number' },
-            { key: 'creator', label: 'Người tạo' },
-            { key: 'customerPhone', label: 'SĐT Khách hàng' },
-            { key: 'note', label: 'Ghi chú', type: 'textarea' },
-          ],
-          createDefaults: {
-            voucherId: '',
-            date: '',
-            warehouse: '',
-            type: '',
-            spCount: 0,
-            qty: 0,
-            totalAmount: 0,
-            discount: 0,
-            creator: '',
-            customerPhone: '',
-            note: '',
-          },
-        },
-        {
-          key: 'products',
-          label: 'Sản phẩm xuất nhập kho',
-          title: 'Sản phẩm xuất nhập kho',
-          subtitle: 'Quản lý danh sách chi tiết các mặt hàng xuất nhập kho',
-          endpoint: '/warehouse/products',
-          icon: <Boxes size={24} />,
-          extraHeaderButtons: (
-            <TransactionActionDropdown
-              label="Thao tác SP XNK"
-              actions={[
-                {
-                  label: 'Nhập kho',
-                  icon: <ArrowDownLeft size={16} />,
-                  onClick: () => navigate('/warehouse/transactions/products/import'),
-                },
-                {
-                  label: 'Xuất kho',
-                  icon: <ArrowUpRight size={16} />,
-                  onClick: () => navigate('/warehouse/transactions/products/export'),
-                },
-              ]}
-            />
-          ),
-          fields: [
-            { key: 'id', label: 'ID giao dịch' },
-            { key: 'voucherId', label: 'Mã phiếu XNK' },
-            { key: 'date', label: 'Ngày' },
-            { key: 'warehouse', label: 'Kho hàng' },
-            { key: 'productCode', label: 'Mã sản phẩm' },
-            { key: 'productName', label: 'Sản phẩm' },
-            { key: 'barcode', label: 'Mã vạch' },
-            { key: 'type', label: 'Kiểu' },
-            { key: 'importQty', label: 'SL Nhập', type: 'number' },
-            { key: 'exportQty', label: 'SL Xuất', type: 'number' },
-            { key: 'price', label: 'Giá', type: 'money' },
-            { key: 'totalAmount', label: 'Tổng tiền', type: 'money' },
-            { key: 'creator', label: 'Người tạo' },
-            { key: 'customer', label: 'Khách hàng' },
-          ],
-          formFields: [
-            { key: 'id', label: 'ID giao dịch', required: true },
-            { key: 'voucherId', label: 'Mã phiếu XNK', required: true },
-            { key: 'date', label: 'Ngày (dd/mm/yyyy)', required: true },
-            { key: 'warehouse', label: 'Kho hàng', required: true },
-            { key: 'productCode', label: 'Mã sản phẩm', required: true },
-            { key: 'productName', label: 'Tên sản phẩm', required: true },
-            { key: 'barcode', label: 'Mã vạch' },
-            { key: 'type', label: 'Kiểu' },
-            { key: 'importQty', label: 'SL Nhập', type: 'number' },
-            { key: 'exportQty', label: 'SL Xuất', type: 'number' },
-            { key: 'price', label: 'Giá', type: 'number' },
-            { key: 'totalAmount', label: 'Tổng tiền', type: 'number' },
-            { key: 'creator', label: 'Người tạo' },
-            { key: 'customer', label: 'Khách hàng' },
-          ],
-          createDefaults: {
-            id: '',
-            voucherId: '',
-            date: '',
-            warehouse: '',
-            productCode: '',
-            productName: '',
-            barcode: '',
-            type: '',
-            importQty: 0,
-            exportQty: 0,
-            price: 0,
-            totalAmount: 0,
-            creator: '',
-            customer: '',
-          },
-        },
-      ]}
-    />
-  );
-}
-
-
-
-

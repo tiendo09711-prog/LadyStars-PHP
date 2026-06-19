@@ -114,7 +114,14 @@ async function getStockTotals(productIds: mongoose.Types.ObjectId[]) {
 }
 
 async function populateSale(query: any) {
-  return query.populate('items.productId', 'code name price cost qty unit type allowsSale').populate('saleChannelId', 'name').populate('customerId', 'name code phone');
+  return query
+    .populate('items.productId', 'code name price cost qty unit type allowsSale')
+    .populate('saleChannelId', 'name')
+    .populate('customerId', 'name code phone')
+    .populate('branchId', 'name code address phone')
+    .populate('userId', 'name email')
+    .populate('authorId', 'name email')
+    .populate('typePayment.methodId', 'name code');
 }
 
 async function populateRefund(query: any) {
@@ -607,26 +614,42 @@ router.get('/sales', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
 
   const filter: any = {};
-  if (req.query.code) {
-    filter.code = new RegExp(String(req.query.code).trim(), 'i');
+  const invoiceCode = String(req.query.invoiceCode ?? req.query.code ?? '').trim();
+  if (invoiceCode) {
+    filter.code = new RegExp(escapeRegex(invoiceCode), 'i');
   }
   if (req.query.status) {
     filter.status = String(req.query.status).trim();
   }
-  if (req.query.customerPhone) {
+  const storeId = String(req.query.storeId ?? req.query.branchId ?? '').trim();
+  if (storeId && mongoose.isValidObjectId(storeId)) {
+    filter.branchId = new mongoose.Types.ObjectId(storeId);
+  }
+
+  const customerKeyword = String(req.query.customerKeyword ?? req.query.customerPhone ?? '').trim();
+  if (customerKeyword) {
+    const keyword = new RegExp(escapeRegex(customerKeyword), 'i');
     const customers = await Customer.find({
-      phone: new RegExp(String(req.query.customerPhone).trim(), 'i')
+      $or: [{ name: keyword }, { phone: keyword }, { code: keyword }],
     }).select('_id');
     filter.customerId = { $in: customers.map(c => c._id) };
   }
-  if (req.query.fromDate || req.query.toDate) {
+
+  const productKeyword = String(req.query.productKeyword ?? '').trim();
+  if (productKeyword) {
+    const keyword = new RegExp(escapeRegex(productKeyword), 'i');
+    const products = await Product.find({
+      $or: [{ name: keyword }, { code: keyword }],
+    }).select('_id');
+    filter['items.productId'] = { $in: products.map(product => product._id) };
+  }
+
+  const dateFrom = String(req.query.dateFrom ?? req.query.fromDate ?? '').trim();
+  const dateTo = String(req.query.dateTo ?? req.query.toDate ?? '').trim();
+  if (dateFrom || dateTo) {
     filter.createdAt = {};
-    if (req.query.fromDate) filter.createdAt.$gte = new Date(String(req.query.fromDate));
-    if (req.query.toDate) {
-      const end = new Date(String(req.query.toDate));
-      end.setHours(23, 59, 59, 999);
-      filter.createdAt.$lte = end;
-    }
+    if (dateFrom) filter.createdAt.$gte = new Date(`${dateFrom}T00:00:00.000+07:00`);
+    if (dateTo) filter.createdAt.$lte = new Date(`${dateTo}T23:59:59.999+07:00`);
   }
 
   const [items, total] = await Promise.all([

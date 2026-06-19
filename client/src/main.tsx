@@ -149,6 +149,9 @@ const router = createBrowserRouter([
 
       // ── Kênh bán ───────────────────────────────────────────────
       { path: 'sales-channels/:channel', element: <SalesChannelPage /> },
+      { path: 'sales-channels/:channel/retail/confirm', element: <Navigate to=".." relative="path" replace /> },
+      { path: 'sales-channels/:channel/retail/payment-confirmation', element: <Navigate to=".." relative="path" replace /> },
+      { path: 'sales-channels/:channel/retail/payment-confirm', element: <Navigate to=".." relative="path" replace /> },
       { path: 'sales-channels/:channel/retail/create', element: <RetailInvoiceCreatePage /> },
       { path: 'sales-channels/:channel/wholesale/create', element: <WholesaleInvoiceCreatePage /> },
       { path: 'sales-channels/:channel/refund/create', element: <RefundInvoiceCreatePage /> },

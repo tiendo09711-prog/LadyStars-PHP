@@ -5,12 +5,24 @@
       "origin": "http://localhost:5173",
       "localStorage": [
         {
+          "name": "dashboard.chartType",
+          "value": "bar_compare"
+        },
+        {
           "name": "token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTA1OTNjMzY3YzMwYjdhMzkxMDczN2EiLCJyb2xlIjoib3duZXIiLCJ0b2tlblZlcnNpb24iOjAsImlhdCI6MTc4MTc3MTQ1NSwiZXhwIjoxNzgyMzc2MjU1fQ.ZoI9gWCzXeff__NqoS6-eaMOIQ--A585Mo3aCYh-Xlw"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTA1OTNjMzY3YzMwYjdhMzkxMDczN2EiLCJyb2xlIjoib3duZXIiLCJ0b2tlblZlcnNpb24iOjAsImlhdCI6MTc4MTg1OTU1MCwiZXhwIjoxNzgyNDY0MzUwfQ.l8srdsj4YZaTP3q-qLXEsb-ef32WGZuw3ZTO0X07c7c"
         },
         {
           "name": "lastLoginEmail",
           "value": "admin@myerp.local"
+        },
+        {
+          "name": "dashboard.chartRange",
+          "value": "7 ngày"
+        },
+        {
+          "name": "dashboard.dateRange",
+          "value": "Hôm nay"
         }
       ]
     }
