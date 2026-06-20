@@ -4,6 +4,7 @@ import { crudController } from '../../core/utils/crud.js';
 import { Customer, CustomerGroup, CustomerCare } from './customer.models.js';
 import { Order } from '../orders/orders.models.js';
 import { SalePayment } from '../product/product.models.js';
+import { getAssignedWarehouseIds, isAdminUser, requireOwner } from '../../core/middleware/auth.js';
 
 const router = Router();
 
@@ -19,6 +20,29 @@ router.post('/customers', (req, res, next) => {
 const customerCrud = crudController(Customer);
 const customerRouter = Router();
 
+function mergeCustomFilter(req: any, nextFilter: Record<string, any>) {
+  req.customFilter = { ...(req.customFilter || {}), ...nextFilter };
+}
+
+function scopedCustomerAccess(req: any, res: any, next: any) {
+  if (isAdminUser(req.user)) return next();
+  const warehouseIds = getAssignedWarehouseIds(req.user);
+  if (!warehouseIds.length) return res.status(403).json({ message: 'No assigned warehouse' });
+
+  mergeCustomFilter(req, { branchId: { $in: warehouseIds } });
+
+  if (req.method === 'POST' || req.method === 'PATCH') {
+    const targetBranchId = String(req.body.branchId || req.user?.defaultWarehouseId || warehouseIds[0] || '').trim();
+    if (!warehouseIds.includes(targetBranchId)) {
+      return res.status(403).json({ message: 'Customer branch is outside employee scope' });
+    }
+    req.body.branchId = targetBranchId;
+  }
+  next();
+}
+
+customerRouter.use(scopedCustomerAccess);
+
 customerRouter.get('/', (req, res, next) => {
   if (req.query.tags) {
     const tag = req.query.tags as string;
@@ -27,7 +51,7 @@ customerRouter.get('/', (req, res, next) => {
       delete req.query.tags;
     } else if (['high_value', 'frequent', 'inactive', 'birthday_high_value'].includes(tag)) {
       delete req.query.tags;
-      (req as any).customFilter = { tags: tag };
+      mergeCustomFilter(req as any, { tags: tag });
     }
   }
   next();
@@ -39,7 +63,7 @@ customerRouter.patch('/:id', customerCrud.update);
 customerRouter.delete('/:id', customerCrud.remove);
 
 router.use('/customers', customerRouter);
-router.use('/groups', crudRoutes(CustomerGroup));
+router.use('/groups', requireOwner, crudRoutes(CustomerGroup));
 
 // Customer Care Auto-fill
 const careRouter = Router();
@@ -59,10 +83,10 @@ careRouter.get('/:id', careCrud.detail);
 careRouter.patch('/:id', careCrud.update);
 careRouter.delete('/:id', careCrud.remove);
 
-router.use('/care', careRouter);
+router.use('/care', requireOwner, careRouter);
 
 // Sync metrics API
-router.post('/sync-metrics', async (req, res) => {
+router.post('/sync-metrics', requireOwner, async (req, res) => {
   try {
     const customers = await Customer.find({});
     let updatedCount = 0;

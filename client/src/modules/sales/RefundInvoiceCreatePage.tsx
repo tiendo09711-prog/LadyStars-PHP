@@ -196,14 +196,14 @@ export function RefundInvoiceCreatePage() {
 
   // Load products list for local fast auto-suggest
   useEffect(() => {
-    http.get('/products/products?limit=150')
+    http.get('/products/inventories', { params: { branchId: branchId || '', limit: 150 } })
       .then((res) => {
         setDbProducts(res.data.items ?? []);
       })
       .catch((err) => {
         console.error("Lỗi lấy danh sách sản phẩm:", err);
       });
-  }, []);
+  }, [branchId]);
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save
   useEffect(() => {

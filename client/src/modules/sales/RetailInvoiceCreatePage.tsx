@@ -104,7 +104,7 @@ export function RetailInvoiceCreatePage() {
       try {
         const [meRes, staffRes, customerRes, methodRes, editRes] = await Promise.all([
           http.get('/auth/me'),
-          http.get('/staff'),
+          http.get('/staff').catch(() => null),
           http.get('/customers/customers', { params: { limit: 5000 } }),
           http.get('/products/payment-methods', { params: { limit: 5000 } }),
           editId ? http.get(`/products/sales/${editId}`) : Promise.resolve(null),
@@ -133,7 +133,7 @@ export function RetailInvoiceCreatePage() {
         setBranch(branchRes.data);
         setDbProducts(inventoryProducts);
         setDbCustomers(customerRes.data?.items || []);
-        setDbStaffs(staffRes.data?.items || []);
+        setDbStaffs(staffRes?.data?.items || []);
         setPaymentMethods(methods);
         setForm((current) => ({
           ...current,

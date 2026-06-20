@@ -11,6 +11,8 @@ import {
   OrderHistory,
 } from './orders.models.js';
 import { Product } from '../product/product.models.js';
+import { Branch } from '../../core/org/branch.model.js';
+import { getAssignedWarehouseIds, isAdminUser, requireOwner } from '../../core/middleware/auth.js';
 import multer from 'multer';
 import xlsx from 'xlsx';
 import fs from 'fs';
@@ -19,6 +21,30 @@ const upload = multer({ dest: 'uploads/' });
 
 const router = Router();
 
+async function resolveOrderWarehouseScope(req: any) {
+  if (isAdminUser(req.user)) return null;
+  const warehouseIds = getAssignedWarehouseIds(req.user);
+  if (!warehouseIds.length) return [];
+  const branches = await Branch.find({ _id: { $in: warehouseIds } }).select('name code').lean();
+  return [...new Set(branches.flatMap((branch: any) => [String(branch.name || '').trim(), String(branch.code || '').trim()]).filter(Boolean))];
+}
+
+async function enforceOrderReadScope(req: any, res: any, next: any) {
+  if (isAdminUser(req.user)) return next();
+  if (req.method !== 'GET') return res.status(403).json({ message: 'ADMIN permission required' });
+  const warehouses = await resolveOrderWarehouseScope(req);
+  if (!warehouses?.length) return res.status(403).json({ message: 'No assigned warehouse' });
+  req.customFilter = { ...(req.customFilter || {}), warehouse: { $in: warehouses } };
+  next();
+}
+
+async function findScopedOrder(req: any, selector: Record<string, any>) {
+  const warehouses = await resolveOrderWarehouseScope(req);
+  if (warehouses === null) return Order.findOne(selector);
+  if (!warehouses.length) return null;
+  return Order.findOne({ ...selector, warehouse: { $in: warehouses } });
+}
+
 router.get('/packaging/scan', async (req, res) => {
   try {
     const query = String(req.query.query || '').trim();
@@ -26,12 +52,12 @@ router.get('/packaging/scan', async (req, res) => {
       return res.status(400).json({ message: 'Yêu cầu mã đơn hàng' });
     }
     // Find order by code (exact or case insensitive)
-    const order = await Order.findOne({
+    const order = await findScopedOrder(req as any, {
       $or: [
         { orderCode: query },
         { orderCode: new RegExp(`^${query}$`, 'i') }
       ]
-    }).lean();
+    });
     if (!order) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng với mã này' });
     }
@@ -46,7 +72,7 @@ router.post('/packaging/:id/pack', async (req, res) => {
     const orderId = req.params.id;
     const { products, packageWeight, packagingMaterial, packer, forcePack } = req.body;
 
-    const order = await Order.findById(orderId);
+    const order = await findScopedOrder(req as any, { _id: orderId });
     if (!order) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
@@ -84,7 +110,7 @@ router.post('/packaging/:id/pack', async (req, res) => {
   }
 });
 
-router.post('/manage/import', upload.single('file'), async (req, res) => {
+router.post('/manage/import', requireOwner, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Vui lòng chọn file' });
@@ -193,7 +219,7 @@ router.post('/manage/import', upload.single('file'), async (req, res) => {
   }
 });
 
-router.post('/manage/bulk-action', async (req, res) => {
+router.post('/manage/bulk-action', requireOwner, async (req, res) => {
   try {
     const { action, ids, status, warehouse, mainOrderCode, handoverId } = req.body;
     const userId = (req as any).user?.sub;
@@ -417,8 +443,17 @@ router.post('/manage/bulk-action', async (req, res) => {
   }
 });
 
+const manageCrud = crudController(Order);
+const manageRouter = Router();
+manageRouter.use(enforceOrderReadScope);
+manageRouter.get('/', manageCrud.list);
+manageRouter.post('/', manageCrud.create);
+manageRouter.get('/:id', manageCrud.detail);
+manageRouter.patch('/:id', manageCrud.update);
+manageRouter.delete('/:id', manageCrud.remove);
+
 // Sync middleware for Disputes
-router.use('/disputes', async (req, res, next) => {
+router.use('/disputes', requireOwner, async (req, res, next) => {
   if (req.method === 'POST' || req.method === 'PATCH') {
     if (req.body.orderCode) {
       const order = await Order.findOne({ orderCode: req.body.orderCode });
@@ -432,7 +467,7 @@ router.use('/disputes', async (req, res, next) => {
 }, crudRoutes(OrderDispute));
 
 // Sync middleware for Duplicates
-router.use('/duplicates', async (req, res, next) => {
+router.use('/duplicates', requireOwner, async (req, res, next) => {
   if (req.method === 'POST' || req.method === 'PATCH') {
     if (req.body.orderCode) {
       const order = await Order.findOne({ orderCode: req.body.orderCode });
@@ -448,6 +483,7 @@ router.use('/duplicates', async (req, res, next) => {
 // Custom Shipping Pending Router using Order model
 const shippingRouter = Router();
 const shippingCrud = crudController(Order);
+shippingRouter.use(enforceOrderReadScope);
 shippingRouter.get('/', (req, res, next) => {
   if (!req.query.deliveryStatus) {
     req.query.deliveryStatus = 'Chờ lấy hàng,Lỗi kết nối API';
@@ -460,10 +496,10 @@ shippingRouter.patch('/:id', shippingCrud.update);
 shippingRouter.delete('/:id', shippingCrud.remove);
 router.use('/shipping-pending', shippingRouter);
 
-router.use('/manage', crudRoutes(Order));
-router.use('/handover', crudRoutes(OrderHandover));
-router.use('/cod-control', crudRoutes(OrderCodControl));
-router.use('/sources', crudRoutes(OrderSource));
-router.use('/history', crudRoutes(OrderHistory));
+router.use('/manage', manageRouter);
+router.use('/handover', requireOwner, crudRoutes(OrderHandover));
+router.use('/cod-control', requireOwner, crudRoutes(OrderCodControl));
+router.use('/sources', requireOwner, crudRoutes(OrderSource));
+router.use('/history', requireOwner, crudRoutes(OrderHistory));
 
 export default router;

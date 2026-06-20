@@ -152,12 +152,12 @@ export function WholesaleInvoiceCreatePage() {
   useEffect(() => {
     Promise.all([
       http.get('/auth/me'),
-      http.get('/staff'),
+      http.get('/staff').catch(() => null),
       http.get('/customers/customers'),
-      http.get('/products/inventories', { params: { limit: 5000 } })
+      http.get('/products/inventories', { params: { branchId: branchId || '', limit: 5000 } })
     ]).then(([meRes, staffRes, custRes, prodRes]) => {
       setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
-      setDbStaffs(staffRes.data?.items || []);
+      setDbStaffs(staffRes?.data?.items || []);
       setDbCustomers(custRes.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
 
@@ -198,7 +198,7 @@ export function WholesaleInvoiceCreatePage() {
         }).catch(err => console.error("Lỗi tải hóa đơn sỉ cũ:", err));
       }
     }).catch(err => console.error("Error fetching dependencies:", err));
-  }, [editId]);
+  }, [branchId, editId]);
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save, F10 toggle auto-print
   useEffect(() => {

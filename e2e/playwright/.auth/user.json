@@ -10,11 +10,7 @@
         },
         {
           "name": "token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTA1OTNjMzY3YzMwYjdhMzkxMDczN2EiLCJyb2xlIjoib3duZXIiLCJ0b2tlblZlcnNpb24iOjAsImlhdCI6MTc4MTg1OTU1MCwiZXhwIjoxNzgyNDY0MzUwfQ.l8srdsj4YZaTP3q-qLXEsb-ef32WGZuw3ZTO0X07c7c"
-        },
-        {
-          "name": "lastLoginEmail",
-          "value": "admin@myerp.local"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OWZjNDRkODM4OTllMTE4MjlkMmI0NDkiLCJyb2xlIjoiQURNSU4iLCJ0b2tlblZlcnNpb24iOjEsImlhdCI6MTc4MTkyNjgwMSwiZXhwIjoxNzgyNTMxNjAxfQ.wBB7Y6jvBR1-FranKJrtKL_6mYMDgrBH0-GuoHhvqfM"
         },
         {
           "name": "dashboard.chartRange",

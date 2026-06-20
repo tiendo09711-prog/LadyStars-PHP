@@ -21,6 +21,14 @@ function lineDiscount(base: number, discountValue: unknown, discountType: unknow
   return Math.min(base, Math.max(discount, 0));
 }
 
+async function getAvailableStockForSale(product: any, branchId?: unknown) {
+  if (product.type === 'service') return Number.POSITIVE_INFINITY;
+  if (!branchId) return toNumber(product.qty);
+
+  const stock = await ProductBranchStock.findOne({ productId: product._id, branchId }).lean();
+  return toNumber(stock?.qty);
+}
+
 export async function moveProductQty({
   productId,
   branchId,
@@ -82,7 +90,8 @@ export async function buildSalePaymentPayload(payload: any) {
 
     const amount = toNumber(rawItem.amount);
     if (amount <= 0) throw new ProductFlowError(`Product ${product.code} must have a sale quantity greater than 0`);
-    if (product.type !== 'service' && toNumber(product.qty) < amount) {
+    const availableStock = await getAvailableStockForSale(product, payload.branchId);
+    if (product.type !== 'service' && availableStock < amount) {
       throw new ProductFlowError(`Not enough stock for ${product.code} - ${product.name}`);
     }
 
@@ -212,7 +221,8 @@ export async function assertSaleCanComplete(payment: any) {
     const product = await Product.findById(item.productId);
     if (!product) throw new ProductFlowError('Product not found', 404);
     if (product.allowsSale === false) throw new ProductFlowError(`Product ${product.code} is not allowed for sale`);
-    if (product.type !== 'service' && toNumber(product.qty) < toNumber(item.amount)) {
+    const availableStock = await getAvailableStockForSale(product, payment.branchId);
+    if (product.type !== 'service' && availableStock < toNumber(item.amount)) {
       throw new ProductFlowError(`Not enough stock for ${product.code} - ${product.name}`);
     }
   }
