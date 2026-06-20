@@ -1,105 +1,122 @@
-import { test, expect } from '@playwright/test';
-import { connectDB, closeDB } from '../utils/db';
+import { expect, test } from '@playwright/test';
+import {
+  cleanupAuditRun,
+  getBranches,
+  loginAdminApi,
+  seedAuditProduct,
+  shutdownAuditHelpers,
+  storageStateForToken,
+} from '../utils/warehouse-audit';
 
-const TEST_CHECK_ID = 'E2E_AUDIT_001';
-
-test.describe('Warehouse Audit hardcode audit', () => {
-  let db: any;
+test.describe.serial('Warehouse audit UI data flow', () => {
+  const runKey = `E2E-AUDIT-UI-${Date.now()}`;
+  let adminApi: any;
+  let adminToken = '';
+  let hn: any;
+  let seededAudit: any;
+  let seededProduct: any;
 
   test.beforeAll(async () => {
-    db = await connectDB();
-    await db.collection('inventorychecks').deleteMany({ id: TEST_CHECK_ID });
-    await db.collection('inventorychecks').insertOne({
-      id: TEST_CHECK_ID,
-      date: new Date().toISOString(),
-      type: 'Theo sản phẩm',
-      warehouse: 'Kho E2E',
-      creator: 'E2E Tester',
-      spCount: 5,
-      qty: 100,
-      note: 'Dữ liệu audit hardcode kiểm kho',
-      missingSp: '0',
-      balance: 'Không',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const admin = await loginAdminApi();
+    adminApi = admin.api;
+    adminToken = admin.token;
+    const { defaultBranch } = await getBranches(adminApi);
+    hn = defaultBranch;
+
+    seededProduct = await seedAuditProduct(adminApi, {
+      code: `${runKey}-PROD`,
+      name: `${runKey} UI Product`,
+      cost: 100000,
+      price: 150000,
+      branchStocks: { [hn._id]: 5 },
     });
+
+    const response = await adminApi.post('inventory-audits', {
+      data: {
+        code: `${runKey}-AUDIT`,
+        warehouseId: hn._id,
+        auditType: 'BY_PRODUCT',
+        status: 'COUNTING',
+        note: `${runKey} seeded list row`,
+        items: [{ productId: seededProduct.productId, physicalQuantity: 4, note: 'seeded for UI' }],
+      },
+    });
+    expect(response.status()).toBe(201);
+    seededAudit = await response.json();
   });
 
   test.afterAll(async () => {
-    await db.collection('inventorychecks').deleteMany({ id: TEST_CHECK_ID });
-    await closeDB();
+    await cleanupAuditRun(adminApi, runKey);
+    await adminApi?.dispose();
+    await shutdownAuditHelpers();
   });
 
-  test.beforeEach(async ({ page }) => {
-    const consoleErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors.push(message.text());
+  test('audit list uses new APIs and filters both tabs with real data', async ({ browser }) => {
+    const context = await browser.newContext({ storageState: storageStateForToken(adminToken) });
+    const page = await context.newPage();
+    const requestedUrls: string[] = [];
+
+    page.on('request', (request) => {
+      requestedUrls.push(request.url());
     });
 
-    await page.addInitScript(() => {
-      window.print = () => console.log('Mocked window.print()');
-    });
-  });
+    try {
+      await page.goto('/warehouse/audit');
+      await page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.pathname.endsWith('/api/inventory-audits/meta') && response.status() === 200;
+      });
+      await page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.pathname.endsWith('/api/inventory-audits') && response.status() === 200;
+      });
 
-  test('Kiểm kho tab loads data from API', async ({ page }) => {
-    const apiResponsePromise = page.waitForResponse((response) =>
-      response.url().includes('/api/warehouse/checks') &&
-      response.request().method() === 'GET'
-    );
+      const tabs = page.locator('[role="tab"]');
+      await expect(tabs).toHaveCount(2);
 
-    await page.goto('/warehouse/audit');
-    await page.waitForLoadState('networkidle');
+      await page.locator('input[placeholder="ID phiếu kiểm kho"]').first().fill(seededAudit.code);
+      await page.locator('.wr-filter-button').click();
+      await expect(page.getByRole('button', { name: seededAudit.code })).toBeVisible();
 
-    const apiResponse = await apiResponsePromise;
-    expect(apiResponse.ok()).toBeTruthy();
+      await tabs.nth(1).click();
+      await page.locator('input[placeholder="ID phiếu kiểm kho"]').first().fill(seededAudit.code);
+      await page.locator('.wr-filter-button').click();
+      await expect(page.getByText(seededProduct.name)).toBeVisible();
+      await expect(page.getByText(seededProduct.code)).toBeVisible();
 
-    await expect(page.getByText('Dữ liệu audit hardcode kiểm kho')).toBeVisible();
-    await expect(page.getByText(TEST_CHECK_ID)).toBeVisible();
-  });
-
-  test('Sản phẩm kiểm kho tab loads data from API', async ({ page }) => {
-    await page.goto('/warehouse/audit');
-    await page.waitForLoadState('networkidle');
-
-    const apiResponsePromise = page.waitForResponse((response) =>
-      response.url().includes('/api/warehouse/check-products') &&
-      response.request().method() === 'GET'
-    );
-
-    // Chuyển sang tab Sản phẩm kiểm kho
-    await page.getByRole('button', { name: 'Sản phẩm kiểm kho' }).click();
-
-    const apiResponse = await apiResponsePromise;
-    expect(apiResponse.ok()).toBeTruthy();
-
-    const payload = await apiResponse.json();
-    const items = payload.items || payload.data || payload;
-    
-    if (items.length === 0) {
-      await expect(page.getByText('Chưa có dữ liệu phù hợp')).toBeVisible();
+      expect(requestedUrls.some((url) => url.includes('/api/warehouse/checks'))).toBeFalsy();
+      expect(requestedUrls.some((url) => url.includes('/api/warehouse/check-products'))).toBeFalsy();
+      expect(requestedUrls.some((url) => url.includes('/api/inventory-audits'))).toBeTruthy();
+      expect(requestedUrls.some((url) => url.includes('/api/inventory-audit-items'))).toBeTruthy();
+    } finally {
+      await context.close();
     }
   });
 
-  test('Create audit page loads products and branches from API', async ({ page }) => {
-    const branchesPromise = page.waitForResponse((response) =>
-      response.url().includes('/api/system/branches') &&
-      response.request().method() === 'GET'
-    );
-    const productsPromise = page.waitForResponse((response) =>
-      response.url().includes('/api/products/inventories') &&
-      response.request().method() === 'GET'
-    );
+  test('create page loads warehouses and inventories from real APIs', async ({ browser }) => {
+    const context = await browser.newContext({ storageState: storageStateForToken(adminToken) });
+    const page = await context.newPage();
+    try {
+      await page.goto('/warehouse/audit/create');
+      await page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.pathname.endsWith('/api/inventory-audits/meta') && response.status() === 200;
+      });
 
-    await page.goto('/warehouse/audit/create');
-    await page.waitForLoadState('networkidle');
+      await page.locator('.audit-editor-form select').first().selectOption(hn._id);
+      await page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.pathname.endsWith('/api/products/inventories')
+          && url.searchParams.get('branchId') === hn._id
+          && response.status() === 200;
+      });
 
-    const branchesResponse = await branchesPromise;
-    const productsResponse = await productsPromise;
-    expect(branchesResponse.ok()).toBeTruthy();
-    expect(productsResponse.ok()).toBeTruthy();
-    
-    // check if no fake products are rendered in dropdown by typing
-    await page.getByPlaceholder('Nhập tên sản phẩm').fill('sản phẩm không tồn tại 123');
-    await expect(page.getByText('Không tìm thấy sản phẩm')).toBeVisible();
+      await page.locator('input[placeholder="Tìm theo mã sản phẩm hoặc mã vạch"]').fill(seededProduct.code);
+      await expect(page.getByText(seededProduct.code)).toBeVisible();
+      await expect(page.getByText(seededProduct.name)).toBeVisible();
+      await expect(page.getByText(/Không tìm thấy sản phẩm/i)).toHaveCount(0);
+    } finally {
+      await context.close();
+    }
   });
 });

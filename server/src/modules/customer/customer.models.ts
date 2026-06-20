@@ -13,10 +13,13 @@ const CustomerSchema = new Schema({
   code: { type: String, required: true, unique: true },
   phone: String,
   phone2: String,
+  cardId: String,
   email: String,
   birthday: Date,
   sex: { type: String, enum: ['female', 'male', 'other'], default: 'female' },
+  customerLevel: String,
   address: String,
+  addressLocation: String,
   provinceId: String,
   districtId: String,
   wardId: String,
@@ -26,16 +29,22 @@ const CustomerSchema = new Schema({
   note: String,
   totalSpent: { type: Number, default: 0 },
   purchaseCount: { type: Number, default: 0 },
+  purchaseProductQuantity: { type: Number, default: 0 },
   points: { type: Number, default: 0 },
+  firstPurchaseDate: Date,
   lastPurchaseDate: Date,
   daysSinceLastPurchase: Number,
+  purchaseCycleDays: Number,
   tags: [{ type: String }],
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   groups: [{ type: Schema.Types.ObjectId, ref: 'CustomerGroup' }],
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
-CustomerSchema.index({ name: 'text', code: 'text', phone: 'text', email: 'text' });
+CustomerSchema.index({ name: 'text', code: 'text', phone: 'text', email: 'text', cardId: 'text' });
+CustomerSchema.index({ branchId: 1, name: 1 });
+CustomerSchema.index({ branchId: 1, phone: 1 });
+CustomerSchema.index({ branchId: 1, cardId: 1 });
 export const Customer = model('Customer', CustomerSchema);
 
 const CustomerCareSchema = new Schema({

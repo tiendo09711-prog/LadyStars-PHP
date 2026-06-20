@@ -1,128 +1,481 @@
-import { test, expect } from '@playwright/test';
-import { connectDB, closeDB } from '../utils/db';
+import { expect, test } from '@playwright/test';
+import {
+  cleanupAuditRun,
+  cleanupEmployee,
+  createApiContext,
+  createEmployee,
+  createStockDrift,
+  EMPLOYEE_PASSWORD,
+  getBranches,
+  loginAdminApi,
+  loginToken,
+  readBranchStock,
+  readGlobalStock,
+  seedAuditProduct,
+  shutdownAuditHelpers,
+} from '../utils/warehouse-audit';
 
-const TEST_PRODUCT_CODE = 'E2E_AUDIT_01';
+function auditCode(runKey: string, suffix: string) {
+  return `${runKey}-${suffix}`;
+}
 
-test.describe('Warehouse Audit - Automation', () => {
-  let db: any;
-  let branchId: any;
-  let testProductId: any;
+async function createAudit(api: any, payload: Record<string, unknown>) {
+  const response = await api.post('inventory-audits', { data: payload });
+  const data = await response.json().catch(() => null);
+  return { response, data };
+}
+
+async function submitAudit(api: any, auditId: string) {
+  const response = await api.post(`inventory-audits/${auditId}/submit`);
+  expect(response.ok()).toBeTruthy();
+  return response.json();
+}
+
+async function reconcileAudit(api: any, auditId: string) {
+  const response = await api.post(`inventory-audits/${auditId}/reconcile`);
+  return { response, data: await response.json().catch(() => null) };
+}
+
+test.describe.serial('Warehouse audit integration', () => {
+  const runKey = `E2E-AUDIT-${Date.now()}`;
+  let adminApi: any;
+  let hn: any;
+  let hcm: any;
 
   test.beforeAll(async () => {
-    db = await connectDB();
-    
-    // Clear old data
-    await db.collection('products').deleteMany({ code: TEST_PRODUCT_CODE });
-    
-    const branch = await db.collection('branches').findOne({ code: 'CN001' });
-    branchId = branch ? branch._id : null;
-    if (!branchId) throw new Error("Missing branch for testing!");
-
-    // Insert test product
-    const productRes = await db.collection('products').insertOne({
-      code: TEST_PRODUCT_CODE,
-      name: 'Sản phẩm Test Kiểm kê',
-      qty: 20, // global qty
-      price: 100000,
-      cost: 50000,
-      unit: 'Cái',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    testProductId = productRes.insertedId;
-
-    // Set stock 20 in branch
-    await db.collection('productbranchstocks').deleteMany({ productId: testProductId });
-    await db.collection('productbranchstocks').insertOne({
-      productId: testProductId,
-      branchId: branchId,
-      qty: 20
-    });
+    const admin = await loginAdminApi();
+    adminApi = admin.api;
+    const { defaultBranch, secondaryBranch } = await getBranches(adminApi);
+    hn = defaultBranch;
+    hcm = secondaryBranch._id === defaultBranch._id ? defaultBranch : secondaryBranch;
   });
 
   test.afterAll(async () => {
-    // Cleanup
-    await db.collection('products').deleteMany({ code: TEST_PRODUCT_CODE });
-    await db.collection('productbranchstocks').deleteMany({ productId: testProductId });
-    await db.collection('inventorychecks').deleteMany({ note: /E2E Test/ });
-    await closeDB();
+    await cleanupAuditRun(adminApi, runKey);
+    await adminApi?.dispose();
+    await shutdownAuditHelpers();
   });
 
-  test('Luồng Kiểm kê kho và bù trừ', async ({ page }) => {
-    page.on('request', req => {
-      if (req.url().includes('/api/warehouse/checks') && req.method() === 'POST') {
-        console.log('POST /checks Payload:', req.postData());
-      }
+  test('CASE 1 create by product keeps stock unchanged and shows both views', async () => {
+    const productA = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE1-A'),
+      name: `${runKey} Product A`,
+      cost: 100000,
+      price: 150000,
+      branchStocks: { [hn._id]: 10 },
     });
-    
-    page.on('response', async res => {
-      if (res.url().includes('/api/')) {
-        let msg = '';
-        if (res.status() === 500 || res.status() === 400 || res.status() === 201) {
-          msg = await res.text().catch(() => '');
-        }
-        console.log(`API Response: ${res.url()} [${res.status()}] ${msg.substring(0, 200)}`);
-      }
+    const productB = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE1-B'),
+      name: `${runKey} Product B`,
+      cost: 120000,
+      price: 180000,
+      branchStocks: { [hn._id]: 6 },
     });
+    const beforeA = await readBranchStock(adminApi, productA.productId, hn._id);
+    const beforeB = await readBranchStock(adminApi, productB.productId, hn._id);
 
-    await page.goto('/warehouse/audit');
-    await page.waitForLoadState('networkidle');
+    const code = auditCode(runKey, 'CASE1');
+    const created = await createAudit(adminApi, {
+      code,
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'DRAFT',
+      note: `${runKey} case 1`,
+      items: [{ productId: productA.productId }, { productId: productB.productId }],
+    });
+    expect(created.response.status()).toBe(201);
+    expect(created.data.code).toBe(code);
+    expect(created.data.summary.itemCount).toBe(2);
+    expect(await readBranchStock(adminApi, productA.productId, hn._id)).toBe(beforeA);
+    expect(await readBranchStock(adminApi, productB.productId, hn._id)).toBe(beforeB);
 
-    // Mở trang tạo phiếu kiểm kê
-    await Promise.all([
-      page.waitForResponse(res => res.url().includes('/system/branches') && res.status() === 200),
-      page.getByRole('button', { name: 'Tạo phiếu kiểm kho' }).click()
+    const listResponse = await adminApi.get(`inventory-audits?keyword=${encodeURIComponent(code)}`);
+    expect(listResponse.ok()).toBeTruthy();
+    const listPayload = await listResponse.json();
+    expect(listPayload.items.some((item: any) => item.code === code)).toBeTruthy();
+
+    const itemsResponse = await adminApi.get(`inventory-audit-items?auditId=${created.data._id}`);
+    expect(itemsResponse.ok()).toBeTruthy();
+    const itemsPayload = await itemsResponse.json();
+    expect(itemsPayload.total).toBe(2);
+  });
+
+  test('CASE 2 full warehouse snapshots real warehouse inventory', async () => {
+    const seeded = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE2-SEED'),
+      name: `${runKey} Full Warehouse Seed`,
+      cost: 50000,
+      price: 70000,
+      branchStocks: { [hcm._id]: 7 },
+    });
+    const before = await readBranchStock(adminApi, seeded.productId, hcm._id);
+
+    const created = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE2'),
+      warehouseId: hcm._id,
+      auditType: 'FULL_WAREHOUSE',
+      status: 'DRAFT',
+      note: `${runKey} case 2`,
+    });
+    expect(created.response.status()).toBe(201);
+    expect(created.data.auditType).toBe('FULL_WAREHOUSE');
+    expect(created.data.summary.itemCount).toBeGreaterThan(0);
+    expect(created.data.items.some((item: any) => item.productCodeSnapshot === seeded.code)).toBeTruthy();
+    expect(await readBranchStock(adminApi, seeded.productId, hcm._id)).toBe(before);
+  });
+
+  test('CASE 3 physical quantity validation rejects negative, text, decimal', async () => {
+    const seeded = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE3'),
+      name: `${runKey} Count Validation`,
+      cost: 90000,
+      price: 130000,
+      branchStocks: { [hn._id]: 10 },
+    });
+    const created = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE3-AUDIT'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'DRAFT',
+      note: `${runKey} case 3`,
+      items: [{ productId: seeded.productId }],
+    });
+    expect(created.response.status()).toBe(201);
+
+    const invalidDecimal = await adminApi.patch(`inventory-audits/${created.data._id}`, {
+      data: { status: 'COUNTING', items: [{ productId: seeded.productId, physicalQuantity: 8.5 }] },
+    });
+    expect(invalidDecimal.status()).toBe(400);
+
+    const invalidNegative = await adminApi.patch(`inventory-audits/${created.data._id}`, {
+      data: { status: 'COUNTING', items: [{ productId: seeded.productId, physicalQuantity: -1 }] },
+    });
+    expect(invalidNegative.status()).toBe(400);
+
+    const invalidText = await adminApi.patch(`inventory-audits/${created.data._id}`, {
+      data: { status: 'COUNTING', items: [{ productId: seeded.productId, physicalQuantity: 'abc' }] },
+    });
+    expect(invalidText.status()).toBe(400);
+
+    const valid = await adminApi.patch(`inventory-audits/${created.data._id}`, {
+      data: { status: 'COUNTING', items: [{ productId: seeded.productId, physicalQuantity: 8, note: 'counted once' }] },
+    });
+    expect(valid.ok()).toBeTruthy();
+    const payload = await valid.json();
+    expect(payload.items[0].physicalQuantity).toBe(8);
+    expect(payload.items[0].varianceQuantity).toBe(-2);
+  });
+
+  test('CASE 4 shortage reconcile creates one export voucher and adjusts stock once', async () => {
+    const seeded = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE4'),
+      name: `${runKey} Shortage`,
+      cost: 110000,
+      price: 150000,
+      branchStocks: { [hn._id]: 10 },
+    });
+    const beforeBranch = await readBranchStock(adminApi, seeded.productId, hn._id);
+    const beforeGlobal = await readGlobalStock(adminApi, seeded.productId);
+
+    const created = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE4-AUDIT'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'COUNTING',
+      note: `${runKey} case 4`,
+      items: [{ productId: seeded.productId, physicalQuantity: 8 }],
+    });
+    expect(created.response.status()).toBe(201);
+    await submitAudit(adminApi, created.data._id);
+
+    const reconciled = await reconcileAudit(adminApi, created.data._id);
+    expect(reconciled.response.ok()).toBeTruthy();
+    expect(reconciled.data.status).toBe('RECONCILED');
+    expect(reconciled.data.linkedInventoryBillIds).toHaveLength(1);
+    expect(await readBranchStock(adminApi, seeded.productId, hn._id)).toBe(beforeBranch - 2);
+    expect(await readGlobalStock(adminApi, seeded.productId)).toBe(beforeGlobal - 2);
+
+    const voucherDetail = await adminApi.get(`warehouse/transactions/bills/inventory-voucher/${reconciled.data.linkedInventoryBillIds[0]}`);
+    expect(voucherDetail.ok()).toBeTruthy();
+    const voucherPayload = await voucherDetail.json();
+    expect(String(voucherPayload.kind || voucherPayload.type || '')).toContain('INVENTORY_AUDIT_EXPORT');
+    expect(Number(voucherPayload.totalQuantity)).toBe(2);
+  });
+
+  test('CASE 5 excess reconcile creates one import voucher', async () => {
+    const seeded = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE5'),
+      name: `${runKey} Excess`,
+      cost: 80000,
+      price: 140000,
+      branchStocks: { [hn._id]: 10 },
+    });
+    const beforeBranch = await readBranchStock(adminApi, seeded.productId, hn._id);
+
+    const created = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE5-AUDIT'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'COUNTING',
+      note: `${runKey} case 5`,
+      items: [{ productId: seeded.productId, physicalQuantity: 13 }],
+    });
+    expect(created.response.status()).toBe(201);
+    await submitAudit(adminApi, created.data._id);
+
+    const reconciled = await reconcileAudit(adminApi, created.data._id);
+    expect(reconciled.response.ok()).toBeTruthy();
+    expect(reconciled.data.linkedInventoryBillIds).toHaveLength(1);
+    expect(await readBranchStock(adminApi, seeded.productId, hn._id)).toBe(beforeBranch + 3);
+
+    const voucherDetail = await adminApi.get(`warehouse/transactions/bills/inventory-voucher/${reconciled.data.linkedInventoryBillIds[0]}`);
+    expect(voucherDetail.ok()).toBeTruthy();
+    const voucherPayload = await voucherDetail.json();
+    expect(String(voucherPayload.kind || voucherPayload.type || '')).toContain('INVENTORY_AUDIT_IMPORT');
+    expect(Number(voucherPayload.totalQuantity)).toBe(3);
+  });
+
+  test('CASE 6 double reconcile does not create duplicate vouchers', async () => {
+    const seeded = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE6'),
+      name: `${runKey} Double Reconcile`,
+      cost: 75000,
+      price: 125000,
+      branchStocks: { [hn._id]: 10 },
+    });
+    const created = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE6-AUDIT'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'COUNTING',
+      note: `${runKey} case 6`,
+      items: [{ productId: seeded.productId, physicalQuantity: 13 }],
+    });
+    expect(created.response.status()).toBe(201);
+    await submitAudit(adminApi, created.data._id);
+
+    const [first, second] = await Promise.all([
+      adminApi.post(`inventory-audits/${created.data._id}/reconcile`),
+      adminApi.post(`inventory-audits/${created.data._id}/reconcile`),
     ]);
-    
-    await expect(page).toHaveURL(/.*\/warehouse\/audit\/create/);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // React render
+    expect([200, 409]).toContain(first.status());
+    expect([200, 409]).toContain(second.status());
 
-    // Chọn Kho
-    const warehouseSelect = page.locator('.filter-panel select').first();
-    await warehouseSelect.selectOption({ value: branchId.toString() });
+    const refreshed = await adminApi.get(`inventory-audits/${created.data._id}`);
+    expect(refreshed.ok()).toBeTruthy();
+    const refreshedPayload = await refreshed.json();
+    expect(refreshedPayload.status).toBe('RECONCILED');
+    expect(refreshedPayload.linkedInventoryBillIds).toHaveLength(1);
+  });
 
-    // Điền ghi chú
-    await page.getByPlaceholder('Nhập ghi chú...').fill('E2E Test - Kiểm kê');
+  test('CASE 7 stock drift after snapshot blocks reconcile', async () => {
+    const seeded = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE7'),
+      name: `${runKey} Drift`,
+      cost: 66000,
+      price: 99000,
+      branchStocks: { [hn._id]: 10 },
+    });
+    const created = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE7-AUDIT'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'COUNTING',
+      note: `${runKey} case 7`,
+      items: [{ productId: seeded.productId, physicalQuantity: 8 }],
+    });
+    expect(created.response.status()).toBe(201);
+    await submitAudit(adminApi, created.data._id);
 
-    // Tìm sản phẩm
-    const searchInput = page.getByPlaceholder('Nhập tên sản phẩm hoặc mã vạch để thêm');
-    await searchInput.fill(TEST_PRODUCT_CODE);
-    await page.waitForTimeout(1000); // Wait for dropdown
+    await createStockDrift(adminApi, {
+      productId: seeded.productId,
+      warehouseId: hn._id,
+      warehouseName: hn.name,
+      amount: -1,
+      note: `${runKey} drift after snapshot`,
+    });
 
-    // Chọn sản phẩm từ dropdown
-    await page.locator('div', { hasText: new RegExp('Mã: ' + TEST_PRODUCT_CODE) }).last().click();
+    const reconciled = await reconcileAudit(adminApi, created.data._id);
+    expect(reconciled.response.status()).toBe(409);
+    expect(String(reconciled.data.message || '')).toContain('biến động');
+  });
 
-    // Sửa Tồn thực tế thành 25 (Bù thừa 5 cái)
-    const row = page.locator('table.data-table tbody tr').last();
-    const actualStockInput = row.locator('input[type="number"]');
-    await actualStockInput.fill('25');
+  test('CASE 8 merge same warehouse succeeds and cross warehouse is blocked', async () => {
+    const productA = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE8-A'),
+      name: `${runKey} Merge A`,
+      branchStocks: { [hn._id]: 5 },
+    });
+    const productB = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE8-B'),
+      name: `${runKey} Merge B`,
+      branchStocks: { [hn._id]: 6 },
+    });
+    const productC = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE8-C'),
+      name: `${runKey} Merge C`,
+      branchStocks: { [hcm._id]: 3 },
+    });
+    const stockBeforeA = await readBranchStock(adminApi, productA.productId, hn._id);
+    const stockBeforeB = await readBranchStock(adminApi, productB.productId, hn._id);
 
-    // Nhập lý do
-    const reasonInput = row.locator('input[type="text"]').last();
-    await reasonInput.fill('Hàng bị sót trong kho');
+    const auditOne = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE8-1'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'DRAFT',
+      note: `${runKey} case 8 source 1`,
+      items: [{ productId: productA.productId }],
+    });
+    const auditTwo = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE8-2'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'DRAFT',
+      note: `${runKey} case 8 source 2`,
+      items: [{ productId: productB.productId }],
+    });
+    const foreignAudit = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE8-3'),
+      warehouseId: hcm._id,
+      auditType: 'BY_PRODUCT',
+      status: 'DRAFT',
+      note: `${runKey} case 8 foreign`,
+      items: [{ productId: productC.productId }],
+    });
+    expect(auditOne.response.status()).toBe(201);
+    expect(auditTwo.response.status()).toBe(201);
+    expect(foreignAudit.response.status()).toBe(201);
 
-    // Lưu phiếu
-    await page.getByRole('button', { name: 'Lưu phiếu' }).first().click();
+    const merged = await adminApi.post('inventory-audits/merge', {
+      data: { auditIds: [auditOne.data._id, auditTwo.data._id], note: `${runKey} merged audit` },
+    });
+    expect(merged.status()).toBe(201);
+    const mergedPayload = await merged.json();
+    expect(mergedPayload.summary.itemCount).toBe(2);
+    expect(await readBranchStock(adminApi, productA.productId, hn._id)).toBe(stockBeforeA);
+    expect(await readBranchStock(adminApi, productB.productId, hn._id)).toBe(stockBeforeB);
 
-    // Chờ quay về trang danh sách hoặc lấy lỗi nếu có
+    const sourceOne = await adminApi.get(`inventory-audits/${auditOne.data._id}`);
+    expect(sourceOne.ok()).toBeTruthy();
+    const sourceOnePayload = await sourceOne.json();
+    expect(sourceOnePayload.mergedIntoAuditId).toBe(mergedPayload._id);
+
+    const invalidMerge = await adminApi.post('inventory-audits/merge', {
+      data: { auditIds: [auditOne.data._id, foreignAudit.data._id], note: `${runKey} invalid merge` },
+    });
+    expect(invalidMerge.status()).toBe(409);
+  });
+
+  test('CASE 9 warehouse manager is scoped to assigned warehouse and cannot reconcile', async () => {
+    const employeeEmail = `${auditCode(runKey, 'EMPLOYEE').toLowerCase()}@example.com`;
+    const employeeId = await createEmployee(adminApi, {
+      email: employeeEmail,
+      name: `${runKey} Employee`,
+      warehouseIds: [hn._id],
+      defaultWarehouseId: hn._id,
+    });
+    const localProduct = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE9-HN'),
+      name: `${runKey} Employee HN`,
+      branchStocks: { [hn._id]: 4 },
+    });
+    const foreignProduct = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE9-HCM'),
+      name: `${runKey} Employee HCM`,
+      branchStocks: { [hcm._id]: 4 },
+    });
+
+    let employeeApi: any;
     try {
-      await page.waitForURL(/.*\/warehouse\/audit$/, { timeout: 3000 });
-    } catch {
-      const errorMsg = await page.locator('span').filter({ has: page.locator('text="Cửa hàng"').or(page.locator('text="sản phẩm"')).or(page.locator('text="Lỗi"')) }).first().textContent().catch(() => null);
-      throw new Error("Lưu phiếu thất bại. Lỗi giao diện: " + errorMsg);
-    }
+      const employeeToken = await loginToken(employeeEmail, EMPLOYEE_PASSWORD);
+      employeeApi = await createApiContext(employeeToken);
 
-    // KIỂM TRA DATABASE
-    const allStocks = await db.collection('productbranchstocks').find({ productId: testProductId }).toArray();
-    console.log('All Stocks for testProductId:', allStocks);
-    
-    const logs = await db.collection('productlogs').find({ productId: testProductId }).toArray();
-    console.log('All Logs for testProductId:', logs);
-    
-    const stock = allStocks.find((s: any) => s.branchId.toString() === branchId.toString());
-    // Tồn kho mới phải là 25
-    const has25 = allStocks.some((s: any) => s.qty === 25);
-    expect(has25).toBe(true);
+      const ownAudit = await createAudit(employeeApi, {
+        code: auditCode(runKey, 'CASE9-OWN'),
+        warehouseId: hn._id,
+        auditType: 'BY_PRODUCT',
+        status: 'COUNTING',
+        note: `${runKey} case 9 own`,
+        items: [{ productId: localProduct.productId, physicalQuantity: 4 }],
+      });
+      expect(ownAudit.response.status()).toBe(201);
+
+      const foreignCreate = await employeeApi.post('inventory-audits', {
+        data: {
+          code: auditCode(runKey, 'CASE9-FORBIDDEN'),
+          warehouseId: hcm._id,
+          auditType: 'BY_PRODUCT',
+          status: 'DRAFT',
+          note: `${runKey} case 9 forbidden`,
+          items: [{ productId: foreignProduct.productId }],
+        },
+      });
+      expect(foreignCreate.status()).toBe(403);
+
+      const foreignAudit = await createAudit(adminApi, {
+        code: auditCode(runKey, 'CASE9-HCM-AUDIT'),
+        warehouseId: hcm._id,
+        auditType: 'BY_PRODUCT',
+        status: 'COUNTING',
+        note: `${runKey} case 9 admin foreign`,
+        items: [{ productId: foreignProduct.productId, physicalQuantity: 2 }],
+      });
+      expect(foreignAudit.response.status()).toBe(201);
+
+      const forbiddenRead = await employeeApi.get(`inventory-audits/${foreignAudit.data._id}`);
+      expect(forbiddenRead.status()).toBe(403);
+
+      await submitAudit(employeeApi, ownAudit.data._id);
+      const forbiddenReconcile = await employeeApi.post(`inventory-audits/${ownAudit.data._id}/reconcile`);
+      expect(forbiddenReconcile.status()).toBe(403);
+    } finally {
+      await employeeApi?.dispose();
+      await cleanupEmployee(adminApi, employeeId);
+    }
+  });
+
+  test('CASE 10 and 11 filters and pagination come from backend totals', async () => {
+    const product = await seedAuditProduct(adminApi, {
+      code: auditCode(runKey, 'CASE10'),
+      name: `${runKey} Filter Product`,
+      branchStocks: { [hn._id]: 2 },
+    });
+
+    const first = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE10-FIRST'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'COUNTING',
+      note: `${runKey} filter-alpha`,
+      items: [{ productId: product.productId, physicalQuantity: 2 }],
+    });
+    const second = await createAudit(adminApi, {
+      code: auditCode(runKey, 'CASE10-SECOND'),
+      warehouseId: hn._id,
+      auditType: 'BY_PRODUCT',
+      status: 'COUNTING',
+      note: `${runKey} filter-beta`,
+      items: [{ productId: product.productId, physicalQuantity: 1 }],
+    });
+    expect(first.response.status()).toBe(201);
+    expect(second.response.status()).toBe(201);
+
+    const listByWarehouse = await adminApi.get(`inventory-audits?warehouseId=${hn._id}&note=${encodeURIComponent(`${runKey} filter`)}`);
+    expect(listByWarehouse.ok()).toBeTruthy();
+    const warehousePayload = await listByWarehouse.json();
+    expect(warehousePayload.total).toBeGreaterThanOrEqual(2);
+
+    const pageOne = await adminApi.get(`inventory-audits?warehouseId=${hn._id}&note=${encodeURIComponent(`${runKey} filter`)}&page=1&limit=1`);
+    expect(pageOne.ok()).toBeTruthy();
+    const pageOnePayload = await pageOne.json();
+    expect(pageOnePayload.total).toBeGreaterThanOrEqual(2);
+    expect(pageOnePayload.items).toHaveLength(1);
+
+    const itemsShortage = await adminApi.get(`inventory-audit-items?auditId=${second.data._id}&productKeyword=${encodeURIComponent(product.code)}&varianceType=SHORTAGE`);
+    expect(itemsShortage.ok()).toBeTruthy();
+    const shortagePayload = await itemsShortage.json();
+    expect(shortagePayload.total).toBe(1);
+    expect(shortagePayload.items[0].varianceQuantity).toBe(-1);
   });
 });

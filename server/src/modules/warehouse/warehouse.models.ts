@@ -178,6 +178,84 @@ TransferAuditLogSchema.index({ transferRequestId: 1, createdAt: -1 });
 TransferAuditLogSchema.index({ actionType: 1, actorId: 1 });
 export const TransferAuditLog = model('TransferAuditLog', TransferAuditLogSchema);
 
+const InventoryAuditSchema = new Schema({
+  code: { type: String, required: true, unique: true },
+  warehouseId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
+  auditType: {
+    type: String,
+    enum: ['BY_PRODUCT', 'FULL_WAREHOUSE'],
+    default: 'BY_PRODUCT',
+  },
+  status: {
+    type: String,
+    enum: ['DRAFT', 'COUNTING', 'SUBMITTED', 'RECONCILED', 'CANCELLED'],
+    default: 'DRAFT',
+  },
+  note: String,
+  snapshotAt: Date,
+  createdById: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  submittedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  submittedAt: Date,
+  reconciledById: { type: Schema.Types.ObjectId, ref: 'User' },
+  reconciledAt: Date,
+  cancelledById: { type: Schema.Types.ObjectId, ref: 'User' },
+  cancelledAt: Date,
+  cancelReason: String,
+  linkedInventoryBillId: { type: Schema.Types.ObjectId, ref: 'InventoryVoucher' },
+  linkedInventoryBillIds: [{ type: Schema.Types.ObjectId, ref: 'InventoryVoucher' }],
+  linkedInventoryBillCodes: [String],
+  mergedIntoAuditId: { type: Schema.Types.ObjectId, ref: 'InventoryAudit' },
+  sourceAuditIds: [{ type: Schema.Types.ObjectId, ref: 'InventoryAudit' }],
+  version: { type: Number, default: 0 },
+  reconcileLockToken: String,
+}, { timestamps: true, strict: false });
+
+InventoryAuditSchema.index({ code: 'text', note: 'text' });
+InventoryAuditSchema.index({ warehouseId: 1, status: 1, createdAt: -1 });
+InventoryAuditSchema.index({ auditType: 1, status: 1, createdAt: -1 });
+InventoryAuditSchema.index({ linkedInventoryBillId: 1 }, { sparse: true });
+export const InventoryAudit = model('InventoryAudit', InventoryAuditSchema);
+
+const InventoryAuditItemSchema = new Schema({
+  inventoryAuditId: { type: Schema.Types.ObjectId, ref: 'InventoryAudit', required: true },
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  productCodeSnapshot: String,
+  barcodeSnapshot: String,
+  productNameSnapshot: String,
+  unitSnapshot: String,
+  costPriceSnapshot: { type: Number, default: 0 },
+  salePriceSnapshot: { type: Number, default: 0 },
+  systemQuantitySnapshot: { type: Number, default: 0 },
+  inTransitQuantitySnapshot: { type: Number, default: 0 },
+  physicalQuantity: { type: Number, default: null },
+  varianceQuantity: { type: Number, default: 0 },
+  note: String,
+  countedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  countedAt: Date,
+}, { timestamps: true, strict: false });
+
+InventoryAuditItemSchema.index({ inventoryAuditId: 1, productId: 1 }, { unique: true });
+InventoryAuditItemSchema.index({
+  productCodeSnapshot: 'text',
+  barcodeSnapshot: 'text',
+  productNameSnapshot: 'text',
+});
+export const InventoryAuditItem = model('InventoryAuditItem', InventoryAuditItemSchema);
+
+const InventoryAuditLogSchema = new Schema({
+  inventoryAuditId: { type: Schema.Types.ObjectId, ref: 'InventoryAudit', required: true },
+  actionType: { type: String, required: true },
+  actorId: { type: Schema.Types.ObjectId, ref: 'User' },
+  previousStatus: String,
+  nextStatus: String,
+  reason: String,
+  metadata: Schema.Types.Mixed,
+}, { timestamps: true, strict: false });
+
+InventoryAuditLogSchema.index({ inventoryAuditId: 1, createdAt: -1 });
+InventoryAuditLogSchema.index({ actionType: 1, actorId: 1 });
+export const InventoryAuditLog = model('InventoryAuditLog', InventoryAuditLogSchema);
+
 const InventoryCheckSchema = new Schema({
   id: { type: String, required: true, unique: true },
   date: String,

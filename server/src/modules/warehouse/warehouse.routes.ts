@@ -430,11 +430,13 @@ function normalizeText(value: any) {
 }
 
 function kindLabel(kind: string) {
+  if (kind === 'INVENTORY_AUDIT_IMPORT') return 'Nháº­p bÃ¹ trá»« kiá»ƒm kho';
+  if (kind === 'INVENTORY_AUDIT_EXPORT') return 'Xuáº¥t bÃ¹ trá»« kiá»ƒm kho';
   return transactionKinds.find((option) => option.value === kind)?.label || kind;
 }
 
 function classifyInventoryVoucher(voucher: any) {
-  if (['EXPORT_TRANSFER', 'IMPORT_TRANSFER', 'RETURN_TRANSFER'].includes(String(voucher.type || ''))) return String(voucher.type);
+if (['EXPORT_TRANSFER', 'IMPORT_TRANSFER', 'RETURN_TRANSFER', 'INVENTORY_AUDIT_IMPORT', 'INVENTORY_AUDIT_EXPORT'].includes(String(voucher.type || ''))) return String(voucher.type);
   const type = normalizeText(voucher.type);
   const note = normalizeText(voucher.note);
   const supplier = normalizeText(voucher.supplier);
@@ -459,7 +461,7 @@ function directionForKind(kind: string, quantity = 0) {
     if (quantity < 0) return { type: 'ADJUSTMENT', label: 'Điều chỉnh giảm', tone: 'adjustment-out' };
     return { type: 'ADJUSTMENT', label: 'Điều chỉnh', tone: 'adjustment' };
   }
-  if (['SUPPLIER_IMPORT', 'CREATE_PRODUCT_IMPORT', 'MANUAL_IMPORT', 'RETAIL_REFUND', 'WHOLESALE_REFUND', 'SALE_CANCEL'].includes(kind)) {
+  if (['SUPPLIER_IMPORT', 'CREATE_PRODUCT_IMPORT', 'MANUAL_IMPORT', 'RETAIL_REFUND', 'WHOLESALE_REFUND', 'SALE_CANCEL', 'INVENTORY_AUDIT_IMPORT'].includes(kind)) {
     return { type: 'IMPORT', label: 'Nhập', tone: kind.includes('REFUND') || kind === 'SALE_CANCEL' ? 'refund' : 'import' };
   }
   return { type: 'EXPORT', label: 'Xuất', tone: 'export' };
@@ -1510,8 +1512,10 @@ function serializeTransfer(row: any, user?: any) {
   };
 }
 
+const TRANSFER_USER_POPULATE_FIELDS = 'createdById requestApprovedById dispatchConfirmedById dispatchApprovedById receiptConfirmedById receiptApprovedById rejectedById cancelledById returnedById';
+
 function transferListFilter(req: any) {
-  const tab = String(req.query.tab || req.query.tabs || 'draft');
+  const tab = String(req.query.tab || req.query.tabs || 'all');
   const filter: any = {};
   if (tab === 'outgoing') filter.status = { $in: OUTGOING_STATUSES };
   if (tab === 'incoming') filter.status = { $in: INCOMING_STATUSES };
@@ -1533,23 +1537,17 @@ function transferListFilter(req: any) {
 }
 
 router.get('/transfers', async (req, res) => {
-  const tab = String(req.query.tab || req.query.tabs || 'draft');
+  const tab = String(req.query.tab || req.query.tabs || 'all');
   const page = Math.max(Number(req.query.page || 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit || 20), 1), 200);
-  if (tab === 'all') {
-    const filter: any = { transferRequestId: { $exists: true } };
-    if (textQuery(req.query.id)) filter.$or = [{ voucherId: textQuery(req.query.id) }, { requestVoucher: textQuery(req.query.id) }, { transferRequestCode: textQuery(req.query.id) }];
-    const range = dateRangeQuery(req.query.fromDate, req.query.toDate);
-    if (range) filter.createdAt = range;
-    const [items, total] = await Promise.all([
-      InventoryVoucher.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
-      InventoryVoucher.countDocuments(filter),
-    ]);
-    return res.json({ items, total, page, limit });
-  }
   const { filter } = transferListFilter(req);
   const [items, total] = await Promise.all([
-    WarehouseTransfer.find(filter).populate('sourceWarehouseId destinationWarehouseId fromWarehouse toWarehouse createdById requestApprovedById dispatchConfirmedById dispatchApprovedById receiptConfirmedById receiptApprovedById rejectedById cancelledById returnedById', 'name code email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    WarehouseTransfer.find(filter)
+      .populate(TRANSFER_USER_POPULATE_FIELDS, 'name email')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
     WarehouseTransfer.countDocuments(filter),
   ]);
   res.json({ items: items.map((item) => serializeTransfer(item, (req as any).user)), total, page, limit });
@@ -1716,7 +1714,7 @@ router.post('/transfers/import/commit', async (req, res) => {
 router.get('/transfers/:id', async (req, res) => {
   const transfer = await readTransferOr404(req.params.id);
   if (!actorCanAccessTransfer((req as any).user, transfer)) return res.status(403).json({ message: 'Bạn không có quyền xem phiếu chuyển kho này.' });
-  const populated = await WarehouseTransfer.findById(transfer._id).populate('sourceWarehouseId destinationWarehouseId fromWarehouse toWarehouse createdById requestApprovedById dispatchConfirmedById dispatchApprovedById receiptConfirmedById receiptApprovedById rejectedById cancelledById returnedById', 'name code email').lean();
+  const populated = await WarehouseTransfer.findById(transfer._id).populate(TRANSFER_USER_POPULATE_FIELDS, 'name email').lean();
   const audits = await TransferAuditLog.find({ transferRequestId: transfer._id }).populate('actorId', 'name email').sort({ createdAt: 1 }).lean();
   res.json({ ...serializeTransfer(populated, (req as any).user), audits });
 });

@@ -18,6 +18,7 @@ import taskRoutes from './modules/task/task.routes.js';
 import printFormsRoutes from './modules/printForms/printForms.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import warehouseRoutes from './modules/warehouse/warehouse.routes.js';
+import inventoryAuditRoutes, { inventoryAuditItemsRouter } from './modules/warehouse/inventory-audit.routes.js';
 import ordersRoutes from './modules/orders/orders.routes.js';
 import reportsRoutes from './modules/reports/reports.routes.js';
 import { Branch } from './core/org/branch.model.js';
@@ -105,6 +106,8 @@ app.use('/api/accounting', requireAuth, requireOwner, accountingRoutes);
 app.use('/api/tasks', requireAuth, requireOwner, taskRoutes);
 app.use('/api/print-forms', requireAuth, requireOwner, printFormsRoutes);
 app.use('/api/warehouse', requireAuth, warehouseAccessGuard, warehouseRoutes);
+app.use('/api/inventory-audits', requireAuth, inventoryAuditRoutes);
+app.use('/api/inventory-audit-items', requireAuth, inventoryAuditItemsRouter);
 app.use('/api/orders', requireAuth, ordersRoutes);
 app.use('/api/reports', requireAuth, requireOwner, reportsRoutes);
 

@@ -5,6 +5,7 @@ import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranch
 import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment, moveProductQty } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
+import { recomputeCustomerMetricsByIds } from '../customer/customer.metrics.js';
 import { Order } from '../orders/orders.models.js';
 import multer from 'multer';
 import * as xlsx from 'xlsx';
@@ -805,18 +806,13 @@ router.post('/sales/:id/cancel', async (req, res) => {
         valueAfter: Number(item.value ?? 0),
       });
     }
-    if (payment.customerId) {
-      const customer = await Customer.findById(payment.customerId);
-      if (customer) {
-        customer.totalSpent = Math.max((customer.totalSpent || 0) - (payment.value || 0), 0);
-        customer.purchaseCount = Math.max((customer.purchaseCount || 0) - 1, 0);
-        await customer.save();
-      }
-    }
   }
 
   payment.status = 'cancelled';
   await payment.save();
+  if (payment.customerId) {
+    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
+  }
   await writeAuditLog(req, { action: 'sales.cancel', module: 'sales', resource: 'SalePayment', resourceId: payment.id, before: payment });
   res.json(payment);
 });

@@ -1,0 +1,187 @@
+.warehouse-audit-admin .wr-card {
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.warehouse-audit-admin .audit-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 0;
+}
+
+.warehouse-audit-admin .audit-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warehouse-audit-admin .audit-filters {
+  gap: 10px;
+  padding: 14px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
+}
+
+.warehouse-audit-admin .audit-date {
+  min-width: 138px;
+}
+
+.warehouse-audit-admin .audit-table {
+  min-width: 1280px;
+}
+
+.warehouse-audit-admin .audit-note-cell {
+  max-width: 260px;
+  white-space: normal;
+  word-break: break-word;
+  color: #475569;
+}
+
+.warehouse-audit-admin .audit-inline-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.warehouse-audit-admin .audit-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.warehouse-audit-admin .audit-pill.success {
+  color: #0f8b4c;
+  background: #eaf9ef;
+}
+
+.warehouse-audit-admin .audit-pill.neutral {
+  color: #475569;
+  background: #eef2f7;
+}
+
+.warehouse-audit-admin .audit-variance {
+  font-weight: 800;
+}
+
+.warehouse-audit-admin .audit-variance.positive {
+  color: #059669;
+}
+
+.warehouse-audit-admin .audit-variance.negative {
+  color: #dc2626;
+}
+
+.warehouse-audit-admin .audit-variance.neutral {
+  color: #475569;
+}
+
+.audit-small-modal {
+  width: min(480px, 94vw);
+}
+
+.audit-preview-modal {
+  width: min(760px, 95vw);
+}
+
+.audit-voucher-modal {
+  width: min(980px, 96vw);
+}
+
+.audit-preview-copy,
+.audit-loading-copy {
+  margin: 0;
+  padding: 18px 18px 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.audit-loading-copy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 18px;
+}
+
+.audit-modal-body {
+  padding: 0 16px 16px;
+}
+
+.audit-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+}
+
+.audit-textarea {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: vertical;
+  font: inherit;
+}
+
+.audit-voucher-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+
+.audit-voucher-tabs button {
+  min-height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.audit-voucher-tabs button.active {
+  color: #fff;
+  border-color: #0f766e;
+  background: linear-gradient(135deg, #0f766e, #0f9a84);
+}
+
+.spin {
+  animation: audit-spin 1s linear infinite;
+}
+
+@keyframes audit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 860px) {
+  .warehouse-audit-admin .audit-filters {
+    align-items: stretch;
+  }
+
+  .warehouse-audit-admin .audit-date,
+  .warehouse-audit-admin .wr-filter,
+  .warehouse-audit-admin .wr-search-field {
+    flex: 1 1 160px;
+    width: auto;
+    max-width: none;
+  }
+
+  .audit-modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .audit-modal-footer .btn {
+    width: 100%;
+  }
+}

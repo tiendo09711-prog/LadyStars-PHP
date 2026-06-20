@@ -1,5 +1,5 @@
 import { PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SalePayment, StockAdjustment } from './product.models.js';
-import { Customer } from '../customer/customer.models.js';
+import { recomputeCustomerMetricsByIds } from '../customer/customer.metrics.js';
 
 class ProductFlowError extends Error {
   status: number;
@@ -252,14 +252,7 @@ export async function completeSalePayment(paymentId: string) {
   await payment.save();
 
   if (payment.customerId) {
-    const customer = await Customer.findById(payment.customerId);
-    if (customer) {
-      customer.totalSpent = (customer.totalSpent || 0) + (payment.value || 0);
-      customer.purchaseCount = (customer.purchaseCount || 0) + 1;
-      customer.lastPurchaseDate = new Date();
-      customer.daysSinceLastPurchase = 0;
-      await customer.save();
-    }
+    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
   }
 
   return payment;
@@ -289,6 +282,9 @@ export async function completeProductRefund(refundId: string) {
   await refund.save();
   if (payment?._id) {
     await SalePayment.findByIdAndUpdate(payment._id, { status: 'refunded' });
+  }
+  if (payment?.customerId) {
+    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
   }
   return refund;
 }
