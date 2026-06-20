@@ -2,7 +2,17 @@ import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
 import { writeAuditLog } from '../../core/audit/audit.service.js';
 import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SaleChannel, SalePayment, Shelf, StockAdjustment, Trademark, ProductEditLog } from './product.models.js';
-import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment, moveProductQty } from './product.service.js';
+import {
+  buildProductRefundPayload,
+  buildSalePaymentPayload,
+  cancelSalePayment,
+  completeProductRefund,
+  completeSalePayment,
+  completeStockAdjustment,
+  createReturnExchange,
+  moveProductQty,
+  reviseCompletedSalePayment,
+} from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
 import { recomputeCustomerMetricsByIds } from '../customer/customer.metrics.js';
@@ -189,6 +199,87 @@ async function populateSale(query: any) {
     .populate('userId', 'name email')
     .populate('authorId', 'name email')
     .populate('typePayment.methodId', 'name code');
+}
+
+function saleHasGiftItems(sale: any) {
+  return Array.isArray(sale?.items) && sale.items.some((item: any) => item?.isGift === true || item?.gift === true || item?.giftForProductId);
+}
+
+async function decorateSales(input: any) {
+  const docs = Array.isArray(input) ? input : input ? [input] : [];
+  if (!docs.length) return Array.isArray(input) ? [] : null;
+
+  const saleIds = docs
+    .map((doc) => String(doc?._id || '').trim())
+    .filter((id) => mongoose.isValidObjectId(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  const refundRows = saleIds.length
+    ? await ProductRefund.aggregate([
+      { $match: { paymentId: { $in: saleIds }, status: { $ne: 'cancelled' } } },
+      {
+        $group: {
+          _id: '$paymentId',
+          activeRefundCount: { $sum: 1 },
+          completedRefundCount: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+          },
+          returnedQuantity: { $sum: '$amount' },
+        },
+      },
+    ])
+    : [];
+  const refundItemRows = saleIds.length
+    ? await ProductRefund.aggregate([
+      { $match: { paymentId: { $in: saleIds }, status: 'completed' } },
+      { $unwind: { path: '$items', preserveNullAndEmptyArrays: false } },
+      {
+        $group: {
+          _id: { paymentId: '$paymentId', productId: '$items.productId' },
+          quantity: { $sum: { $ifNull: ['$items.amount', 0] } },
+        },
+      },
+    ])
+    : [];
+
+  const refundMap = new Map(refundRows.map((row: any) => [String(row._id), row]));
+  const refundItemMap = new Map<string, Record<string, number>>();
+  for (const row of refundItemRows) {
+    const saleId = String(row?._id?.paymentId || '');
+    const productId = String(row?._id?.productId || '');
+    if (!saleId || !productId) continue;
+    const current = refundItemMap.get(saleId) || {};
+    current[productId] = Number(row.quantity || 0);
+    refundItemMap.set(saleId, current);
+  }
+  const decorated = docs.map((doc) => {
+    const sale = typeof doc?.toObject === 'function' ? doc.toObject() : { ...doc };
+    const refundMeta = refundMap.get(String(sale._id)) || {};
+    const returnedQuantityByProduct = refundItemMap.get(String(sale._id)) || {};
+    const activeRefundCount = Number(refundMeta.activeRefundCount || 0);
+    const returnedQuantity = Number(refundMeta.returnedQuantity || 0);
+    const totalSoldQuantity = Array.isArray(sale.items)
+      ? sale.items.reduce((sum: number, item: any) => sum + (Number(item?.amount) || 0), 0)
+      : 0;
+    const remainingReturnableQuantity = Math.max(totalSoldQuantity - returnedQuantity, 0);
+    const status = String(sale.status || '').toLowerCase();
+    const refundStatus = String(sale.refundStatus || 'none');
+    const hasGiftItems = saleHasGiftItems(sale);
+
+    return {
+      ...sale,
+      hasGiftItems,
+      activeRefundCount,
+      returnedQuantityByProduct,
+      remainingReturnableQuantity,
+      canPrintGiftInvoice: hasGiftItems,
+      canRefund: status === 'completed' && refundStatus !== 'full' && remainingReturnableQuantity > 0,
+      canEdit: status === 'completed' && refundStatus === 'none' && activeRefundCount === 0,
+      canDelete: status === 'draft' || (status === 'cancelled' && activeRefundCount === 0) || (status === 'completed' && activeRefundCount === 0),
+    };
+  });
+
+  return Array.isArray(input) ? decorated : decorated[0];
 }
 
 async function populateRefund(query: any) {
@@ -737,7 +828,7 @@ router.get('/sales', async (req, res) => {
     populateSale(SalePayment.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)),
     SalePayment.countDocuments(filter),
   ]);
-  res.json({ items, total, page, limit });
+  res.json({ items: await decorateSales(items), total, page, limit });
 });
 
 router.post('/sales', async (req, res) => {
@@ -751,7 +842,7 @@ router.post('/sales', async (req, res) => {
   const item = await SalePayment.create(payload);
   const populated = await populateSale(SalePayment.findById(item._id));
   await writeAuditLog(req, { action: 'sales.create', module: 'sales', resource: 'SalePayment', resourceId: item.id, after: populated });
-  res.status(201).json(populated);
+  res.status(201).json(await decorateSales(populated));
 });
 
 router.post('/sales/:id/complete', async (req, res) => {
@@ -760,7 +851,7 @@ router.post('/sales/:id/complete', async (req, res) => {
   const item = await completeSalePayment(req.params.id);
   const populated = await populateSale(SalePayment.findById(item._id));
   await writeAuditLog(req, { action: 'sales.complete', module: 'sales', resource: 'SalePayment', resourceId: item.id, after: populated });
-  res.json(populated);
+  res.json(await decorateSales(populated));
 });
 
 router.get('/sales/:id', async (req, res) => {
@@ -768,62 +859,112 @@ router.get('/sales/:id', async (req, res) => {
   if (!scopedSale) return res.status(404).json({ message: 'Not found' });
   const item = await populateSale(SalePayment.findById(scopedSale._id));
   if (!item) return res.status(404).json({ message: 'Not found' });
-  res.json(item);
+  res.json(await decorateSales(item));
 });
 
 router.patch('/sales/:id', async (req, res) => {
   const before = await findScopedSale(req as any, { _id: req.params.id });
   if (!before) return res.status(404).json({ message: 'Not found' });
-  if (before.status === 'completed') return res.status(422).json({ message: 'Completed sale cannot be edited' });
   ensureBranchInScope(req as any, before.branchId);
-  const payload = await buildSalePaymentPayload({
-    ...req.body,
-    branchId: before.branchId,
-    code: req.body.code || before.code,
-    status: req.body.status || before.status,
-  });
-  payload.branchId = before.branchId;
-  payload.userId = before.userId;
-  const item = await SalePayment.findOneAndUpdate(scopedSaleFilter(req as any, { _id: req.params.id }), payload, { new: true, runValidators: true });
+  let item: any;
+  if (before.status === 'completed') {
+    item = await reviseCompletedSalePayment(req.params.id, {
+      ...req.body,
+      userId: (req as any).user?.sub || before.userId,
+    });
+  } else {
+    if (before.status === 'cancelled') return res.status(422).json({ message: 'Cancelled sale cannot be edited' });
+    const payload = await buildSalePaymentPayload({
+      ...req.body,
+      branchId: before.branchId,
+      code: before.code,
+      status: req.body.status || before.status,
+      userId: before.userId,
+      authorId: before.authorId || before.userId,
+      refundStatus: before.refundStatus || 'none',
+      refundedValue: before.refundedValue || 0,
+      createdAt: before.createdAt,
+    });
+    payload.branchId = before.branchId;
+    payload.userId = before.userId;
+    payload.authorId = before.authorId || before.userId;
+    item = await SalePayment.findOneAndUpdate(scopedSaleFilter(req as any, { _id: req.params.id }), payload, { new: true, runValidators: true });
+  }
   const populated = await populateSale(SalePayment.findById(item?._id));
   await writeAuditLog(req, { action: 'sales.update', module: 'sales', resource: 'SalePayment', resourceId: item?.id, before, after: populated });
-  res.json(populated);
+  res.json(await decorateSales(populated));
 });
 
 router.post('/sales/:id/cancel', async (req, res) => {
   const payment = await findScopedSale(req as any, { _id: req.params.id });
   if (!payment) return res.status(404).json({ message: 'Not found' });
-  if (payment.status === 'cancelled') return res.status(422).json({ message: 'Already cancelled' });
-
-  if (payment.status === 'completed') {
-    for (const item of payment.items) {
-      await moveProductQty({
-        productId: item.productId,
-        branchId: payment.branchId,
-        sourceType: 'SalePaymentCancel',
-        sourceId: payment._id,
-        amount: Number(item.amount ?? 0),
-        valueAfter: Number(item.value ?? 0),
-      });
-    }
-  }
-
-  payment.status = 'cancelled';
-  await payment.save();
-  if (payment.customerId) {
-    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
-  }
-  await writeAuditLog(req, { action: 'sales.cancel', module: 'sales', resource: 'SalePayment', resourceId: payment.id, before: payment });
-  res.json(payment);
+  const before = typeof payment.toObject === 'function' ? payment.toObject() : payment;
+  const item = await cancelSalePayment(req.params.id);
+  const populated = await populateSale(SalePayment.findById(item?._id));
+  await writeAuditLog(req, { action: 'sales.cancel', module: 'sales', resource: 'SalePayment', resourceId: item.id, before, after: populated });
+  res.json(await decorateSales(populated));
 });
 
 router.delete('/sales/:id', async (req, res) => {
   const item = await findScopedSale(req as any, { _id: req.params.id });
   if (!item) return res.status(404).json({ message: 'Not found' });
-  if (item.status === 'completed') return res.status(422).json({ message: 'Completed sale cannot be deleted' });
+  const activeRefundCount = await ProductRefund.countDocuments({ paymentId: item._id, status: { $ne: 'cancelled' } });
+  if (item.status === 'completed') return res.status(422).json({ message: 'Completed sale must be cancelled instead of deleted' });
+  if (item.status === 'cancelled' && activeRefundCount > 0) {
+    return res.status(422).json({ message: 'Cancelled sale with return or exchange documents cannot be deleted' });
+  }
   await item.deleteOne();
   await writeAuditLog(req, { action: 'sales.delete', module: 'sales', resource: 'SalePayment', resourceId: item.id, before: item });
   res.status(204).send();
+});
+
+router.post('/sales/:id/return-exchange', async (req, res) => {
+  const sale = await findScopedSale(req as any, { _id: req.params.id });
+  if (!sale) return res.status(404).json({ message: 'Not found' });
+
+  const result = await createReturnExchange(req.params.id, {
+    ...req.body,
+    userId: (req as any).user?.sub,
+  });
+
+  const populatedSale = result.sale?._id ? await populateSale(SalePayment.findById(result.sale._id)) : null;
+  const populatedReplacementSale = result.replacementSale?._id ? await populateSale(SalePayment.findById(result.replacementSale._id)) : null;
+  const populatedRefund = result.refund?._id ? await populateRefund(ProductRefund.findById(result.refund._id)) : null;
+
+  if (populatedRefund) {
+    await writeAuditLog(req, {
+      action: 'sales_refund.create',
+      module: 'sales',
+      resource: 'ProductRefund',
+      resourceId: populatedRefund.id,
+      after: populatedRefund,
+    });
+  }
+  if (populatedReplacementSale) {
+    await writeAuditLog(req, {
+      action: 'sales.create',
+      module: 'sales',
+      resource: 'SalePayment',
+      resourceId: populatedReplacementSale.id,
+      after: populatedReplacementSale,
+    });
+  }
+  if (populatedSale) {
+    await writeAuditLog(req, {
+      action: 'sales.return_exchange',
+      module: 'sales',
+      resource: 'SalePayment',
+      resourceId: populatedSale.id,
+      before: sale,
+      after: populatedSale,
+    });
+  }
+
+  res.status(201).json({
+    sale: await decorateSales(populatedSale),
+    refund: populatedRefund,
+    replacementSale: await decorateSales(populatedReplacementSale),
+  });
 });
 
 router.get('/refunds', async (req, res) => {

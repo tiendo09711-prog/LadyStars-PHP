@@ -67,6 +67,7 @@ export function RetailInvoiceCreatePage() {
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [dbStaffs, setDbStaffs] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
+  const [loadedSale, setLoadedSale] = useState<any>(null);
   const [products, setProducts] = useState<SaleLine[]>([]);
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([]);
   const [productSearch, setProductSearch] = useState('');
@@ -113,6 +114,7 @@ export function RetailInvoiceCreatePage() {
         if (cancelled) return;
 
         const sale = editRes?.data;
+        setLoadedSale(sale || null);
         const saleBranchId = sale?.branchId?._id || sale?.branchId || '';
         const targetBranchId = requestedBranchId || saleBranchId;
         if (!targetBranchId) throw new Error('Hóa đơn bán lẻ cần một cửa hàng/kho xuất hàng.');
@@ -391,9 +393,8 @@ export function RetailInvoiceCreatePage() {
         setCustomerSuggestions((current) => [customerResponse.data, ...current.filter((item) => item._id !== customerResponse.data._id)]);
       }
 
-      if (editId) await http.post(`/products/sales/${editId}/cancel`);
+      const payload = {
 
-      const createResponse = await http.post('/products/sales', {
         branchId: activeBranchId,
         customerId,
         note: form.note,
@@ -403,7 +404,7 @@ export function RetailInvoiceCreatePage() {
         discountType: 'number',
         valuePayment: paidAmount,
         typePayment: paymentLines.map((line) => ({ methodId: line.methodId, amount: line.amount })),
-        status: 'draft',
+        status: loadedSale?.status || 'draft',
         items: products.map((line) => ({
           productId: line.productId,
           amount: line.quantity,
@@ -411,9 +412,18 @@ export function RetailInvoiceCreatePage() {
           discountValue: 0,
           discountType: 'number',
         })),
-      });
+      };
 
-      await http.post(`/products/sales/${createResponse.data._id}/complete`);
+      let saleResponse;
+      let createResponse: any;
+      if (editId) {
+        saleResponse = await http.patch(`/products/sales/${editId}`, payload);
+        createResponse = saleResponse;
+      } else {
+        saleResponse = await http.post('/products/sales', payload);
+        createResponse = saleResponse;
+        await http.post(`/products/sales/${saleResponse.data._id}/complete`);
+      }
       setSuccessMessage(`Hóa đơn ${createResponse.data.code} đã được lưu và trừ tồn kho thành công.`);
       window.setTimeout(() => navigate(`/sales-channels/${channel}/retail`), 1200);
     } catch (err: any) {
@@ -442,7 +452,7 @@ export function RetailInvoiceCreatePage() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1>{editId ? 'Tạo hóa đơn thay thế' : 'Thêm hóa đơn bán lẻ'}</h1>
+            <h1>{editId ? 'Sửa hóa đơn bán lẻ' : 'Thêm hóa đơn bán lẻ'}</h1>
             <span><Warehouse size={14} /> {branch ? `${branch.name} (${branch.code || '—'})` : 'Chưa xác định kho'}</span>
           </div>
         </div>

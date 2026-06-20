@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { crudRoutes } from '../../core/utils/routeFactory.js';
-import { SalePayment } from '../product/product.models.js';
+import { ProductRefund, SalePayment } from '../product/product.models.js';
 import { AccountingType, CashTransaction, BankTransaction, SummaryTransaction, ExpensePayment, PayPerson, Receipt, CustomerDebtSummary, CustomerDebtRecord, StaffDebtSummary, VendorDebtSummary, VendorDebtRecord, LogBookEntry, InstallmentCollection, AccountingTransactionLog, AccountingAccount, InstallmentService, InstallmentSetting } from './accounting.models.js';
 const router = Router();
 router.use('/types', crudRoutes(AccountingType));
@@ -56,7 +56,7 @@ router.get('/accounts-list', async (req, res) => {
 router.get('/invoices', async (req, res) => {
   const page = Math.max(Number(req.query.page || 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
-  const filter = { status: { $in: ['completed', 'refunded'] } };
+  const filter = { status: 'completed' };
   const [items, total] = await Promise.all([
     SalePayment.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
     SalePayment.countDocuments(filter),
@@ -66,8 +66,8 @@ router.get('/invoices', async (req, res) => {
 router.get('/reports/sales', async (req, res) => {
   const page = Math.max(Number(req.query.page || 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
-  const filter = { status: { $in: ['completed', 'refunded'] } };
-  const [sales, total, summaryRows] = await Promise.all([
+  const filter = { status: 'completed' };
+  const [sales, total, summaryRows, refundRows] = await Promise.all([
     SalePayment.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
     SalePayment.countDocuments(filter),
     SalePayment.aggregate([
@@ -81,8 +81,21 @@ router.get('/reports/sales', async (req, res) => {
         },
       },
     ]),
+    ProductRefund.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: null,
+          refundValue: { $sum: '$value' },
+          refundPaid: { $sum: '$totalPayableAmount' },
+        },
+      },
+    ]),
   ]);
   const summary = summaryRows[0] ?? { revenue: 0, paid: 0, cost: 0 };
+  const refundSummary = refundRows[0] ?? { refundValue: 0, refundPaid: 0 };
+  const netRevenue = Math.max((summary.revenue ?? 0) - (refundSummary.refundValue ?? 0), 0);
+  const netPaid = Math.max((summary.paid ?? 0) - (refundSummary.refundPaid ?? 0), 0);
   res.json({
     items: sales,
     total,
@@ -90,10 +103,11 @@ router.get('/reports/sales', async (req, res) => {
     limit,
     summary: {
       orders: total,
-      revenue: summary.revenue,
-      paid: summary.paid,
-      debt: summary.revenue - summary.paid,
-      grossProfit: summary.revenue - summary.cost,
+      revenue: netRevenue,
+      paid: netPaid,
+      debt: netRevenue - netPaid,
+      grossProfit: netRevenue - (summary.cost ?? 0),
+      refunded: refundSummary.refundValue ?? 0,
     },
   });
 });

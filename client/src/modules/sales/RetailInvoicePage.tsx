@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -8,14 +8,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  FilePenLine,
+  Gift,
   LoaderCircle,
   MoreHorizontal,
   Package,
   Plus,
+  Printer,
   RefreshCw,
   RotateCcw,
   Search,
   Store,
+  Trash2,
   UserRound,
   Warehouse,
   X,
@@ -47,6 +51,8 @@ type Branch = {
 type Invoice = Record<string, any>;
 
 const PAGE_SIZE = 15;
+const PRINT_WINDOW_NAME = 'retail-invoice-print';
+const PRINT_WINDOW_FEATURES = 'popup=yes,width=900,height=1200';
 const EMPTY_FILTERS: Filters = {
   invoiceCode: '',
   storeId: '',
@@ -104,13 +110,52 @@ function grossValue(invoice: Invoice) {
   );
 }
 
-function statusMeta(status: unknown) {
+function statusMeta(status: unknown, refundStatus?: unknown) {
+  const refund = String(refundStatus || '').toLowerCase();
   const value = String(status || '').toLowerCase();
+  if (value === 'completed' && refund === 'full') return { label: 'Đã hoàn', tone: 'neutral' };
+  if (value === 'completed' && refund === 'partial') return { label: 'Đã hoàn một phần', tone: 'warning' };
   if (value === 'completed') return { label: 'Hoàn tất', tone: 'success' };
   if (value === 'cancelled') return { label: 'Đã hủy', tone: 'danger' };
   if (value === 'refunded') return { label: 'Đã hoàn', tone: 'neutral' };
   if (value === 'draft') return { label: 'Nháp', tone: 'warning' };
   return { label: status ? String(status) : '—', tone: 'neutral' };
+}
+
+function hasGiftItems(invoice: Invoice) {
+  if (invoice?.hasGiftItems === true) return true;
+  return productLines(invoice).some((item) => item?.isGift === true || item?.gift === true || item?.giftForProductId);
+}
+
+function canRefundInvoice(invoice: Invoice) {
+  if (typeof invoice?.canRefund === 'boolean') return invoice.canRefund;
+  return String(invoice?.status || '').toLowerCase() === 'completed' && String(invoice?.refundStatus || 'none') !== 'full';
+}
+
+function canEditInvoice(invoice: Invoice) {
+  if (typeof invoice?.canEdit === 'boolean') return invoice.canEdit;
+  return String(invoice?.status || '').toLowerCase() === 'completed' && String(invoice?.refundStatus || 'none') === 'none';
+}
+
+function deleteActionState(invoice: Invoice) {
+  const status = String(invoice?.status || '').toLowerCase();
+  const activeRefundCount = Number(invoice?.activeRefundCount || 0);
+  if (activeRefundCount > 0) {
+    return { enabled: false, title: 'Không thể xóa hoặc hủy vì hóa đơn đã phát sinh chứng từ đổi trả.' };
+  }
+  if (status === 'draft') return { enabled: true, title: 'Xóa vĩnh viễn hóa đơn nháp.' };
+  if (status === 'cancelled') return { enabled: true, title: 'Xóa vĩnh viễn hóa đơn đã hủy.' };
+  if (status === 'completed') return { enabled: true, title: 'Hủy hóa đơn và hoàn tồn kho.' };
+  return { enabled: false, title: 'Hóa đơn không ở trạng thái cho phép xóa.' };
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function paymentRows(invoice: Invoice) {
@@ -130,6 +175,8 @@ function paymentRows(invoice: Invoice) {
 export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const rowMenuRef = useRef<HTMLDivElement | null>(null);
+  const pendingPrintWindowRef = useRef<Window | null>(null);
   const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -216,9 +263,20 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
   useEffect(() => {
     if (!rowActionOpen) return;
-    const close = () => setRowActionOpen(null);
-    window.addEventListener('click', close);
-    return () => window.removeEventListener('click', close);
+    const close = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && rowMenuRef.current?.contains(target)) return;
+      setRowActionOpen(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setRowActionOpen(null);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('keydown', closeOnEscape);
+    };
   }, [rowActionOpen]);
 
   const selectedAll = invoices.length > 0 && invoices.every((invoice) => selectedIds.has(invoice._id));
@@ -262,6 +320,227 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       setDetailError(err.response?.data?.message || 'Không tải được chi tiết hóa đơn.');
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const fetchInvoiceDetail = async (invoice: Invoice) => {
+    const response = await http.get(`/products/sales/${invoice._id}`);
+    return response.data;
+  };
+
+  const openPrintWindow = () => {
+    const existing = pendingPrintWindowRef.current;
+    if (existing && !existing.closed) return existing;
+
+    const popup = window.open('about:blank', PRINT_WINDOW_NAME, PRINT_WINDOW_FEATURES);
+    if (!popup) return null;
+
+    pendingPrintWindowRef.current = popup;
+    popup.document.open();
+    popup.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Dang chuan bi in</title></head><body>Dang chuan bi hoa don...</body></html>');
+    popup.document.close();
+    return popup;
+  };
+
+  const primePrintWindow = () => {
+    openPrintWindow();
+  };
+
+  const buildPrintDocument = (invoice: Invoice, shop: any, items: any[], title: string, hideTotals = false) => {
+    const customer = invoice.customerId || {};
+    const branch = invoice.branchId || {};
+    const shopName = shop?.name || branch?.name || 'Cửa hàng';
+    const shopAddress = shop?.address || branch?.address || '';
+    const shopPhone = shop?.phone || branch?.phone || '';
+    const rows = items.map((item, index) => {
+      const total = Number(item?.total ?? (Number(item?.value) || 0) * (Number(item?.amount) || 0));
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(productName(item))}</td>
+          <td>${safeMoney(item?.value)}</td>
+          <td>${Number(item?.amount || 0).toLocaleString('vi-VN')}</td>
+          <td>${hideTotals ? '—' : safeMoney(total)}</td>
+        </tr>`;
+    }).join('');
+    const paid = Number(invoice.valuePayment || 0);
+    const total = Number(invoice.value || 0);
+    const change = Math.max(paid - total, 0);
+
+    return `<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(title)}</title>
+    <style>
+      @page { size: A4 portrait; margin: 10mm; }
+      body { font-family: Arial, sans-serif; color: #111827; font-size: 13px; }
+      .print-page { display: flex; flex-direction: column; gap: 12px; }
+      .header { text-align: center; }
+      .header h1 { margin: 0; font-size: 24px; }
+      .header p { margin: 4px 0; }
+      .title { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 8px; }
+      .title h2 { margin: 0; font-size: 22px; text-transform: uppercase; }
+      .meta, .summary { width: 100%; border-collapse: collapse; }
+      .meta td { padding: 4px 0; vertical-align: top; }
+      table.items { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      table.items th, table.items td { border: 1px solid #d1d5db; padding: 8px; }
+      table.items th { background: #f3f4f6; text-align: left; }
+      table.items td:nth-child(1), table.items td:nth-child(4) { text-align: center; }
+      table.items td:nth-child(3), table.items td:nth-child(5) { text-align: right; }
+      .summary { margin-top: 12px; }
+      .summary td { padding: 4px 0; }
+      .summary td:last-child { text-align: right; }
+      .thanks { margin-top: 18px; text-align: center; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <main class="print-page">
+      <header class="header">
+        <h1>${escapeHtml(shopName)}</h1>
+        <p>${escapeHtml(shopAddress)}</p>
+        <p>${escapeHtml(shopPhone)}</p>
+      </header>
+      <section class="title">
+        <div>
+          <p>Ngày bán: ${escapeHtml(safeDate(invoice.completedAt || invoice.createdAt))}</p>
+          <p>Mã hóa đơn: ${escapeHtml(invoice.code || invoice._id)}</p>
+        </div>
+        <h2>${escapeHtml(title)}</h2>
+      </section>
+      <table class="meta">
+        <tr><td>Khách hàng: ${escapeHtml(customer?.name || 'Khách lẻ')}</td><td>Điện thoại: ${escapeHtml(customer?.phone || '—')}</td></tr>
+        <tr><td>Người lập phiếu: ${escapeHtml(invoice.authorId?.name || invoice.userId?.name || '—')}</td><td></td></tr>
+      </table>
+      <table class="items">
+        <thead>
+          <tr><th>#</th><th>Tên sản phẩm</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${hideTotals ? '' : `<table class="summary">
+        <tr><td>Tổng hàng</td><td>${safeMoney(grossValue(invoice))}</td></tr>
+        <tr><td>Giảm giá</td><td>${Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</td></tr>
+        <tr><td>Thành tiền</td><td>${safeMoney(invoice.value)}</td></tr>
+        <tr><td>Đã thanh toán</td><td>${safeMoney(invoice.valuePayment)}</td></tr>
+        <tr><td>Tiền thừa</td><td>${change > 0 ? safeMoney(change) : '—'}</td></tr>
+      </table>`}
+      <p class="thanks">Cảm ơn quý khách đã mua hàng!</p>
+    </main>
+  </body>
+</html>`;
+  };
+
+  const printInvoice = async (invoice: Invoice, giftOnly = false) => {
+    const popup = openPrintWindow();
+    if (!popup) {
+      window.alert('Trình duyệt đang chặn cửa sổ in hóa đơn.');
+      return;
+    }
+
+    popup.document.open();
+    popup.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Đang chuẩn bị in</title></head><body>Đang chuẩn bị hóa đơn...</body></html>');
+    popup.document.close();
+
+    try {
+      const fullInvoice = await fetchInvoiceDetail(invoice);
+      const items = giftOnly
+        ? productLines(fullInvoice).filter((item) => item?.isGift === true || item?.gift === true || item?.giftForProductId)
+        : productLines(fullInvoice);
+      if (giftOnly && items.length === 0) {
+        popup.close();
+        window.alert('Hóa đơn này không có sản phẩm tặng kèm');
+        return;
+      }
+      const storeResponse = await http.get('/settings/store').catch(() => null);
+      const shop = storeResponse?.data || {};
+      const html = buildPrintDocument(fullInvoice, shop, items, giftOnly ? 'HÓA ĐƠN TẶNG QUÀ' : 'Hóa đơn bán lẻ', giftOnly);
+      popup.document.open();
+      popup.document.write(html);
+      popup.document.close();
+      popup.focus();
+      popup.print();
+    } catch (err: any) {
+      popup.close();
+      window.alert(err.response?.data?.message || 'Không thể in hóa đơn.');
+    }
+  };
+
+  const handlePrintInvoice = async (invoice: Invoice, giftOnly = false) => {
+    setRowActionOpen(null);
+
+    const popup = openPrintWindow();
+    if (!popup) {
+      window.alert('Trinh duyet dang chan cua so in hoa don. Hay cho phep pop-up va thu lai.');
+      return;
+    }
+
+    try {
+      const fullInvoice = await fetchInvoiceDetail(invoice);
+      const items = giftOnly
+        ? productLines(fullInvoice).filter((item) => item?.isGift === true || item?.gift === true || item?.giftForProductId)
+        : productLines(fullInvoice);
+
+      if (giftOnly && items.length === 0) {
+        pendingPrintWindowRef.current = null;
+        popup.close();
+        window.alert('Hoa don nay khong co san pham tang kem');
+        return;
+      }
+
+      const storeResponse = await http.get('/settings/store').catch(() => null);
+      const shop = storeResponse?.data || {};
+      const html = buildPrintDocument(
+        fullInvoice,
+        shop,
+        items,
+        giftOnly ? 'Hóa đơn tặng quà' : 'Hóa đơn bán lẻ',
+        giftOnly,
+      );
+
+      popup.document.open();
+      popup.document.write(html);
+      popup.document.close();
+      popup.focus();
+      popup.print();
+      pendingPrintWindowRef.current = null;
+    } catch (err: any) {
+      pendingPrintWindowRef.current = null;
+      popup.close();
+      window.alert(err.response?.data?.message || 'Khong the in hoa don.');
+    }
+  };
+
+  const handleDeleteInvoice = async (invoice: Invoice) => {
+    const state = deleteActionState(invoice);
+    if (!state.enabled) {
+      window.alert(state.title);
+      return;
+    }
+    const status = String(invoice.status || '').toLowerCase();
+    const lineCount = productLines(invoice).length;
+    const confirmation = window.confirm(
+      [
+        `Mã hóa đơn: ${invoice.code || invoice._id}`,
+        `Tổng tiền: ${safeMoney(invoice.value)}`,
+        `Số dòng hàng: ${lineCount}`,
+        `Ảnh hưởng tồn kho: ${status === 'completed' ? 'Hệ thống sẽ hoàn tồn kho cho hóa đơn này.' : 'Không phát sinh hoàn tồn kho.'}`,
+        'Thao tác này không thể khôi phục trực tiếp từ giao diện.',
+      ].join('\n'),
+    );
+    if (!confirmation) return;
+
+    try {
+      if (status === 'completed') {
+        await http.post(`/products/sales/${invoice._id}/cancel`);
+      } else {
+        await http.delete(`/products/sales/${invoice._id}`);
+      }
+      setRowActionOpen(null);
+      if (detail?._id === invoice._id) setDetail(null);
+      await loadInvoices();
+    } catch (err: any) {
+      window.alert(err.response?.data?.message || 'Không thể xóa hoặc hủy hóa đơn.');
     }
   };
 
@@ -442,7 +721,11 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                 const customer = invoice.customerId;
                 const creator = invoice.authorId?.name || invoice.userId?.name;
                 const payments = paymentRows(invoice);
-                const status = statusMeta(invoice.status);
+                const status = statusMeta(invoice.status, invoice.refundStatus);
+                const giftDisabled = !hasGiftItems(invoice);
+                const refundDisabled = !canRefundInvoice(invoice);
+                const editDisabled = !canEditInvoice(invoice);
+                const deleteState = deleteActionState(invoice);
                 return (
                   <tr key={invoice._id}>
                     <td className="check">
@@ -494,7 +777,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                     </td>
                     <td><span className={`retail-status ${status.tone}`}>{status.label}</span></td>
                     <td className="action">
-                      <div className="retail-row-menu">
+                      <div className="retail-row-menu" ref={rowActionOpen === invoice._id ? rowMenuRef : null}>
                         <button
                           className="retail-icon-btn"
                           type="button"
@@ -509,16 +792,11 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                         {rowActionOpen === invoice._id && (
                           <div className="retail-menu" onClick={(event) => event.stopPropagation()}>
                             <button type="button" onClick={() => void openDetail(invoice)}><Eye size={15} /> Xem chi tiết</button>
-                            {invoice.status !== 'cancelled' && (
-                              <>
-                                <button type="button" onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}>
-                                  <RefreshCw size={15} /> Sửa thông tin
-                                </button>
-                                <button type="button" onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${invoice._id}`)}>
-                                  <RotateCcw size={15} /> Trả / đổi hàng
-                                </button>
-                              </>
-                            )}
+                            <button type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice)}><Printer size={15} /> In hóa đơn</button>
+                            <button type="button" disabled={giftDisabled} title={giftDisabled ? 'Hóa đơn này không có sản phẩm tặng kèm' : ''} onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice, true)}><Gift size={15} /> In hóa đơn quà tặng</button>
+                            <button type="button" disabled={refundDisabled} title={refundDisabled ? 'Hóa đơn này không còn sản phẩm có thể đổi trả.' : ''} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${invoice._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
+                            <button type="button" disabled={editDisabled} title={editDisabled ? 'Hóa đơn này không hợp lệ để sửa.' : ''} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>
+                            <button type="button" disabled={!deleteState.enabled} title={deleteState.title} onClick={() => void handleDeleteInvoice(invoice)}><Trash2 size={15} /> Xóa hóa đơn</button>
                           </div>
                         )}
                       </div>
@@ -593,11 +871,10 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             </div>
             <footer>
               <button className="retail-btn ghost" type="button" onClick={() => setDetail(null)}>Đóng</button>
-              {detail.status !== 'cancelled' && (
-                <button className="retail-btn primary" type="button" onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${detail._id}`)}>
-                  <RotateCcw size={15} /> Trả / đổi hàng
-                </button>
-              )}
+              <button className="retail-btn primary" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail)}><Printer size={15} /> In hóa đơn</button>
+              {hasGiftItems(detail) && <button className="retail-btn ghost" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail, true)}><Gift size={15} /> In hóa đơn quà tặng</button>}
+              {canRefundInvoice(detail) && <button className="retail-btn primary" type="button" onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${detail._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>}
+              {canEditInvoice(detail) && <button className="retail-btn ghost" type="button" onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${detail._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>}
             </footer>
           </div>
         </div>
@@ -611,7 +888,7 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
   const payments = paymentRows(invoice);
   const customer = invoice.customerId;
   const branch = invoice.branchId;
-  const status = statusMeta(invoice.status);
+  const status = statusMeta(invoice.status, invoice.refundStatus);
 
   return (
     <div className="retail-detail-grid">
@@ -709,8 +986,8 @@ const retailStyles = `
 .retail-table-card td.discount{color:#ef6c3b}.retail-table-card td.total{color:#19913b;font-weight:750}
 .retail-payments span{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}.retail-payments small{color:#718091}
 .retail-status{display:inline-flex;padding:3px 7px;border-radius:999px;background:#eef1f4;color:#5d6874;font-size:11px;font-style:normal;font-weight:700;white-space:nowrap}.retail-status.success{background:#e8f7ed;color:#218a3d}.retail-status.warning{background:#fff4dd;color:#9b6400}.retail-status.danger{background:#ffebea;color:#c0342b}
-.retail-row-menu{position:relative;display:inline-flex}.retail-menu{position:absolute;z-index:20;top:36px;right:0;width:170px;padding:5px;background:#fff;border:1px solid #d5dde5;border-radius:6px;box-shadow:0 10px 25px rgba(32,50,68,.18);text-align:left}
-.retail-menu button{width:100%;display:flex;align-items:center;gap:8px;padding:8px;border:0;border-radius:4px;background:transparent;color:#344150;font-size:12px;cursor:pointer}.retail-menu button:hover{background:#eef6fc;color:#0874c9}
+.retail-row-menu{position:relative;display:inline-flex}.retail-menu{position:absolute;z-index:40;top:36px;right:0;width:220px;padding:5px;background:#fff;border:1px solid #d5dde5;border-radius:6px;box-shadow:0 10px 25px rgba(32,50,68,.18);text-align:left}
+.retail-menu button{width:100%;display:flex;align-items:center;gap:8px;padding:8px;border:0;border-radius:4px;background:transparent;color:#344150;font-size:12px;cursor:pointer}.retail-menu button:hover{background:#eef6fc;color:#0874c9}.retail-menu button:disabled{opacity:.45;cursor:not-allowed}.retail-menu button:disabled:hover{background:transparent;color:#344150}
 .retail-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#7a8794}.retail-empty strong{color:#3b4855;font-size:14px}
 .retail-skeleton td span{display:block;height:13px;border-radius:4px;background:linear-gradient(90deg,#edf1f4 25%,#f7f9fa 45%,#edf1f4 65%);background-size:200% 100%;animation:retailShimmer 1.3s infinite}
 .retail-pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid #dce2e8;color:#687685;font-size:12px}.retail-pagination>div{display:flex;align-items:center;gap:8px}.retail-pagination button{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d5dde5;border-radius:4px;background:#fff;cursor:pointer}.retail-pagination button:disabled{opacity:.45;cursor:not-allowed}
