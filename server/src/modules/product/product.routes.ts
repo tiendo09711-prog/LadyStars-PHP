@@ -14,8 +14,8 @@ import {
   reviseCompletedSalePayment,
 } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
+import { resolveBranchReference } from '../../core/org/branch.service.js';
 import { Customer } from '../customer/customer.models.js';
-import { recomputeCustomerMetricsByIds } from '../customer/customer.metrics.js';
 import { Order } from '../orders/orders.models.js';
 import multer from 'multer';
 import * as xlsx from 'xlsx';
@@ -224,7 +224,11 @@ async function decorateSales(input: any) {
           completedRefundCount: {
             $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
           },
-          returnedQuantity: { $sum: '$amount' },
+          returnedQuantity: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'completed'] }, { $ifNull: ['$amount', 0] }, 0],
+            },
+          },
         },
       },
     ])
@@ -303,28 +307,12 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
     }
 
     // 1. Resolve branch
-    const branchMap: Record<string, string> = {
-      'Chi nhánh trung tâm': 'CN001',
-      'Kho Hà Nội': 'HN',
-      'Kho HCM': 'HCM',
-      'Kho Hồ Chí Minh': 'HCM',
-      'Kho chính': 'HN'
-    };
-    const normalizedBranchCode = branchMap[warehouse] || String(requestedBranchCode || '').trim() || 'CN001';
-    let branch = null;
-
-    if (requestedBranchId && /^[0-9a-fA-F]{24}$/.test(String(requestedBranchId))) {
-      branch = await Branch.findById(String(requestedBranchId));
-    }
-    if (!branch && normalizedBranchCode) {
-      branch = await Branch.findOne({ code: normalizedBranchCode });
-    }
-    if (!branch && warehouse) {
-      branch = await Branch.findOne({ name: warehouse });
-    }
-    if (!branch) {
-      branch = await Branch.findOne({ isDefault: true }) || await Branch.findOne();
-    }
+    const branch = await resolveBranchReference({
+      branchId: requestedBranchId,
+      warehouse,
+      warehouseCode: requestedBranchCode,
+      allowInactive: true,
+    });
     const branchId = branch?._id;
     const warehouseName = warehouse || branch?.name || 'Kho mặc định';
 
@@ -1362,9 +1350,9 @@ router.get('/inventories', async (req, res) => {
     const sortOrder = req.query.order === 'asc' ? 1 : -1;
 
     // Find branches
-    const branchCN = await Branch.findOne({ code: 'CN001' }).lean();
-    const branchHN = await Branch.findOne({ code: 'HN' }).lean();
-    const branchHCM = await Branch.findOne({ code: 'HCM' }).lean();
+    const branchCN = await resolveBranchReference({ warehouse: 'Chi nhánh trung tâm', warehouseCode: 'CN001', allowInactive: true });
+    const branchHN = await resolveBranchReference({ warehouse: 'Kho Hà Nội', warehouseCode: 'HN', allowInactive: true });
+    const branchHCM = await resolveBranchReference({ warehouse: 'Kho HCM', warehouseCode: 'HCM', allowInactive: true });
     const objectIdLike = /^[a-f\d]{24}$/i;
     const selectedBranchId =
       objectIdLike.test(branchId)

@@ -27,11 +27,8 @@ import {
 } from 'lucide-react';
 import { http } from '../../core/api/http';
 
-const getStockForWarehouse = (prod: any, wh: string) => {
-  if (!wh) return prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+const getStockForWarehouse = (prod: any) => {
+  if (typeof prod?.selectedStock === 'number') return prod.selectedStock;
   return prod.totalStock ?? prod.qty ?? 0;
 };
 
@@ -527,7 +524,7 @@ export function WholesaleInvoiceCreatePage() {
   // Local Search Autocomplete list (filtered by stock in the selected warehouse)
   const autocompleteList = searchQuery.trim() === '' ? [] : dbProducts.filter(p => {
     const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.code?.toLowerCase().includes(searchQuery.toLowerCase());
-    const stock = getStockForWarehouse(p, branch?.name);
+    const stock = getStockForWarehouse(p);
     return matchesSearch && stock > 0;
   }).slice(0, 10);
 

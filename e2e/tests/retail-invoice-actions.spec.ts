@@ -1,8 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { cleanupRetailFixtures, closeDB, createCompletedSale, createRetailFixture } from '../utils/db';
 
 const API = 'http://localhost:4000/api';
+const PREFIX = 'E2E_RETAIL_INTEGRITY_ACTIONS_';
+let scenarioPrefix = '';
 
 async function authHeaders(page: any) {
+  await page.goto('/');
   const token = await page.evaluate(() => localStorage.getItem('token'));
   return { Authorization: `Bearer ${token}` };
 }
@@ -10,18 +14,35 @@ async function authHeaders(page: any) {
 test.describe('Retail invoice actions', () => {
   test.use({ storageState: 'playwright/.auth/user.json' });
 
+  test.afterAll(async () => {
+    if (scenarioPrefix) await cleanupRetailFixtures(scenarioPrefix);
+    await closeDB();
+  });
+
   test('shows six row actions in the required order and prints clean A4 HTML', async ({ page }) => {
+    scenarioPrefix = `${PREFIX}${Date.now()}_`;
+    const fixture = await createRetailFixture(scenarioPrefix, 1);
+    const headers = await authHeaders(page);
+    const sale = await createCompletedSale(page.request, headers, {
+      code: `${scenarioPrefix}SALE_MAIN`,
+      branchId: String(fixture.branch._id),
+      customerId: String(fixture.customer._id),
+      paymentMethodId: String(fixture.paymentMethods.cash._id),
+      items: [{ productId: String(fixture.products[0]._id), amount: 1, value: fixture.products[0].price }],
+    });
+
     await page.goto('/sales-channels/store/retail');
     await page.waitForResponse((response) => response.url().includes('/api/products/sales?') && response.status() === 200);
 
-    const headers = await authHeaders(page);
-    const response = await page.request.get(`${API}/products/sales?page=1&limit=20&channel=store`, { headers });
+    const response = await page.request.get(`${API}/products/sales?page=1&limit=20&channel=store&invoiceCode=${sale.code}`, { headers });
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
-    const invoices = Array.isArray(data.items) ? data.items : [];
-    test.skip(invoices.length === 0, 'No retail invoices available for action verification');
+    expect(data.items?.length).toBeGreaterThan(0);
 
-    const firstInvoice = invoices[0];
+    await page.getByPlaceholder('Nhập mã hóa đơn').fill(sale.code);
+    await page.getByRole('button', { name: /^Lọc$/ }).click();
+    await page.waitForResponse((networkResponse) => networkResponse.url().includes(`invoiceCode=${sale.code}`) && networkResponse.status() === 200);
+
     await page.locator('.retail-row-menu button').first().click();
     const actionLabels = (await page.locator('.retail-menu button').allTextContents()).map((label) => label.replace(/\s+/g, ' ').trim());
     expect(actionLabels).toEqual([
@@ -63,17 +84,10 @@ test.describe('Retail invoice actions', () => {
     expect(printHtml).toContain('<main class="print-page">');
     expect(printHtml).toContain('<table class="items">');
     expect(printHtml).toContain('Hóa đơn bán lẻ');
-    expect(printHtml).toContain(firstInvoice.code);
+    expect(printHtml).toContain(sale.code);
     expect(printHtml).toContain('Cảm ơn quý khách đã mua hàng!');
 
-    const giftButton = page.getByRole('button', { name: 'In hóa đơn quà tặng', exact: true });
-    if (!(await giftButton.isVisible().catch(() => false))) {
-      await page.locator('.retail-row-menu button').first().click();
-    }
-    if (firstInvoice.hasGiftItems === true) {
-      await expect(giftButton).toBeEnabled();
-    } else {
-      await expect(giftButton).toBeDisabled();
-    }
+    await page.locator('.retail-row-menu button').first().click();
+    await expect(page.getByRole('button', { name: 'In hóa đơn quà tặng', exact: true })).toBeDisabled();
   });
 });

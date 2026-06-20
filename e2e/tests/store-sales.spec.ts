@@ -5,6 +5,8 @@ test.describe('Store Sales E2E Flow', () => {
   const TEST_PRODUCT_CODE = 'E2E-SALES-PROD-01';
   let db: any;
   let testProductId: string;
+  let testBranchName = '';
+  let testBranchId = '';
 
   test.beforeAll(async () => {
     db = await connectDB();
@@ -15,15 +17,26 @@ test.describe('Store Sales E2E Flow', () => {
     const product = await db.collection('products').findOne({ code: TEST_PRODUCT_CODE });
     if (product) {
       testProductId = product._id.toString();
+      const stock = await db.collection('productbranchstocks').findOne({ productId: product._id });
+      if (stock?.branchId) {
+        testBranchId = stock.branchId.toString();
+        const branch = await db.collection('branches').findOne({ _id: stock.branchId });
+        testBranchName = branch?.name || '';
+      }
     }
   });
 
   test.afterAll(async () => {
     await cleanupTestData(TEST_PRODUCT_CODE);
     if (db) {
-      // Clean up the created SalePayments matching this product code
-      await db.collection('salepayments').deleteMany({ 'items.productId': testProductId });
-      await db.collection('productrefunds').deleteMany({});
+      const saleIds = testProductId
+        ? await db.collection('salepayments').find({ 'items.productId': testProductId }).project({ _id: 1 }).toArray()
+        : [];
+      const paymentIds = saleIds.map((sale: any) => sale._id);
+      if (paymentIds.length) {
+        await db.collection('productrefunds').deleteMany({ paymentId: { $in: paymentIds } });
+      }
+      await db.collection('salepayments').deleteMany({ _id: { $in: paymentIds } });
     }
   });
 
@@ -55,29 +68,31 @@ test.describe('Store Sales E2E Flow', () => {
     // 3. Click "Thêm hóa đơn lẻ"
     await page.click('text=Thêm hóa đơn lẻ');
 
-    // 4. Chọn kho trong Modal và Tiếp tục
-    await page.waitForSelector('text=Chọn Kho / Chi Nhánh');
-    const firstBranch = page.locator('.modal-card > div:nth-child(2) > div > div').first();
-    await firstBranch.click();
-    await page.click('button:has-text("Tiếp tục")');
+    // 4. Chọn kho trong modal branch hiện tại và tiếp tục
+    const branchDialog = page.getByRole('dialog');
+    await expect(branchDialog.getByRole('heading', { name: /Chọn kho hàng/i })).toBeVisible();
+    if (!testBranchName) throw new Error('Unable to resolve seeded stock branch for retail E2E test');
+    await branchDialog.getByRole('button', { name: new RegExp(testBranchName) }).click();
+    await branchDialog.getByRole('button', { name: 'Chọn' }).click();
 
     // 5. Form tạo mới hóa đơn
-    await page.waitForSelector('text=Thêm Hóa Đơn Lẻ Mới');
+    await expect(page.getByRole('heading', { name: /Thêm hóa đơn bán lẻ/i })).toBeVisible();
     
     // Nhập họ tên khách hàng
-    await page.fill('input[placeholder="Nhập họ tên khách hàng"]', 'Test Customer E2E');
-    await page.fill('input[placeholder="Nhập số điện thoại"]', '0988888888');
+    await page.getByLabel('Tên khách hàng *').fill('Test Customer E2E');
+    await page.getByLabel('Số điện thoại').fill('0988888888');
 
     // Tìm kiếm và chọn sản phẩm
-    await page.click('input[placeholder="Tìm theo mã hoặc tên sản phẩm..."]');
-    await page.locator('input[placeholder="Tìm theo mã hoặc tên sản phẩm..."]').pressSequentially(TEST_PRODUCT_CODE, { delay: 50 });
+    const productSearch = page.locator('#retail-product-search');
+    await productSearch.click();
+    await productSearch.pressSequentially(TEST_PRODUCT_CODE, { delay: 50 });
     
     // Chờ kết quả search
     await page.waitForSelector(`text=${TEST_PRODUCT_CODE}`);
     await page.click(`text=${TEST_PRODUCT_CODE}`);
 
-    // Đợi sản phẩm được load vào input (vì form Retail chỉ cho tạo 1 sản phẩm 1 lúc)
-    await expect(page.locator(`input[value="${TEST_PRODUCT_CODE}"]`).first()).toBeVisible();
+    // Đợi sản phẩm được load vào bảng dòng hàng
+    await expect(page.locator('table')).toContainText(TEST_PRODUCT_CODE);
 
     // Click Lưu hóa đơn
     await page.click('button:has-text("Lưu hóa đơn")');
@@ -98,15 +113,8 @@ test.describe('Store Sales E2E Flow', () => {
         console.log('422 Error Body:', await res.text().catch(() => 'no body'));
       }
     });
-    
-    await page.goto('http://localhost:5173/sales-channels/store/wholesale');
-    
-    await page.click('text=Tạo hóa đơn sỉ');
-
-    await page.waitForSelector('text=Chọn Kho / Chi Nhánh Bán Sỉ');
-    const firstBranch = page.locator('.modal-card > div:nth-child(2) > div > div').first();
-    await firstBranch.click();
-    await page.click('button:has-text("Tiếp tục")');
+    if (!testBranchId) throw new Error('Unable to resolve seeded stock branch for wholesale E2E test');
+    await page.goto(`http://localhost:5173/sales-channels/store/wholesale/create?branchId=${testBranchId}`);
 
     await page.waitForSelector('text=Tạo Mới Hóa Đơn Bán Sỉ');
     

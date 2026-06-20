@@ -71,14 +71,19 @@ function mergeChartData(rows: any[]) {
   return map;
 }
 
+function activityDateExpression() {
+  return { $ifNull: ['$completedAt', '$createdAt'] };
+}
+
 function buildChartAgg(dateFilter: { $gte: Date; $lt: Date }, branchMatch: Record<string, any>) {
   return [
-    { $match: { createdAt: dateFilter, status: 'completed', ...branchMatch } },
+    { $addFields: { activityAt: activityDateExpression() } },
+    { $match: { activityAt: dateFilter, status: 'completed', ...branchMatch } },
     {
       $group: {
         _id: {
-          day: { $dayOfMonth: { date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
-          month: { $month: { date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+          day: { $dayOfMonth: { date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
+          month: { $month: { date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
         },
         total: { $sum: '$value' },
       },
@@ -94,15 +99,16 @@ function buildRefundBranchStages(branchIds: mongoose.Types.ObjectId[]) {
 
 function buildRefundChartAgg(dateFilter: { $gte: Date; $lt: Date }, branchIds: mongoose.Types.ObjectId[]) {
   return [
-    { $match: { createdAt: dateFilter, status: 'completed' } },
+    { $addFields: { activityAt: activityDateExpression() } },
+    { $match: { activityAt: dateFilter, status: 'completed' } },
     { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
     { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
     ...buildRefundBranchStages(branchIds),
     {
       $group: {
         _id: {
-          day: { $dayOfMonth: { date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
-          month: { $month: { date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+          day: { $dayOfMonth: { date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
+          month: { $month: { date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
         },
         total: { $sum: { $multiply: [{ $ifNull: ['$value', 0] }, -1] } },
       },
@@ -208,7 +214,8 @@ router.get('/', async (req, res) => {
       Task.countDocuments(),
       AccountingType.countDocuments(),
       SalePayment.aggregate([
-        { $match: { createdAt: dateFilter, status: 'completed', ...branchMatch } },
+        { $addFields: { activityAt: activityDateExpression() } },
+        { $match: { activityAt: dateFilter, status: 'completed', ...branchMatch } },
         {
           $group: {
             _id: null,
@@ -220,7 +227,8 @@ router.get('/', async (req, res) => {
         },
       ]).catch(() => []),
       ProductRefund.aggregate([
-        { $match: { createdAt: dateFilter, status: 'completed' } },
+        { $addFields: { activityAt: activityDateExpression() } },
+        { $match: { activityAt: dateFilter, status: 'completed' } },
         { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
         { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
         ...buildRefundBranchStages(branchIds),
@@ -228,7 +236,7 @@ router.get('/', async (req, res) => {
         {
           $group: {
             _id: null,
-            refundValue: { $sum: { $ifNull: ['$value', 0] } },
+            refundValue: { $sum: { $ifNull: ['$items.value', 0] } },
             refundedProducts: { $sum: { $ifNull: ['$items.amount', 0] } },
             refundCost: {
               $sum: {
@@ -242,7 +250,8 @@ router.get('/', async (req, res) => {
         },
       ]).catch(() => []),
       SalePayment.aggregate([
-        { $match: { createdAt: dateFilter, status: 'completed', ...branchMatch } },
+        { $addFields: { activityAt: activityDateExpression() } },
+        { $match: { activityAt: dateFilter, status: 'completed', ...branchMatch } },
         {
           $group: {
             _id: '$saleChannelId',
@@ -274,7 +283,8 @@ router.get('/', async (req, res) => {
         { $sort: { revenue: -1, orders: -1 } },
       ]).catch(() => []),
       ProductRefund.aggregate([
-        { $match: { createdAt: dateFilter, status: 'completed' } },
+        { $addFields: { activityAt: activityDateExpression() } },
+        { $match: { activityAt: dateFilter, status: 'completed' } },
         { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
         { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
         ...buildRefundBranchStages(branchIds),
@@ -301,7 +311,8 @@ router.get('/', async (req, res) => {
         },
       ]).catch(() => []),
       SalePayment.aggregate([
-        { $match: { createdAt: topDateFilter, status: 'completed', ...branchMatch } },
+        { $addFields: { activityAt: activityDateExpression() } },
+        { $match: { activityAt: topDateFilter, status: 'completed', ...branchMatch } },
         { $unwind: '$items' },
         {
           $group: {
@@ -324,7 +335,8 @@ router.get('/', async (req, res) => {
         },
       ]).catch(() => []),
       ProductRefund.aggregate([
-        { $match: { createdAt: topDateFilter, status: 'completed' } },
+        { $addFields: { activityAt: activityDateExpression() } },
+        { $match: { activityAt: topDateFilter, status: 'completed' } },
         { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
         { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
         ...buildRefundBranchStages(branchIds),
@@ -570,7 +582,8 @@ router.get('/daily-products', async (req, res) => {
   }
 
   const result = await SalePayment.aggregate([
-    { $match: { createdAt: { $gte: dayStart, $lt: dayEnd }, status: 'completed', ...branchMatch } },
+    { $addFields: { activityAt: activityDateExpression() } },
+    { $match: { activityAt: { $gte: dayStart, $lt: dayEnd }, status: 'completed', ...branchMatch } },
     { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
     { $lookup: { from: 'products', localField: 'items.productId', foreignField: '_id', as: 'productInfo' } },
     { $unwind: { path: '$productInfo', preserveNullAndEmptyArrays: true } },
@@ -587,7 +600,8 @@ router.get('/daily-products', async (req, res) => {
   ]).catch(() => []);
 
   const refundResult = await ProductRefund.aggregate([
-    { $match: { createdAt: { $gte: dayStart, $lt: dayEnd }, status: 'completed' } },
+    { $addFields: { activityAt: activityDateExpression() } },
+    { $match: { activityAt: { $gte: dayStart, $lt: dayEnd }, status: 'completed' } },
     { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
     { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
     ...(branchMatch.branchId?.$in?.length ? [{ $match: { 'saleInfo.branchId': branchMatch.branchId } }] : []),

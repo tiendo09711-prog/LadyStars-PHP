@@ -25,12 +25,17 @@ function parseObjectId(value: unknown) {
   return raw && raw !== 'null' && raw !== 'undefined' ? new mongoose.Types.ObjectId(raw) : null;
 }
 
+function activityDateExpression() {
+  return { $ifNull: ['$completedAt', '$createdAt'] };
+}
+
 function salePipeline({ dateFilter, branchObjectId, categoryObjectId, dateFormat, timeFormat }: any) {
   const matchStage: any = { status: 'completed' };
-  if (Object.keys(dateFilter).length > 0) matchStage.createdAt = dateFilter;
+  if (Object.keys(dateFilter).length > 0) matchStage.activityAt = dateFilter;
   if (branchObjectId) matchStage.branchId = branchObjectId;
 
   const pipeline: any[] = [
+    { $addFields: { activityAt: activityDateExpression() } },
     { $match: matchStage },
     { $unwind: { path: '$items', preserveNullAndEmptyArrays: false } },
   ];
@@ -48,9 +53,9 @@ function salePipeline({ dateFilter, branchObjectId, categoryObjectId, dateFormat
       _id: timeFormat
         ? {
             branchId: '$branchId',
-            time: { $dateToString: { format: timeFormat, date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+            time: { $dateToString: { format: timeFormat, date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
           }
-        : { $dateToString: { format: dateFormat, date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+        : { $dateToString: { format: dateFormat, date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
       revenue: { $sum: { $ifNull: ['$items.total', 0] } },
       cost: { $sum: { $multiply: [{ $ifNull: ['$items.amount', 0] }, { $ifNull: ['$items.cost', 0] }] } },
       discount: { $sum: { $ifNull: ['$discountValue', 0] } },
@@ -70,7 +75,8 @@ function salePipeline({ dateFilter, branchObjectId, categoryObjectId, dateFormat
 
 function refundPipeline({ dateFilter, branchObjectId, categoryObjectId, dateFormat, timeFormat }: any) {
   const pipeline: any[] = [
-    { $match: { status: 'completed', ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {}) } },
+    { $addFields: { activityAt: activityDateExpression() } },
+    { $match: { status: 'completed', ...(Object.keys(dateFilter).length > 0 ? { activityAt: dateFilter } : {}) } },
     { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
     { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
     { $unwind: { path: '$items', preserveNullAndEmptyArrays: false } },
@@ -93,9 +99,9 @@ function refundPipeline({ dateFilter, branchObjectId, categoryObjectId, dateForm
       _id: timeFormat
         ? {
             branchId: '$saleInfo.branchId',
-            time: { $dateToString: { format: timeFormat, date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+            time: { $dateToString: { format: timeFormat, date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
           }
-        : { $dateToString: { format: dateFormat, date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+        : { $dateToString: { format: dateFormat, date: '$activityAt', timezone: 'Asia/Ho_Chi_Minh' } },
       revenue: { $sum: { $multiply: [{ $ifNull: ['$items.value', 0] }, -1] } },
       cost: { $sum: { $multiply: [{ $multiply: [{ $ifNull: ['$items.amount', 0] }, { $ifNull: ['$items.cost', 0] }] }, -1] } },
       discount: { $sum: 0 },

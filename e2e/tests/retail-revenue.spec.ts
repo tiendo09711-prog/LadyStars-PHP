@@ -1,69 +1,43 @@
-import { test, expect } from '@playwright/test';
-import { seedProduct, cleanupTestData, closeDB } from '../utils/db';
+import { expect, test } from '@playwright/test';
+import { API_BASE, cleanupRetailFixtures, closeDB, createCompletedSale, createRetailFixture } from '../utils/db';
 
-const TEST_PRODUCT_CODE = 'E2E_PROD_123';
-const TEST_BRANCH_ID = '6a05946e67c30b7a39107bcb'; // Kho HCM
+const PREFIX = 'E2E_RETAIL_INTEGRITY_REVENUE_';
+let scenarioPrefix = '';
 
-test.describe('Retail Invoice -> Revenue Report E2E Flow', () => {
-  
-  test.beforeAll(async () => {
-    // 1. Seed the test product before running the UI tests
-    await seedProduct(TEST_PRODUCT_CODE);
-  });
+async function authHeaders(page: any) {
+  await page.goto('/');
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  return { Authorization: `Bearer ${token}` };
+}
+
+test.describe('Retail revenue report', () => {
+  test.use({ storageState: 'playwright/.auth/user.json' });
 
   test.afterAll(async () => {
-    // Clean up to keep DB pristine
-    await cleanupTestData(TEST_PRODUCT_CODE);
+    if (scenarioPrefix) await cleanupRetailFixtures(scenarioPrefix);
     await closeDB();
   });
 
-  test('Should create a retail invoice and reflect in revenue', async ({ page }) => {
-    // 2. Navigate directly to create invoice page (using Kho HCM branchId)
-    await page.goto(`/sales-channels/admin/retail/create?branchId=${TEST_BRANCH_ID}`);
+  test('shows completed retail revenue for the seeded branch and sale', async ({ page }) => {
+    scenarioPrefix = `${PREFIX}${Date.now()}_`;
+    const fixture = await createRetailFixture(scenarioPrefix, 1);
+    const headers = await authHeaders(page);
+    await createCompletedSale(page.request, headers, {
+      code: `${scenarioPrefix}SALE_MAIN`,
+      branchId: String(fixture.branch._id),
+      customerId: String(fixture.customer._id),
+      paymentMethodId: String(fixture.paymentMethods.cash._id),
+      items: [{ productId: String(fixture.products[0]._id), amount: 5, value: fixture.products[0].price }],
+    });
 
-    // Wait for the form to render
-    await expect(page.locator('input[placeholder="Nhập họ tên khách hàng"]')).toBeVisible();
+    const response = await page.request.get(`${API_BASE}/reports/revenue-time?displayType=Theo%20ngay&branchId=${fixture.branch._id}`, { headers });
+    expect(response.ok()).toBeTruthy();
+    const rows = await response.json();
+    const revenue = rows.reduce((sum: number, row: any) => sum + Number(row.revenue || 0), 0);
+    expect(revenue).toBe(fixture.products[0].price * 5);
 
-    // 3. Fill Customer Name
-    await page.fill('input[placeholder="Nhập họ tên khách hàng"]', 'Khach hang Test E2E');
-    // Hide dropdown if it appears
-    await page.keyboard.press('Escape');
-
-    // 4. Fill Product Code to search
-    // We assume the placeholder is "Mã hoặc tên sản phẩm" or similar
-    const searchInput = page.locator('input[placeholder="Tìm theo mã hoặc tên sản phẩm..."]');
-    await searchInput.fill(TEST_PRODUCT_CODE);
-
-    // Wait for dropdown list to appear containing our test product
-    await expect(page.locator(`text=${TEST_PRODUCT_CODE}`).nth(1)).toBeVisible({ timeout: 5000 });
-    
-    // Select the product
-    await page.locator(`text=${TEST_PRODUCT_CODE}`).nth(1).click();
-
-    // Fill Price
-    // Product price input might be there, we'll just click Save
-    const submitBtn = page.locator('button:has-text("Lưu hóa đơn")');
-    await submitBtn.click();
-
-    // Wait for success toast
-    await expect(page.locator('text=Lưu thành công').or(page.locator('text=thành công'))).toBeVisible({ timeout: 5000 });
-
-    // 5. Navigate to Revenue Report
     await page.goto('/reports/revenue/time');
-
-    // Select the branch "Kho HCM" in report filter
-    // Wait for the branch dropdown
-    await page.click('button:has-text("Kho hàng")');
-    await page.click('text=Kho HCM');
-
-    // Filter by "Hôm nay"
-    await page.click('button:has-text("Khoảng ngày")');
-    await page.click('text=Hôm nay');
-
-    // Wait for report table/chart to load
-    // Verify our revenue increased by checking the summary/chart
-    // Just looking for the number 500.000 in the table/cards
-    await expect(page.locator('text=500.000').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.revenue-time-container')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("Lọc")')).toBeEnabled();
   });
-
 });

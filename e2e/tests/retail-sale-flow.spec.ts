@@ -1,109 +1,57 @@
-import { test, expect } from '@playwright/test';
-import { MongoClient, ObjectId } from 'mongodb';
-import * as dotenv from 'dotenv';
-import path from 'path';
+import { expect, test } from '@playwright/test';
+import { API_BASE, cleanupRetailFixtures, closeDB, createCompletedSale, createRetailFixture } from '../utils/db';
 
-dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+const PREFIX = 'E2E_RETAIL_INTEGRITY_FLOW_';
+let scenarioPrefix = '';
 
-const MONGO_URI = process.env.MONGO_URI!;
-const TEST_PRODUCT_CODE = 'E2E_SP_TEST';
+async function authHeaders(page: any) {
+  await page.goto('/');
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  return { Authorization: `Bearer ${token}` };
+}
 
-let mongoClient: MongoClient;
+test.describe('Retail sale flow', () => {
+  test.use({ storageState: 'playwright/.auth/user.json' });
 
-test.beforeAll(async () => {
-  mongoClient = new MongoClient(MONGO_URI);
-  await mongoClient.connect();
-  const db = mongoClient.db('ladystars');
-
-  // Seed a test product with stock
-  await db.collection('products').updateOne(
-    { code: TEST_PRODUCT_CODE },
-    {
-      $set: {
-        code: TEST_PRODUCT_CODE,
-        name: 'Sản phẩm E2E Test',
-        price: 200000,
-        cost: 100000,
-        qty: 50,
-        status: 'Đang bán',
-        allowsSale: true,
-        type: 'product',
-        totalStock: 50,
-      }
-    },
-    { upsert: true }
-  );
-});
-
-test.afterAll(async () => {
-  const db = mongoClient.db('ladystars');
-  // Cleanup test data
-  await db.collection('products').deleteOne({ code: TEST_PRODUCT_CODE });
-  await db.collection('salepayments').deleteMany({ 'meta.customerName': 'Khach E2E Test' });
-  await mongoClient.close();
-});
-
-test.describe('Luồng Nghiệp Vụ: Tạo Hóa Đơn Bán Lẻ -> Báo Cáo Doanh Thu', () => {
-  test('1. Trang Bán Lẻ phải load được và hiển thị danh sách từ SalePayment', async ({ page }) => {
-    await page.goto('/sales-channels/admin/retail');
-    // The list now comes from /products/sales
-    await expect(page.locator('.tabbed-module-page, .revenue-time-container, table, [class*="table"]').first()).toBeVisible({ timeout: 10000 });
-    console.log('✅ Trang bán lẻ load thành công');
+  test.afterAll(async () => {
+    if (scenarioPrefix) await cleanupRetailFixtures(scenarioPrefix);
+    await closeDB();
   });
 
-  test('2. Giao diện Tạo Đơn hàng phải hiển thị đúng khi chọn kho', async ({ page }) => {
-    // Get a branch ID from API
-    const apiRes = await page.request.get('/api/system/branches');
-    const branches = await apiRes.json().catch(() => ({ items: [] }));
-    const branchList = branches.items || branches;
-    
-    if (!branchList || branchList.length === 0) {
-      console.log('⏭️ Không có chi nhánh, bỏ qua test này');
-      return;
-    }
-    const branch = branchList[0];
-    
-    await page.goto(`/sales-channels/admin/retail/create?branchId=${branch._id}`);
-    await expect(page.locator('input[placeholder="Nhập họ tên khách hàng"]')).toBeVisible({ timeout: 8000 });
-    console.log('✅ Form tạo đơn hàng load thành công');
-  });
-
-  test('3. API /products/sales trả về đúng cấu trúc SalePayment', async ({ page }) => {
-    // Navigate first to get auth context
-    await page.goto('/sales-channels/admin/retail');
-    const token = await page.evaluate(() => localStorage.getItem('token'));
-    const res = await page.request.get('http://localhost:4000/api/products/sales?limit=10', {
-      headers: { Authorization: `Bearer ${token}` }
+  test('loads the retail pages and returns SalePayment-backed APIs', async ({ page }) => {
+    scenarioPrefix = `${PREFIX}${Date.now()}_`;
+    const fixture = await createRetailFixture(scenarioPrefix, 1);
+    const headers = await authHeaders(page);
+    const sale = await createCompletedSale(page.request, headers, {
+      code: `${scenarioPrefix}SALE_MAIN`,
+      branchId: String(fixture.branch._id),
+      customerId: String(fixture.customer._id),
+      paymentMethodId: String(fixture.paymentMethods.cash._id),
+      items: [{ productId: String(fixture.products[0]._id), amount: 1, value: fixture.products[0].price }],
     });
-    expect(res.ok()).toBeTruthy();
-    const data = await res.json();
-    expect(data).toHaveProperty('items');
-    expect(Array.isArray(data.items)).toBeTruthy();
-    console.log(`✅ API /products/sales OK - ${data.total} hóa đơn trong hệ thống`);
-  });
 
-  test('4. API /reports/revenue-time trả về dữ liệu từ SalePayment (không còn từ RetailInvoice)', async ({ page }) => {
-    await page.goto('/reports/revenue/time');
-    const token = await page.evaluate(() => localStorage.getItem('token'));
-    const res = await page.request.get('http://localhost:4000/api/reports/revenue-time?displayType=Theo%20ng%C3%A0y', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    expect(res.ok()).toBeTruthy();
-    const data = await res.json();
-    expect(Array.isArray(data)).toBeTruthy();
-    // Each item should have correct keys
-    if (data.length > 0) {
-      expect(data[0]).toHaveProperty('time');
-      expect(data[0]).toHaveProperty('revenue');
-      expect(data[0]).toHaveProperty('profit');
+    await page.goto('/sales-channels/admin/retail');
+    await expect(page.locator('.retail-table-card')).toBeVisible({ timeout: 10000 });
+
+    await page.goto(`/sales-channels/admin/retail/create?branchId=${fixture.branch._id}`);
+    await expect(page.locator('input[placeholder="Nhập họ tên hoặc số điện thoại"]')).toBeVisible({ timeout: 8000 });
+
+    const salesResponse = await page.request.get(`${API_BASE}/products/sales?limit=10&invoiceCode=${sale.code}`, { headers });
+    expect(salesResponse.ok()).toBeTruthy();
+    const salesPayload = await salesResponse.json();
+    expect(Array.isArray(salesPayload.items)).toBeTruthy();
+    expect(salesPayload.items[0]._id).toBe(sale._id);
+    expect(salesPayload.items[0].code).toBe(sale.code);
+    expect(salesPayload.items[0].status).toBe('completed');
+
+    const reportResponse = await page.request.get(`${API_BASE}/reports/revenue-time?displayType=Theo%20ngay&branchId=${fixture.branch._id}`, { headers });
+    expect(reportResponse.ok()).toBeTruthy();
+    const reportPayload = await reportResponse.json();
+    expect(Array.isArray(reportPayload)).toBeTruthy();
+    if (reportPayload.length > 0) {
+      expect(reportPayload[0]).toHaveProperty('time');
+      expect(reportPayload[0]).toHaveProperty('revenue');
+      expect(reportPayload[0]).toHaveProperty('profit');
     }
-    console.log(`✅ API /reports/revenue-time OK - ${data.length} điểm dữ liệu`);
-  });
-
-  test('5. Trang Báo cáo Doanh thu /reports/revenue/time load thành công', async ({ page }) => {
-    await page.goto('/reports/revenue/time');
-    await expect(page.locator('.revenue-time-container')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('button:has-text("Lọc")')).toBeEnabled();
-    console.log('✅ Trang báo cáo doanh thu OK');
   });
 });

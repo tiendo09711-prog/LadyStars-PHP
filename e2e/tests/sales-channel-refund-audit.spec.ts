@@ -1,94 +1,74 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { cleanupRetailFixtures, closeDB, createCompletedSale, createDraftRefund, createRetailFixture } from '../utils/db';
+
+const PREFIX = 'E2E_RETAIL_INTEGRITY_REFUND_AUDIT_';
+let scenarioPrefix = '';
+
+async function authHeaders(page: any) {
+  await page.goto('/');
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  return { Authorization: `Bearer ${token}` };
+}
 
 test.describe('Sales Channel Refund Hardcode Audit', () => {
   test.use({ storageState: 'playwright/.auth/user.json' });
 
-  test('should load refund list and verify no hardcoded data', async ({ page, request }) => {
-    // Expected API/domain: GET /api/products/refunds
-    // Model: ProductRefund/productrefunds joined SalePayment
+  test.afterAll(async () => {
+    if (scenarioPrefix) await cleanupRetailFixtures(scenarioPrefix);
+    await closeDB();
+  });
+
+  test('loads refund list from the API and allows editing a real draft refund', async ({ page }) => {
+    scenarioPrefix = `${PREFIX}${Date.now()}_`;
+    const fixture = await createRetailFixture(scenarioPrefix, 1);
+    const headers = await authHeaders(page);
+    const sale = await createCompletedSale(page.request, headers, {
+      code: `${scenarioPrefix}SALE_MAIN`,
+      branchId: String(fixture.branch._id),
+      customerId: String(fixture.customer._id),
+      paymentMethodId: String(fixture.paymentMethods.cash._id),
+      items: [{ productId: String(fixture.products[0]._id), amount: 2, value: fixture.products[0].price }],
+    });
+
+    const refundResponse = await createDraftRefund(page.request, headers, {
+      code: `${scenarioPrefix}REFUND_DRAFT`,
+      paymentId: sale._id,
+      methodId: String(fixture.paymentMethods.cash._id),
+      items: [{ productId: String(fixture.products[0]._id), amount: 1, value: fixture.products[0].price }],
+    });
+    expect(refundResponse.status()).toBe(201);
 
     let apiResponseData: any = null;
-    let actualEndpoint = '';
-
     page.on('response', async (response) => {
-      const url = response.url();
-      if (url.includes('/api/products/refunds') && response.request().method() === 'GET') {
-        actualEndpoint = url;
+      if (response.url().includes('/api/products/refunds') && response.request().method() === 'GET') {
         try {
           const json = await response.json();
           apiResponseData = json.items || json;
-        } catch (e) {
-          console.error('Failed to parse response json');
+        } catch {
+          apiResponseData = null;
         }
       }
     });
 
     await page.goto('/sales-channels/store/refund');
+    await page.waitForResponse((response) => response.url().includes('/api/products/refunds') && response.request().method() === 'GET');
+    await expect(page.locator('.data-table tbody tr:not(.skeleton-row)').first()).toBeVisible();
+    expect(Array.isArray(apiResponseData)).toBeTruthy();
+    expect(apiResponseData[0].code).toContain(`${scenarioPrefix}REFUND_DRAFT`);
 
-    // Wait for network response
-    await page.waitForResponse(response => response.url().includes('/api/products/refunds') && response.request().method() === 'GET');
-    
-    // Wait for the table rows to appear or the empty state
-    await page.waitForTimeout(1000); // Give React time to render
-
-    const rows = await page.locator('.data-table tbody tr:not(.skeleton-row)').count();
-    
-    if (apiResponseData && apiResponseData.length === 0) {
-      // Expecting empty state
-      const emptyStateText = await page.locator('.empty-state').textContent();
-      expect(emptyStateText).toContain('Chưa có dữ liệu phù hợp');
-    } else if (apiResponseData && apiResponseData.length > 0) {
-      // Expecting actual rows mapped correctly
-      expect(rows).toBeGreaterThan(0);
-      const firstRowText = await page.locator('.data-table tbody tr:not(.skeleton-row)').first().textContent();
-      
-      const firstData = apiResponseData[0];
-      if (firstData.code) {
-        expect(firstRowText).toContain(firstData.code);
-      }
-    }
-
-    console.log('--- TEST RESULTS ---');
-    console.log('Actual Endpoint:', actualEndpoint);
-    console.log('API Returned Data Count:', apiResponseData?.length);
-    console.log('Table Rows UI Count:', rows);
-  });
-
-  test('should successfully save when clicking Sửa', async ({ page }) => {
-    let patchRequestUrl = '';
     let patchRequestStatus = 0;
-
-    page.on('response', response => {
+    page.on('response', (response) => {
       if (response.request().method() === 'PATCH' && response.url().includes('/api/products/refunds/')) {
-        patchRequestUrl = response.url();
         patchRequestStatus = response.status();
       }
     });
 
-    await page.goto('/sales-channels/store/refund');
-    await page.waitForResponse(response => response.url().includes('/api/products/refunds') && response.request().method() === 'GET');
-    
-    // Look for a row that is not completed to edit
-    const row = page.locator('.data-table tbody tr:not(.skeleton-row)').filter({ hasNotText: 'Hoàn thành' }).first();
-    // If no draft exists, just take the first row, but it will fail 422 if completed. We assume at least one draft exists or we create one.
-    // To be safe, just try the first row. We will assert it doesn't 404.
     const firstRow = page.locator('.data-table tbody tr:not(.skeleton-row)').first();
-    await expect(firstRow).toBeVisible();
-
-    // Click on row action
     await firstRow.locator('button.icon-button').click();
     await page.click('button.dropdown-item:has-text("Sửa")');
-
-    // Wait for modal
     await expect(page.locator('.modal-card')).toBeVisible();
-
-    // Click "Lưu"
     await page.click('button.btn-primary:has-text("Lưu")');
-
-    // Wait for the PATCH request to complete
-    await page.waitForResponse(response => response.request().method() === 'PATCH' && response.url().includes('/api/products/refunds/'));
-
-    // Check it's not 404 (could be 200 or 422 if completed, but missing endpoint is fixed)
+    await page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().includes('/api/products/refunds/'));
     expect(patchRequestStatus).not.toBe(404);
   });
 });

@@ -60,7 +60,9 @@ export function RefundInvoiceCreatePage() {
   const navigate = useNavigate();
 
   const [branch, setBranch] = useState<any>(null);
+  const [resolvedBranchId, setResolvedBranchId] = useState(branchId || '');
   const [loadingBranch, setLoadingBranch] = useState(false);
+  const [saleGuardMessage, setSaleGuardMessage] = useState('');
 
   // Form state structure matching Nhanh.vn Refund CSV and exchange functionality
   const [form, setForm] = useState({
@@ -141,9 +143,9 @@ export function RefundInvoiceCreatePage() {
 
   // Fetch branch details
   useEffect(() => {
-    if (branchId) {
+    if (resolvedBranchId) {
       setLoadingBranch(true);
-      http.get(`/system/branches/${branchId}`)
+      http.get(`/system/branches/${resolvedBranchId}`)
         .then((res) => {
           setBranch(res.data);
           setForm(prev => ({
@@ -158,7 +160,7 @@ export function RefundInvoiceCreatePage() {
           setLoadingBranch(false);
         });
     }
-  }, [branchId]);
+  }, [resolvedBranchId]);
 
   // Load sale data if saleId is present
   useEffect(() => {
@@ -167,6 +169,19 @@ export function RefundInvoiceCreatePage() {
         .then(res => {
           const sale = res.data;
           const resolvedBranchId = sale.branchId?._id || sale.branchId || branchId || '';
+          setResolvedBranchId(resolvedBranchId);
+          const saleStatus = String(sale.status || '').toLowerCase();
+          const refundStatus = String(sale.refundStatus || 'none').toLowerCase();
+          const remainingReturnableQuantity = Number(sale.remainingReturnableQuantity || 0);
+          if (saleStatus === 'cancelled') {
+            setSaleGuardMessage('Hóa đơn đã hủy nên không thể đổi trả.');
+          } else if (saleStatus !== 'completed') {
+            setSaleGuardMessage('Chỉ hóa đơn đã hoàn tất mới được đổi trả.');
+          } else if (refundStatus === 'full' || remainingReturnableQuantity <= 0) {
+            setSaleGuardMessage('Hóa đơn đã hoàn toàn bộ nên không thể đổi trả thêm.');
+          } else {
+            setSaleGuardMessage('');
+          }
           const returnedQuantityByProduct = sale.returnedQuantityByProduct || {};
           if (!branch && resolvedBranchId) {
             http.get(`/system/branches/${resolvedBranchId}`)
@@ -207,18 +222,18 @@ export function RefundInvoiceCreatePage() {
         })
         .catch(err => console.error("Lỗi lấy thông tin hóa đơn:", err));
     }
-  }, [saleId]);
+  }, [branch, branchId, saleId]);
 
   // Load products list for local fast auto-suggest
   useEffect(() => {
-    http.get('/products/inventories', { params: { branchId: branchId || '', limit: 150 } })
+    http.get('/products/inventories', { params: { branchId: resolvedBranchId || '', limit: 150 } })
       .then((res) => {
         setDbProducts(res.data.items ?? []);
       })
       .catch((err) => {
         console.error("Lỗi lấy danh sách sản phẩm:", err);
       });
-  }, [branchId]);
+  }, [resolvedBranchId]);
 
   useEffect(() => {
     http.get('/products/payment-methods', { params: { limit: 5000 } })
@@ -495,6 +510,15 @@ export function RefundInvoiceCreatePage() {
   // Save handler
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
+    if (!saleId) {
+      setErrorMessage('Chỉ hỗ trợ đổi trả từ hóa đơn bán lẻ đã hoàn tất.');
+      return;
+    }
+    if (saleGuardMessage) {
+      setErrorMessage(saleGuardMessage);
+      return;
+    }
     if (!form.customerName.trim()) {
       setErrorMessage('Vui lòng nhập tên khách hàng hoặc tìm kiếm bằng SĐT');
       return;
@@ -566,103 +590,9 @@ export function RefundInvoiceCreatePage() {
       setTimeout(() => {
         navigate(`/sales-channels/${channel}/refund`);
       }, 1200);
-      return;
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.response?.data?.message ?? err.message ?? 'Loi khi luu hoa don doi tra hang.');
-      setIsSaving(false);
-      return;
-    }
-
-    const firstProduct = products[0];
-    const totalQty = products.reduce((acc, p) => acc + p.qty, 0);
-
-    const payload = {
-      code: form.id,
-      paymentId: form.paymentId,
-      branchId: branchId,
-      note: form.description,
-      status: 'draft',
-      amountProducts: totalQty,
-      value: form.refundAmount,
-      items: products.map(p => ({
-        productId: p._id,
-        amount: p.qty,
-        value: p.price,
-        discountValue: p.refundFee || 0,
-        discountType: 'number',
-        total: p.total,
-        note: p.imei ? `IMEI: ${p.imei}` : ''
-      })),
-      // Future mapping for payment methods if necessary
-      typePayment: [
-        ...(form.cash > 0 ? [{ methodId: null, amount: form.cash }] : []),
-        ...(form.transfer > 0 ? [{ methodId: null, amount: form.transfer }] : []),
-        ...(form.card > 0 ? [{ methodId: null, amount: form.card }] : [])
-      ]
-    };
-
-    try {
-      const createRes = await http.post('/products/refunds', payload);
-      const refundId = createRes.data._id;
-
-      await http.post(`/products/refunds/${refundId}/complete`);
-
-      // Nếu có mua hàng mới (Đổi hàng), tạo thêm 1 hóa đơn Bán lẻ
-      if (newProducts.length > 0) {
-        let customerId = null;
-        if (form.customerPhone || form.customerName) {
-          try {
-            const searchRes = await http.get(`/customers/customers?phone=${form.customerPhone || form.customerName}`);
-            if (searchRes.data.items && searchRes.data.items.length > 0) {
-              customerId = searchRes.data.items[0]._id;
-            } else {
-              const cRes = await http.post('/customers/customers', {
-                name: form.customerName,
-                phone: form.customerPhone,
-              });
-              customerId = cRes.data?._id;
-            }
-          } catch(e) {
-            console.error("Lỗi tìm/tạo khách hàng khi đổi hàng:", e);
-          }
-        }
-
-        const salePayload = {
-           code: form.id.replace('HDTH-', 'HDLE-') + '-M', // M for Mới
-           branchId: branchId,
-           customerId: customerId,
-           note: form.newDescription,
-           salesperson: form.salesperson,
-           orderSource: form.source,
-           paymentMethod: 'Tiền mặt',
-           discountValue: 0,
-           discountType: 'number',
-           status: 'draft',
-           amountProducts: newProducts.reduce((acc, p) => acc + p.qty, 0),
-           value: newProducts.reduce((acc, p) => acc + p.total, 0),
-           items: newProducts.map(p => ({
-             productId: p._id,
-             amount: p.qty,
-             value: p.price,
-             discountValue: 0,
-             discountType: 'number',
-             total: p.total,
-             note: p.imei ? `IMEI: ${p.imei}` : ''
-           }))
-        };
-        
-        const saleRes = await http.post('/products/sales', salePayload);
-        await http.post(`/products/sales/${saleRes.data._id}/complete`);
-      }
-
-      setSuccessMessage('Hóa đơn đổi trả hàng đã được tạo và lưu kho thành công!');
-      setTimeout(() => {
-        navigate(`/sales-channels/${channel}/refund`);
-      }, 1200);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.response?.data?.message ?? 'Lỗi khi lưu hóa đơn đổi trả hàng.');
       setIsSaving(false);
     }
   };
@@ -734,7 +664,7 @@ export function RefundInvoiceCreatePage() {
           <button 
             type="button"
             id="save-invoice-btn"
-            disabled={isSaving}
+            disabled={isSaving || Boolean(saleGuardMessage) || !saleId}
             onClick={handleSave}
             style={{ 
               borderRadius: '10px', 
@@ -748,8 +678,8 @@ export function RefundInvoiceCreatePage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              cursor: isSaving ? 'not-allowed' : 'pointer',
-              opacity: isSaving ? 0.7 : 1
+              cursor: isSaving || saleGuardMessage || !saleId ? 'not-allowed' : 'pointer',
+              opacity: isSaving || saleGuardMessage || !saleId ? 0.7 : 1
             }}
           >
             <Save size={16} />
@@ -757,6 +687,13 @@ export function RefundInvoiceCreatePage() {
           </button>
         </div>
       </div>
+
+      {saleGuardMessage && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', padding: '14px 18px', borderRadius: '10px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
+          <ShieldAlert size={18} style={{ flexShrink: 0 }} />
+          <span>{saleGuardMessage}</span>
+        </div>
+      )}
 
       {errorMessage && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '14px 18px', borderRadius: '10px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>

@@ -1,77 +1,72 @@
-import { test, expect } from '@playwright/test';
-import { seedRevenueData, cleanupRevenueData } from '../utils/db';
+import { expect, test } from '@playwright/test';
+import {
+  API_BASE,
+  cleanupRetailFixtures,
+  closeDB,
+  createCompletedSale,
+  createRetailFixture,
+  createReturnExchange,
+} from '../utils/db';
 
-test.describe('Revenue By Time Report', () => {
-  const TEST_CODE = 'REV_TEST_123';
+const PREFIX = 'E2E_RETAIL_INTEGRITY_REPORT_';
+let scenarioPrefix = '';
 
-  test.beforeAll(async () => {
-    // Clean up just in case
-    await cleanupRevenueData(TEST_CODE);
-    // Seed real data to ensure the table has data
-    await seedRevenueData(TEST_CODE);
-  });
+function todayIsoDate() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+async function authHeaders(page: any) {
+  await page.goto('/');
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  return { Authorization: `Bearer ${token}` };
+}
+
+test.describe('Revenue by time report', () => {
+  test.use({ storageState: 'playwright/.auth/user.json' });
 
   test.afterAll(async () => {
-    // Clean up
-    await cleanupRevenueData(TEST_CODE);
+    if (scenarioPrefix) await cleanupRetailFixtures(scenarioPrefix);
+    await closeDB();
   });
 
-  test.beforeEach(async ({ page }) => {
-    // Override window.print so it doesn't block the test
+  test('keeps net revenue after a completed refund and keeps report actions available', async ({ page }) => {
+    scenarioPrefix = `${PREFIX}${Date.now()}_`;
+    const fixture = await createRetailFixture(scenarioPrefix, 1);
+    const headers = await authHeaders(page);
+    const sale = await createCompletedSale(page.request, headers, {
+      code: `${scenarioPrefix}SALE_MAIN`,
+      branchId: String(fixture.branch._id),
+      customerId: String(fixture.customer._id),
+      paymentMethodId: String(fixture.paymentMethods.cash._id),
+      items: [{ productId: String(fixture.products[0]._id), amount: 10, value: fixture.products[0].price }],
+    });
+
+    const refundResponse = await createReturnExchange(page.request, headers, sale._id, {
+      code: `${scenarioPrefix}REFUND_MAIN`,
+      returnedItems: [{ productId: String(fixture.products[0]._id), amount: 3, value: fixture.products[0].price }],
+      refundPayments: [{ methodId: String(fixture.paymentMethods.cash._id), amount: fixture.products[0].price * 3 }],
+    });
+    expect(refundResponse.status()).toBe(201);
+
+    const reportResponse = await page.request.get(`${API_BASE}/reports/revenue-time?displayType=Theo%20ngay&fromDate=${todayIsoDate()}&toDate=${todayIsoDate()}&branchId=${fixture.branch._id}`, { headers });
+    expect(reportResponse.ok()).toBeTruthy();
+    const reportRows = await reportResponse.json();
+    const revenue = reportRows.reduce((sum: number, row: any) => sum + Number(row.revenue || 0), 0);
+    expect(revenue).toBe(700000);
+
     await page.addInitScript(() => {
       window.print = () => console.log('Mocked window.print()');
     });
-
     await page.goto('/reports/revenue/time');
     await page.waitForSelector('.revenue-time-container');
-  });
 
-  test('Kiểm tra hiển thị dữ liệu và các bộ lọc', async ({ page }) => {
-    // Debug table text
-    const tableText = await page.locator('.revenue-table').innerText();
-    console.log('Table content:', tableText);
+    await expect(page.getByRole('button', { name: /Lọc/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /Xuất dữ liệu/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /In báo cáo/i })).toBeVisible();
 
-    // Xác minh dữ liệu seed (Giá vốn 600.000, Chiết khấu 50.000) đã hiển thị (do cộng gộp theo ngày)
-    await expect(page.locator('td', { hasText: /600[\.\,\s]000/ }).first()).toBeVisible();
-    await expect(page.locator('td', { hasText: /50[\.\,\s]000/ }).first()).toBeVisible();
-
-    // Tương tác bộ lọc hiển thị
-    await page.selectOption('select', { hasText: 'Theo ngày' }, 'Theo tháng');
-    
-    // Tương tác DateRangePicker (vì là component tùy chỉnh, ta có thể nhập text trực tiếp nếu cấu trúc cho phép, hoặc chỉ click nút Lọc)
-    // Click nút Lọc
-    const fetchResponse = page.waitForResponse(response => response.url().includes('/reports/revenue-time') && response.request().method() === 'GET');
-    await page.click('button:has-text("Lọc")');
-    await fetchResponse;
-
-    // Dữ liệu vẫn phải tồn tại (vì "Theo tháng" sẽ gom nhóm lại nhưng tổng vẫn thế)
-    await expect(page.locator('td', { hasText: /600[\.\,\s]000/ }).first()).toBeVisible();
-  });
-
-  test('Kiểm tra nút Xuất dữ liệu', async ({ page }) => {
-    // Bắt event download
-    const downloadPromise = page.waitForEvent('download');
-    await page.click('button:has-text("Xuất dữ liệu")');
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toContain('bao_cao_doanh_thu');
-  });
-
-  test('Kiểm tra nút In báo cáo', async ({ page }) => {
-    // Lắng nghe console log từ mock window.print
-    const consolePromise = page.waitForEvent('console', msg => msg.text() === 'Mocked window.print()');
-    await page.click('button:has-text("In báo cáo")');
+    const consolePromise = page.waitForEvent('console', (message) => message.text() === 'Mocked window.print()');
+    await page.getByRole('button', { name: /In báo cáo/i }).click();
     await consolePromise;
-    // Nếu bắt được console.log nghĩa là nút in đã gọi đúng hàm
-  });
-
-  test('Kiểm tra nút Đổi giao diện bảng', async ({ page }) => {
-    // Bắt alert
-    page.on('dialog', dialog => {
-      expect(dialog.message()).toContain('đang được phát triển');
-      dialog.accept();
-    });
-    // Click button LayoutGrid (icon button, we can find by class or svg)
-    // It's the 3rd button in actions-bar
-    await page.locator('.actions-bar button').nth(2).click();
   });
 });

@@ -58,7 +58,7 @@ router.get('/invoices', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
   const filter = { status: 'completed' };
   const [items, total] = await Promise.all([
-    SalePayment.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    SalePayment.find(filter).sort({ completedAt: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit),
     SalePayment.countDocuments(filter),
   ]);
   res.json({ items, total, page, limit });
@@ -68,7 +68,7 @@ router.get('/reports/sales', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit || 15), 1), 200);
   const filter = { status: 'completed' };
   const [sales, total, summaryRows, refundRows] = await Promise.all([
-    SalePayment.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    SalePayment.find(filter).sort({ completedAt: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit),
     SalePayment.countDocuments(filter),
     SalePayment.aggregate([
       { $match: filter },

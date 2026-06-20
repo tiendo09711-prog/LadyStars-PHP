@@ -6,7 +6,7 @@ import { connectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import { bootstrapSystem } from './core/bootstrap.js';
 import authRoutes from './core/auth/auth.routes.js';
-import { getAssignedWarehouseIds, isAdminUser, requireAuth, requireOwner } from './core/middleware/auth.js';
+import { isAdminUser, requireAuth, requireOwner } from './core/middleware/auth.js';
 import systemRoutes from './core/system/system.routes.js';
 import staffRoutes from './core/staff/staff.routes.js';
 import settingsRoutes from './core/settings/settings.routes.js';
@@ -21,30 +21,6 @@ import warehouseRoutes from './modules/warehouse/warehouse.routes.js';
 import inventoryAuditRoutes, { inventoryAuditItemsRouter } from './modules/warehouse/inventory-audit.routes.js';
 import ordersRoutes from './modules/orders/orders.routes.js';
 import reportsRoutes from './modules/reports/reports.routes.js';
-import { Branch } from './core/org/branch.model.js';
-import { crudRoutes } from './core/utils/routeFactory.js';
-
-async function scopedBranchAccess(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const user = (req as any).user;
-  if (isAdminUser(user)) return next();
-  if (req.method !== 'GET') return res.status(403).json({ message: 'ADMIN permission required' });
-
-  const assignedIds = getAssignedWarehouseIds(user);
-  if (!assignedIds.length) return res.status(403).json({ message: 'No assigned warehouse' });
-
-  if (req.path === '/' || req.path === '') {
-    (req as any).customFilter = { _id: { $in: assignedIds }, isActive: { $ne: false } };
-    return next();
-  }
-
-  const requestedId = req.path.replace(/^\//, '').split('/')[0];
-  if (!assignedIds.includes(requestedId)) {
-    return res.status(403).json({ message: 'Warehouse is outside employee scope' });
-  }
-  const activeAssignedBranch = await Branch.exists({ _id: requestedId, isActive: { $ne: false } });
-  if (!activeAssignedBranch) return res.status(404).json({ message: 'Warehouse not found' });
-  next();
-}
 
 function productAccessGuard(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (isAdminUser((req as any).user)) return next();
@@ -94,10 +70,9 @@ app.use(morgan('dev'));
 
 app.get('/health', (_, res) => res.json({ ok: true }));
 app.use('/api/auth', authRoutes);
-app.use('/api/system/branches', requireAuth, scopedBranchAccess, crudRoutes(Branch));
-app.use('/api/system', requireAuth, requireOwner, systemRoutes);
+app.use('/api/system', requireAuth, systemRoutes);
 app.use('/api/staff', requireAuth, requireOwner, staffRoutes);
-app.use('/api/settings', requireAuth, requireOwner, settingsRoutes);
+app.use('/api/settings', requireAuth, settingsRoutes);
 app.use('/api/audit-logs', requireAuth, requireOwner, auditRoutes);
 app.use('/api/dashboard', requireAuth, requireOwner, dashboardRoutes);
 app.use('/api/products', requireAuth, productAccessGuard, productRoutes);
@@ -114,7 +89,11 @@ app.use('/api/reports', requireAuth, requireOwner, reportsRoutes);
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   const status = err.status ?? (err.name === 'ZodError' ? 422 : 500);
-  res.status(status).json({ message: err.message ?? 'Server error', issues: err.issues });
+  res.status(status).json({
+    message: err.message ?? 'Server error',
+    issues: err.issues,
+    usage: err.usage,
+  });
 });
 
 connectDatabase().then(async () => {

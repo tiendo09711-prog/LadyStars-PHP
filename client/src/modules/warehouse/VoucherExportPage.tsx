@@ -11,16 +11,23 @@ type Product = {
   cost: number;
   qty: number;
   totalStock?: number;
+  selectedStock?: number;
   stockCN?: number;
   stockHanoi?: number;
   stockHCM?: number;
   unit?: string;
 };
 
-const getStockForWarehouse = (prod: Product, wh: string) => {
-  if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
-  if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+type Branch = {
+  _id: string;
+  name: string;
+  code?: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+};
+
+const getStockForWarehouse = (prod: Product) => {
+  if (typeof prod.selectedStock === 'number') return prod.selectedStock;
   return prod.totalStock ?? prod.qty ?? 0;
 };
 
@@ -46,13 +53,13 @@ export function VoucherExportPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [sysBranches, setSysBranches] = useState<any[]>([]);
+  const [sysBranches, setSysBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [warehouse, setWarehouse] = useState('');
+  const [branchId, setBranchId] = useState('');
   const [exportType, setExportType] = useState('Xuất trả hàng');
   const [supplierCustomer, setSupplierCustomer] = useState('');
   const [tags, setTags] = useState('');
@@ -81,13 +88,19 @@ export function VoucherExportPage() {
   // Table rows
   const [lines, setLines] = useState<ExportLine[]>([]);
 
-  // Fetch products
+  const selectedBranch = useMemo(
+    () => sysBranches.find((branch) => branch._id === branchId),
+    [sysBranches, branchId],
+  );
+  const warehouse = selectedBranch?.name || '';
+
+  // Fetch branches + products
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       setError('');
       try {
-        const response = await http.get('/products/inventories', { params: { limit: 100 } });
+        const response = await http.get('/products/inventories', { params: { limit: 100, branchId: branchId || undefined } });
         if (response.data?.items && response.data.items.length > 0) {
           setProducts(response.data.items);
         } else {
@@ -100,13 +113,19 @@ export function VoucherExportPage() {
         setLoading(false);
       }
     };
-    fetchProducts();
+    if (branchId) {
+      void fetchProducts();
+    }
+  }, [branchId]);
+
+  useEffect(() => {
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
     http.get('/system/branches').then(res => {
-      const branches = res.data.items || [];
+      const branches = (res.data.items || []).filter((branch: Branch) => branch.isActive !== false);
       setSysBranches(branches);
-      if (branches.length > 0 && !warehouse) {
-        setWarehouse(branches[0].name);
+      if (branches.length > 0 && !branchId) {
+        const defaultBranch = branches.find((branch: Branch) => branch.isDefault) || branches[0];
+        setBranchId(defaultBranch?._id || '');
       }
     }).catch(() => {});
   }, []);
@@ -117,7 +136,7 @@ export function VoucherExportPage() {
       setLines(current => current.map(line => {
         const prod = products.find(p => p._id === line.productId);
         if (prod) {
-          const newQty = getStockForWarehouse(prod, warehouse);
+          const newQty = getStockForWarehouse(prod);
           if (line.remainQty !== newQty) {
             return { ...line, remainQty: newQty };
           }
@@ -125,7 +144,7 @@ export function VoucherExportPage() {
         return line;
       }));
     }
-  }, [warehouse, products]);
+  }, [products, warehouse]);
 
   // Initialize with one line when products are loaded
   useEffect(() => {
@@ -139,7 +158,7 @@ export function VoucherExportPage() {
     productId: prod._id,
     batchCode: '',
     unit: prod.unit || 'cái',
-    remainQty: getStockForWarehouse(prod, warehouse),
+    remainQty: getStockForWarehouse(prod),
     quantity: 1,
     price: prod.price || 0,
     discountValue: 0,
@@ -171,7 +190,7 @@ export function VoucherExportPage() {
         const prod = products.find(p => p._id === patch.productId);
         if (prod) {
           next.unit = prod.unit || 'cái';
-          next.remainQty = getStockForWarehouse(prod, warehouse);
+          next.remainQty = getStockForWarehouse(prod);
           next.price = prod.price || 0;
         }
       }
@@ -260,10 +279,15 @@ export function VoucherExportPage() {
       setError('Phiếu xuất kho phải có ít nhất một sản phẩm với số lượng lớn hơn 0.');
       return;
     }
+    if (!branchId || !warehouse) {
+      setError('Vui lòng chọn kho xuất hợp lệ.');
+      return;
+    }
 
     try {
       const payload = {
         date: new Date().toISOString().slice(0, 10),
+        branchId,
         warehouse,
         type: exportType,
         supplier: supplierCustomer,
@@ -343,9 +367,9 @@ export function VoucherExportPage() {
           <div className="form-grid">
             <label className="form-field">
               <span>Kho hàng *</span>
-              <select value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
+              <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
                 <option value="">-- Chọn kho xuất --</option>
-                {sysBranches.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
+                {sysBranches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>)}
               </select>
             </label>
 

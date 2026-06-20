@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
 
 type RetailInvoicePageProps = {
   channel: string;
@@ -46,6 +47,14 @@ type Branch = {
   address?: string;
   phone?: string;
   isDefault?: boolean;
+  invoiceProfile?: {
+    displayName?: string;
+    footerText?: string;
+    showBranchName?: boolean;
+    showCashier?: boolean;
+    showProductCode?: boolean;
+    showLogo?: boolean;
+  };
 };
 
 type Invoice = Record<string, any>;
@@ -117,7 +126,6 @@ function statusMeta(status: unknown, refundStatus?: unknown) {
   if (value === 'completed' && refund === 'partial') return { label: 'Đã hoàn một phần', tone: 'warning' };
   if (value === 'completed') return { label: 'Hoàn tất', tone: 'success' };
   if (value === 'cancelled') return { label: 'Đã hủy', tone: 'danger' };
-  if (value === 'refunded') return { label: 'Đã hoàn', tone: 'neutral' };
   if (value === 'draft') return { label: 'Nháp', tone: 'warning' };
   return { label: status ? String(status) : '—', tone: 'neutral' };
 }
@@ -127,19 +135,56 @@ function hasGiftItems(invoice: Invoice) {
   return productLines(invoice).some((item) => item?.isGift === true || item?.gift === true || item?.giftForProductId);
 }
 
-function canRefundInvoice(invoice: Invoice) {
-  if (typeof invoice?.canRefund === 'boolean') return invoice.canRefund;
-  return String(invoice?.status || '').toLowerCase() === 'completed' && String(invoice?.refundStatus || 'none') !== 'full';
+function refundActionState(invoice: Invoice) {
+  const status = String(invoice?.status || '').toLowerCase();
+  const refundStatus = String(invoice?.refundStatus || 'none').toLowerCase();
+  const remainingReturnableQuantity = Number(invoice?.remainingReturnableQuantity || 0);
+
+  if (status === 'cancelled') {
+    return { enabled: false, title: 'Hóa đơn đã hủy nên không thể đổi trả.' };
+  }
+  if (status !== 'completed') {
+    return { enabled: false, title: 'Chỉ hóa đơn đã hoàn tất mới được đổi trả.' };
+  }
+  if (refundStatus === 'full' || remainingReturnableQuantity <= 0) {
+    return { enabled: false, title: 'Hóa đơn đã hoàn toàn bộ nên không thể đổi trả thêm.' };
+  }
+  return { enabled: true, title: 'Tạo chứng từ đổi trả cho phần hàng còn lại.' };
 }
 
-function canEditInvoice(invoice: Invoice) {
-  if (typeof invoice?.canEdit === 'boolean') return invoice.canEdit;
-  return String(invoice?.status || '').toLowerCase() === 'completed' && String(invoice?.refundStatus || 'none') === 'none';
+function editActionState(invoice: Invoice) {
+  const status = String(invoice?.status || '').toLowerCase();
+  const refundStatus = String(invoice?.refundStatus || 'none').toLowerCase();
+  const activeRefundCount = Number(invoice?.activeRefundCount || 0);
+
+  if (status === 'cancelled') {
+    return { enabled: false, title: 'Hóa đơn đã hủy nên không thể sửa.' };
+  }
+  if (status !== 'completed') {
+    return { enabled: false, title: 'Chỉ hóa đơn đã hoàn tất mới được sửa.' };
+  }
+  if (refundStatus === 'full') {
+    return { enabled: false, title: 'Hóa đơn đã hoàn toàn bộ nên không thể sửa.' };
+  }
+  if (refundStatus === 'partial' || activeRefundCount > 0) {
+    return { enabled: false, title: 'Hóa đơn đã phát sinh đổi trả nên không thể sửa.' };
+  }
+  return { enabled: true, title: 'Sửa hóa đơn hoàn tất khi chưa phát sinh đổi trả.' };
 }
 
 function deleteActionState(invoice: Invoice) {
   const status = String(invoice?.status || '').toLowerCase();
+  const refundStatus = String(invoice?.refundStatus || 'none').toLowerCase();
   const activeRefundCount = Number(invoice?.activeRefundCount || 0);
+  if (status === 'cancelled' && activeRefundCount > 0) {
+    return { enabled: false, title: 'Không thể xóa hóa đơn đã hủy vì đã phát sinh chứng từ đổi trả.' };
+  }
+  if (refundStatus === 'full') {
+    return { enabled: false, title: 'Hóa đơn đã hoàn toàn bộ nên không thể xóa hoặc hủy.' };
+  }
+  if (refundStatus === 'partial' || activeRefundCount > 0) {
+    return { enabled: false, title: 'Hóa đơn đã phát sinh đổi trả nên không thể xóa hoặc hủy.' };
+  }
   if (activeRefundCount > 0) {
     return { enabled: false, title: 'Không thể xóa hoặc hủy vì hóa đơn đã phát sinh chứng từ đổi trả.' };
   }
@@ -194,6 +239,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const [detail, setDetail] = useState<Invoice | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [actionBusyId, setActionBusyId] = useState('');
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -346,18 +392,30 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
     openPrintWindow();
   };
 
-  const buildPrintDocument = (invoice: Invoice, shop: any, items: any[], title: string, hideTotals = false) => {
+  const buildPrintDocument = (invoice: Invoice, branch: Branch | null, shop: any, items: any[], title: string, hideTotals = false) => {
     const customer = invoice.customerId || {};
-    const branch = invoice.branchId || {};
-    const shopName = shop?.name || branch?.name || 'Cửa hàng';
-    const shopAddress = shop?.address || branch?.address || '';
-    const shopPhone = shop?.phone || branch?.phone || '';
+    const profile = buildInvoiceProfile(
+      branch
+        ? {
+            _id: branch._id,
+            name: branch.name || '',
+            code: branch.code || '',
+            address: branch.address,
+            phone: branch.phone,
+            invoiceProfile: branch.invoiceProfile,
+          }
+        : undefined,
+      shop || undefined,
+    );
     const rows = items.map((item, index) => {
       const total = Number(item?.total ?? (Number(item?.value) || 0) * (Number(item?.amount) || 0));
+      const codeLine = profile.showProductCode && productCode(item)
+        ? `<div class="product-code">${escapeHtml(productCode(item))}</div>`
+        : '';
       return `
         <tr>
           <td>${index + 1}</td>
-          <td>${escapeHtml(productName(item))}</td>
+          <td>${escapeHtml(productName(item))}${codeLine}</td>
           <td>${safeMoney(item?.value)}</td>
           <td>${Number(item?.amount || 0).toLocaleString('vi-VN')}</td>
           <td>${hideTotals ? '—' : safeMoney(total)}</td>
@@ -376,11 +434,15 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       @page { size: A4 portrait; margin: 10mm; }
       body { font-family: Arial, sans-serif; color: #111827; font-size: 13px; }
       .print-page { display: flex; flex-direction: column; gap: 12px; }
+      .header-meta { display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; color: #475569; }
       .header { text-align: center; }
       .header h1 { margin: 0; font-size: 24px; }
       .header p { margin: 4px 0; }
+      .branch-line { font-size: 12px; color: #475569; }
+      .divider { border-top: 1px dashed #94a3b8; margin: 4px 0; }
       .title { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 8px; }
-      .title h2 { margin: 0; font-size: 22px; text-transform: uppercase; }
+      .title h2 { margin: 0; font-size: 18px; }
+      .invoice-heading { text-align: center; font-size: 22px; font-weight: 700; letter-spacing: 0.08em; }
       .meta, .summary { width: 100%; border-collapse: collapse; }
       .meta td { padding: 4px 0; vertical-align: top; }
       table.items { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -388,19 +450,29 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       table.items th { background: #f3f4f6; text-align: left; }
       table.items td:nth-child(1), table.items td:nth-child(4) { text-align: center; }
       table.items td:nth-child(3), table.items td:nth-child(5) { text-align: right; }
+      .product-code { margin-top: 4px; font-size: 11px; color: #475569; }
       .summary { margin-top: 12px; }
       .summary td { padding: 4px 0; }
       .summary td:last-child { text-align: right; }
       .thanks { margin-top: 18px; text-align: center; font-style: italic; }
+      .logo { display: flex; justify-content: center; margin-bottom: 8px; }
+      .logo img { max-width: 88px; max-height: 64px; object-fit: contain; }
     </style>
   </head>
   <body>
     <main class="print-page">
+      <div class="header-meta">
+        <span>${escapeHtml(new Date().toLocaleString('vi-VN'))}</span>
+        <strong>Hóa đơn bán lẻ</strong>
+      </div>
       <header class="header">
-        <h1>${escapeHtml(shopName)}</h1>
-        <p>${escapeHtml(shopAddress)}</p>
-        <p>${escapeHtml(shopPhone)}</p>
+        ${profile.showLogo && profile.logoUrl ? `<div class="logo"><img src="${escapeHtml(profile.logoUrl)}" alt="Logo cửa hàng" /></div>` : ''}
+        <h1>${escapeHtml(profile.brandName)}</h1>
+        <p>${escapeHtml(profile.address)}</p>
+        <p>${escapeHtml(profile.phone)}</p>
+        ${profile.showBranchName && profile.branchName ? `<p class="branch-line">Kho: ${escapeHtml(profile.branchName)}</p>` : ''}
       </header>
+      <div class="divider"></div>
       <section class="title">
         <div>
           <p>Ngày bán: ${escapeHtml(safeDate(invoice.completedAt || invoice.createdAt))}</p>
@@ -408,9 +480,10 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         </div>
         <h2>${escapeHtml(title)}</h2>
       </section>
+      <div class="invoice-heading">HÓA ĐƠN BÁN HÀNG</div>
       <table class="meta">
         <tr><td>Khách hàng: ${escapeHtml(customer?.name || 'Khách lẻ')}</td><td>Điện thoại: ${escapeHtml(customer?.phone || '—')}</td></tr>
-        <tr><td>Người lập phiếu: ${escapeHtml(invoice.authorId?.name || invoice.userId?.name || '—')}</td><td></td></tr>
+        ${profile.showCashier ? `<tr><td>Người lập phiếu: ${escapeHtml(invoice.authorId?.name || invoice.userId?.name || '—')}</td><td></td></tr>` : ''}
       </table>
       <table class="items">
         <thead>
@@ -419,16 +492,31 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         <tbody>${rows}</tbody>
       </table>
       ${hideTotals ? '' : `<table class="summary">
-        <tr><td>Tổng hàng</td><td>${safeMoney(grossValue(invoice))}</td></tr>
+        <tr><td>Tổng cộng</td><td>${safeMoney(grossValue(invoice))}</td></tr>
         <tr><td>Giảm giá</td><td>${Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</td></tr>
         <tr><td>Thành tiền</td><td>${safeMoney(invoice.value)}</td></tr>
         <tr><td>Đã thanh toán</td><td>${safeMoney(invoice.valuePayment)}</td></tr>
-        <tr><td>Tiền thừa</td><td>${change > 0 ? safeMoney(change) : '—'}</td></tr>
+        <tr><td>Tiền trả lại</td><td>${change > 0 ? safeMoney(change) : '—'}</td></tr>
       </table>`}
-      <p class="thanks">Cảm ơn quý khách đã mua hàng!</p>
+      <div class="divider"></div>
+      <p class="thanks">${escapeHtml(profile.footerText)}</p>
     </main>
   </body>
 </html>`;
+  };
+
+  const resolvePrintBranch = async (invoice: Invoice) => {
+    const rawBranch = invoice.branchId as Branch | string | undefined;
+    const branchId = typeof rawBranch === 'string' ? rawBranch : rawBranch?._id;
+    if (!branchId) return null;
+    if (typeof rawBranch === 'object' && rawBranch?.invoiceProfile) {
+      return rawBranch;
+    }
+    try {
+      return await getBranch(branchId, { includeInactive: true });
+    } catch {
+      return typeof rawBranch === 'object' ? rawBranch : null;
+    }
   };
 
   const printInvoice = async (invoice: Invoice, giftOnly = false) => {
@@ -452,9 +540,11 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         window.alert('Hóa đơn này không có sản phẩm tặng kèm');
         return;
       }
-      const storeResponse = await http.get('/settings/store').catch(() => null);
-      const shop = storeResponse?.data || {};
-      const html = buildPrintDocument(fullInvoice, shop, items, giftOnly ? 'HÓA ĐƠN TẶNG QUÀ' : 'Hóa đơn bán lẻ', giftOnly);
+      const [branch, shop] = await Promise.all([
+        resolvePrintBranch(fullInvoice),
+        getStoreSetting().catch(() => ({})),
+      ]);
+      const html = buildPrintDocument(fullInvoice, branch, shop, items, giftOnly ? 'HÓA ĐƠN TẶNG QUÀ' : 'Hóa đơn bán lẻ', giftOnly);
       popup.document.open();
       popup.document.write(html);
       popup.document.close();
@@ -488,10 +578,13 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         return;
       }
 
-      const storeResponse = await http.get('/settings/store').catch(() => null);
-      const shop = storeResponse?.data || {};
+      const [branch, shop] = await Promise.all([
+        resolvePrintBranch(fullInvoice),
+        getStoreSetting().catch(() => ({})),
+      ]);
       const html = buildPrintDocument(
         fullInvoice,
+        branch,
         shop,
         items,
         giftOnly ? 'Hóa đơn tặng quà' : 'Hóa đơn bán lẻ',
@@ -517,6 +610,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       window.alert(state.title);
       return;
     }
+    if (actionBusyId === invoice._id) return;
     const status = String(invoice.status || '').toLowerCase();
     const lineCount = productLines(invoice).length;
     const confirmation = window.confirm(
@@ -531,6 +625,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
     if (!confirmation) return;
 
     try {
+      setActionBusyId(invoice._id);
       if (status === 'completed') {
         await http.post(`/products/sales/${invoice._id}/cancel`);
       } else {
@@ -541,6 +636,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       await loadInvoices();
     } catch (err: any) {
       window.alert(err.response?.data?.message || 'Không thể xóa hoặc hủy hóa đơn.');
+    } finally {
+      setActionBusyId((current) => (current === invoice._id ? '' : current));
     }
   };
 
@@ -723,8 +820,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                 const payments = paymentRows(invoice);
                 const status = statusMeta(invoice.status, invoice.refundStatus);
                 const giftDisabled = !hasGiftItems(invoice);
-                const refundDisabled = !canRefundInvoice(invoice);
-                const editDisabled = !canEditInvoice(invoice);
+                const refundState = refundActionState(invoice);
+                const editState = editActionState(invoice);
                 const deleteState = deleteActionState(invoice);
                 return (
                   <tr key={invoice._id}>
@@ -794,9 +891,9 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                             <button type="button" onClick={() => void openDetail(invoice)}><Eye size={15} /> Xem chi tiết</button>
                             <button type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice)}><Printer size={15} /> In hóa đơn</button>
                             <button type="button" disabled={giftDisabled} title={giftDisabled ? 'Hóa đơn này không có sản phẩm tặng kèm' : ''} onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice, true)}><Gift size={15} /> In hóa đơn quà tặng</button>
-                            <button type="button" disabled={refundDisabled} title={refundDisabled ? 'Hóa đơn này không còn sản phẩm có thể đổi trả.' : ''} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${invoice._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
-                            <button type="button" disabled={editDisabled} title={editDisabled ? 'Hóa đơn này không hợp lệ để sửa.' : ''} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>
-                            <button type="button" disabled={!deleteState.enabled} title={deleteState.title} onClick={() => void handleDeleteInvoice(invoice)}><Trash2 size={15} /> Xóa hóa đơn</button>
+                            <button type="button" disabled={!refundState.enabled} title={refundState.title} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${invoice._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
+                            <button type="button" disabled={!editState.enabled} title={editState.title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>
+                            <button type="button" disabled={!deleteState.enabled || actionBusyId === invoice._id} title={deleteState.title} onClick={() => void handleDeleteInvoice(invoice)}><Trash2 size={15} /> {actionBusyId === invoice._id ? 'Đang xử lý...' : 'Xóa hóa đơn'}</button>
                           </div>
                         )}
                       </div>
@@ -873,8 +970,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               <button className="retail-btn ghost" type="button" onClick={() => setDetail(null)}>Đóng</button>
               <button className="retail-btn primary" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail)}><Printer size={15} /> In hóa đơn</button>
               {hasGiftItems(detail) && <button className="retail-btn ghost" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail, true)}><Gift size={15} /> In hóa đơn quà tặng</button>}
-              {canRefundInvoice(detail) && <button className="retail-btn primary" type="button" onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${detail._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>}
-              {canEditInvoice(detail) && <button className="retail-btn ghost" type="button" onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${detail._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>}
+              <button className="retail-btn primary" type="button" disabled={!refundActionState(detail).enabled} title={refundActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${detail._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
+              <button className="retail-btn ghost" type="button" disabled={!editActionState(detail).enabled} title={editActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${detail._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>
             </footer>
           </div>
         </div>

@@ -15,6 +15,7 @@ import {
   TransferAuditLog
 } from './warehouse.models.js';
 import { Branch } from '../../core/org/branch.model.js';
+import { resolveBranchReference } from '../../core/org/branch.service.js';
 import { getAssignedWarehouseIds, isAdminUser } from '../../core/middleware/auth.js';
 import { moveProductQty } from '../product/product.service.js';
 import {
@@ -1093,19 +1094,7 @@ function computeBatchStatus(expiry?: Date): string {
 }
 
 async function resolveBranch(warehouse?: string, branchId?: string) {
-  if (branchId) {
-    const byId = await Branch.findById(branchId);
-    if (byId) return byId;
-  }
-  const branchMap: Record<string, string> = {
-    'Chi nhánh trung tâm': 'CN001',
-    'Kho Hà Nội': 'HN',
-    'Kho HCM': 'HCM',
-    'Kho Hồ Chí Minh': 'HCM',
-    'Kho chính': 'HN'
-  };
-  const code = branchMap[warehouse || ''] || 'CN001';
-  return await Branch.findOne({ code }) || await Branch.findOne({ isDefault: true }) || await Branch.findOne();
+  return resolveBranchReference({ branchId, warehouse, allowInactive: true });
 }
 
 function lineTotal(qty: number, price: number, item: any) {
