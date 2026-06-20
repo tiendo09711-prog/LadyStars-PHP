@@ -1,477 +1,926 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, FileDown, Plus, Search, Trash2, Printer, ClipboardCheck, PackageSearch } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  ClipboardCheck,
+  Link2,
+  LoaderCircle,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import './warehouseRecords.css';
+import './warehouseAudit.css';
 
-type Product = {
+type Option = {
+  value: string;
+  label: string;
+  code?: string;
+  isDefault?: boolean;
+};
+
+type InventoryOption = {
   _id: string;
   code: string;
   name: string;
-  price: number;
-  cost: number;
-  qty: number;
-  totalStock?: number;
-  stockCN?: number;
-  stockHanoi?: number;
-  stockHCM?: number;
+  barcode?: string;
   unit?: string;
+  cost?: number;
+  price?: number;
+  selectedStock?: number;
+  totalStock?: number;
 };
 
-const getStock = (product: any, branchId: string) => {
-  if (!product || !branchId) return 0;
-  const inv = product.inventories?.find((i: any) => i.branchId === branchId);
-  if (inv) return inv.qty || 0;
-  return product.qty || 0;
-};
-
-type CheckProductLine = {
-  _id?: string;
+type AuditLine = {
   productId: string;
-  productCode: string;
-  productName: string;
-  cost: number;
-  price: number;
-  stock: number;
-  transferring: number;
-  actualStock: number;
-  difference: number;
-  description: string;
+  productCodeSnapshot: string;
+  barcodeSnapshot: string;
+  productNameSnapshot: string;
+  unitSnapshot: string;
+  costPriceSnapshot: number;
+  salePriceSnapshot: number;
+  systemQuantitySnapshot: number;
+  inTransitQuantitySnapshot: number;
+  physicalInput: string;
+  note: string;
+  varianceQuantity: number;
 };
 
+type AuditDetail = {
+  _id: string;
+  code: string;
+  warehouseId: string;
+  warehouseName: string;
+  auditType: string;
+  auditTypeLabel: string;
+  status: string;
+  statusLabel: string;
+  note: string;
+  createdAt?: string;
+  snapshotAt?: string;
+  createdByName?: string;
+  submittedAt?: string;
+  submittedByName?: string;
+  reconciledAt?: string;
+  reconciledByName?: string;
+  cancelReason?: string;
+  linkedInventoryBillIds: string[];
+  linkedInventoryBillCodes: string[];
+  summary: {
+    itemCount: number;
+    countedItemCount: number;
+    systemQuantityTotal: number;
+    inTransitQuantityTotal: number;
+    physicalQuantityTotal: number;
+    varianceQuantityTotal: number;
+    excessItemCount: number;
+    shortageItemCount: number;
+    totalIncreaseQuantity: number;
+    totalDecreaseQuantity: number;
+  };
+  items: Array<{
+    _id: string;
+    productId: string;
+    productCodeSnapshot: string;
+    barcodeSnapshot: string;
+    productNameSnapshot: string;
+    unitSnapshot: string;
+    costPriceSnapshot: number;
+    salePriceSnapshot: number;
+    systemQuantitySnapshot: number;
+    inTransitQuantitySnapshot: number;
+    physicalQuantity: number | null;
+    varianceQuantity: number;
+    note: string;
+  }>;
+  logs?: Array<{
+    _id: string;
+    actionType: string;
+    actorName?: string;
+    previousStatus?: string;
+    nextStatus?: string;
+    reason?: string;
+    createdAt?: string;
+  }>;
+};
 
+type VoucherDetail = {
+  code?: string;
+  kindLabel?: string;
+  directionLabel?: string;
+  warehouseName?: string;
+  createdByName?: string;
+  date?: string;
+  note?: string;
+  totalQuantity?: number;
+  totalAmount?: number;
+  items?: Array<{
+    rowKey: string;
+    productCode?: string;
+    productName?: string;
+    quantity?: number;
+    unitPrice?: number;
+    totalAmount?: number;
+  }>;
+};
+
+type ConfirmState =
+  | { kind: 'submit' }
+  | { kind: 'cancel'; reason: string }
+  | { kind: 'reconcile' };
+
+function formatDate(value?: string) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('vi-VN');
+}
+
+function formatNumber(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  return Number(value).toLocaleString('vi-VN');
+}
+
+function formatMoney(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  return Number(value).toLocaleString('vi-VN');
+}
+
+function signedNumber(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  const amount = Number(value);
+  if (amount > 0) return `+${amount.toLocaleString('vi-VN')}`;
+  return amount.toLocaleString('vi-VN');
+}
+
+function varianceClass(value: number) {
+  if (value > 0) return 'audit-variance positive';
+  if (value < 0) return 'audit-variance negative';
+  return 'audit-variance neutral';
+}
+
+function parsePhysicalInput(value: string) {
+  if (value.trim() === '') return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return NaN;
+  return parsed;
+}
+
+function lineFromInventory(product: InventoryOption): AuditLine {
+  const stock = Number(product.selectedStock ?? product.totalStock ?? 0);
+  return {
+    productId: product._id,
+    productCodeSnapshot: product.code || '',
+    barcodeSnapshot: product.barcode || '',
+    productNameSnapshot: product.name || '',
+    unitSnapshot: product.unit || '',
+    costPriceSnapshot: Number(product.cost || 0),
+    salePriceSnapshot: Number(product.price || 0),
+    systemQuantitySnapshot: stock,
+    inTransitQuantitySnapshot: 0,
+    physicalInput: '',
+    note: '',
+    varianceQuantity: 0,
+  };
+}
+
+function lineFromAuditItem(item: AuditDetail['items'][number]): AuditLine {
+  return {
+    productId: item.productId,
+    productCodeSnapshot: item.productCodeSnapshot || '',
+    barcodeSnapshot: item.barcodeSnapshot || '',
+    productNameSnapshot: item.productNameSnapshot || '',
+    unitSnapshot: item.unitSnapshot || '',
+    costPriceSnapshot: Number(item.costPriceSnapshot || 0),
+    salePriceSnapshot: Number(item.salePriceSnapshot || 0),
+    systemQuantitySnapshot: Number(item.systemQuantitySnapshot || 0),
+    inTransitQuantitySnapshot: Number(item.inTransitQuantitySnapshot || 0),
+    physicalInput: item.physicalQuantity === null || item.physicalQuantity === undefined ? '' : String(item.physicalQuantity),
+    note: item.note || '',
+    varianceQuantity: Number(item.varianceQuantity || 0),
+  };
+}
 
 export function WarehouseAuditCreatePage() {
   const navigate = useNavigate();
-  const [dbProducts, setDbProducts] = useState<Product[]>([]);
-  const [sysBranches, setSysBranches] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    id: `PKK${Math.floor(Date.now() / 1000)}`,
-    date: new Date().toISOString().slice(0, 10),
-    warehouse: '',
-    type: 'Theo sản phẩm',
-    note: '',
-  });
-
-  const [lines, setLines] = useState<CheckProductLine[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
+  const { id } = useParams();
+  const isCreateMode = !id;
+  const [warehouses, setWarehouses] = useState<Option[]>([]);
+  const [role, setRole] = useState('EMPLOYEE');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [auditType, setAuditType] = useState<'BY_PRODUCT' | 'FULL_WAREHOUSE'>('BY_PRODUCT');
+  const [note, setNote] = useState('');
+  const [status, setStatus] = useState<'DRAFT' | 'COUNTING' | 'SUBMITTED' | 'RECONCILED' | 'CANCELLED'>('DRAFT');
+  const [audit, setAudit] = useState<AuditDetail | null>(null);
+  const [lines, setLines] = useState<AuditLine[]>([]);
+  const [inventoryOptions, setInventoryOptions] = useState<InventoryOption[]>([]);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [voucherViewer, setVoucherViewer] = useState<{
+    codes: Array<{ id: string; code: string }>;
+    selectedId: string;
+    data: VoucherDetail | null;
+    loading: boolean;
+    error: string;
+  } | null>(null);
 
-  useEffect(() => {
-    const fetchBranchesAndProducts = async () => {
-      try {
-        const [branchRes, prodRes] = await Promise.all([
-          http.get('/system/branches'),
-          http.get('/products/inventories', { params: { limit: 100 } })
-        ]);
-        
-        const branches = branchRes.data?.items || [];
-        setSysBranches(branches);
-        if (branches.length > 0) {
-          setForm(prev => ({ ...prev, warehouse: branches[0]._id }));
-        }
+  const isEditable = status === 'DRAFT' || status === 'COUNTING';
+  const allowStructureEdit = isCreateMode || status === 'DRAFT';
 
-        const items = prodRes.data?.items || [];
-        setDbProducts(items);
-      } catch (err) {
-        console.error('Error fetching data for audit create', err);
-      }
-    };
-    fetchBranchesAndProducts();
-  }, []);
-
-  // Update stock when warehouse changes
-  useEffect(() => {
-    if (dbProducts.length > 0 && lines.length > 0) {
-      setLines(prev => prev.map(line => {
-        const prod = dbProducts.find(p => p.code === line.productCode);
-        if (prod) {
-          const newStock = getStock(prod, form.warehouse);
-          if (line.stock !== newStock) {
-            return {
-              ...line,
-              stock: newStock,
-              difference: line.actualStock - newStock
-            };
-          }
-        }
-        return line;
-      }));
+  const loadMeta = async () => {
+    const response = await http.get('/inventory-audits/meta');
+    const nextWarehouses = response.data.warehouses || [];
+    setRole(response.data.role || 'EMPLOYEE');
+    setWarehouses(nextWarehouses);
+    if (!warehouseId && nextWarehouses.length) {
+      const preferred = nextWarehouses.find((warehouse: Option) => warehouse.isDefault) || nextWarehouses[0];
+      setWarehouseId(preferred.value);
     }
-  }, [form.warehouse, dbProducts]);
-
-  const filteredSearchProducts = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase();
-    return dbProducts.filter(
-      p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)
-    );
-  }, [searchQuery, dbProducts]);
-
-  const addProductToLines = (product: any) => {
-    // Check duplicate
-    if (lines.some(l => l.productCode === product.code)) {
-      setSearchQuery('');
-      setShowDropdown(false);
-      return;
-    }
-    const currentStock = getStock(product, form.warehouse);
-    const newLine: CheckProductLine = {
-      productId: product._id,
-      productCode: product.code,
-      productName: product.name,
-      cost: product.cost || 0,
-      price: product.price || 0,
-      stock: currentStock,
-      transferring: 0,
-      actualStock: currentStock,
-      difference: 0,
-      description: '',
-    };
-    setLines(prev => [...prev, newLine]);
-    setSearchQuery('');
-    setShowDropdown(false);
   };
 
-  const updateLine = (index: number, field: keyof CheckProductLine, value: any) => {
-    setLines(prev => {
-      const next = [...prev];
-      if (field === 'actualStock') {
-        const actual = Number(value);
-        next[index] = {
-          ...next[index],
-          actualStock: actual,
-          difference: actual - next[index].stock,
-        };
-      } else {
-        next[index] = {
-          ...next[index],
-          [field]: value,
-        };
+  const loadAudit = async () => {
+    if (!id) return;
+    const response = await http.get(`/inventory-audits/${id}`);
+    const data = response.data as AuditDetail;
+    setAudit(data);
+    setWarehouseId(data.warehouseId);
+    setAuditType(data.auditType as 'BY_PRODUCT' | 'FULL_WAREHOUSE');
+    setNote(data.note || '');
+    setStatus(data.status as any);
+    setLines((data.items || []).map(lineFromAuditItem));
+  };
+
+  const loadInventories = async (selectedWarehouseId: string) => {
+    if (!selectedWarehouseId) return;
+    setInventoryLoading(true);
+    try {
+      const response = await http.get('/products/inventories', {
+        params: { branchId: selectedWarehouseId, limit: 5000 },
+      });
+      setInventoryOptions(response.data.items || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không tải được sản phẩm tồn kho.');
+    } finally {
+      setInventoryLoading(false);
+    }
+  };
+
+  const reloadCurrentAudit = async () => {
+    if (!id) return;
+    setLoading(true);
+    setError('');
+    try {
+      await loadAudit();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không tải được phiếu kiểm kho.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        await loadMeta();
+        if (id) await loadAudit();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Không tải được dữ liệu kiểm kho.');
+      } finally {
+        setLoading(false);
       }
-      return next;
+    };
+    void bootstrap();
+  }, [id]);
+
+  useEffect(() => {
+    if (!warehouseId) return;
+    void loadInventories(warehouseId);
+  }, [warehouseId]);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = window.setTimeout(() => setNotice(''), 3200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const keyword = searchQuery.trim().toLowerCase();
+    return inventoryOptions.filter((product) => {
+      const haystack = [product.code, product.name, product.barcode].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(keyword);
     });
+  }, [inventoryOptions, searchQuery]);
+
+  const lineSummary = useMemo(() => {
+    return lines.reduce((summary, line) => {
+      summary.itemCount += 1;
+      summary.systemQuantityTotal += Number(line.systemQuantitySnapshot || 0);
+      summary.inTransitQuantityTotal += Number(line.inTransitQuantitySnapshot || 0);
+      const physical = parsePhysicalInput(line.physicalInput);
+      if (physical !== null && !Number.isNaN(physical)) {
+        summary.countedItemCount += 1;
+        summary.physicalQuantityTotal += Number(physical);
+      }
+      summary.varianceQuantityTotal += Number(line.varianceQuantity || 0);
+      if (line.varianceQuantity > 0) {
+        summary.excessItemCount += 1;
+        summary.totalIncreaseQuantity += line.varianceQuantity;
+      } else if (line.varianceQuantity < 0) {
+        summary.shortageItemCount += 1;
+        summary.totalDecreaseQuantity += Math.abs(line.varianceQuantity);
+      }
+      return summary;
+    }, {
+      itemCount: 0,
+      countedItemCount: 0,
+      systemQuantityTotal: 0,
+      inTransitQuantityTotal: 0,
+      physicalQuantityTotal: 0,
+      varianceQuantityTotal: 0,
+      excessItemCount: 0,
+      shortageItemCount: 0,
+      totalIncreaseQuantity: 0,
+      totalDecreaseQuantity: 0,
+    });
+  }, [lines]);
+
+  const updateLine = (index: number, field: 'physicalInput' | 'note', value: string) => {
+    setLines((current) => current.map((line, lineIndex) => {
+      if (lineIndex !== index) return line;
+      const nextLine = { ...line, [field]: value };
+      const physical = parsePhysicalInput(field === 'physicalInput' ? value : nextLine.physicalInput);
+      nextLine.varianceQuantity = physical === null || Number.isNaN(physical)
+        ? 0
+        : Number(physical) - Number(nextLine.systemQuantitySnapshot || 0);
+      return nextLine;
+    }));
+  };
+
+  const addProduct = (product: InventoryOption) => {
+    if (lines.some((line) => line.productId === product._id)) return;
+    setLines((current) => [...current, lineFromInventory(product)]);
+    setSearchQuery('');
   };
 
   const removeLine = (index: number) => {
-    setLines(prev => prev.filter((_, i) => i !== index));
+    setLines((current) => current.filter((_, lineIndex) => lineIndex !== index));
   };
 
-  const handleSave = async () => {
-    if (!form.warehouse) {
-      setError('Vui lòng chọn cửa hàng/kho.');
+  const loadFullWarehousePreview = () => {
+    const unique = new Map<string, AuditLine>();
+    inventoryOptions.forEach((product) => {
+      unique.set(product._id, lineFromInventory(product));
+    });
+    setLines(Array.from(unique.values()));
+  };
+
+  const buildPayload = (nextStatus: 'DRAFT' | 'COUNTING') => {
+    const items = lines.map((line) => {
+      const physical = parsePhysicalInput(line.physicalInput);
+      if (Number.isNaN(physical)) {
+        throw new Error(`Số lượng thực tế của ${line.productCodeSnapshot || line.productNameSnapshot} phải là số nguyên không âm.`);
+      }
+      return {
+        productId: line.productId,
+        physicalQuantity: physical,
+        note: line.note.trim(),
+      };
+    });
+    return {
+      warehouseId,
+      auditType,
+      note: note.trim(),
+      status: nextStatus,
+      items,
+    };
+  };
+
+  const saveAudit = async (nextStatus: 'DRAFT' | 'COUNTING') => {
+    if (!warehouseId) {
+      setError('Vui lòng chọn kho hàng.');
       return;
     }
-    if (!form.date) {
-      setError('Vui lòng chọn ngày kiểm.');
-      return;
-    }
-    if (lines.length === 0) {
-      setError('Vui lòng thêm ít nhất một sản phẩm vào phiếu kiểm.');
+    if (auditType === 'BY_PRODUCT' && lines.length === 0) {
+      setError('Vui lòng chọn ít nhất một sản phẩm để kiểm kho.');
       return;
     }
 
     setSaving(true);
     setError('');
-
     try {
-      // Send general check with lines
-      await http.post('/warehouse/checks', {
-        id: form.id,
-        date: form.date,
-        type: form.type,
-        warehouse: form.warehouse,
-        creator: 'LÊ SỸ BÁCH',
-        spCount: lines.length,
-        qty: lines.reduce((acc, p) => acc + p.actualStock, 0),
-        note: form.note,
-        missingSp: String(lines.filter(p => p.difference < 0).length),
-        balance: lines.some(p => p.difference !== 0) ? 'Có' : 'Không',
-        lines // Backend will handle lines and create check-products
-      });
+      const payload = buildPayload(nextStatus);
+      if (isCreateMode) {
+        const response = await http.post('/inventory-audits', payload);
+        setNotice(nextStatus === 'COUNTING' ? 'Đã tạo phiếu và chuyển sang trạng thái đang kiểm.' : 'Đã lưu phiếu kiểm kho nháp.');
+        navigate(`/warehouse/audit/${response.data._id}`);
+        return;
+      }
 
-      alert('Tạo phiếu kiểm kho thành công!');
-      navigate('/warehouse/audit');
+      await http.patch(`/inventory-audits/${id}`, payload);
+      setNotice(nextStatus === 'COUNTING' ? 'Đã cập nhật phiếu kiểm kho đang kiểm.' : 'Đã lưu thay đổi phiếu kiểm kho.');
+      await reloadCurrentAudit();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu phiếu kiểm kho.');
+      setError(err.response?.data?.message || err.message || 'Không lưu được phiếu kiểm kho.');
     } finally {
       setSaving(false);
     }
   };
 
+  const runAction = async () => {
+    if (!id || !confirm) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      if (confirm.kind === 'submit') {
+        await http.post(`/inventory-audits/${id}/submit`);
+        setNotice('Đã submit phiếu kiểm kho.');
+      } else if (confirm.kind === 'cancel') {
+        await http.post(`/inventory-audits/${id}/cancel`, { reason: confirm.reason });
+        setNotice('Đã hủy phiếu kiểm kho.');
+      } else {
+        await http.post(`/inventory-audits/${id}/reconcile`);
+        setNotice('Bù trừ kiểm kho thành công.');
+      }
+      setConfirm(null);
+      await reloadCurrentAudit();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không thực hiện được thao tác kiểm kho.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openVoucherViewer = async () => {
+    if (!audit?.linkedInventoryBillIds?.length) return;
+    const codes = audit.linkedInventoryBillIds.map((billId, index) => ({
+      id: billId,
+      code: audit.linkedInventoryBillCodes[index] || `Voucher ${index + 1}`,
+    }));
+    const first = codes[0];
+    setVoucherViewer({
+      codes,
+      selectedId: first.id,
+      data: null,
+      loading: true,
+      error: '',
+    });
+    try {
+      const response = await http.get(`/warehouse/transactions/bills/inventory-voucher/${first.id}`);
+      setVoucherViewer({
+        codes,
+        selectedId: first.id,
+        data: response.data,
+        loading: false,
+        error: '',
+      });
+    } catch (err: any) {
+      setVoucherViewer({
+        codes,
+        selectedId: first.id,
+        data: null,
+        loading: false,
+        error: err.response?.data?.message || 'Không tải được phiếu XNK liên kết.',
+      });
+    }
+  };
+
+  const loadVoucherDetail = async (billId: string) => {
+    if (!voucherViewer) return;
+    setVoucherViewer({ ...voucherViewer, selectedId: billId, loading: true, error: '' });
+    try {
+      const response = await http.get(`/warehouse/transactions/bills/inventory-voucher/${billId}`);
+      setVoucherViewer((current) => current ? ({
+        ...current,
+        selectedId: billId,
+        data: response.data,
+        loading: false,
+        error: '',
+      }) : current);
+    } catch (err: any) {
+      setVoucherViewer((current) => current ? ({
+        ...current,
+        selectedId: billId,
+        data: null,
+        loading: false,
+        error: err.response?.data?.message || 'Không tải được phiếu XNK liên kết.',
+      }) : current);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="workspace-page warehouse-records warehouse-audit-admin">
+        <section className="wr-card wr-detail-loading">
+          <LoaderCircle size={18} className="spin" /> Đang tải phiếu kiểm kho...
+        </section>
+      </div>
+    );
+  }
+
   return (
-    <div className="page-stack" style={{ background: '#f8fafc', minHeight: '100vh', padding: '24px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button className="btn btn-light" onClick={() => navigate(-1)} style={{ width: 42, height: 42, padding: 0, justifyContent: 'center', borderRadius: 10 }}>
-            <ArrowLeft size={20} />
-          </button>
-          <div className="page-icon" style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', color: 'var(--primary)' }}>
-            <ClipboardCheck size={22} />
+    <div className="workspace-page warehouse-records warehouse-audit-admin">
+      <section className="wr-card">
+        <header className="wr-detail-header">
+          <div>
+            <span className="wr-detail-eyebrow">{isCreateMode ? 'Tạo phiếu kiểm kho' : (audit?.statusLabel || 'Chi tiết kiểm kho')}</span>
+            <h2>{isCreateMode ? 'Phiếu kiểm kho mới' : (audit?.code || 'Phiếu kiểm kho')}</h2>
+          </div>
+          <div className="wr-detail-actions">
+            <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/audit')}>
+              <ArrowLeft size={15} /> Quay lại
+            </button>
+            {!isCreateMode ? (
+              <button className="wr-icon-button" type="button" onClick={() => void reloadCurrentAudit()} title="Làm mới">
+                <RefreshCw size={15} />
+              </button>
+            ) : null}
+          </div>
+        </header>
+
+        {notice ? <div className="wr-notice"><Check size={15} /> {notice}</div> : null}
+        {error ? (
+          <div className="wr-error" role="alert">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+            <button type="button" onClick={() => setError('')}>Đóng</button>
+          </div>
+        ) : null}
+
+        <div className="wr-detail-summary">
+          <div>
+            <span>Kho hàng</span>
+            <strong>{audit?.warehouseName || warehouses.find((warehouse) => warehouse.value === warehouseId)?.label || '—'}</strong>
           </div>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Thêm mới phiếu kiểm kho</h1>
-            <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '13px' }}>Tạo phiếu và kiểm đếm số lượng thực tế tại kho</p>
+            <span>Loại kiểm kho</span>
+            <strong>{auditType === 'FULL_WAREHOUSE' ? 'Toàn kho' : 'Theo sản phẩm'}</strong>
+          </div>
+          <div>
+            <span>Trạng thái</span>
+            <strong>{audit?.statusLabel || (status === 'COUNTING' ? 'Đang kiểm' : status === 'DRAFT' ? 'Nháp' : status)}</strong>
+          </div>
+          <div>
+            <span>Số dòng sản phẩm</span>
+            <strong>{formatNumber(lineSummary.itemCount)}</strong>
+          </div>
+          <div>
+            <span>Tồn hệ thống</span>
+            <strong>{formatNumber(lineSummary.systemQuantityTotal)}</strong>
+          </div>
+          <div>
+            <span>Tồn thực tế</span>
+            <strong>{formatNumber(lineSummary.physicalQuantityTotal)}</strong>
+          </div>
+          <div>
+            <span>Tổng chênh lệch</span>
+            <strong className={varianceClass(lineSummary.varianceQuantityTotal)}>{signedNumber(lineSummary.varianceQuantityTotal)}</strong>
+          </div>
+          <div>
+            <span>Đang chuyển</span>
+            <strong>{formatNumber(lineSummary.inTransitQuantityTotal)}</strong>
+          </div>
+          <div>
+            <span>Người tạo</span>
+            <strong>{audit?.createdByName || 'Bạn'}</strong>
+          </div>
+          <div>
+            <span>Snapshot lúc</span>
+            <strong>{formatDate(audit?.snapshotAt)}</strong>
+          </div>
+          <div>
+            <span>Người submit</span>
+            <strong>{audit?.submittedByName || '—'}</strong>
+          </div>
+          <div>
+            <span>Người bù trừ</span>
+            <strong>{audit?.reconciledByName || '—'}</strong>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {error && <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '13px', background: '#fef2f2', padding: '6px 12px', borderRadius: '6px' }}>{error}</span>}
-          <button className="btn btn-outline" style={{ background: '#fff' }} onClick={() => window.print()}>
-            <Printer size={16} /> In mẫu kiểm kho
-          </button>
-          <button className="btn btn-outline" style={{ background: '#fff' }} onClick={() => alert('Chức năng Excel sẽ được cập nhật sớm.')}>
-            <FileDown size={16} /> Nhập Excel
-          </button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ opacity: saving ? 0.7 : 1 }}>
-            <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu phiếu'}
-          </button>
-        </div>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px', alignItems: 'start' }}>
-        
-        {/* Cột trái: Danh sách sản phẩm */}
-        <div className="data-card" style={{ padding: '0', display: 'flex', flexDirection: 'column' }}>
-          {/* Thanh tìm kiếm */}
-          <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', gap: '12px', alignItems: 'center', position: 'relative' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input 
-                type="text" 
-                placeholder="Nhập tên sản phẩm hoặc mã vạch để thêm (F2)..." 
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowDropdown(true);
-                }}
-                onFocus={() => setShowDropdown(true)}
-                style={{ width: '100%', padding: '10px 10px 10px 40px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '15px', outline: 'none' }}
-              />
-              
-              {/* Dropdown tìm kiếm */}
-              {showDropdown && searchQuery && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  background: '#fff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                  zIndex: 50,
-                  maxHeight: '280px',
-                  overflowY: 'auto',
-                  marginTop: '4px'
-                }}>
-                  {filteredSearchProducts.length === 0 ? (
-                    <div style={{ padding: '12px', color: '#64748b', textAlign: 'center' }}>Không tìm thấy sản phẩm</div>
-                  ) : (
-                    filteredSearchProducts.map(p => (
-                      <div 
-                        key={p._id}
-                        onClick={() => addProductToLines(p)}
-                        style={{
-                          padding: '10px 16px',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid #f1f5f9',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 600, color: '#0f172a' }}>{p.name}</div>
-                          <div style={{ fontSize: '12px', color: '#64748b' }}>Mã: {p.code}</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)' }}>Tồn: {p.qty}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+        <div className="audit-editor-grid">
+          <section className="audit-editor-panel">
+            <div className="audit-editor-form">
+              <label className="form-field">
+                <span>Kho hàng *</span>
+                <select
+                  value={warehouseId}
+                  onChange={(event) => {
+                    setWarehouseId(event.target.value);
+                    if (allowStructureEdit) setLines([]);
+                  }}
+                  disabled={!allowStructureEdit}
+                >
+                  {warehouses.map((warehouse) => (
+                    <option key={warehouse.value} value={warehouse.value}>
+                      {warehouse.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="form-field">
+                <span>Loại kiểm kho *</span>
+                <select
+                  value={auditType}
+                  onChange={(event) => {
+                    setAuditType(event.target.value as 'BY_PRODUCT' | 'FULL_WAREHOUSE');
+                    if (allowStructureEdit) setLines([]);
+                  }}
+                  disabled={!allowStructureEdit}
+                >
+                  <option value="BY_PRODUCT">Theo sản phẩm</option>
+                  <option value="FULL_WAREHOUSE">Toàn kho</option>
+                </select>
+              </label>
+              <label className="form-field wide">
+                <span>Ghi chú</span>
+                <textarea
+                  rows={4}
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  disabled={!isEditable}
+                />
+              </label>
             </div>
-            
-            {showDropdown && (
-              <button 
-                className="btn btn-light" 
-                onClick={() => {
-                  setSearchQuery('');
-                  setShowDropdown(false);
-                }}
-                style={{ padding: '10px 14px' }}
-              >
-                Đóng
-              </button>
-            )}
-          </div>
 
-          {/* Bảng sản phẩm */}
-          <div className="table-scroll" style={{ padding: '0' }}>
-            <table className="data-table">
-              <thead style={{ background: '#f1f5f9' }}>
-                <tr>
-                  <th style={{ width: '50px', textAlign: 'center' }}>STT</th>
-                  <th>Ảnh</th>
-                  <th style={{ minWidth: '220px' }}>Tên sản phẩm</th>
-                  <th style={{ textAlign: 'center', width: '120px' }}>Tồn phần mềm</th>
-                  <th style={{ textAlign: 'center', width: '120px', color: '#0ea5e9' }}>Tồn thực tế</th>
-                  <th style={{ textAlign: 'center', width: '100px' }}>Chênh lệch</th>
-                  <th>Lý do chênh lệch</th>
-                  <th style={{ width: '60px', textAlign: 'center' }}>Xóa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.length === 0 ? (
+            {auditType === 'BY_PRODUCT' && allowStructureEdit ? (
+              <div className="audit-search-box">
+                <label className="wr-search-field wide">
+                  <Search size={14} />
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Tìm theo mã sản phẩm hoặc mã vạch"
+                  />
+                </label>
+                {searchQuery.trim() ? (
+                  <div className="audit-search-results">
+                    {filteredProducts.length ? filteredProducts.slice(0, 8).map((product) => (
+                      <button key={product._id} type="button" className="audit-search-item" onClick={() => addProduct(product)}>
+                        <span>
+                          <strong>{product.name}</strong>
+                          <small>{product.code}{product.barcode ? ` · ${product.barcode}` : ''}</small>
+                        </span>
+                        <b>{formatNumber(product.selectedStock ?? product.totalStock ?? 0)}</b>
+                      </button>
+                    )) : <div className="audit-search-empty">Không tìm thấy sản phẩm phù hợp.</div>}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {auditType === 'FULL_WAREHOUSE' && allowStructureEdit ? (
+              <div className="audit-toolbar">
+                <button className="btn btn-light" type="button" disabled={inventoryLoading} onClick={loadFullWarehousePreview}>
+                  <Plus size={15} /> {inventoryLoading ? 'Đang tải sản phẩm kho...' : 'Nạp sản phẩm từ kho'}
+                </button>
+              </div>
+            ) : null}
+
+            <div className="wr-table-wrap">
+              <table className="wr-table audit-table">
+                <thead>
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
-                      <PackageSearch size={48} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-                      <p style={{ margin: 0, fontWeight: 500, fontSize: '15px' }}>Chưa có sản phẩm nào được chọn.</p>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#cbd5e1' }}>Vui lòng tìm kiếm và thêm sản phẩm để kiểm kho.</p>
-                    </td>
+                    <th>SP</th>
+                    <th className="right">Tồn hệ thống</th>
+                    <th className="right">Đang chuyển</th>
+                    <th className="right">Tồn thực tế</th>
+                    <th className="right">Chênh lệch</th>
+                    <th>Ghi chú</th>
+                    {allowStructureEdit ? <th className="wr-action-cell">Xóa</th> : null}
                   </tr>
-                ) : (
-                  lines.map((p, index) => (
-                    <tr key={p.productCode}>
-                      <td style={{ textAlign: 'center', color: '#64748b', fontWeight: 600 }}>{index + 1}</td>
-                      <td>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 6,
-                          background: '#f1f5f9',
-                          border: '1px solid #e2e8f0',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#94a3b8', fontSize: '10px', fontWeight: 700
-                        }}>IMG</div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{p.productName}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Mã: {p.productCode}</div>
-                      </td>
-                      <td style={{ textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{p.stock}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <input 
-                          type="number" 
-                          value={p.actualStock} 
-                          onChange={(e) => updateLine(index, 'actualStock', e.target.value)}
-                          style={{ width: '80px', textAlign: 'center', padding: '6px', border: '2px solid #38bdf8', borderRadius: '6px', fontWeight: 600, color: '#0369a1', outline: 'none' }}
-                        />
-                      </td>
-                      <td style={{ textAlign: 'center', fontWeight: 600, color: p.difference < 0 ? '#ef4444' : p.difference > 0 ? '#10b981' : '#64748b' }}>
-                        {p.difference > 0 ? `+${p.difference}` : p.difference}
-                      </td>
-                      <td>
-                        <input 
-                          type="text" 
-                          placeholder="Lý do..."
-                          value={p.description} 
-                          onChange={(e) => updateLine(index, 'description', e.target.value)}
-                          style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', outline: 'none', fontSize: '13px' }}
-                        />
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button className="icon-button danger" onClick={() => removeLine(index)} title="Xóa">
-                          <Trash2 size={16} />
-                        </button>
+                </thead>
+                <tbody>
+                  {!lines.length ? (
+                    <tr>
+                      <td className="wr-empty" colSpan={allowStructureEdit ? 7 : 6}>
+                        Chưa có sản phẩm kiểm kho. {auditType === 'FULL_WAREHOUSE' ? 'Bấm "Nạp sản phẩm từ kho" để xem preview hoặc lưu phiếu để backend snapshot toàn kho.' : 'Hãy thêm sản phẩm từ ô tìm kiếm.'}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {lines.length > 0 && (
-            <div style={{ padding: '16px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '32px' }}>
-               <div style={{ textAlign: 'right' }}>
-                 <div style={{ color: '#64748b', fontSize: '13px', marginBottom: '2px' }}>Tổng Tồn phần mềm</div>
-                 <div style={{ fontWeight: 700, fontSize: '16px', color: '#334155' }}>{lines.reduce((acc, p) => acc + p.stock, 0)}</div>
-               </div>
-               <div style={{ textAlign: 'right' }}>
-                 <div style={{ color: '#64748b', fontSize: '13px', marginBottom: '2px' }}>Tổng Tồn thực tế</div>
-                 <div style={{ fontWeight: 700, fontSize: '16px', color: '#0ea5e9' }}>{lines.reduce((acc, p) => acc + p.actualStock, 0)}</div>
-               </div>
-               <div style={{ textAlign: 'right' }}>
-                 <div style={{ color: '#64748b', fontSize: '13px', marginBottom: '2px' }}>Tổng Lệch</div>
-                 <div style={{ fontWeight: 700, fontSize: '16px', color: lines.reduce((acc, p) => acc + p.difference, 0) < 0 ? '#ef4444' : lines.reduce((acc, p) => acc + p.difference, 0) > 0 ? '#10b981' : '#64748b' }}>
-                   {lines.reduce((acc, p) => acc + p.difference, 0) > 0 ? `+${lines.reduce((acc, p) => acc + p.difference, 0)}` : lines.reduce((acc, p) => acc + p.difference, 0)}
-                 </div>
-               </div>
+                  ) : lines.map((line, index) => (
+                    <tr key={`${line.productId}-${index}`}>
+                      <td className="wr-product">
+                        <strong>{line.productNameSnapshot || '—'}</strong>
+                        <small>{line.productCodeSnapshot || line.barcodeSnapshot || '—'}</small>
+                      </td>
+                      <td className="right">{formatNumber(line.systemQuantitySnapshot)}</td>
+                      <td className="right">{formatNumber(line.inTransitQuantitySnapshot)}</td>
+                      <td className="right">
+                        <input
+                          className="audit-qty-input"
+                          inputMode="numeric"
+                          value={line.physicalInput}
+                          onChange={(event) => updateLine(index, 'physicalInput', event.target.value)}
+                          disabled={!isEditable}
+                          placeholder="Nhập số lượng"
+                        />
+                      </td>
+                      <td className={`right ${varianceClass(line.varianceQuantity)}`}>{signedNumber(line.varianceQuantity)}</td>
+                      <td>
+                        <input
+                          className="audit-note-input"
+                          value={line.note}
+                          onChange={(event) => updateLine(index, 'note', event.target.value)}
+                          disabled={!isEditable}
+                          placeholder="Lý do chênh lệch"
+                        />
+                      </td>
+                      {allowStructureEdit ? (
+                        <td className="wr-action-cell">
+                          <button className="wr-row-menu-button" type="button" onClick={() => removeLine(index)}>
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            <div className="audit-editor-actions">
+              {isEditable ? (
+                <>
+                  <button className="btn btn-light" type="button" disabled={saving} onClick={() => void saveAudit('DRAFT')}>
+                    <Save size={15} /> {saving ? 'Đang lưu...' : 'Lưu nháp'}
+                  </button>
+                  <button className="btn btn-primary" type="button" disabled={saving} onClick={() => void saveAudit('COUNTING')}>
+                    <ClipboardCheck size={15} /> {saving ? 'Đang lưu...' : 'Lưu và chuyển sang kiểm đếm'}
+                  </button>
+                  {!isCreateMode ? (
+                    <button className="btn btn-primary" type="button" disabled={actionLoading || lineSummary.itemCount === 0} onClick={() => setConfirm({ kind: 'submit' })}>
+                      <Check size={15} /> Submit phiếu
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+
+              {!isCreateMode && status === 'SUBMITTED' && role === 'ADMIN' ? (
+                <button className="btn btn-primary" type="button" disabled={actionLoading} onClick={() => setConfirm({ kind: 'reconcile' })}>
+                  <Link2 size={15} /> Bù trừ kiểm kho
+                </button>
+              ) : null}
+
+              {!isCreateMode && ['DRAFT', 'COUNTING', 'SUBMITTED'].includes(status) ? (
+                <button className="btn btn-light" type="button" disabled={actionLoading} onClick={() => setConfirm({ kind: 'cancel', reason: '' })}>
+                  <X size={15} /> Hủy phiếu
+                </button>
+              ) : null}
+
+              {!isCreateMode && audit?.linkedInventoryBillIds?.length ? (
+                <button className="btn btn-light" type="button" onClick={() => void openVoucherViewer()}>
+                  <Link2 size={15} /> Xem phiếu XNK
+                </button>
+              ) : null}
+            </div>
+          </section>
+
+          {!isCreateMode ? (
+            <aside className="audit-log-panel">
+              <div className="audit-log-card">
+                <h3>Audit log</h3>
+                <div className="audit-log-list">
+                  {(audit?.logs || []).length ? (audit?.logs || []).map((log) => (
+                    <div className="audit-log-item" key={log._id}>
+                      <strong>{log.actionType}</strong>
+                      <span>{formatDate(log.createdAt)}</span>
+                      <small>{log.actorName || '—'} · {log.previousStatus || '—'} → {log.nextStatus || '—'}</small>
+                      <p>{log.reason || 'Không có lý do bổ sung.'}</p>
+                    </div>
+                  )) : <div className="audit-log-empty">Chưa có audit log.</div>}
+                </div>
+              </div>
+            </aside>
+          ) : null}
         </div>
+      </section>
 
-        {/* Cột phải: Thông tin chung */}
-        <div className="filter-panel" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            Thông tin phiếu
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <label className="form-field" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontWeight: 600, fontSize: '13px', color: '#475569' }}>Cửa hàng / Kho *</span>
-              <select 
-                value={form.warehouse} 
-                onChange={(e) => setForm({...form, warehouse: e.target.value})}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
+      {confirm ? (
+        <div className="modal-backdrop wr-modal-backdrop" role="presentation">
+          <section className="wr-confirm-modal audit-small-modal">
+            <header>
+              <h2>
+                {confirm.kind === 'submit' ? 'Submit phiếu kiểm kho' : confirm.kind === 'cancel' ? 'Hủy phiếu kiểm kho' : 'Xác nhận bù trừ'}
+              </h2>
+              <button className="wr-icon-button" type="button" onClick={() => setConfirm(null)}><X size={16} /></button>
+            </header>
+            {confirm.kind === 'submit' ? (
+              <p>Phiếu sẽ chuyển sang trạng thái chờ bù trừ. Hệ thống chỉ cho submit khi mọi dòng đã có tồn thực tế hợp lệ.</p>
+            ) : null}
+            {confirm.kind === 'cancel' ? (
+              <>
+                <p>Phiếu sẽ được hủy mềm và giữ toàn bộ lịch sử thao tác.</p>
+                <div className="audit-modal-body">
+                  <textarea
+                    className="audit-textarea"
+                    value={confirm.reason}
+                    onChange={(event) => setConfirm({ ...confirm, reason: event.target.value })}
+                    placeholder="Nhập lý do hủy phiếu..."
+                  />
+                </div>
+              </>
+            ) : null}
+            {confirm.kind === 'reconcile' ? (
+              <>
+                <div className="wr-detail-summary">
+                  <div><span>Sản phẩm dư</span><strong>{formatNumber(lineSummary.excessItemCount)}</strong></div>
+                  <div><span>Sản phẩm thiếu</span><strong>{formatNumber(lineSummary.shortageItemCount)}</strong></div>
+                  <div><span>Tổng lượng tăng</span><strong>{formatNumber(lineSummary.totalIncreaseQuantity)}</strong></div>
+                  <div><span>Tổng lượng giảm</span><strong>{formatNumber(lineSummary.totalDecreaseQuantity)}</strong></div>
+                </div>
+                <p className="audit-preview-copy">Hệ thống sẽ tạo chứng từ nhập hoặc xuất điều chỉnh thật và sẽ chặn thao tác nếu tồn kho đã biến động sau snapshot.</p>
+              </>
+            ) : null}
+            <footer className="audit-modal-footer">
+              <button className="btn btn-light" type="button" onClick={() => setConfirm(null)}>Đóng</button>
+              <button
+                className="btn btn-primary"
+                type="button"
+                disabled={actionLoading || (confirm.kind === 'cancel' && !confirm.reason.trim())}
+                onClick={() => void runAction()}
               >
-                {sysBranches.map(b => (
-                  <option key={b._id} value={b._id}>{b.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="form-field" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontWeight: 600, fontSize: '13px', color: '#475569' }}>Ngày kiểm *</span>
-              <input 
-                type="date" 
-                value={form.date} 
-                onChange={(e) => setForm({...form, date: e.target.value})} 
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
-              />
-            </label>
-
-            <label className="form-field" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontWeight: 600, fontSize: '13px', color: '#475569' }}>Loại kiểm kho</span>
-              <select 
-                value={form.type} 
-                onChange={(e) => setForm({...form, type: e.target.value})}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
-              >
-                <option value="Theo sản phẩm">Theo sản phẩm</option>
-                <option value="Tất cả sản phẩm">Tất cả sản phẩm</option>
-                <option value="Theo danh mục">Theo danh mục</option>
-              </select>
-            </label>
-
-            <label className="form-field wide" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontWeight: 600, fontSize: '13px', color: '#475569' }}>Ghi chú</span>
-              <textarea 
-                rows={4} 
-                placeholder="Nhập ghi chú..." 
-                value={form.note} 
-                onChange={(e) => setForm({...form, note: e.target.value})} 
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', resize: 'none' }}
-              />
-            </label>
-
-            <button 
-              className="btn btn-primary" 
-              onClick={handleSave} 
-              disabled={saving} 
-              style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', padding: '10px', fontSize: '14px', marginTop: '8px' }}
-            >
-              <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu phiếu'}
-            </button>
-          </div>
+                {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}
+              </button>
+            </footer>
+          </section>
         </div>
+      ) : null}
 
-      </div>
+      {voucherViewer ? (
+        <div className="modal-backdrop wr-modal-backdrop" role="presentation">
+          <section className="wr-detail-modal audit-voucher-modal">
+            <header className="wr-detail-header">
+              <div>
+                <span className="wr-detail-eyebrow">Phiếu xuất nhập kho liên kết</span>
+                <h2>{audit?.code || 'Kiểm kho'}</h2>
+              </div>
+              <button className="wr-icon-button" type="button" onClick={() => setVoucherViewer(null)}><X size={16} /></button>
+            </header>
+            <div className="audit-voucher-tabs">
+              {voucherViewer.codes.map((code) => (
+                <button key={code.id} type="button" className={voucherViewer.selectedId === code.id ? 'active' : ''} onClick={() => void loadVoucherDetail(code.id)}>
+                  {code.code}
+                </button>
+              ))}
+            </div>
+            {voucherViewer.loading ? (
+              <p className="audit-loading-copy"><LoaderCircle size={16} className="spin" /> Đang tải chi tiết phiếu XNK...</p>
+            ) : voucherViewer.error ? (
+              <div className="wr-error"><AlertCircle size={16} /><span>{voucherViewer.error}</span></div>
+            ) : voucherViewer.data ? (
+              <>
+                <div className="wr-detail-summary">
+                  <div><span>Mã phiếu</span><strong>{voucherViewer.data.code || '—'}</strong></div>
+                  <div><span>Loại</span><strong>{voucherViewer.data.kindLabel || voucherViewer.data.directionLabel || '—'}</strong></div>
+                  <div><span>Kho</span><strong>{voucherViewer.data.warehouseName || '—'}</strong></div>
+                  <div><span>Người tạo</span><strong>{voucherViewer.data.createdByName || '—'}</strong></div>
+                  <div><span>Ngày</span><strong>{formatDate(voucherViewer.data.date)}</strong></div>
+                  <div><span>Tổng SL</span><strong>{formatNumber(voucherViewer.data.totalQuantity)}</strong></div>
+                  <div><span>Tổng tiền</span><strong>{formatMoney(voucherViewer.data.totalAmount)}</strong></div>
+                  <div className="wide"><span>Ghi chú</span><strong>{voucherViewer.data.note || '—'}</strong></div>
+                </div>
+                <div className="wr-detail-table-wrap">
+                  <table className="wr-table wr-detail-table">
+                    <thead>
+                      <tr>
+                        <th>Mã SP</th>
+                        <th>Tên sản phẩm</th>
+                        <th className="right">SL</th>
+                        <th className="right">Đơn giá</th>
+                        <th className="right">Thành tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(voucherViewer.data.items || []).map((item) => (
+                        <tr key={item.rowKey}>
+                          <td>{item.productCode || '—'}</td>
+                          <td>{item.productName || '—'}</td>
+                          <td className="right">{formatNumber(item.quantity)}</td>
+                          <td className="right">{formatMoney(item.unitPrice)}</td>
+                          <td className="right">{formatMoney(item.totalAmount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : null}
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

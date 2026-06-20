@@ -116,8 +116,8 @@ export function WholesaleInvoiceCreatePage() {
   // Multi-product list
   const [products, setProducts] = useState<InvoiceProduct[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
-  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
   const [dbStaffs, setDbStaffs] = useState<any[]>([]);
+  const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -152,13 +152,11 @@ export function WholesaleInvoiceCreatePage() {
   useEffect(() => {
     Promise.all([
       http.get('/auth/me'),
-      http.get('/staff'),
-      http.get('/customers/customers'),
-      http.get('/products/inventories', { params: { limit: 5000 } })
-    ]).then(([meRes, staffRes, custRes, prodRes]) => {
+      http.get('/staff').catch(() => null),
+      http.get('/products/inventories', { params: { branchId: branchId || '', limit: 5000 } })
+    ]).then(([meRes, staffRes, prodRes]) => {
       setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
-      setDbStaffs(staffRes.data?.items || []);
-      setDbCustomers(custRes.data?.items || []);
+      setDbStaffs(staffRes?.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
 
       if (editId) {
@@ -198,7 +196,7 @@ export function WholesaleInvoiceCreatePage() {
         }).catch(err => console.error("Lỗi tải hóa đơn sỉ cũ:", err));
       }
     }).catch(err => console.error("Error fetching dependencies:", err));
-  }, [editId]);
+  }, [branchId, editId]);
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save, F10 toggle auto-print
   useEffect(() => {
@@ -301,6 +299,31 @@ export function WholesaleInvoiceCreatePage() {
   const handleChange = (field: string, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    if (!showCustomerDropdown) {
+      setCustomerSuggestions([]);
+      return;
+    }
+    const keyword = form.customerName.trim();
+    if (!keyword) {
+      setCustomerSuggestions([]);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      http.get('/customers/customers', {
+        params: {
+          keyword,
+          limit: 20,
+          sort: 'lastPurchaseDate',
+          order: 'desc',
+        },
+      })
+        .then((response) => setCustomerSuggestions(response.data?.items || []))
+        .catch(() => setCustomerSuggestions([]));
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [form.customerName, showCustomerDropdown]);
 
   // Look up customer by phone
   const lookupCustomer = async (phoneStr: string) => {
@@ -413,8 +436,17 @@ export function WholesaleInvoiceCreatePage() {
     try {
       // Auto-save new customer if not found
       let customerId = null;
-      const existingCustomer = dbCustomers.find(
-        (c: any) => c.name?.toLowerCase() === form.customerName.toLowerCase()
+      const existingCustomerResponse = await http.get('/customers/customers', {
+        params: form.customerPhone.trim()
+          ? { phone: form.customerPhone.trim(), limit: 5 }
+          : { name: form.customerName.trim(), limit: 5 },
+      }).catch(() => ({ data: { items: [] } }));
+      const existingCustomer = (existingCustomerResponse.data?.items || []).find(
+        (c: any) => (
+          form.customerPhone.trim()
+            ? c.phone === form.customerPhone.trim()
+            : c.name?.toLowerCase() === form.customerName.toLowerCase()
+        )
       );
 
       if (existingCustomer) {
@@ -432,6 +464,7 @@ export function WholesaleInvoiceCreatePage() {
         
         if (createCustRes && createCustRes.data) {
           customerId = createCustRes.data._id;
+          setCustomerSuggestions((current) => [createCustRes.data, ...current.filter((item) => item._id !== createCustRes.data._id)]);
         }
       }
 
@@ -962,9 +995,9 @@ export function WholesaleInvoiceCreatePage() {
                     }} 
                     style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
                   />
-                  {showCustomerDropdown && form.customerName.trim().length > 0 && dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).length > 0 && (
+                  {showCustomerDropdown && form.customerName.trim().length > 0 && customerSuggestions.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
-                      {dbCustomers.filter(c => c.name?.toLowerCase().includes(form.customerName.toLowerCase()) || c.phone?.includes(form.customerName)).map(c => (
+                      {customerSuggestions.map(c => (
                         <div key={c._id} onMouseDown={(e) => {
                           e.preventDefault();
                           setForm(prev => ({

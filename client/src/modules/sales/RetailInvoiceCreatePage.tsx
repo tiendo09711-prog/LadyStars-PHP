@@ -64,6 +64,7 @@ export function RetailInvoiceCreatePage() {
   const [activeBranchId, setActiveBranchId] = useState(requestedBranchId);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [dbCustomers, setDbCustomers] = useState<any[]>([]);
+  const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [dbStaffs, setDbStaffs] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
   const [products, setProducts] = useState<SaleLine[]>([]);
@@ -102,10 +103,9 @@ export function RetailInvoiceCreatePage() {
       setLoading(true);
       setErrorMessage('');
       try {
-        const [meRes, staffRes, customerRes, methodRes, editRes] = await Promise.all([
+        const [meRes, staffRes, methodRes, editRes] = await Promise.all([
           http.get('/auth/me'),
-          http.get('/staff'),
-          http.get('/customers/customers', { params: { limit: 5000 } }),
+          http.get('/staff').catch(() => null),
           http.get('/products/payment-methods', { params: { limit: 5000 } }),
           editId ? http.get(`/products/sales/${editId}`) : Promise.resolve(null),
         ]);
@@ -132,8 +132,7 @@ export function RetailInvoiceCreatePage() {
         setActiveBranchId(targetBranchId);
         setBranch(branchRes.data);
         setDbProducts(inventoryProducts);
-        setDbCustomers(customerRes.data?.items || []);
-        setDbStaffs(staffRes.data?.items || []);
+        setDbStaffs(staffRes?.data?.items || []);
         setPaymentMethods(methods);
         setForm((current) => ({
           ...current,
@@ -232,13 +231,30 @@ export function RetailInvoiceCreatePage() {
       .slice(0, 30);
   }, [dbProducts, productSearch]);
 
-  const customerSuggestions = useMemo(() => {
-    const keyword = form.customerName.trim().toLowerCase();
-    if (!keyword) return [];
-    return dbCustomers
-      .filter((customer) => customer.name?.toLowerCase().includes(keyword) || customer.phone?.includes(keyword))
-      .slice(0, 20);
-  }, [dbCustomers, form.customerName]);
+  useEffect(() => {
+    if (!showCustomerDropdown) {
+      setCustomerSuggestions([]);
+      return;
+    }
+    const keyword = form.customerName.trim();
+    if (!keyword) {
+      setCustomerSuggestions([]);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      http.get('/customers/customers', {
+        params: {
+          keyword,
+          limit: 20,
+          sort: 'lastPurchaseDate',
+          order: 'desc',
+        },
+      })
+        .then((response) => setCustomerSuggestions(response.data?.items || []))
+        .catch(() => setCustomerSuggestions([]));
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [form.customerName, showCustomerDropdown]);
 
   const addProduct = (product: any) => {
     const stock = getAvailableStock(product);
@@ -308,7 +324,7 @@ export function RetailInvoiceCreatePage() {
       phone: customer.phone || '',
       email: customer.email || '',
       facebook: customer.facebook || '',
-      dob: customer.dob || '',
+      dob: customer.birthday ? new Date(customer.birthday).toISOString().split('T')[0] : '',
       addressLocation: customer.addressLocation || '',
       address: customer.address || '',
       cardId: customer.cardId || '',
@@ -345,7 +361,12 @@ export function RetailInvoiceCreatePage() {
     try {
       let customerId: string | null = null;
       const normalizedPhone = form.phone.trim();
-      const existingCustomer = dbCustomers.find((customer) => (
+      const existingCustomerResponse = await http.get('/customers/customers', {
+        params: normalizedPhone
+          ? { phone: normalizedPhone, limit: 5 }
+          : { name: form.customerName.trim(), limit: 5 },
+      }).catch(() => ({ data: { items: [] } }));
+      const existingCustomer = (existingCustomerResponse.data?.items || []).find((customer: any) => (
         normalizedPhone
           ? customer.phone === normalizedPhone
           : customer.name?.trim().toLowerCase() === form.customerName.trim().toLowerCase()
@@ -366,6 +387,8 @@ export function RetailInvoiceCreatePage() {
           address: form.address,
         });
         customerId = customerResponse.data._id;
+        setDbCustomers((current) => [customerResponse.data, ...current]);
+        setCustomerSuggestions((current) => [customerResponse.data, ...current.filter((item) => item._id !== customerResponse.data._id)]);
       }
 
       if (editId) await http.post(`/products/sales/${editId}/cancel`);

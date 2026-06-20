@@ -5,11 +5,13 @@ import { Batch, Category, DeliveryPartner, PaymentMethod, Product, ProductBranch
 import { buildProductRefundPayload, buildSalePaymentPayload, completeProductRefund, completeSalePayment, completeStockAdjustment, moveProductQty } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
 import { Customer } from '../customer/customer.models.js';
+import { recomputeCustomerMetricsByIds } from '../customer/customer.metrics.js';
 import { Order } from '../orders/orders.models.js';
 import multer from 'multer';
 import * as xlsx from 'xlsx';
 import mongoose from 'mongoose';
 import { InventoryProduct, InventoryVoucher } from '../warehouse/warehouse.models.js';
+import { getAssignedWarehouseIds, isAdminUser } from '../../core/middleware/auth.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
@@ -104,13 +106,78 @@ function normalizeStockLines(raw: unknown) {
   });
 }
 
-async function getStockTotals(productIds: mongoose.Types.ObjectId[]) {
+function assignedWarehouseScope(req: any) {
+  if (isAdminUser(req.user)) return null;
+  return getAssignedWarehouseIds(req.user).filter((id) => mongoose.isValidObjectId(id));
+}
+
+function scopeObjectIds(req: any) {
+  const warehouseScope = assignedWarehouseScope(req);
+  if (warehouseScope === null) return null;
+  if (!warehouseScope.length) {
+    const error: any = new Error('No assigned warehouse');
+    error.status = 403;
+    throw error;
+  }
+  return warehouseScope.map((id) => new mongoose.Types.ObjectId(id));
+}
+
+function ensureBranchInScope(req: any, branchId: unknown) {
+  const warehouseScope = assignedWarehouseScope(req);
+  if (warehouseScope === null) return;
+  if (!warehouseScope.length) {
+    const error: any = new Error('No assigned warehouse');
+    error.status = 403;
+    throw error;
+  }
+  const targetBranchId = String(branchId || '').trim();
+  if (!warehouseScope.includes(targetBranchId)) {
+    const error: any = new Error('Branch is outside employee warehouse scope');
+    error.status = 403;
+    throw error;
+  }
+}
+
+function scopedSaleFilter(req: any, extra: Record<string, any> = {}) {
+  const branchIds = scopeObjectIds(req);
+  if (branchIds === null) return extra;
+  return { ...extra, branchId: { $in: branchIds } };
+}
+
+async function findScopedSale(req: any, selector: Record<string, any>) {
+  return SalePayment.findOne(scopedSaleFilter(req, selector));
+}
+
+async function findScopedRefund(req: any, refundId: string) {
+  const refund = await ProductRefund.findById(refundId).populate('paymentId', 'branchId code value status');
+  if (!refund) return null;
+  const warehouseScope = assignedWarehouseScope(req);
+  if (warehouseScope === null) return refund;
+  if (!warehouseScope.length) return null;
+  const paymentBranchId = String((refund.paymentId as any)?.branchId || '');
+  return warehouseScope.includes(paymentBranchId) ? refund : null;
+}
+
+async function scopedProductIdsForWarehouses(branchIds: string[]) {
+  if (!branchIds.length) return [];
+  return ProductBranchStock.distinct('productId', { branchId: { $in: branchIds }, qty: { $gt: 0 } });
+}
+
+async function getStockTotals(productIds: mongoose.Types.ObjectId[], branchIds?: string[] | null) {
   if (!productIds.length) return new Map<string, number>();
+  const match: Record<string, any> = { productId: { $in: productIds } };
+  if (branchIds) match.branchId = { $in: branchIds };
   const totals = await ProductBranchStock.aggregate([
-    { $match: { productId: { $in: productIds } } },
+    { $match: match },
     { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
   ]);
   return new Map(totals.map((row: any) => [String(row._id), Number(row.quantity || 0)]));
+}
+
+function publicProductForRole(item: any, limited: boolean) {
+  if (!limited) return item;
+  const { cost, initialStocks, ...rest } = item;
+  return rest;
 }
 
 async function populateSale(query: any) {
@@ -321,13 +388,19 @@ router.get('/products', async (req, res) => {
       else filter[field] = new RegExp(`^${escapeRegex(value)}$`, 'i');
     }
 
+    const warehouseScope = assignedWarehouseScope(req as any);
+    if (warehouseScope) {
+      if (!warehouseScope.length) return res.status(403).json({ message: 'No assigned warehouse' });
+      filter._id = { $in: await scopedProductIdsForWarehouses(warehouseScope) };
+    }
+
     const [items, total] = await Promise.all([
       Product.find(filter).sort({ [sortField]: sortOrder }).skip((page - 1) * limit).limit(limit).lean(),
       Product.countDocuments(filter),
     ]);
-    const totals = await getStockTotals(items.map((item: any) => item._id));
+    const totals = await getStockTotals(items.map((item: any) => item._id), warehouseScope);
     res.json({
-      items: items.map((item: any) => ({ ...item, qty: totals.get(String(item._id)) || 0 })),
+      items: items.map((item: any) => publicProductForRole({ ...item, qty: totals.get(String(item._id)) || 0 }, Boolean(warehouseScope))),
       total,
       page,
       limit,
@@ -343,7 +416,11 @@ router.get('/products/:id/stocks', async (req, res) => {
     const product = await Product.findById(req.params.id).select('_id');
     if (!product) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
 
-    const rows = await ProductBranchStock.find({ productId: product._id })
+    const warehouseScope = assignedWarehouseScope(req as any);
+    if (warehouseScope && !warehouseScope.length) return res.status(403).json({ message: 'No assigned warehouse' });
+    const stockFilter: Record<string, any> = { productId: product._id };
+    if (warehouseScope) stockFilter.branchId = { $in: warehouseScope };
+    const rows = await ProductBranchStock.find(stockFilter)
       .populate('branchId', 'name code isActive')
       .sort({ createdAt: 1 })
       .lean();
@@ -367,8 +444,11 @@ router.get('/products/:id', async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Sản phẩm không hợp lệ.' });
     const item = await Product.findById(req.params.id).lean();
     if (!item) return res.status(404).json({ message: 'Không tìm thấy sản phẩm.' });
-    const totals = await getStockTotals([item._id]);
-    res.json({ ...item, qty: totals.get(String(item._id)) || 0 });
+    const warehouseScope = assignedWarehouseScope(req as any);
+    if (warehouseScope && !warehouseScope.length) return res.status(403).json({ message: 'No assigned warehouse' });
+    const totals = await getStockTotals([item._id], warehouseScope);
+    if (warehouseScope && !totals.get(String(item._id))) return res.status(403).json({ message: 'Product is outside employee warehouse scope' });
+    res.json(publicProductForRole({ ...item, qty: totals.get(String(item._id)) || 0 }, Boolean(warehouseScope)));
   } catch (err: any) {
     res.status(500).json({ message: err.message || 'Không thể tải sản phẩm.' });
   }
@@ -613,7 +693,7 @@ router.get('/sales', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
 
-  const filter: any = {};
+  const filter: any = scopedSaleFilter(req as any);
   const invoiceCode = String(req.query.invoiceCode ?? req.query.code ?? '').trim();
   if (invoiceCode) {
     filter.code = new RegExp(escapeRegex(invoiceCode), 'i');
@@ -623,6 +703,7 @@ router.get('/sales', async (req, res) => {
   }
   const storeId = String(req.query.storeId ?? req.query.branchId ?? '').trim();
   if (storeId && mongoose.isValidObjectId(storeId)) {
+    ensureBranchInScope(req as any, storeId);
     filter.branchId = new mongoose.Types.ObjectId(storeId);
   }
 
@@ -660,10 +741,12 @@ router.get('/sales', async (req, res) => {
 });
 
 router.post('/sales', async (req, res) => {
+  ensureBranchInScope(req as any, req.body.branchId);
   const payload = await buildSalePaymentPayload({
     ...req.body,
     code: req.body.code || nextCode('BH'),
     status: req.body.status || 'draft',
+    userId: (req as any).user?.sub,
   });
   const item = await SalePayment.create(payload);
   const populated = await populateSale(SalePayment.findById(item._id));
@@ -672,6 +755,8 @@ router.post('/sales', async (req, res) => {
 });
 
 router.post('/sales/:id/complete', async (req, res) => {
+  const payment = await findScopedSale(req as any, { _id: req.params.id });
+  if (!payment) return res.status(404).json({ message: 'Not found' });
   const item = await completeSalePayment(req.params.id);
   const populated = await populateSale(SalePayment.findById(item._id));
   await writeAuditLog(req, { action: 'sales.complete', module: 'sales', resource: 'SalePayment', resourceId: item.id, after: populated });
@@ -679,24 +764,34 @@ router.post('/sales/:id/complete', async (req, res) => {
 });
 
 router.get('/sales/:id', async (req, res) => {
-  const item = await populateSale(SalePayment.findById(req.params.id));
+  const scopedSale = await findScopedSale(req as any, { _id: req.params.id });
+  if (!scopedSale) return res.status(404).json({ message: 'Not found' });
+  const item = await populateSale(SalePayment.findById(scopedSale._id));
   if (!item) return res.status(404).json({ message: 'Not found' });
   res.json(item);
 });
 
 router.patch('/sales/:id', async (req, res) => {
-  const before = await SalePayment.findById(req.params.id);
+  const before = await findScopedSale(req as any, { _id: req.params.id });
   if (!before) return res.status(404).json({ message: 'Not found' });
   if (before.status === 'completed') return res.status(422).json({ message: 'Completed sale cannot be edited' });
-  const payload = await buildSalePaymentPayload({ ...req.body, code: req.body.code || before.code, status: req.body.status || before.status });
-  const item = await SalePayment.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+  ensureBranchInScope(req as any, before.branchId);
+  const payload = await buildSalePaymentPayload({
+    ...req.body,
+    branchId: before.branchId,
+    code: req.body.code || before.code,
+    status: req.body.status || before.status,
+  });
+  payload.branchId = before.branchId;
+  payload.userId = before.userId;
+  const item = await SalePayment.findOneAndUpdate(scopedSaleFilter(req as any, { _id: req.params.id }), payload, { new: true, runValidators: true });
   const populated = await populateSale(SalePayment.findById(item?._id));
   await writeAuditLog(req, { action: 'sales.update', module: 'sales', resource: 'SalePayment', resourceId: item?.id, before, after: populated });
   res.json(populated);
 });
 
 router.post('/sales/:id/cancel', async (req, res) => {
-  const payment = await SalePayment.findById(req.params.id);
+  const payment = await findScopedSale(req as any, { _id: req.params.id });
   if (!payment) return res.status(404).json({ message: 'Not found' });
   if (payment.status === 'cancelled') return res.status(422).json({ message: 'Already cancelled' });
 
@@ -711,24 +806,19 @@ router.post('/sales/:id/cancel', async (req, res) => {
         valueAfter: Number(item.value ?? 0),
       });
     }
-    if (payment.customerId) {
-      const customer = await Customer.findById(payment.customerId);
-      if (customer) {
-        customer.totalSpent = Math.max((customer.totalSpent || 0) - (payment.value || 0), 0);
-        customer.purchaseCount = Math.max((customer.purchaseCount || 0) - 1, 0);
-        await customer.save();
-      }
-    }
   }
 
   payment.status = 'cancelled';
   await payment.save();
+  if (payment.customerId) {
+    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
+  }
   await writeAuditLog(req, { action: 'sales.cancel', module: 'sales', resource: 'SalePayment', resourceId: payment.id, before: payment });
   res.json(payment);
 });
 
 router.delete('/sales/:id', async (req, res) => {
-  const item = await SalePayment.findById(req.params.id);
+  const item = await findScopedSale(req as any, { _id: req.params.id });
   if (!item) return res.status(404).json({ message: 'Not found' });
   if (item.status === 'completed') return res.status(422).json({ message: 'Completed sale cannot be deleted' });
   await item.deleteOne();
@@ -742,6 +832,11 @@ router.get('/refunds', async (req, res) => {
   const filter: any = {};
   if (req.query.code) filter.code = new RegExp(String(req.query.code).trim(), 'i');
   if (req.query.status) filter.status = String(req.query.status).trim();
+  const branchIds = scopeObjectIds(req as any);
+  if (branchIds) {
+    const paymentIds = await SalePayment.find({ branchId: { $in: branchIds } }).distinct('_id');
+    filter.paymentId = { $in: paymentIds };
+  }
   const [items, total] = await Promise.all([
     populateRefund(ProductRefund.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)),
     ProductRefund.countDocuments(filter),
@@ -750,10 +845,14 @@ router.get('/refunds', async (req, res) => {
 });
 
 router.post('/refunds', async (req, res) => {
+  const payment = await findScopedSale(req as any, { _id: req.body.paymentId });
+  if (!payment) return res.status(404).json({ message: 'Sale payment not found' });
   const payload = await buildProductRefundPayload({
     ...req.body,
     code: req.body.code || nextCode('THB'),
     status: req.body.status || 'draft',
+    userId: (req as any).user?.sub,
+    userCreatedId: (req as any).user?.sub,
   });
   const item = await ProductRefund.create(payload);
   const populated = await populateRefund(ProductRefund.findById(item._id));
@@ -762,6 +861,8 @@ router.post('/refunds', async (req, res) => {
 });
 
 router.post('/refunds/:id/complete', async (req, res) => {
+  const refund = await findScopedRefund(req as any, req.params.id);
+  if (!refund) return res.status(404).json({ message: 'Not found' });
   const item = await completeProductRefund(req.params.id);
   const populated = await populateRefund(ProductRefund.findById(item._id));
   await writeAuditLog(req, { action: 'sales_refund.complete', module: 'sales', resource: 'ProductRefund', resourceId: item.id, after: populated });
@@ -769,13 +870,15 @@ router.post('/refunds/:id/complete', async (req, res) => {
 });
 
 router.get('/refunds/:id', async (req, res) => {
-  const item = await populateRefund(ProductRefund.findById(req.params.id));
+  const refund = await findScopedRefund(req as any, req.params.id);
+  if (!refund) return res.status(404).json({ message: 'Not found' });
+  const item = await populateRefund(ProductRefund.findById(refund._id));
   if (!item) return res.status(404).json({ message: 'Not found' });
   res.json(item);
 });
 
 router.patch('/refunds/:id', async (req, res) => {
-  const before = await ProductRefund.findById(req.params.id);
+  const before = await findScopedRefund(req as any, req.params.id);
   if (!before) return res.status(404).json({ message: 'Not found' });
   if (before.status === 'completed') return res.status(422).json({ message: 'Completed refund cannot be edited' });
 
@@ -787,7 +890,9 @@ router.patch('/refunds/:id', async (req, res) => {
     item = await ProductRefund.findByIdAndUpdate(req.params.id, {
       code: req.body.code || before.code,
       note: req.body.note,
-      status: req.body.status || before.status
+      status: req.body.status || before.status,
+      userId: before.userId,
+      userCreatedId: before.userCreatedId || before.userId,
     }, { new: true, runValidators: true });
   }
 
@@ -797,7 +902,7 @@ router.patch('/refunds/:id', async (req, res) => {
 });
 
 router.delete('/refunds/:id', async (req, res) => {
-  const item = await ProductRefund.findById(req.params.id);
+  const item = await findScopedRefund(req as any, req.params.id);
   if (!item) return res.status(404).json({ message: 'Not found' });
   if (item.status === 'completed') return res.status(422).json({ message: 'Completed refund cannot be deleted' });
   await item.deleteOne();
@@ -1129,17 +1234,23 @@ router.get('/inventories', async (req, res) => {
             ? String(branchHCM?._id || '')
             : '';
 
+    const warehouseScope = assignedWarehouseScope(req as any);
+    if (warehouseScope && !warehouseScope.length) return res.status(403).json({ message: 'No assigned warehouse' });
+    if (warehouseScope && selectedBranchId && !warehouseScope.includes(selectedBranchId)) {
+      return res.status(403).json({ message: 'Warehouse is outside employee scope' });
+    }
+    const inventoryBranchIds = warehouseScope
+      ? (selectedBranchId ? [selectedBranchId] : warehouseScope)
+      : (selectedBranchId ? [selectedBranchId] : null);
+
     const filter: any = {};
     if (categoryId) {
       filter.categoryId = categoryId;
     }
 
-    // Filter by branch
-    if (branchId === 'hanoi' && branchHN) {
-      const stocks = await ProductBranchStock.find({ branchId: branchHN._id, qty: { $gt: 0 } }).lean();
-      filter._id = { $in: stocks.map(s => s.productId) };
-    } else if (branchId === 'hcm' && branchHCM) {
-      const stocks = await ProductBranchStock.find({ branchId: branchHCM._id, qty: { $gt: 0 } }).lean();
+    // Filter by visible warehouse scope.
+    if (inventoryBranchIds) {
+      const stocks = await ProductBranchStock.find({ branchId: { $in: inventoryBranchIds }, qty: { $gt: 0 } }).lean();
       filter._id = { $in: stocks.map(s => s.productId) };
     }
 
@@ -1156,7 +1267,9 @@ router.get('/inventories', async (req, res) => {
 
     // Fetch all stock records for the found products in one query
     const productIds = products.map(p => p._id);
-    const stocksList = await ProductBranchStock.find({ productId: { $in: productIds } }).lean();
+    const stockQuery: Record<string, any> = { productId: { $in: productIds } };
+    if (inventoryBranchIds) stockQuery.branchId = { $in: inventoryBranchIds };
+    const stocksList = await ProductBranchStock.find(stockQuery).lean();
 
     // Group stocks by productId
     const stockMap = new Map<string, any[]>();
@@ -1179,6 +1292,8 @@ router.get('/inventories', async (req, res) => {
       const selectedStock = selectedBranchId
         ? stocks.find(s => String(s.branchId) === selectedBranchId)?.qty || 0
         : undefined;
+      const scopedTotalStock = stocks.reduce((sum, stock) => sum + Number(stock.qty || 0), 0);
+      const isLimited = Boolean(warehouseScope);
 
       allItems.push({
         _id: pAny._id,
@@ -1189,10 +1304,10 @@ router.get('/inventories', async (req, res) => {
         parentName: pAny.parentName || '',
         weight: pAny.weight || 0,
         price: pAny.price || 0,
-        cost: pAny.cost || 0,
-        importPrice: pAny.cost || 0,
-        wholesalePrice: pAny.wholesalePrice || 0,
-        totalStock: pAny.qty || 0,
+        cost: isLimited ? undefined : pAny.cost || 0,
+        importPrice: isLimited ? undefined : pAny.cost || 0,
+        wholesalePrice: isLimited ? undefined : pAny.wholesalePrice || 0,
+        totalStock: scopedTotalStock,
         stockCN,
         stockHanoi,
         stockHCM,

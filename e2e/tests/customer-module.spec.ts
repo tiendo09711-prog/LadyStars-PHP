@@ -1,109 +1,134 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-const TEST_CUSTOMER_CODE = `TEST-KH-${Date.now()}`;
-const TEST_CUSTOMER_PHONE = `0909${Math.floor(100000 + Math.random() * 900000)}`;
+const API = 'http://localhost:4000/api';
+const stamp = Date.now();
+const TEST_CUSTOMER = {
+  code: `ACT-KH-${stamp}`,
+  name: `Khách ACT ${stamp}`,
+  phone: `0988${String(stamp).slice(-6)}`,
+};
 
-test.describe('Customer Module E2E Flow', () => {
+async function authHeaders(page: any) {
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  return { Authorization: `Bearer ${token}` };
+}
 
-  test.beforeEach(async ({ page }) => {
+async function firstBranchId(page: any) {
+  if (page.url() === 'about:blank') {
     await page.goto('http://localhost:5173/customers/list');
-    // Wait for data load
-    await page.waitForTimeout(2000);
-  });
+  }
+  const headers = await authHeaders(page);
+  const response = await page.request.get(`${API}/system/branches?limit=5`, { headers });
+  expect(response.ok()).toBeTruthy();
+  const data = await response.json();
+  const branch = data.items?.[0];
+  expect(branch?._id).toBeTruthy();
+  return branch._id as string;
+}
 
-  test('Should create a new customer successfully', async ({ page }) => {
-    await page.click('button:has-text("Thêm khách hàng")');
-    await page.waitForSelector('.modal-card');
+async function cleanupCustomer(page: any, customerId: string | null) {
+  if (!customerId) return;
+  const headers = await authHeaders(page);
+  await page.request.delete(`${API}/customers/customers/${customerId}`, { headers }).catch(() => null);
+}
 
-    await page.getByLabel('Mã KH').fill(TEST_CUSTOMER_CODE);
-    await page.getByLabel('Tên khách hàng').fill('Khách Hàng Test E2E');
-    await page.getByLabel('Số điện thoại').fill(TEST_CUSTOMER_PHONE);
-    await page.getByLabel('Loại').selectOption('person');
-    await page.getByLabel('Ghi chú').fill('Được tạo bởi Playwright E2E');
+test.describe.serial('Customer module ACT flow', () => {
+  let createdCustomerId: string | null = null;
 
-    await page.click('button:has-text("Lưu")');
-
-    // Wait for the modal to close and success alert
-    await page.waitForTimeout(1500);
-
-    // Verify it appears in the list (search for it)
-    await page.fill('input[placeholder*="Mã, tên"]', TEST_CUSTOMER_CODE);
-    await page.waitForTimeout(1000);
-    await expect(page.locator(`text=${TEST_CUSTOMER_CODE}`).first()).toBeVisible();
-  });
-
-  test('Should auto-fill customer info in Customer Care', async ({ page }) => {
-    await page.goto('http://localhost:5173/customers/care');
-    await page.waitForTimeout(2000);
-
-    await page.click('button:has-text("Thêm mới")');
-    await page.waitForSelector('.modal-card');
-
-    // Nhập customerCode, ko nhập Name hay Phone
-    await page.getByLabel('Mã khách hàng (nếu có)').fill(TEST_CUSTOMER_CODE);
-    await page.getByLabel('Lý do').fill('Hỏi thăm định kỳ');
-
-    // Lưu
-    await page.click('button:has-text("Lưu")');
-    await page.waitForTimeout(1500);
-
-    // Kiểm tra xem backend đã auto-fill Tên và SĐT lên UI chưa
-    // Mở phiếu vừa tạo ra xem chi tiết hoặc nhìn trên bảng
-    await expect(page.locator(`text=Khách Hàng Test E2E`).first()).toBeVisible();
-    await expect(page.locator(`text=${TEST_CUSTOMER_PHONE}`).first()).toBeVisible();
-  });
-
-  test('Should navigate and load data for all customer smart filters (tabs)', async ({ page }) => {
+  test.afterAll(async ({ browser }) => {
+    const context = await browser.newContext({ storageState: 'playwright/.auth/user.json' });
+    const page = await context.newPage();
     await page.goto('http://localhost:5173/customers/list');
-    await page.waitForTimeout(2000);
-
-    const tabs = [
-      'Tất cả',
-      'Mua nhiều',
-      'Mua nhiều, sinh nhật trong tháng',
-      'Mua thường xuyên',
-      'Lâu chưa mua'
-    ];
-
-    for (const tab of tabs) {
-      await page.click(`button:has-text("${tab}")`);
-      await page.waitForTimeout(1000); // Wait for network request and render
-      // Just verifying we can click through them without the app crashing
-      // and checking that the active tab changes (usually by button class change but simply clicking is a good E2E check)
-    }
+    await cleanupCustomer(page, createdCustomerId);
+    await context.close();
   });
 
-  test('Should sync customer metrics without errors', async ({ page }) => {
-    await page.goto('http://localhost:5173/customers/list');
-    await page.waitForTimeout(2000);
+  test('renders single-page filters and replaces old tabs with presets', async ({ page }) => {
+    await page.goto('/customers/list');
+    await expect(page.getByTestId('customers-list-page')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tất cả' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Mua nhiều' })).toHaveCount(0);
 
-    // Bấm nút đồng bộ
-    page.on('dialog', async (dialog) => {
-      expect(dialog.message()).toContain('Đã đồng bộ');
-      await dialog.accept();
+    const initialResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/customers/customers') && response.status() === 200;
     });
+    await initialResponse;
 
-    await page.click('button:has-text("Đồng bộ chỉ số mua hàng")');
-    await page.waitForTimeout(2000);
+    const presetResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/customers/customers')
+        && url.searchParams.get('preset') === 'buyalot'
+        && url.searchParams.get('purchaseCountMin') === '4'
+        && response.status() === 200;
+    });
+    await page.getByTestId('customers-preset-filter').selectOption('buyalot');
+    await presetResponse;
+
+    await expect(page.getByTestId('customers-filter-chips')).toContainText('Lần mua từ: 4');
+    await expect(page).toHaveURL(/preset=buyalot/);
+
+    await expect(page.getByTestId('customers-advanced-panel')).toBeVisible();
   });
 
-  test('Should delete the test customer to cleanup', async ({ page }) => {
-    // Navigate back to list
-    await page.goto('http://localhost:5173/customers/list');
-    await page.waitForTimeout(2000);
+  test('creates a customer from /customers/list and shows it in the table', async ({ page }) => {
+    await page.goto('/customers/list');
+    await page.getByTestId('add-customer-button').click();
+    await expect(page.locator('.customer-modal')).toBeVisible();
 
-    // Search and delete
-    await page.fill('input[placeholder*="Mã, tên"]', TEST_CUSTOMER_CODE);
-    await page.waitForTimeout(1000);
+    await page.getByLabel('Mã khách').fill(TEST_CUSTOMER.code);
+    await page.getByLabel('Tên khách hàng *').fill(TEST_CUSTOMER.name);
+    await page.getByLabel('Số điện thoại').first().fill(TEST_CUSTOMER.phone);
+    await page.getByRole('button', { name: 'Lưu khách hàng' }).click();
 
-    // Select row
-    const row = page.locator(`tr:has-text("${TEST_CUSTOMER_CODE}")`);
-    // Click the delete button on the row directly
-    page.on('dialog', dialog => dialog.accept());
-    await row.getByTitle('Xóa').click();
-    await page.waitForTimeout(1500);
+    await expect(page.locator('.customer-modal')).toHaveCount(0);
 
-    // Verify it is gone
-    await expect(page.locator(`text=${TEST_CUSTOMER_CODE}`).first()).not.toBeVisible();
+    const searchResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/customers/customers')
+        && url.searchParams.get('keyword') === TEST_CUSTOMER.code
+        && response.status() === 200;
+    });
+    await page.getByTestId('customers-keyword-filter').fill(TEST_CUSTOMER.code);
+    await page.getByRole('button', { name: /^Lọc$/ }).click();
+    await searchResponse;
+
+    const row = page.locator('tr', { hasText: TEST_CUSTOMER.code }).first();
+    await expect(row).toContainText(TEST_CUSTOMER.name);
+
+    const headers = await authHeaders(page);
+    const lookup = await page.request.get(`${API}/customers/customers?code=${TEST_CUSTOMER.code}&limit=5`, { headers });
+    const payload = await lookup.json();
+    createdCustomerId = payload.items?.[0]?._id || null;
+    expect(createdCustomerId).toBeTruthy();
+  });
+
+  test('reuses the same customer source in retail and wholesale pickers', async ({ page }) => {
+    test.skip(!createdCustomerId, 'Customer from previous test was not created');
+
+    const branchId = await firstBranchId(page);
+
+    await page.goto(`/sales-channels/store/retail/create?branchId=${branchId}`);
+    await expect(page.getByPlaceholder('Nhập họ tên hoặc số điện thoại')).toBeVisible();
+    const retailSuggestionResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/customers/customers')
+        && url.searchParams.get('keyword') === TEST_CUSTOMER.name
+        && response.status() === 200;
+    });
+    await page.getByPlaceholder('Nhập họ tên hoặc số điện thoại').fill(TEST_CUSTOMER.name);
+    await retailSuggestionResponse;
+    await expect(page.locator('.customer-search .create-dropdown button').filter({ hasText: TEST_CUSTOMER.name }).first()).toBeVisible();
+
+    await page.goto(`/sales-channels/store/wholesale/create?branchId=${branchId}`);
+    const wholesaleSuggestionResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/customers/customers')
+        && url.searchParams.get('keyword') === TEST_CUSTOMER.name
+        && response.status() === 200;
+    });
+    await page.getByPlaceholder('Tên khách đại lý / sỉ').fill(TEST_CUSTOMER.name);
+    await wholesaleSuggestionResponse;
+    await expect(page.locator('div').filter({ hasText: `${TEST_CUSTOMER.name} - ${TEST_CUSTOMER.phone}` }).first()).toBeVisible();
   });
 });

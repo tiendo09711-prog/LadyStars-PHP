@@ -137,6 +137,7 @@ const router = createBrowserRouter([
       { path: 'warehouse/transfers/:id', element: <WarehouseTransferDetailPage /> },
       { path: 'warehouse/audit', element: <WarehouseAuditPage /> },
       { path: 'warehouse/audit/create', element: <WarehouseAuditCreatePage /> },
+      { path: 'warehouse/audit/:id', element: <WarehouseAuditCreatePage /> },
       { path: 'warehouse/drafts', element: <WarehouseDraftPage /> },
       { path: 'warehouse/history', element: <WarehouseHistoryPage /> },
 

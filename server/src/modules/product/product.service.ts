@@ -1,5 +1,5 @@
 import { PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SalePayment, StockAdjustment } from './product.models.js';
-import { Customer } from '../customer/customer.models.js';
+import { recomputeCustomerMetricsByIds } from '../customer/customer.metrics.js';
 
 class ProductFlowError extends Error {
   status: number;
@@ -19,6 +19,14 @@ function lineDiscount(base: number, discountValue: unknown, discountType: unknow
   const discount = toNumber(discountValue);
   if (discountType === 'percent') return Math.min(base, base * Math.max(discount, 0) / 100);
   return Math.min(base, Math.max(discount, 0));
+}
+
+async function getAvailableStockForSale(product: any, branchId?: unknown) {
+  if (product.type === 'service') return Number.POSITIVE_INFINITY;
+  if (!branchId) return toNumber(product.qty);
+
+  const stock = await ProductBranchStock.findOne({ productId: product._id, branchId }).lean();
+  return toNumber(stock?.qty);
 }
 
 export async function moveProductQty({
@@ -82,7 +90,8 @@ export async function buildSalePaymentPayload(payload: any) {
 
     const amount = toNumber(rawItem.amount);
     if (amount <= 0) throw new ProductFlowError(`Product ${product.code} must have a sale quantity greater than 0`);
-    if (product.type !== 'service' && toNumber(product.qty) < amount) {
+    const availableStock = await getAvailableStockForSale(product, payload.branchId);
+    if (product.type !== 'service' && availableStock < amount) {
       throw new ProductFlowError(`Not enough stock for ${product.code} - ${product.name}`);
     }
 
@@ -212,7 +221,8 @@ export async function assertSaleCanComplete(payment: any) {
     const product = await Product.findById(item.productId);
     if (!product) throw new ProductFlowError('Product not found', 404);
     if (product.allowsSale === false) throw new ProductFlowError(`Product ${product.code} is not allowed for sale`);
-    if (product.type !== 'service' && toNumber(product.qty) < toNumber(item.amount)) {
+    const availableStock = await getAvailableStockForSale(product, payment.branchId);
+    if (product.type !== 'service' && availableStock < toNumber(item.amount)) {
       throw new ProductFlowError(`Not enough stock for ${product.code} - ${product.name}`);
     }
   }
@@ -242,14 +252,7 @@ export async function completeSalePayment(paymentId: string) {
   await payment.save();
 
   if (payment.customerId) {
-    const customer = await Customer.findById(payment.customerId);
-    if (customer) {
-      customer.totalSpent = (customer.totalSpent || 0) + (payment.value || 0);
-      customer.purchaseCount = (customer.purchaseCount || 0) + 1;
-      customer.lastPurchaseDate = new Date();
-      customer.daysSinceLastPurchase = 0;
-      await customer.save();
-    }
+    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
   }
 
   return payment;
@@ -279,6 +282,9 @@ export async function completeProductRefund(refundId: string) {
   await refund.save();
   if (payment?._id) {
     await SalePayment.findByIdAndUpdate(payment._id, { status: 'refunded' });
+  }
+  if (payment?.customerId) {
+    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
   }
   return refund;
 }
