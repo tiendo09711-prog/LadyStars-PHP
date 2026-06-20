@@ -121,6 +121,11 @@ export const PaymentMethod = model('PaymentMethod', new Schema({
   isActive: { type: Boolean, default: true },
 }, { timestamps: true }));
 
+const PaymentLineSchema = new Schema({
+  methodId: { type: Schema.Types.ObjectId, ref: 'PaymentMethod', required: true },
+  amount: money,
+}, { _id: false });
+
 const SaleItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   amount: { type: Number, default: 0 },
@@ -151,7 +156,10 @@ const SalePaymentSchema = new Schema({
   discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
   value: money,
   valuePayment: money,
-  typePayment: [{ methodId: { type: Schema.Types.ObjectId, ref: 'PaymentMethod' }, amount: Number }],
+  settlementValue: money,
+  refundedValue: money,
+  refundStatus: { type: String, enum: ['none', 'partial', 'full'], default: 'none' },
+  typePayment: [PaymentLineSchema],
   isDelivery: { type: Boolean, default: false },
   saleChannelId: { type: Schema.Types.ObjectId, ref: 'SaleChannel' },
   isCod: { type: Boolean, default: false },
@@ -181,14 +189,19 @@ const ProductRefundSchema = new Schema({
   originalTotalAmount: money,
   totalPayableAmount: money,
   value: money,
+  settlementValue: money,
+  completedAt: Date,
   status: { type: String, enum: ['draft', 'completed', 'cancelled'], default: 'draft' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   userCreatedId: { type: Schema.Types.ObjectId, ref: 'User' },
   note: String,
+  replacementSaleId: { type: Schema.Types.ObjectId, ref: 'SalePayment' },
+  typePayment: [PaymentLineSchema],
   items: [{
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     amount: { type: Number, default: 1 },
     price: money,
+    cost: money,
     discountValue: money,
     discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
     value: money,

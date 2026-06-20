@@ -182,10 +182,12 @@ test.describe('Retail invoice ACT audit', () => {
     expect(completed.typePayment.reduce((sum: number, line: any) => sum + Number(line.amount), 0)).toBe(Number(completed.valuePayment));
     expect(Number(completed.valuePayment)).toBe(Number(completed.value));
 
-    const afterCompleteResponse = await page.request.get(`${API}/products/inventories?branchId=${branchId}&limit=5000`, { headers });
-    const afterCompleteItems = (await afterCompleteResponse.json()).items || [];
     for (const product of selectedProducts) {
-      expect(Number(afterCompleteItems.find((item: any) => item._id === product._id)?.selectedStock)).toBe(stockBefore.get(product._id) - 1);
+      const stockResponse = await page.request.get(`${API}/products/products/${product._id}/stocks`, { headers });
+      expect(stockResponse.ok()).toBeTruthy();
+      const stockPayload = await stockResponse.json();
+      const branchStock = (stockPayload.items || []).find((item: any) => item.warehouseId === branchId);
+      expect(Number(branchStock?.quantity ?? 0)).toBe(stockBefore.get(product._id) - 1);
     }
 
     await expect(page).toHaveURL(/\/sales-channels\/store\/retail$/, { timeout: 10000 });
@@ -217,24 +219,33 @@ test.describe('Retail invoice ACT audit', () => {
 
     await page.goto('/sales-channels/store/retail');
     await page.waitForResponse((response) => response.url().includes('/api/products/sales?') && response.status() === 200);
+    const headers = await authHeaders(page);
+    const listResponse = await page.request.get(`${API}/products/sales?page=1&limit=50&channel=store`, { headers });
+    expect(listResponse.ok()).toBeTruthy();
+    const listData = await listResponse.json();
+    const editableInvoice = (listData.items || []).find((item: any) => item.canEdit === true && item.status === 'completed');
+    test.skip(!editableInvoice, 'No editable completed retail invoice available');
     const firstRow = page.locator('.retail-table-card tbody tr').filter({
-      has: page.locator('.retail-status.success'),
+      has: page.getByRole('button', { name: editableInvoice.code, exact: true }),
     }).first();
     await firstRow.getByRole('button', { name: /Thao tác hóa đơn/ }).click();
     await expect(page.getByRole('button', { name: 'Xem chi tiết' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sửa thông tin' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Trả / đổi hàng' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'In hóa đơn', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sửa đơn hàng' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Đổi trả hàng' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Sửa thông tin' }).click();
+    await page.getByRole('button', { name: 'Sửa đơn hàng' }).click();
     await expect(page).toHaveURL(/\/sales-channels\/store\/retail\/create\?editId=/);
 
     await page.goto('/sales-channels/store/retail');
     await page.waitForResponse((response) => response.url().includes('/api/products/sales?') && response.status() === 200);
+    const refundableInvoice = (listData.items || []).find((item: any) => item.canRefund === true);
+    test.skip(!refundableInvoice, 'No refundable retail invoice available');
     const completedRow = page.locator('.retail-table-card tbody tr').filter({
-      has: page.locator('.retail-status.success'),
+      has: page.getByRole('button', { name: refundableInvoice.code, exact: true }),
     }).first();
     await completedRow.getByRole('button', { name: /Thao tác hóa đơn/ }).click();
-    await page.getByRole('button', { name: 'Trả / đổi hàng' }).click();
+    await page.getByRole('button', { name: 'Đổi trả hàng' }).click();
     await expect(page).toHaveURL(/\/sales-channels\/store\/refund\/create\?saleId=/);
   });
 });

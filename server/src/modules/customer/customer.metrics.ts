@@ -1,6 +1,7 @@
+import mongoose from 'mongoose';
 import { Customer } from './customer.models.js';
 import { Order } from '../orders/orders.models.js';
-import { SalePayment } from '../product/product.models.js';
+import { ProductRefund, SalePayment } from '../product/product.models.js';
 
 const VALID_ORDER_STATUSES = ['Hoàn thành', 'In và đóng gói', 'Đang chuyển', 'Đã chuyển'];
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
@@ -139,7 +140,7 @@ export async function buildCustomerMetricsMap(customers: CustomerLike[]) {
       customerId: { $in: customerIds },
       status: 'completed',
     })
-      .select('customerId value completedAt createdAt items')
+      .select('customerId value refundedValue completedAt createdAt items amountProducts')
       .lean(),
     phones.size || names.size
       ? Order.find({
@@ -154,14 +155,35 @@ export async function buildCustomerMetricsMap(customers: CustomerLike[]) {
       : Promise.resolve([]),
   ]);
 
+  const saleIds = sales
+    .map((sale: any) => toObjectIdString(sale._id))
+    .filter(Boolean);
+  const refundedQtyRows = saleIds.length
+    ? await ProductRefund.aggregate([
+      { $match: { paymentId: { $in: saleIds.map((id) => new mongoose.Types.ObjectId(id)) }, status: 'completed' } },
+      { $unwind: { path: '$items', preserveNullAndEmptyArrays: false } },
+      {
+        $group: {
+          _id: '$paymentId',
+          quantity: { $sum: { $ifNull: ['$items.amount', 0] } },
+        },
+      },
+    ])
+    : [];
+  const refundedQtyMap = new Map(refundedQtyRows.map((row: any) => [toObjectIdString(row._id), toNumber(row.quantity)]));
+
   for (const sale of sales) {
     const customerId = toObjectIdString((sale as any).customerId);
     const events = metricsByCustomer.get(customerId);
     if (!events) continue;
     const occurredAt = new Date((sale as any).completedAt || (sale as any).createdAt || new Date());
+    const netAmount = Math.max(toNumber((sale as any).value) - toNumber((sale as any).refundedValue), 0);
+    const grossQuantity = toNumber((sale as any).amountProducts, quantityFromSaleItems((sale as any).items || []));
+    const netQuantity = Math.max(grossQuantity - (refundedQtyMap.get(toObjectIdString((sale as any)._id)) ?? 0), 0);
+    if (netAmount <= 0 && netQuantity <= 0) continue;
     events.push({
-      amount: toNumber((sale as any).value),
-      quantity: quantityFromSaleItems((sale as any).items || []),
+      amount: netAmount,
+      quantity: netQuantity,
       occurredAt,
     });
   }

@@ -86,6 +86,30 @@ function buildChartAgg(dateFilter: { $gte: Date; $lt: Date }, branchMatch: Recor
   ];
 }
 
+function buildRefundBranchStages(branchIds: mongoose.Types.ObjectId[]) {
+  return branchIds.length
+    ? [{ $match: { 'saleInfo.branchId': { $in: branchIds } } }]
+    : [];
+}
+
+function buildRefundChartAgg(dateFilter: { $gte: Date; $lt: Date }, branchIds: mongoose.Types.ObjectId[]) {
+  return [
+    { $match: { createdAt: dateFilter, status: 'completed' } },
+    { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
+    { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
+    ...buildRefundBranchStages(branchIds),
+    {
+      $group: {
+        _id: {
+          day: { $dayOfMonth: { date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+          month: { $month: { date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
+        },
+        total: { $sum: { $multiply: [{ $ifNull: ['$value', 0] }, -1] } },
+      },
+    },
+  ];
+}
+
 function iconForChannel(name: string) {
   const lower = name.toLowerCase();
   if (lower.includes('facebook')) return 'facebook';
@@ -153,7 +177,9 @@ router.get('/', async (req, res) => {
       tasks,
       accountingTypes,
       retailAgg,
+      refundAgg,
       saleChannelAgg,
+      saleChannelRefundAgg,
       topProductsAgg,
       topReturnsAgg,
       totalInventory,
@@ -161,7 +187,9 @@ router.get('/', async (req, res) => {
       orderStatusAgg,
       recentSalesDocs,
       currentChartData,
+      currentRefundChartData,
       prevChartData,
+      prevRefundChartData,
     ] = await Promise.all([
       Product.countDocuments(),
       ProductBranchStock.countDocuments({ $expr: { $lte: ['$qty', '$minQuantity'] }, ...branchMatch }).catch(() => 0),
@@ -188,6 +216,28 @@ router.get('/', async (req, res) => {
             orders: { $sum: 1 },
             totalCost: { $sum: '$totalCost' },
             amountProducts: { $sum: '$amountProducts' },
+          },
+        },
+      ]).catch(() => []),
+      ProductRefund.aggregate([
+        { $match: { createdAt: dateFilter, status: 'completed' } },
+        { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
+        { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
+        ...buildRefundBranchStages(branchIds),
+        { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: null,
+            refundValue: { $sum: { $ifNull: ['$value', 0] } },
+            refundedProducts: { $sum: { $ifNull: ['$items.amount', 0] } },
+            refundCost: {
+              $sum: {
+                $multiply: [
+                  { $ifNull: ['$items.amount', 0] },
+                  { $ifNull: ['$items.cost', 0] },
+                ],
+              },
+            },
           },
         },
       ]).catch(() => []),
@@ -223,8 +273,35 @@ router.get('/', async (req, res) => {
         },
         { $sort: { revenue: -1, orders: -1 } },
       ]).catch(() => []),
+      ProductRefund.aggregate([
+        { $match: { createdAt: dateFilter, status: 'completed' } },
+        { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
+        { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
+        ...buildRefundBranchStages(branchIds),
+        { $unwind: { path: '$items', preserveNullAndEmptyArrays: false } },
+        {
+          $group: {
+            _id: '$saleInfo.saleChannelId',
+            revenue: { $sum: { $multiply: [{ $ifNull: ['$items.value', 0] }, -1] } },
+            totalCost: {
+              $sum: {
+                $multiply: [
+                  {
+                    $multiply: [
+                      { $ifNull: ['$items.amount', 0] },
+                      { $ifNull: ['$items.cost', 0] },
+                    ],
+                  },
+                  -1,
+                ],
+              },
+            },
+            amountProducts: { $sum: { $multiply: [{ $ifNull: ['$items.amount', 0] }, -1] } },
+          },
+        },
+      ]).catch(() => []),
       SalePayment.aggregate([
-        { $match: { createdAt: topDateFilter, status: { $nin: ['draft', 'cancelled'] }, ...branchMatch } },
+        { $match: { createdAt: topDateFilter, status: 'completed', ...branchMatch } },
         { $unwind: '$items' },
         {
           $group: {
@@ -248,8 +325,17 @@ router.get('/', async (req, res) => {
       ]).catch(() => []),
       ProductRefund.aggregate([
         { $match: { createdAt: topDateFilter, status: 'completed' } },
+        { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
+        { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
+        ...buildRefundBranchStages(branchIds),
         { $unwind: '$items' },
-        { $group: { _id: '$items.productId', qtyReturned: { $sum: '$items.amount' } } },
+        {
+          $group: {
+            _id: '$items.productId',
+            qtyReturned: { $sum: { $ifNull: ['$items.amount', 0] } },
+            refundValue: { $sum: { $ifNull: ['$items.value', 0] } },
+          },
+        },
       ]).catch(() => []),
       ProductBranchStock.aggregate([
         { $match: branchMatch },
@@ -288,20 +374,25 @@ router.get('/', async (req, res) => {
         .populate('saleChannelId', 'name')
         .lean(),
       SalePayment.aggregate(buildChartAgg(chartFilter, branchMatch)).catch(() => []),
+      ProductRefund.aggregate(buildRefundChartAgg(chartFilter, branchIds)).catch(() => []),
       SalePayment.aggregate(buildChartAgg(makePreviousFilter(chartStart, chartEnd), branchMatch)).catch(() => []),
+      ProductRefund.aggregate(buildRefundChartAgg(makePreviousFilter(chartStart, chartEnd), branchIds)).catch(() => []),
     ]);
 
     const receiptRevenue = receipts[0]?.total ?? 0;
     const expense = expenses[0]?.total ?? 0;
     const inventoryData = totalInventory[0] ?? { totalQty: 0, totalCostValue: 0, totalSaleValue: 0 };
-    const retailRevenue = retailAgg[0]?.revenue ?? 0;
+    const retailRevenue = (retailAgg[0]?.revenue ?? 0) - (refundAgg[0]?.refundValue ?? 0);
     const retailOrders = retailAgg[0]?.orders ?? 0;
-    const retailQty = retailAgg[0]?.amountProducts ?? 0;
+    const retailQty = Math.max((retailAgg[0]?.amountProducts ?? 0) - (refundAgg[0]?.refundedProducts ?? 0), 0);
     const totalRevenue = retailRevenue;
-    const totalRevenueBase = totalRevenue > 0 ? totalRevenue : receiptRevenue;
+    const hasRetailActivity = retailOrders > 0 || (refundAgg[0]?.refundValue ?? 0) > 0;
+    const totalRevenueBase = hasRetailActivity ? totalRevenue : receiptRevenue;
     const totalOrders = retailOrders;
-    const totalCost = retailAgg[0]?.totalCost ?? 0;
+    const totalCost = (retailAgg[0]?.totalCost ?? 0) - (refundAgg[0]?.refundCost ?? 0);
     const returnMap = new Map(topReturnsAgg.map((row: any) => [String(row._id), row.qtyReturned ?? 0]));
+    const returnRevenueMap = new Map(topReturnsAgg.map((row: any) => [String(row._id), row.refundValue ?? 0]));
+    const saleChannelRefundMap = new Map(saleChannelRefundAgg.map((row: any) => [String(row._id ?? ''), row]));
 
     const salesChannels = [
       {
@@ -316,18 +407,24 @@ router.get('/', async (req, res) => {
         revenuePercent: 100,
         profitPercent: totalRevenueBase > 0 ? Math.round(((totalRevenueBase - totalCost - expense) / totalRevenueBase) * 100) : 0,
       },
-      ...saleChannelAgg.map((channel: any, index: number) => ({
+      ...saleChannelAgg.map((channel: any, index: number) => {
+        const refundRow = saleChannelRefundMap.get(String(channel._id ?? ''));
+        const netChannelRevenue = (channel.revenue ?? 0) + (refundRow?.revenue ?? 0);
+        const netChannelCost = (channel.totalCost ?? 0) + (refundRow?.totalCost ?? 0);
+        const netChannelProducts = (channel.amountProducts ?? 0) + (refundRow?.amountProducts ?? 0);
+        return {
         label: channel.label || `Kênh ${index + 1}`,
         type: `channel-${String(channel._id || index)}`,
-        revenue: channel.revenue ?? 0,
+        revenue: netChannelRevenue,
         orders: channel.orders ?? 0,
-        avgOrderValue: channel.orders > 0 ? Math.round((channel.revenue ?? 0) / channel.orders) : 0,
-        avgProducts: channel.orders > 0 ? Number(((channel.amountProducts ?? 0) / channel.orders).toFixed(2)) : 0,
+        avgOrderValue: channel.orders > 0 ? Math.round(netChannelRevenue / channel.orders) : 0,
+        avgProducts: channel.orders > 0 ? Number((netChannelProducts / channel.orders).toFixed(2)) : 0,
         ads: 0,
-        profit: (channel.revenue ?? 0) - (channel.totalCost ?? 0),
-        revenuePercent: totalRevenueBase > 0 ? Math.round(((channel.revenue ?? 0) / totalRevenueBase) * 100) : 0,
-        profitPercent: (channel.revenue ?? 0) > 0 ? Math.round((((channel.revenue ?? 0) - (channel.totalCost ?? 0)) / (channel.revenue ?? 0)) * 100) : 0,
-      })),
+        profit: netChannelRevenue - netChannelCost,
+        revenuePercent: totalRevenueBase !== 0 ? Math.round((netChannelRevenue / totalRevenueBase) * 100) : 0,
+        profitPercent: netChannelRevenue !== 0 ? Math.round(((netChannelRevenue - netChannelCost) / netChannelRevenue) * 100) : 0,
+        };
+      }),
     ];
 
     const orderChannels = orderStatusAgg.map((row: any) => {
@@ -349,7 +446,7 @@ router.get('/', async (req, res) => {
       code: product.code,
       qtySold: product.qtySold ?? 0,
       qtyReturned: returnMap.get(String(product._id)) ?? 0,
-      revenue: product.revenue ?? 0,
+      revenue: (product.revenue ?? 0) - (returnRevenueMap.get(String(product._id)) ?? 0),
     }));
 
     const walletsData = {
@@ -375,8 +472,8 @@ router.get('/', async (req, res) => {
     }
 
     const periodMs = chartEnd.getTime() - chartStart.getTime();
-    const currentMap = mergeChartData(currentChartData);
-    const prevMap = mergeChartData(prevChartData);
+    const currentMap = mergeChartData([...currentChartData, ...currentRefundChartData]);
+    const prevMap = mergeChartData([...prevChartData, ...prevRefundChartData]);
     const chartDays: Date[] = [];
     const cursor = new Date(chartStart);
     while (cursor < chartEnd) {
@@ -489,15 +586,42 @@ router.get('/daily-products', async (req, res) => {
     { $sort: { revenue: -1 } },
   ]).catch(() => []);
 
+  const refundResult = await ProductRefund.aggregate([
+    { $match: { createdAt: { $gte: dayStart, $lt: dayEnd }, status: 'completed' } },
+    { $lookup: { from: 'salepayments', localField: 'paymentId', foreignField: '_id', as: 'saleInfo' } },
+    { $unwind: { path: '$saleInfo', preserveNullAndEmptyArrays: false } },
+    ...(branchMatch.branchId?.$in?.length ? [{ $match: { 'saleInfo.branchId': branchMatch.branchId } }] : []),
+    { $unwind: { path: '$items', preserveNullAndEmptyArrays: false } },
+    { $lookup: { from: 'products', localField: 'items.productId', foreignField: '_id', as: 'productInfo' } },
+    { $unwind: { path: '$productInfo', preserveNullAndEmptyArrays: true } },
+    {
+      $group: {
+        _id: '$items.productId',
+        name: { $first: { $ifNull: ['$productInfo.name', 'KhÃ´ng rÃµ'] } },
+        code: { $first: { $ifNull: ['$productInfo.code', ''] } },
+        qtyReturned: { $sum: { $ifNull: ['$items.amount', 0] } },
+        refundValue: { $sum: { $ifNull: ['$items.value', 0] } },
+      },
+    },
+  ]).catch(() => []);
+
+  const refundByProduct = new Map(refundResult.map((row: any) => [String(row._id), row]));
+
   res.json({
     date,
-    products: result.map((product: any) => ({
-      code: product.code,
-      name: product.name,
-      qty: product.qty,
-      revenue: product.revenue,
-      price: product.qty > 0 ? Math.round(product.revenue / product.qty) : 0,
-    })),
+    products: result.map((product: any) => {
+      const refundRow = refundByProduct.get(String(product._id));
+      const netQty = Math.max((product.qty ?? 0) - (refundRow?.qtyReturned ?? 0), 0);
+      const netRevenue = (product.revenue ?? 0) - (refundRow?.refundValue ?? 0);
+      return {
+        code: product.code,
+        name: product.name,
+        qty: netQty,
+        qtyReturned: refundRow?.qtyReturned ?? 0,
+        revenue: netRevenue,
+        price: netQty > 0 ? Math.round(netRevenue / netQty) : 0,
+      };
+    }),
   });
 });
 

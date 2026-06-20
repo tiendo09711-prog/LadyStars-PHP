@@ -34,6 +34,8 @@ interface RefundProduct {
   name: string;
   stock: number;
   qty: number;
+  maxQty?: number;
+  returnedQty?: number;
   price: number;
   cost: number;
   unit: string;
@@ -121,6 +123,7 @@ export function RefundInvoiceCreatePage() {
   const [newProducts, setNewProducts] = useState<RefundProduct[]>([]);
   
   const [dbProducts, setDbProducts] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   
   // Search state for refund products
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,6 +166,16 @@ export function RefundInvoiceCreatePage() {
       http.get(`/products/sales/${saleId}`)
         .then(res => {
           const sale = res.data;
+          const resolvedBranchId = sale.branchId?._id || sale.branchId || branchId || '';
+          const returnedQuantityByProduct = sale.returnedQuantityByProduct || {};
+          if (!branch && resolvedBranchId) {
+            http.get(`/system/branches/${resolvedBranchId}`)
+              .then((branchRes) => {
+                setBranch(branchRes.data);
+                setForm(prev => ({ ...prev, warehouse: branchRes.data?.name || prev.warehouse }));
+              })
+              .catch(() => null);
+          }
           setForm(prev => ({
             ...prev,
             paymentId: sale._id,
@@ -178,7 +191,9 @@ export function RefundInvoiceCreatePage() {
               code: item.productId?.code || '',
               name: item.productId?.name || '',
               stock: item.productId?.qty || 0,
-              qty: item.amount,
+              qty: Math.max((Number(item.amount) || 0) - Number(returnedQuantityByProduct[item.productId?._id || item.productId] || 0), 0),
+              maxQty: Math.max((Number(item.amount) || 0) - Number(returnedQuantityByProduct[item.productId?._id || item.productId] || 0), 0),
+              returnedQty: Number(returnedQuantityByProduct[item.productId?._id || item.productId] || 0),
               price: item.value,
               cost: item.productId?.cost || 0,
               unit: item.productId?.unit || 'Cái',
@@ -204,6 +219,17 @@ export function RefundInvoiceCreatePage() {
         console.error("Lỗi lấy danh sách sản phẩm:", err);
       });
   }, [branchId]);
+
+  useEffect(() => {
+    http.get('/products/payment-methods', { params: { limit: 5000 } })
+      .then((res) => {
+        const items = Array.isArray(res.data?.items) ? res.data.items : [];
+        setPaymentMethods(items.filter((item: any) => item.isActive !== false));
+      })
+      .catch((err) => {
+        console.error('Loi lay phuong thuc thanh toan:', err);
+      });
+  }, []);
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save
   useEffect(() => {
@@ -387,7 +413,10 @@ export function RefundInvoiceCreatePage() {
 
   const handleProductChange = (index: number, key: keyof RefundProduct, val: any) => {
     const updated = [...products];
-    updated[index] = { ...updated[index], [key]: val };
+    const nextValue = key === 'qty'
+      ? Math.max(0, Math.min(Number(val) || 0, Number(updated[index].maxQty ?? updated[index].qty ?? 0)))
+      : val;
+    updated[index] = { ...updated[index], [key]: nextValue };
     setProducts(updated);
   };
 
@@ -477,6 +506,73 @@ export function RefundInvoiceCreatePage() {
 
     setErrorMessage('');
     setIsSaving(true);
+
+    try {
+      const returnedItems = products
+        .filter((product) => Number(product.qty) > 0)
+        .map((product) => ({
+          productId: product._id,
+          amount: product.qty,
+          value: product.price,
+          discountValue: product.refundFee || 0,
+          discountType: 'number',
+        }));
+      if (returnedItems.length === 0) {
+        throw new Error('Vui long nhap it nhat mot san pham tra hang hop le.');
+      }
+
+      const replacementItems = newProducts
+        .filter((product) => Number(product.qty) > 0)
+        .map((product) => ({
+          productId: product._id,
+          amount: product.qty,
+          value: product.price,
+          discountValue: 0,
+          discountType: 'number',
+        }));
+
+      const resolveMethodId = (...keywords: string[]) => {
+        const normalizedKeywords = keywords.map((keyword) => keyword.toLowerCase());
+        const match = paymentMethods.find((method: any) => {
+          const code = String(method.code || '').toLowerCase();
+          const name = String(method.name || '').toLowerCase();
+          return normalizedKeywords.some((keyword) => code.includes(keyword) || name.includes(keyword));
+        });
+        return match?._id || '';
+      };
+
+      const paymentEntries = [
+        { amount: Math.max(0, Number(form.cash) || 0), methodId: resolveMethodId('cash', 'tien mat', 'tiền mặt'), label: 'Tien mat' },
+        { amount: Math.max(0, Number(form.transfer) || 0), methodId: resolveMethodId('transfer', 'chuyen khoan', 'chuyển khoản', 'bank'), label: 'Chuyen khoan' },
+        { amount: Math.max(0, Number(form.card) || 0), methodId: resolveMethodId('card', 'the', 'thẻ', 'pos'), label: 'The' },
+      ].filter((entry) => entry.amount > 0);
+      const missingEntry = paymentEntries.find((entry) => !entry.methodId);
+      if (missingEntry) {
+        throw new Error(`Khong tim thay phuong thuc thanh toan hop le cho ${missingEntry.label}.`);
+      }
+      const paymentLines = paymentEntries.map((entry) => ({ methodId: entry.methodId, amount: entry.amount }));
+      const amountDelta = Number(form.totalAmount) || 0;
+
+      await http.post(`/products/sales/${saleId}/return-exchange`, {
+        code: form.id,
+        note: [form.description, form.newDescription].filter(Boolean).join('\n'),
+        returnedItems,
+        replacementItems,
+        refundPayments: amountDelta >= 0 ? paymentLines : [],
+        salePayments: amountDelta < 0 ? paymentLines : [],
+      });
+
+      setSuccessMessage('Hoa don doi tra hang da duoc tao va luu thanh cong!');
+      setTimeout(() => {
+        navigate(`/sales-channels/${channel}/refund`);
+      }, 1200);
+      return;
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.response?.data?.message ?? err.message ?? 'Loi khi luu hoa don doi tra hang.');
+      setIsSaving(false);
+      return;
+    }
 
     const firstProduct = products[0];
     const totalQty = products.reduce((acc, p) => acc + p.qty, 0);
@@ -845,9 +941,10 @@ export function RefundInvoiceCreatePage() {
                         <td style={{ padding: '12px 8px', textAlign: 'center' }}>
                           <input
                             type="number"
-                            min={1}
                             value={prod.qty}
-                            onChange={(e) => handleProductChange(idx, 'qty', Math.max(1, Number(e.target.value) || 1))}
+                            min={0}
+                            max={Number(prod.maxQty || 0)}
+                            onChange={(e) => handleProductChange(idx, 'qty', Number(e.target.value) || 0)}
                             style={{ width: '55px', padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '6px', textAlign: 'center', fontWeight: '600', color: '#1e293b', outline: 'none' }}
                           />
                         </td>
