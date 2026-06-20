@@ -85,6 +85,8 @@ interface PaperTemplate {
 
 const PRODUCT_STATUS_OPTIONS = ['Mới', 'Đang bán', 'Ngừng bán', 'Hết hàng'];
 
+const DEFAULT_BARCODE_PAPER_ID = 'a4-65';
+
 const PAPER_TEMPLATES: PaperTemplate[] = [
   { id: 'roll-105x22-3', title: 'Mẫu giấy cuộn 3 nhãn', size: 'Khổ 105x22mm.', widthMm: 105, heightMm: 22, columns: 3, previewClass: 'roll' },
   { id: 'roll-70x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 70x22mm.', widthMm: 70, heightMm: 22, columns: 2, previewClass: 'roll' },
@@ -1049,8 +1051,12 @@ function buildPrintDocument({
   currencySuffix: string;
 }) {
   const labels = rows.flatMap((row) => Array.from({ length: Math.max(1, row.qty) }, () => row.product));
-  const labelWidth = paper.rows ? paper.widthMm / paper.columns : paper.widthMm / paper.columns;
-  const labelHeight = paper.rows ? paper.heightMm / paper.rows : paper.heightMm;
+  const safeMarginLeft = Math.min(Math.max(0, marginLeft), Math.max(1, paper.widthMm - 1));
+  const safeMarginTop = Math.min(Math.max(0, marginTop), Math.max(1, paper.heightMm - 1));
+  const printableWidthMm = paper.widthMm - safeMarginLeft;
+  const printableHeightMm = paper.heightMm - safeMarginTop;
+  const labelWidthMm = printableWidthMm / paper.columns;
+  const labelHeightMm = paper.rows ? printableHeightMm / paper.rows : printableHeightMm;
   const labelHtml = labels.map((product) => {
     const value = normalizeBarcodeValue(product);
     const safeCurrencySuffix = escapeHtml(currencySuffix);
@@ -1066,20 +1072,21 @@ function buildPrintDocument({
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>In mã vạch sản phẩm</title>
     <style>
-      @page { size: ${paper.rows ? 'A4' : `${paper.widthMm}mm ${paper.heightMm}mm`}; margin: ${marginTop}mm 0 0 ${marginLeft}mm; }
+      @page { size: ${paper.widthMm}mm ${paper.heightMm}mm; margin: 0; }
       * { box-sizing: border-box; }
       body { margin: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
-      .sheet { display: grid; grid-template-columns: repeat(${paper.columns}, ${labelWidth}mm); align-content: start; }
-      .print-label { width: ${labelWidth}mm; height: ${labelHeight}mm; padding: 1.2mm 2mm; overflow: hidden; text-align: center; break-inside: avoid; }
+      .print-page { width: ${paper.widthMm}mm; height: ${paper.heightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; }
+      .sheet { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(${paper.columns}, minmax(0, 1fr)); align-content: start; }
+      .print-label { width: 100%; height: ${labelHeightMm}mm; padding: 1.2mm 2mm; overflow: hidden; text-align: center; break-inside: avoid; }
       .print-store { font-size: 8px; font-weight: 700; line-height: 1; }
-      .barcode-svg { width: 100%; height: ${Math.max(7, labelHeight * 0.35)}mm; display: block; fill: #000; }
-      .barcode-svg.qr { height: ${Math.max(8, labelHeight * 0.46)}mm; }
+      .barcode-svg { width: 100%; height: ${Math.max(7, labelHeightMm * 0.35)}mm; display: block; fill: #000; }
+      .barcode-svg.qr { height: ${Math.max(8, labelHeightMm * 0.46)}mm; }
       .print-code { font-size: 7px; line-height: 1.1; }
       .print-name { font-size: 8px; line-height: 1.05; max-height: 16px; overflow: hidden; }
       .print-name.three { max-height: 25px; }
       .print-price { font-size: 9px; font-weight: 800; line-height: 1.1; }
       .print-old-price { font-size: 8px; text-decoration: line-through; color: #6b7280; }
-    </style></head><body><main class="sheet">${labelHtml}</main><script>window.onload = () => window.print();</script></body></html>`;
+    </style></head><body><main class="print-page"><section class="sheet">${labelHtml}</section></main><script>window.onload = () => window.print();</script></body></html>`;
 }
 
 function BarcodePrintWorkspace({
@@ -1093,7 +1100,7 @@ function BarcodePrintWorkspace({
 }) {
   const [rows, setRows] = useState(() => products.map((product) => ({ product, qty: 1 })));
   const [barcodeType, setBarcodeType] = useState<BarcodeType>('EAN13');
-  const [paperId, setPaperId] = useState(PAPER_TEMPLATES[0].id);
+  const [paperId, setPaperId] = useState(DEFAULT_BARCODE_PAPER_ID);
   const [showAllPapers, setShowAllPapers] = useState(false);
   const [showStore, setShowStore] = useState(true);
   const [storeName, setStoreName] = useState('');
@@ -1114,8 +1121,10 @@ function BarcodePrintWorkspace({
   const [openPrintAction, setOpenPrintAction] = useState(false);
   const barcodeSearchRequestRef = useRef(0);
   const barcodeSearchBlurTimerRef = useRef<number | null>(null);
-  const selectedPaper = PAPER_TEMPLATES.find((paper) => paper.id === paperId) || PAPER_TEMPLATES[0];
-  const visiblePapers = showAllPapers ? PAPER_TEMPLATES : PAPER_TEMPLATES.slice(0, 1);
+  const selectedPaper = PAPER_TEMPLATES.find((paper) => paper.id === paperId)
+    || PAPER_TEMPLATES.find((paper) => paper.id === DEFAULT_BARCODE_PAPER_ID)
+    || PAPER_TEMPLATES[0];
+  const visiblePapers = showAllPapers ? PAPER_TEMPLATES : PAPER_TEMPLATES.filter((paper) => Boolean(paper.rows));
   const previewProduct = rows[0]?.product || products[0];
   const previewBarcodeValue = previewProduct ? normalizeBarcodeValue(previewProduct) : '';
   const rowIds = useMemo(() => new Set(rows.map((row) => row.product._id)), [rows]);
@@ -1464,7 +1473,7 @@ function BarcodePrintWorkspace({
               <label>Trên: <input type="number" value={marginTop} onChange={(event) => setMarginTop(Number(event.target.value))} /></label>
             </div>
             <button className="barcode-show-all" type="button" onClick={() => setShowAllPapers((current) => !current)}>
-              {showAllPapers ? 'Thu gọn khổ giấy' : 'Hiển thị tất cả khổ giấy'}
+              {showAllPapers ? 'Ẩn khổ giấy cuộn' : 'Hiển thị khổ giấy cuộn'}
             </button>
             <div className="barcode-paper-list">
               {visiblePapers.map((paper) => (

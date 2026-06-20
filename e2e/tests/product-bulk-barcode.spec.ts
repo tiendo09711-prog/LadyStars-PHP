@@ -97,9 +97,15 @@ test.describe('Products bulk toolbar and barcode print', () => {
     await expect(marginInputs.nth(0)).toHaveValue('2');
     await expect(marginInputs.nth(1)).toHaveValue('4');
 
-    await page.getByRole('button', { name: 'Hiển thị tất cả khổ giấy' }).click();
+    const a4PaperItem = page.locator('.barcode-paper-item').filter({ hasText: 'Mẫu giấy 65 nhãn' });
+    const a4PaperRadio = a4PaperItem.locator('input[type="radio"]');
+    await expect(a4PaperRadio).toBeChecked();
+    await expect(page.locator('.barcode-paper-item')).toHaveCount(4);
+
+    await page.getByRole('button', { name: 'Hiển thị khổ giấy cuộn' }).click();
     await expect(page.locator('.barcode-paper-item')).toHaveCount(13);
-    await page.locator('.barcode-paper-item input[type="radio"]').nth(2).check();
+    await a4PaperRadio.check();
+    await expect(page.getByRole('button', { name: 'Ẩn khổ giấy cuộn' })).toBeVisible();
 
     await page.evaluate(() => {
       (window as any).__printedHtml = '';
@@ -118,7 +124,10 @@ test.describe('Products bulk toolbar and barcode print', () => {
     expect(printedHtml).toContain('VNĐ');
     expect(printedHtml).toContain('print-name three');
     expect(printedHtml).toContain('data-barcode-standard="qrcode"');
-    expect(printedHtml).toContain('@page { size: A4; margin: 4mm 0 0 2mm; }');
+    expect(printedHtml).toContain('@page { size: 210mm 297mm; margin: 0; }');
+    expect(printedHtml).toContain('class="print-page"');
+    expect(printedHtml).toContain('class="sheet"');
+    expect(printedHtml).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
 
     await page.getByRole('button', { name: 'Thao tác' }).click();
     const downloadPromise = page.waitForEvent('download');
