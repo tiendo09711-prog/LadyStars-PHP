@@ -431,8 +431,8 @@ function normalizeText(value: any) {
 }
 
 function kindLabel(kind: string) {
-  if (kind === 'INVENTORY_AUDIT_IMPORT') return 'Nháº­p bÃ¹ trá»« kiá»ƒm kho';
-  if (kind === 'INVENTORY_AUDIT_EXPORT') return 'Xuáº¥t bÃ¹ trá»« kiá»ƒm kho';
+  if (kind === 'INVENTORY_AUDIT_IMPORT') return 'Nhập bù trừ kiểm kho';
+  if (kind === 'INVENTORY_AUDIT_EXPORT') return 'Xuất bù trừ kiểm kho';
   return transactionKinds.find((option) => option.value === kind)?.label || kind;
 }
 

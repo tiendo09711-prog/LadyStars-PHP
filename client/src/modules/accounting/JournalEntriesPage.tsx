@@ -9,12 +9,20 @@ export function JournalEntriesPage() {
   const [page, setPage] = useState(1);
   const limit = 15;
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+  const [warehouseOptions, setWarehouseOptions] = useState<{_id: string; name: string}[]>([]);
+
   // Filter state
   const [transactionId, setTransactionId] = useState('');
   const [voucherId, setVoucherId] = useState('');
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    http.get('/system/branches').then(res => {
+      const branches = (res.data.items || []).filter((b: any) => b.isActive !== false);
+      setWarehouseOptions(branches);
+    }).catch(() => {});
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -172,8 +180,9 @@ export function JournalEntriesPage() {
             <div className="je-input-wrapper">
               <select className="je-select" style={{ width: '100%' }}>
                 <option>Kho hàng</option>
-                <option>Kho Hà Nội</option>
-                <option>Kho HCM</option>
+                {warehouseOptions.map(b => (
+                  <option key={b._id} value={b._id}>{b.name}</option>
+                ))}
               </select>
               <ChevronDown className="je-select-icon" size={14} />
             </div>

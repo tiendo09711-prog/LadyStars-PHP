@@ -10,15 +10,21 @@ export function StaffDebtPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  
+
   // Filter states
   const [warehouse, setWarehouse] = useState('');
   const [dateRange, setDateRange] = useState<{start: Date | null, end: Date | null}>({ start: null, end: null });
-  
-  const warehouseOptions = [
-    { value: 'hn', label: 'Kho Hà Nội' },
-    { value: 'hcm', label: 'Kho HCM' }
-  ];
+  const [warehouseOptions, setWarehouseOptions] = useState<{value: string; label: string}[]>([]);
+
+  useEffect(() => {
+    http.get('/system/branches').then(res => {
+      const branches = res.data.items || [];
+      setWarehouseOptions(branches
+        .filter((b: any) => b.isActive !== false)
+        .map((b: any) => ({ value: b._id, label: b.name }))
+      );
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);

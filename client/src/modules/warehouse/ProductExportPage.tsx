@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowLeft, Plus, Trash2, Settings2 } from 'lucide-react';
 import { http } from '../../core/api/http';
 
+type Branch = {
+  _id: string;
+  name: string;
+  code?: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+};
+
 type Product = {
   _id: string;
   code: string;
@@ -14,10 +22,13 @@ type Product = {
   stockCN?: number;
   stockHanoi?: number;
   stockHCM?: number;
+  selectedStock?: number;
   unit?: string;
 };
 
-const getStockForWarehouse = (prod: Product, wh: string) => {
+const getStockForWarehouse = (prod: Product, _wh?: string, branch?: Branch) => {
+  if (branch && typeof prod.selectedStock === 'number') return prod.selectedStock;
+  const wh = branch?.name || _wh || '';
   if (wh.includes('trung tâm')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
   if (wh.includes('Hà Nội') || wh.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
   if (wh.includes('HCM') || wh.includes('Hồ Chí Minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
@@ -51,13 +62,12 @@ export function ProductExportPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [sysBranches, setSysBranches] = useState<any[]>([]);
+  const [sysBranches, setSysBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-
-  // Form states
-  const [warehouse, setWarehouse] = useState('Chi nhánh trung tâm');
+  const [warehouse, setWarehouse] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [exportType, setExportType] = useState('Xuất trả hàng');
   const [supplierCustomer, setSupplierCustomer] = useState('');
   const [tags, setTags] = useState('');
@@ -106,7 +116,18 @@ export function ProductExportPage() {
     };
     fetchProducts();
     http.get('/customers/customers').then(res => setCustomers(res.data.items || [])).catch(() => {});
-    http.get('/system/branches').then(res => setSysBranches(res.data.items || [])).catch(() => {});
+    http.get('/system/branches').then(res => {
+      const branches = res.data.items || [];
+      setSysBranches(branches);
+      const defaultBranch = branches.find((b: any) => b.isDefault && b.isActive !== false);
+      if (defaultBranch) {
+        setWarehouse(defaultBranch.name);
+        setSelectedBranch(defaultBranch);
+      } else if (branches.length > 0) {
+        setWarehouse(branches[0].name);
+        setSelectedBranch(branches[0]);
+      }
+    }).catch(() => {});
   }, []);
 
   // Update remainQty when warehouse changes
@@ -115,7 +136,7 @@ export function ProductExportPage() {
       setLines(current => current.map(line => {
         const prod = products.find(p => p._id === line.productId);
         if (prod) {
-          const newQty = getStockForWarehouse(prod, warehouse);
+          const newQty = getStockForWarehouse(prod, warehouse, selectedBranch || undefined);
           if (line.remainQty !== newQty) {
             return { ...line, remainQty: newQty };
           }
@@ -137,7 +158,7 @@ export function ProductExportPage() {
     productId: prod._id,
     batchCode: '',
     unit: prod.unit || 'cái',
-    remainQty: getStockForWarehouse(prod, warehouse),
+    remainQty: getStockForWarehouse(prod, warehouse, selectedBranch || undefined),
     quantity: 1,
     price: prod.price || 0,
     discountValue: 0,
@@ -169,7 +190,7 @@ export function ProductExportPage() {
         const prod = products.find(p => p._id === patch.productId);
         if (prod) {
           next.unit = prod.unit || 'cái';
-          next.remainQty = getStockForWarehouse(prod, warehouse);
+          next.remainQty = getStockForWarehouse(prod, warehouse, selectedBranch || undefined);
           next.price = prod.price || 0;
         }
       }
@@ -371,10 +392,14 @@ export function ProductExportPage() {
           <div className="form-grid">
             <label className="form-field">
               <span>Kho hàng *</span>
-              <select value={warehouse} onChange={(e) => setWarehouse(e.target.value)}>
-                <option value="Chi nhánh trung tâm">Chi nhánh trung tâm</option>
-                <option value="Kho Hà Nội">Kho Hà Nội</option>
-                <option value="Kho HCM">Kho HCM</option>
+              <select value={warehouse} onChange={(e) => {
+                setWarehouse(e.target.value);
+                const branch = sysBranches.find(b => b.name === e.target.value) || null;
+                setSelectedBranch(branch);
+              }}>
+                {sysBranches.filter(b => b.isActive !== false).map(b => (
+                  <option key={b._id} value={b.name}>{b.name}</option>
+                ))}
               </select>
             </label>
 

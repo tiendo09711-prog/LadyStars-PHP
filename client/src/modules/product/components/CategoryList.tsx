@@ -19,6 +19,8 @@ import {
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
 import { productApi } from '../../../core/api/product.api';
+import { listBranches } from '../../../core/api/branch.api';
+import type { BranchRecord } from '../../../core/api/branch.api';
 import type { ICategory, IInventory } from '../../../types/product.type';
 import { ColumnOption, ExportExcelModal } from './ExportExcelModal';
 
@@ -71,6 +73,7 @@ export function CategoryList() {
   const [total, setTotal] = useState(0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewProductsCategory, setViewProductsCategory] = useState<ICategory | null>(null);
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [openAddMenu, setOpenAddMenu] = useState(false);
@@ -117,6 +120,12 @@ export function CategoryList() {
       setLoadingCategoryOptions(false);
     }
   };
+
+  useEffect(() => {
+    listBranches({ page: 1, limit: 200 }).then(data => {
+      setBranches((data.items || []).filter(b => b.isActive !== false));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     void load();
@@ -948,6 +957,7 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
   const limit = 10;
 
   const load = async (nextPage = page, nextSearch = search) => {
@@ -967,6 +977,12 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    listBranches({ page: 1, limit: 200 }).then(data => {
+      setBranches((data.items || []).filter(b => b.isActive !== false));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     void load();
@@ -1023,22 +1039,23 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
                   <th>Tên sản phẩm</th>
                   <th>Giá nhập</th>
                   <th>Giá bán</th>
-                  <th>Kho Hà Nội</th>
-                  <th>Kho HCM</th>
+                  {branches.map(b => (
+                    <th key={b._id}>{b.name}</th>
+                  ))}
                   <th>Tổng tồn</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={7} className="empty-cell">
+                    <td colSpan={5 + branches.length} className="empty-cell">
                       Đang tải dữ liệu...
                     </td>
                   </tr>
                 )}
                 {!loading && items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="empty-cell">
+                    <td colSpan={5 + branches.length} className="empty-cell">
                       Không có sản phẩm nào thuộc danh mục này.
                     </td>
                   </tr>
@@ -1054,8 +1071,11 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
                       </td>
                       <td className="categories-modal-money categories-modal-cost">{formatMoney(item.cost)}</td>
                       <td className="categories-modal-money categories-modal-price">{formatMoney(item.price)}</td>
-                      <td className="categories-modal-stock categories-modal-hanoi">{Number(item.stockHanoi || 0).toLocaleString('vi-VN')}</td>
-                      <td className="categories-modal-stock categories-modal-hcm">{Number(item.stockHCM || 0).toLocaleString('vi-VN')}</td>
+                      {branches.map(b => (
+                        <td key={b._id} className="categories-modal-stock">
+                          {Number(b.code === 'HN' ? item.stockHanoi : b.code === 'HCM' ? item.stockHCM : 0).toLocaleString('vi-VN')}
+                        </td>
+                      ))}
                       <td className="categories-modal-stock categories-modal-total">
                         <strong>{Number(item.totalStock || 0).toLocaleString('vi-VN')}</strong>
                       </td>

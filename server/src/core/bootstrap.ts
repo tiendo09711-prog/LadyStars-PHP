@@ -1,7 +1,7 @@
 import type { Model } from 'mongoose';
 import { User } from './auth/user.model.js';
 import { ACTIVE_STATUS, ADMIN_ROLE, EMPLOYEE_ROLE, normalizeRole, normalizeStatus } from './auth/role.utils.js';
-import { runBranchDataMigration } from './org/branch.service.js';
+import { runBranchDataMigration, hasMigrationCompletedRecently } from './org/branch.service.js';
 import { StoreSetting } from './settings/settings.model.js';
 import { Customer, CustomerGroup } from '../modules/customer/customer.models.js';
 import { AccountingType, ExpensePayment, PayPerson, Receipt } from '../modules/accounting/accounting.models.js';
@@ -109,7 +109,17 @@ export async function bootstrapSystem() {
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
 
-  await runBranchDataMigration();
+  // Anti-spam: skip full migration if the most recent run already completed
+  // successfully with no new branches created and no document backfills.
+  // This prevents audit log spam on every server restart while preserving
+  // the ability to repair when DB is empty, missing a default branch,
+  // or has legacy documents still needing backfill.
+  const migrationRecentlyDone = await hasMigrationCompletedRecently();
+  if (migrationRecentlyDone) {
+    console.log('[bootstrap] Branch migration skipped — last run completed successfully with no new backfills.');
+  } else {
+    await runBranchDataMigration();
+  }
 
   const models = [
     Batch, Category, Trademark, Shelf, Product, SalePayment, ProductRefund, StockAdjustment,

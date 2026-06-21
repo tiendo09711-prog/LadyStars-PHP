@@ -3,11 +3,14 @@ import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, RefreshCw, Search } from 'lu
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
 import { productApi } from '../../../core/api/product.api';
+import { listBranches } from '../../../core/api/branch.api';
+import type { BranchRecord } from '../../../core/api/branch.api';
 import type { IInventory } from '../../../types/product.type';
 import { ColumnOption, ExportExcelModal } from './ExportExcelModal';
 
 export function InventoryList() {
   const [items, setItems] = useState<IInventory[]>([]);
+  const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
@@ -19,6 +22,12 @@ export function InventoryList() {
   const [exportLoading, setExportLoading] = useState(false);
 
   const limit = 15;
+
+  useEffect(() => {
+    listBranches({ page: 1, limit: 200 }).then(data => {
+      setBranches((data.items || []).filter(b => b.isActive !== false));
+    }).catch(() => {});
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -45,16 +54,32 @@ export function InventoryList() {
   }, [page, filterWarehouse, sortField, sortOrder]);
 
   const exportColumns: ColumnOption[] = useMemo(
-    () => [
-      { label: 'Mã SP', key: 'code', getValue: (item: IInventory) => item.code },
-      { label: 'Tên sản phẩm', key: 'name', getValue: (item: IInventory) => item.name },
-      { label: 'Giá nhập (Vốn)', key: 'cost', getValue: (item: IInventory) => item.cost ?? 0 },
-      { label: 'Giá bán', key: 'price', getValue: (item: IInventory) => item.price ?? 0 },
-      { label: 'Kho Hà Nội', key: 'stockHanoi', getValue: (item: IInventory) => item.stockHanoi ?? 0 },
-      { label: 'Kho HCM', key: 'stockHCM', getValue: (item: IInventory) => item.stockHCM ?? 0 },
-      { label: 'Tổng tồn', key: 'totalStock', getValue: (item: IInventory) => item.totalStock ?? 0 },
-    ],
-    [],
+    () => {
+      const base: ColumnOption[] = [
+        { label: 'Mã SP', key: 'code', getValue: (item: IInventory) => item.code },
+        { label: 'Tên sản phẩm', key: 'name', getValue: (item: IInventory) => item.name },
+        { label: 'Giá nhập (Vốn)', key: 'cost', getValue: (item: IInventory) => item.cost ?? 0 },
+        { label: 'Giá bán', key: 'price', getValue: (item: IInventory) => item.price ?? 0 },
+      ];
+      // Add dynamic branch columns from API
+      if (branches.length > 0) {
+        for (const branch of branches) {
+          const branchKey = `stock_${branch.code}`;
+          if (branch.code === 'HN') {
+            base.push({ label: branch.name, key: branchKey, getValue: (item: IInventory) => item.stockHanoi ?? 0 });
+          } else if (branch.code === 'HCM') {
+            base.push({ label: branch.name, key: branchKey, getValue: (item: IInventory) => item.stockHCM ?? 0 });
+          }
+        }
+      } else {
+        // Fallback to legacy labels
+        base.push({ label: 'Kho Hà Nội', key: 'stockHanoi', getValue: (item: IInventory) => item.stockHanoi ?? 0 });
+        base.push({ label: 'Kho HCM', key: 'stockHCM', getValue: (item: IInventory) => item.stockHCM ?? 0 });
+      }
+      base.push({ label: 'Tổng tồn', key: 'totalStock', getValue: (item: IInventory) => item.totalStock ?? 0 });
+      return base;
+    },
+    [branches],
   );
 
   const handleExcelExport = async (
@@ -139,7 +164,7 @@ export function InventoryList() {
   const formatMoney = (val?: number) => `${Number(val || 0).toLocaleString('vi-VN')} đ`;
 
   const warehouseFilterLabel =
-    filterWarehouse === 'hanoi' ? 'Kho Hà Nội' : filterWarehouse === 'hcm' ? 'Kho HCM' : 'Tất cả kho';
+    branches.find(b => b._id === filterWarehouse)?.name || (filterWarehouse ? filterWarehouse : 'Tất cả kho');
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <ArrowUpDown size={13} style={{ opacity: 0.32 }} />;
@@ -190,8 +215,9 @@ export function InventoryList() {
               }}
             >
               <option value="">Tất cả kho</option>
-              <option value="hanoi">Kho Hà Nội</option>
-              <option value="hcm">Kho HCM</option>
+              {branches.map(b => (
+                <option key={b._id} value={b._id}>{b.name}</option>
+              ))}
             </select>
           </div>
 
@@ -223,26 +249,19 @@ export function InventoryList() {
             >
               Tất cả
             </button>
-            <button
-              type="button"
-              className={filterWarehouse === 'hanoi' ? 'active' : ''}
-              onClick={() => {
-                setFilterWarehouse('hanoi');
-                setPage(1);
-              }}
-            >
-              Kho Hà Nội
-            </button>
-            <button
-              type="button"
-              className={filterWarehouse === 'hcm' ? 'active' : ''}
-              onClick={() => {
-                setFilterWarehouse('hcm');
-                setPage(1);
-              }}
-            >
-              Kho HCM
-            </button>
+            {branches.map(b => (
+              <button
+                key={b._id}
+                type="button"
+                className={filterWarehouse === b._id ? 'active' : ''}
+                onClick={() => {
+                  setFilterWarehouse(b._id);
+                  setPage(1);
+                }}
+              >
+                {b.name}
+              </button>
+            ))}
           </div>
 
           <div className="inventory-quick-summary">
@@ -290,18 +309,14 @@ export function InventoryList() {
                     Giá bán
                   </div>
                 </th>
-                <th style={thStyle} onClick={() => handleSort('stockHanoi')}>
-                  <div style={thInner}>
-                    <SortIcon field="stockHanoi" />
-                    Kho Hà Nội
-                  </div>
-                </th>
-                <th style={thStyle} onClick={() => handleSort('stockHCM')}>
-                  <div style={thInner}>
-                    <SortIcon field="stockHCM" />
-                    Kho HCM
-                  </div>
-                </th>
+                {branches.map(b => (
+                  <th key={b._id} style={thStyle} onClick={() => handleSort(b.code === 'HN' ? 'stockHanoi' : b.code === 'HCM' ? 'stockHCM' : 'totalStock')}>
+                    <div style={thInner}>
+                      <SortIcon field={b.code === 'HN' ? 'stockHanoi' : b.code === 'HCM' ? 'stockHCM' : 'totalStock'} />
+                      {b.name}
+                    </div>
+                  </th>
+                ))}
                 <th style={thStyle} onClick={() => handleSort('totalStock')}>
                   <div style={thInner}>
                     <SortIcon field="totalStock" />
@@ -342,12 +357,13 @@ export function InventoryList() {
                     </td>
                     <td className="inventory-money-cell">{formatMoney(item.cost)}</td>
                     <td className="inventory-money-cell">{formatMoney(item.price)}</td>
-                    <td className="inventory-number-cell inventory-number-hanoi">
-                      <span>{Number(item.stockHanoi || 0).toLocaleString('vi-VN')}</span>
-                    </td>
-                    <td className="inventory-number-cell inventory-number-hcm">
-                      <span>{Number(item.stockHCM || 0).toLocaleString('vi-VN')}</span>
-                    </td>
+                    {branches.map(b => (
+                      <td key={b._id} className={`inventory-number-cell inventory-number-${b.code?.toLowerCase() || b._id}`}>
+                        <span>{Number(
+                          b.code === 'HN' ? item.stockHanoi : b.code === 'HCM' ? item.stockHCM : item.totalStock || 0
+                        ).toLocaleString('vi-VN')}</span>
+                      </td>
+                    ))}
                     <td className="inventory-number-cell inventory-number-total">
                       <strong>{Number(item.totalStock || 0).toLocaleString('vi-VN')}</strong>
                     </td>
