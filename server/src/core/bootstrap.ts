@@ -1,6 +1,7 @@
 import type { Model } from 'mongoose';
 import { User } from './auth/user.model.js';
 import { ACTIVE_STATUS, ADMIN_ROLE, EMPLOYEE_ROLE, normalizeRole, normalizeStatus } from './auth/role.utils.js';
+import { runBranchDataMigration } from './org/branch.service.js';
 import { StoreSetting } from './settings/settings.model.js';
 import { Customer, CustomerGroup } from '../modules/customer/customer.models.js';
 import { AccountingType, ExpensePayment, PayPerson, Receipt } from '../modules/accounting/accounting.models.js';
@@ -107,6 +108,8 @@ export async function bootstrapSystem() {
     { $setOnInsert: { singletonKey: 'store', shopName: 'LadyStars' } },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
+
+  await runBranchDataMigration();
 
   const models = [
     Batch, Category, Trademark, Shelf, Product, SalePayment, ProductRefund, StockAdjustment,

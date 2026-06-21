@@ -140,7 +140,7 @@ export async function buildCustomerMetricsMap(customers: CustomerLike[]) {
       customerId: { $in: customerIds },
       status: 'completed',
     })
-      .select('customerId value refundedValue completedAt createdAt items amountProducts')
+      .select('customerId value completedAt createdAt items amountProducts')
       .lean(),
     phones.size || names.size
       ? Order.find({
@@ -170,17 +170,29 @@ export async function buildCustomerMetricsMap(customers: CustomerLike[]) {
       },
     ])
     : [];
+  const refundedValueRows = saleIds.length
+    ? await ProductRefund.aggregate([
+      { $match: { paymentId: { $in: saleIds.map((id) => new mongoose.Types.ObjectId(id)) }, status: 'completed' } },
+      {
+        $group: {
+          _id: '$paymentId',
+          value: { $sum: { $ifNull: ['$value', 0] } },
+        },
+      },
+    ])
+    : [];
   const refundedQtyMap = new Map(refundedQtyRows.map((row: any) => [toObjectIdString(row._id), toNumber(row.quantity)]));
+  const refundedValueMap = new Map(refundedValueRows.map((row: any) => [toObjectIdString(row._id), toNumber(row.value)]));
 
   for (const sale of sales) {
     const customerId = toObjectIdString((sale as any).customerId);
     const events = metricsByCustomer.get(customerId);
     if (!events) continue;
     const occurredAt = new Date((sale as any).completedAt || (sale as any).createdAt || new Date());
-    const netAmount = Math.max(toNumber((sale as any).value) - toNumber((sale as any).refundedValue), 0);
+    const netAmount = Math.max(toNumber((sale as any).value) - (refundedValueMap.get(toObjectIdString((sale as any)._id)) ?? 0), 0);
     const grossQuantity = toNumber((sale as any).amountProducts, quantityFromSaleItems((sale as any).items || []));
     const netQuantity = Math.max(grossQuantity - (refundedQtyMap.get(toObjectIdString((sale as any)._id)) ?? 0), 0);
-    if (netAmount <= 0 && netQuantity <= 0) continue;
+    if (netAmount <= 0) continue;
     events.push({
       amount: netAmount,
       quantity: netQuantity,

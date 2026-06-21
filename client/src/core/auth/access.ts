@@ -16,5 +16,5 @@ export function roleLabel(role?: string | null) {
 
 export function canAccessPath(role: string | null | undefined, pathname: string) {
   if (isAdminRole(role)) return true;
-  return !['/staff', '/settings', '/accounting', '/reports'].some((prefix) => pathname.startsWith(prefix));
+  return !['/staff', '/settings', '/accounting', '/reports', '/warehouse/branches'].some((prefix) => pathname.startsWith(prefix));
 }

@@ -211,6 +211,18 @@ export function RetailInvoiceCreatePage() {
   const totalAmount = Math.max(0, Math.round(subtotal - discountAmount));
   const paidAmount = paymentLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
   const remainingAmount = totalAmount - paidAmount;
+  const editBlockedReason = useMemo(() => {
+    if (!editId || !loadedSale) return '';
+    const status = String(loadedSale.status || '').toLowerCase();
+    const refundStatus = String(loadedSale.refundStatus || 'none').toLowerCase();
+    const activeRefundCount = Number(loadedSale.activeRefundCount || 0);
+
+    if (status === 'cancelled') return 'Hóa đơn đã hủy nên không thể sửa.';
+    if (status !== 'completed') return '';
+    if (refundStatus === 'full') return 'Hóa đơn đã hoàn toàn bộ nên không thể sửa.';
+    if (refundStatus === 'partial' || activeRefundCount > 0) return 'Hóa đơn đã phát sinh đổi trả nên không thể sửa.';
+    return '';
+  }, [editId, loadedSale]);
 
   useEffect(() => {
     setPaymentLines((current) => {
@@ -337,8 +349,10 @@ export function RetailInvoiceCreatePage() {
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
+    if (isSaving) return;
     setErrorMessage('');
 
+    if (editBlockedReason) return setErrorMessage(editBlockedReason);
     if (!activeBranchId) return setErrorMessage('Vui lòng chọn cửa hàng/kho xuất hàng.');
     if (!form.customerName.trim()) return setErrorMessage('Vui lòng nhập tên khách hàng.');
     if (products.length === 0) return setErrorMessage('Vui lòng thêm ít nhất một sản phẩm.');
@@ -351,7 +365,7 @@ export function RetailInvoiceCreatePage() {
     if (new Set(paymentLines.map((line) => line.methodId)).size !== paymentLines.length) {
       return setErrorMessage('Một phương thức thanh toán chỉ được chọn một lần.');
     }
-    if (Math.abs(remainingAmount) > 0.5) {
+    if (Math.abs(remainingAmount) > 1) {
       return setErrorMessage(
         remainingAmount > 0
           ? `Còn thiếu ${formatMoney(remainingAmount)} đ tiền thanh toán.`
@@ -456,11 +470,12 @@ export function RetailInvoiceCreatePage() {
             <span><Warehouse size={14} /> {branch ? `${branch.name} (${branch.code || '—'})` : 'Chưa xác định kho'}</span>
           </div>
         </div>
-        <button className="create-save-top" type="submit" form="retail-create-form" disabled={isSaving}>
+        <button className="create-save-top" type="submit" form="retail-create-form" disabled={isSaving || Boolean(editBlockedReason)}>
           <Save size={16} /> {isSaving ? 'Đang lưu...' : 'Lưu hóa đơn'}
         </button>
       </header>
 
+      {editBlockedReason && <div className="create-alert error"><AlertCircle size={18} /><span>{editBlockedReason}</span></div>}
       {errorMessage && <div className="create-alert error"><AlertCircle size={18} /><span>{errorMessage}</span></div>}
       {successMessage && <div className="create-alert success"><CheckCircle size={18} /><span>{successMessage}</span></div>}
 
@@ -657,7 +672,7 @@ export function RetailInvoiceCreatePage() {
               ))}
             </div>
 
-            <div className={`payment-balance ${Math.abs(remainingAmount) <= 0.5 ? 'balanced' : 'unbalanced'}`}>
+            <div className={`payment-balance ${Math.abs(remainingAmount) <= 1 ? 'balanced' : 'unbalanced'}`}>
               <span>{remainingAmount >= 0 ? 'Còn phải thanh toán' : 'Thanh toán vượt'}</span>
               <strong>{formatMoney(Math.abs(remainingAmount))} đ</strong>
             </div>
@@ -667,7 +682,7 @@ export function RetailInvoiceCreatePage() {
               <textarea rows={4} value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} />
             </label>
 
-            <button className="submit-sale" type="submit" disabled={isSaving}>
+            <button className="submit-sale" type="submit" disabled={isSaving || Boolean(editBlockedReason)}>
               <Save size={17} /> {isSaving ? 'Đang lưu hóa đơn...' : 'Xác nhận & Lưu'}
             </button>
           </section>

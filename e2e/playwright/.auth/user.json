@@ -10,7 +10,7 @@
         },
         {
           "name": "token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OWZjNDRkODM4OTllMTE4MjlkMmI0NDkiLCJyb2xlIjoiQURNSU4iLCJ0b2tlblZlcnNpb24iOjEsImlhdCI6MTc4MTk0NzA0OSwiZXhwIjoxNzgyNTUxODQ5fQ.71zTvf0hZPTbrM6QchCYVMj1kWSgCGljl3cFun9zCMw"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OWZjNDRkODM4OTllMTE4MjlkMmI0NDkiLCJyb2xlIjoiQURNSU4iLCJ0b2tlblZlcnNpb24iOjEsImlhdCI6MTc4MTk1ODc1NiwiZXhwIjoxNzgyNTYzNTU2fQ.BF9riLbZI7fYGhqfSKWQ1mMt79N4cmzxvMcOKclw6Sc"
         },
         {
           "name": "dashboard.chartRange",

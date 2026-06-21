@@ -341,6 +341,13 @@ export function AppLayout() {
       },
     ]
     : baseMenuGroups, [isAdmin]);
+  const visibleMenuGroups = useMemo<MenuGroup[]>(() => menuGroups.map((group) => {
+    if (group.label !== 'Kho hÃ ng' || !isAdmin) return group;
+    return {
+      ...group,
+      items: [...group.items, { to: '/warehouse/branches', label: 'Cáº¥u hÃ¬nh kho hÃ ng', icon: Building2 }],
+    };
+  }), [isAdmin, menuGroups]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -416,7 +423,7 @@ export function AppLayout() {
   useEffect(() => {
     if (!sidebarOpen) return;
     const activeUpdates: Record<string, boolean> = {};
-    menuGroups.forEach((group) => {
+    visibleMenuGroups.forEach((group) => {
       if (groupActive(group)) activeUpdates[group.label] = true;
       group.items.forEach((item) => {
         if (!('to' in item) && itemActive(item)) activeUpdates[item.label] = true;
@@ -425,7 +432,7 @@ export function AppLayout() {
     if (Object.keys(activeUpdates).length) {
       setOpenMenuGroups((current) => ({ ...current, ...activeUpdates }));
     }
-  }, [location.pathname, menuGroups, sidebarOpen]);
+  }, [location.pathname, sidebarOpen, visibleMenuGroups]);
 
   const renderMenuLink = (item: MenuLeaf) => {
     const Icon = item.icon;
@@ -536,7 +543,7 @@ export function AppLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          {menuGroups.map((group) => {
+          {visibleMenuGroups.map((group) => {
             const isGroupOpen = openMenuGroups[group.label] ?? false;
             const isActive = groupActive(group);
 

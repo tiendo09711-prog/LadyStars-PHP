@@ -45,6 +45,7 @@ import { WarehouseAuditPage } from './modules/warehouse/WarehouseAuditPage';
 import { WarehouseAuditCreatePage } from './modules/warehouse/WarehouseAuditCreatePage';
 import { WarehouseDraftPage } from './modules/warehouse/WarehouseDraftPage';
 import { WarehouseHistoryPage } from './modules/warehouse/WarehouseHistoryPage';
+import { WarehouseBranchesPage } from './modules/warehouse/WarehouseBranchesPage';
 import { VoucherImportPage } from './modules/warehouse/VoucherImportPage';
 import { VoucherExportPage } from './modules/warehouse/VoucherExportPage';
 import { VoucherExcelImportPage } from './modules/warehouse/VoucherExcelImportPage';
@@ -138,6 +139,7 @@ const router = createBrowserRouter([
       { path: 'warehouse/audit', element: <WarehouseAuditPage /> },
       { path: 'warehouse/audit/create', element: <WarehouseAuditCreatePage /> },
       { path: 'warehouse/audit/:id', element: <WarehouseAuditCreatePage /> },
+      { path: 'warehouse/branches', element: <WarehouseBranchesPage /> },
       { path: 'warehouse/drafts', element: <WarehouseDraftPage /> },
       { path: 'warehouse/history', element: <WarehouseHistoryPage /> },
 

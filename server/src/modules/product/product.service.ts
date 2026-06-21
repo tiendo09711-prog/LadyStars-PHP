@@ -17,6 +17,8 @@ type BuildSaleOptions = {
   stockAllowanceByProduct?: Map<string, number>;
 };
 
+const MONEY_TOLERANCE = 1;
+
 function buildNextCode(prefix: string) {
   const stamp = new Date().toISOString().replace(/\D/g, '').slice(2, 14);
   return `${prefix}${stamp}`;
@@ -261,14 +263,14 @@ export async function buildSalePaymentPayload(payload: any, options: BuildSaleOp
   const paymentLineTotal = sumPaymentLines(typePayment);
   const settlementValue = Math.min(Math.max(0, toNumber(payload.settlementValue)), value);
   const rawValuePayment = payload.valuePayment === undefined || payload.valuePayment === null
-    ? (typePayment.length > 0 ? paymentLineTotal : value)
+    ? paymentLineTotal
     : toNumber(payload.valuePayment);
   const valuePayment = Math.min(Math.max(rawValuePayment, 0), value);
 
-  if (typePayment.length > 0 && Math.abs(paymentLineTotal - valuePayment) > 0.5) {
+  if (Math.abs(paymentLineTotal - valuePayment) > MONEY_TOLERANCE) {
     throw new ProductFlowError('Payment method amounts must equal the paid amount');
   }
-  if (valuePayment + settlementValue - value > 0.5) {
+  if (valuePayment + settlementValue - value > MONEY_TOLERANCE) {
     throw new ProductFlowError('Settlement exceeds the invoice total');
   }
 
@@ -289,6 +291,8 @@ export async function buildSalePaymentPayload(payload: any, options: BuildSaleOp
 export async function buildProductRefundPayload(payload: any, options: { session?: ClientSession } = {}) {
   const payment = await loadSale(payload.paymentId, options.session);
   if (!payment) throw new ProductFlowError('Sale payment not found', 404);
+  if (payment.status === 'cancelled') throw new ProductFlowError('Cancelled sale cannot be refunded');
+  if (payment.status !== 'completed') throw new ProductFlowError('Only completed sales can be refunded');
   if (!Array.isArray(payload.items) || payload.items.length === 0) {
     throw new ProductFlowError('Refund must include at least one product');
   }
@@ -344,7 +348,7 @@ export async function buildProductRefundPayload(payload: any, options: { session
   const totalPayableAmount = Math.max(value - settlementValue, 0);
   const refundPaymentTotal = sumPaymentLines(typePayment);
 
-  if (typePayment.length > 0 && Math.abs(refundPaymentTotal - totalPayableAmount) > 0.5) {
+  if (Math.abs(refundPaymentTotal - totalPayableAmount) > MONEY_TOLERANCE) {
     throw new ProductFlowError('Refund payment lines must equal the cash value returned to the customer');
   }
 
@@ -381,6 +385,31 @@ export async function completeSalePayment(
   paymentId: string,
   options: { session?: ClientSession; recomputeMetrics?: boolean } = {},
 ) {
+  if (!options.session) {
+    const session = await mongoose.startSession();
+    let completed: any = null;
+    let customerId = '';
+
+    try {
+      await session.withTransaction(async () => {
+        completed = await completeSalePayment(paymentId, {
+          ...options,
+          session,
+          recomputeMetrics: false,
+        });
+        customerId = normalizeObjectIdString(completed?.customerId);
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    if (options.recomputeMetrics !== false && customerId) {
+      await recomputeCustomerMetricsByIds([customerId]);
+    }
+
+    return completed;
+  }
+
   const payment = await loadSale(paymentId, options.session);
   if (!payment) throw new Error('Sale payment not found');
   if (payment.status === 'completed') return payment;
@@ -404,10 +433,6 @@ export async function completeSalePayment(
   payment.completedAt = new Date();
   await payment.save({ session: options.session });
 
-  if (options.recomputeMetrics !== false && !options.session && payment.customerId) {
-    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
-  }
-
   return payment;
 }
 
@@ -415,6 +440,31 @@ export async function completeProductRefund(
   refundId: string,
   options: { session?: ClientSession; recomputeMetrics?: boolean } = {},
 ) {
+  if (!options.session) {
+    const session = await mongoose.startSession();
+    let completed: any = null;
+    let customerId = '';
+
+    try {
+      await session.withTransaction(async () => {
+        completed = await completeProductRefund(refundId, {
+          ...options,
+          session,
+          recomputeMetrics: false,
+        });
+        customerId = normalizeObjectIdString((completed?.paymentId as any)?.customerId);
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    if (options.recomputeMetrics !== false && customerId) {
+      await recomputeCustomerMetricsByIds([customerId]);
+    }
+
+    return completed;
+  }
+
   const refund = await loadRefund(refundId, options.session);
   if (!refund) throw new Error('Product refund not found');
   if (refund.status === 'completed') return refund;
@@ -422,6 +472,31 @@ export async function completeProductRefund(
     throw new ProductFlowError('Refund must include at least one product');
   }
   const payment = refund.paymentId as any;
+  if (!payment?._id) throw new ProductFlowError('Sale payment not found', 404);
+  if (payment.status === 'cancelled') throw new ProductFlowError('Cancelled sale cannot be refunded');
+  if (payment.status !== 'completed') throw new ProductFlowError('Only completed sales can be refunded');
+
+  const completedRefunds = await completedRefundsForSale(payment._id, options.session);
+  const refundedByProduct = new Map<string, number>();
+  for (const completedRefund of completedRefunds) {
+    if (String((completedRefund as any)._id) === String(refund._id)) continue;
+    for (const item of (completedRefund as any).items || []) {
+      const productId = normalizeObjectIdString(item?.productId);
+      if (!productId) continue;
+      refundedByProduct.set(productId, (refundedByProduct.get(productId) ?? 0) + toNumber(item?.amount));
+    }
+  }
+
+  const soldByProduct = groupQuantitiesByProduct(payment.items as any[]);
+  for (const item of refund.items) {
+    const productId = normalizeObjectIdString(item?.productId);
+    const soldQuantity = soldByProduct.get(productId) ?? 0;
+    if (soldQuantity <= 0) throw new ProductFlowError('Refund item must belong to the selected sale');
+    const nextRefundedQuantity = (refundedByProduct.get(productId) ?? 0) + toNumber(item?.amount);
+    if (nextRefundedQuantity - soldQuantity > MONEY_TOLERANCE) {
+      throw new ProductFlowError('Refund quantity exceeds sold quantity');
+    }
+  }
 
   for (const item of refund.items) {
     await moveProductQty({
@@ -439,10 +514,6 @@ export async function completeProductRefund(
   refund.completedAt = new Date();
   await refund.save({ session: options.session });
   if (payment?._id) await syncSaleRefundState(payment._id, options.session);
-
-  if (options.recomputeMetrics !== false && !options.session && payment?.customerId) {
-    await recomputeCustomerMetricsByIds([String(payment.customerId)]);
-  }
   return refund;
 }
 
@@ -559,7 +630,7 @@ export async function cancelSalePayment(paymentId: string) {
         throw new ProductFlowError('Cannot cancel a sale that already has return or exchange documents');
       }
 
-      if (payment.status === 'completed' || payment.status === 'refunded') {
+      if (payment.status === 'completed') {
         const qtyByProduct = groupQuantitiesByProduct(payment.items as any[]);
         const lineValueByProduct = groupUnitValuesByProduct(payment.items as any[]);
         for (const [productId, quantity] of qtyByProduct.entries()) {
@@ -603,7 +674,7 @@ export async function createReturnExchange(saleId: string, payload: any) {
       const sale = await loadSale(saleId, session);
       if (!sale) throw new ProductFlowError('Sale payment not found', 404);
       if (sale.status === 'cancelled') throw new ProductFlowError('Cancelled sale cannot be returned');
-      if (sale.status !== 'completed' && sale.status !== 'refunded') {
+      if (sale.status !== 'completed') {
         throw new ProductFlowError('Only completed sales can be returned or exchanged');
       }
 
@@ -664,6 +735,7 @@ export async function createReturnExchange(saleId: string, payload: any) {
       let settlementValue = 0;
       let replacementPayload: any = null;
       if (Array.isArray(payload.replacementItems) && payload.replacementItems.length > 0) {
+        const returnedAllowanceByProduct = groupQuantitiesByProduct(returnedItems as any[]);
         replacementPayload = await buildSalePaymentPayload({
           branchId: sale.branchId,
           customerId: sale.customerId,
@@ -679,17 +751,20 @@ export async function createReturnExchange(saleId: string, payload: any) {
           items: payload.replacementItems,
           userId: payload.userId || sale.userId,
           authorId: payload.userId || sale.authorId || sale.userId,
-        }, { session });
+        }, {
+          session,
+          stockAllowanceByProduct: returnedAllowanceByProduct,
+        });
 
         settlementValue = Math.min(returnedValue, replacementPayload.value);
         const saleCashDue = Math.max(replacementPayload.value - settlementValue, 0);
-        if (Math.abs(replacementPayload.valuePayment - saleCashDue) > 0.5) {
+        if (Math.abs(replacementPayload.valuePayment - saleCashDue) > MONEY_TOLERANCE) {
           throw new ProductFlowError('Replacement sale payments must equal the amount the customer still has to pay');
         }
       }
 
       const refundCashDue = Math.max(returnedValue - settlementValue, 0);
-      if (Math.abs(sumPaymentLines(rawRefundPayments) - refundCashDue) > 0.5) {
+      if (Math.abs(sumPaymentLines(rawRefundPayments) - refundCashDue) > MONEY_TOLERANCE) {
         throw new ProductFlowError('Refund payments must equal the amount returned to the customer');
       }
 

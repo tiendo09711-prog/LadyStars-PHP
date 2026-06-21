@@ -28,11 +28,7 @@ type Branch = {
 
 const getStockForBranch = (prod: Product, branch?: Branch) => {
   if (typeof prod.selectedStock === 'number') return prod.selectedStock;
-  const code = String(branch?.code || '').toUpperCase();
-  const name = String(branch?.name || '').toLowerCase();
-  if (code === 'CN001' || name.includes('trung tâm') || name.includes('trung tam')) return prod.stockCN ?? prod.totalStock ?? prod.qty ?? 0;
-  if (code === 'HN' || name.includes('hà nội') || name.includes('ha noi') || name.includes('chính')) return prod.stockHanoi ?? prod.totalStock ?? prod.qty ?? 0;
-  if (code === 'HCM' || name.includes('hcm') || name.includes('hồ chí minh') || name.includes('ho chi minh')) return prod.stockHCM ?? prod.totalStock ?? prod.qty ?? 0;
+  void branch;
   return prod.totalStock ?? prod.qty ?? 0;
 };
 
