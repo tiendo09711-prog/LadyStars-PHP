@@ -5,7 +5,7 @@ const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true },
   phone: String,
-  role: { type: String, enum: ['ADMIN', 'EMPLOYEE', 'owner', 'staff'], default: 'EMPLOYEE' },
+  role: { type: String, enum: ['ADMIN', 'EMPLOYEE'], default: 'EMPLOYEE' },
   status: { type: String, enum: ['ACTIVE', 'LOCKED', 'open', 'lock'], default: 'ACTIVE' },
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   assignedWarehouseIds: [{ type: Schema.Types.ObjectId, ref: 'Branch' }],

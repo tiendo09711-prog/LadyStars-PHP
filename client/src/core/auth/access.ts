@@ -1,6 +1,6 @@
 export function normalizeRole(role?: string | null) {
   const value = String(role || '').trim().toUpperCase();
-  if (value === 'ADMIN' || value === 'OWNER' || value === 'SUPER_ADMIN') {
+  if (value === 'ADMIN') {
     return 'ADMIN';
   }
   return 'EMPLOYEE';
