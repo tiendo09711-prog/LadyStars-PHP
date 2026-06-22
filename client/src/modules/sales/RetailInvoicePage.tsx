@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { http } from '../../core/api/http';
 import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
+import { buildReceiptHtml } from './invoicePrint';
 
 type RetailInvoicePageProps = {
   channel: string;
@@ -407,111 +408,44 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         : undefined,
       shop || undefined,
     );
-    const rows = items.map((item, index) => {
+    const receiptLines = items.map((item) => {
       const total = Number(item?.total ?? (Number(item?.value) || 0) * (Number(item?.amount) || 0));
-      const codeLine = profile.showProductCode && productCode(item)
-        ? `<div class="product-code">${escapeHtml(productCode(item))}</div>`
-        : '';
-      return `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${escapeHtml(productName(item))}${codeLine}</td>
-          <td>${safeMoney(item?.value)}</td>
-          <td>${Number(item?.amount || 0).toLocaleString('vi-VN')}</td>
-          <td>${hideTotals ? '—' : safeMoney(total)}</td>
-        </tr>`;
-    }).join('');
+      return {
+        name: productName(item),
+        quantity: Number(item?.amount || 0).toLocaleString('vi-VN'),
+        price: safeMoney(item?.value),
+        total: hideTotals ? '—' : safeMoney(total),
+      };
+    });
     const paid = Number(invoice.valuePayment || 0);
     const total = Number(invoice.value || 0);
-    const change = Math.max(paid - total, 0);
+    const tendered = Number(invoice.tenderedValue ?? paid);
+    const hasDistinctTendered = Number.isFinite(tendered) && tendered > 0 && Math.abs(tendered - paid) > 1;
+    const change = hasDistinctTendered ? Math.max(tendered - total, 0) : 0;
+    const customerText = `${customer?.name || 'Khách lẻ'}${customer?.phone ? ` (${customer.phone})` : ''}`;
 
-    return `<!doctype html>
-<html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-      @page { size: A4 portrait; margin: 10mm; }
-      body { font-family: Arial, sans-serif; color: #111827; font-size: 13px; }
-      .print-page { display: flex; flex-direction: column; gap: 12px; }
-      .header-meta { display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; color: #475569; }
-      .header { text-align: center; }
-      .header h1 { margin: 0; font-size: 24px; }
-      .header p { margin: 4px 0; }
-      .branch-line { font-size: 12px; color: #475569; }
-      .divider { border-top: 1px dashed #94a3b8; margin: 4px 0; }
-      .title { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 8px; }
-      .title h2 { margin: 0; font-size: 18px; }
-      .invoice-heading { text-align: center; font-size: 22px; font-weight: 700; letter-spacing: 0.08em; }
-      .meta, .summary { width: 100%; border-collapse: collapse; }
-      .meta td { padding: 4px 0; vertical-align: top; }
-      table.items { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      table.items th, table.items td { border: 1px solid #d1d5db; padding: 8px; }
-      table.items th { background: #f3f4f6; text-align: left; }
-      table.items td:nth-child(1), table.items td:nth-child(4) { text-align: center; }
-      table.items td:nth-child(3), table.items td:nth-child(5) { text-align: right; }
-      .product-code { margin-top: 4px; font-size: 11px; color: #475569; }
-      .summary { margin-top: 12px; }
-      .summary td { padding: 4px 0; }
-      .summary td:last-child { text-align: right; }
-      .thanks { margin-top: 18px; text-align: center; font-style: italic; }
-      .logo { display: flex; justify-content: center; margin-bottom: 8px; }
-      .logo img { max-width: 88px; max-height: 64px; object-fit: contain; }
-    </style>
-  </head>
-  <body>
-    <main class="print-page">
-      <div class="header-meta">
-        <span>${escapeHtml(new Date().toLocaleString('vi-VN'))}</span>
-        <strong>Hóa đơn bán lẻ</strong>
-      </div>
-      <header class="header">
-        ${profile.showLogo && profile.logoUrl ? `<div class="logo"><img src="${escapeHtml(profile.logoUrl)}" alt="Logo cửa hàng" /></div>` : ''}
-        <h1>${escapeHtml(profile.brandName)}</h1>
-        <p>${escapeHtml(profile.address)}</p>
-        <p>${escapeHtml(profile.phone)}</p>
-        ${profile.showBranchName && profile.branchName ? `<p class="branch-line">Kho: ${escapeHtml(profile.branchName)}</p>` : ''}
-      </header>
-      <div class="divider"></div>
-      <section class="title">
-        <div>
-          <p>Ngày bán: ${escapeHtml(safeDate(invoice.completedAt || invoice.createdAt))}</p>
-          <p>Mã hóa đơn: ${escapeHtml(invoice.code || invoice._id)}</p>
-        </div>
-        <h2>${escapeHtml(title)}</h2>
-      </section>
-      <div class="invoice-heading">HÓA ĐƠN BÁN HÀNG</div>
-      <table class="meta">
-        <tr><td>Khách hàng: ${escapeHtml(customer?.name || 'Khách lẻ')}</td><td>Điện thoại: ${escapeHtml(customer?.phone || '—')}</td></tr>
-        ${profile.showCashier ? `<tr><td>Người lập phiếu: ${escapeHtml(invoice.authorId?.name || invoice.userId?.name || '—')}</td><td></td></tr>` : ''}
-      </table>
-      <table class="items">
-        <thead>
-          <tr><th>#</th><th>Tên sản phẩm</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      ${hideTotals ? '' : `<table class="summary">
-        <tr><td>Tổng cộng</td><td>${safeMoney(grossValue(invoice))}</td></tr>
-        <tr><td>Giảm giá</td><td>${Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</td></tr>
-        <tr><td>Thành tiền</td><td>${safeMoney(invoice.value)}</td></tr>
-        <tr><td>Đã thanh toán</td><td>${safeMoney(invoice.valuePayment)}</td></tr>
-        <tr><td>Tiền trả lại</td><td>${change > 0 ? safeMoney(change) : '—'}</td></tr>
-      </table>`}
-      <div class="divider"></div>
-      <p class="thanks">${escapeHtml(profile.footerText)}</p>
-    </main>
-  </body>
-</html>`;
+    return buildReceiptHtml({
+      profile,
+      title,
+      date: safeDate(invoice.completedAt || invoice.createdAt),
+      code: invoice.code || invoice._id,
+      customer: customerText,
+      sections: [{ lines: receiptLines }],
+      summary: hideTotals ? [] : [
+        { label: 'Tổng cộng', value: safeMoney(grossValue(invoice)) },
+        { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—' },
+        { label: 'Thành tiền', value: safeMoney(invoice.value), strong: true },
+        { label: 'Đã thanh toán', value: safeMoney(invoice.valuePayment) },
+        ...(hasDistinctTendered ? [{ label: 'Tiền khách trả', value: safeMoney(tendered) }] : []),
+        ...(change > 0 ? [{ label: 'Tiền trả lại', value: safeMoney(change) }] : []),
+      ],
+    });
   };
 
   const resolvePrintBranch = async (invoice: Invoice) => {
-    const rawBranch = invoice.branchId as Branch | string | undefined;
+    const rawBranch = invoice.branchId || invoice.warehouseId || invoice.warehouse;
     const branchId = typeof rawBranch === 'string' ? rawBranch : rawBranch?._id;
     if (!branchId) return null;
-    if (typeof rawBranch === 'object' && rawBranch?.invoiceProfile) {
-      return rawBranch;
-    }
     try {
       return await getBranch(branchId, { includeInactive: true });
     } catch {
@@ -540,11 +474,9 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         window.alert('Hóa đơn này không có sản phẩm tặng kèm');
         return;
       }
-      const [branch, shop] = await Promise.all([
-        resolvePrintBranch(fullInvoice),
-        getStoreSetting().catch(() => ({})),
-      ]);
-      const html = buildPrintDocument(fullInvoice, branch, shop, items, giftOnly ? 'HÓA ĐƠN TẶNG QUÀ' : 'Hóa đơn bán lẻ', giftOnly);
+      const branch = await resolvePrintBranch(fullInvoice);
+      const shop = branch ? {} : await getStoreSetting().catch(() => ({}));
+      const html = buildPrintDocument(fullInvoice, branch, shop, items, giftOnly ? 'HÓA ĐƠN' : 'HÓA ĐƠN', giftOnly);
       popup.document.open();
       popup.document.write(html);
       popup.document.close();
@@ -578,16 +510,14 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         return;
       }
 
-      const [branch, shop] = await Promise.all([
-        resolvePrintBranch(fullInvoice),
-        getStoreSetting().catch(() => ({})),
-      ]);
+      const branch = await resolvePrintBranch(fullInvoice);
+      const shop = branch ? {} : await getStoreSetting().catch(() => ({}));
       const html = buildPrintDocument(
         fullInvoice,
         branch,
         shop,
         items,
-        giftOnly ? 'Hóa đơn tặng quà' : 'Hóa đơn bán lẻ',
+        giftOnly ? 'HÓA ĐƠN' : 'HÓA ĐƠN',
         giftOnly,
       );
 
@@ -1104,3 +1034,4 @@ const retailStyles = `
 @media(max-width:1180px){.retail-filterbar{grid-template-columns:repeat(3,minmax(180px,1fr))}.retail-filter-actions{grid-column:auto}}
 @media(max-width:760px){.retail-invoice-page{border-radius:0}.retail-filterbar{grid-template-columns:1fr}.retail-date-range{width:100%}.retail-actionbar{align-items:flex-start;flex-direction:column}.retail-actionbar-right{width:100%;flex-wrap:wrap}.retail-detail-grid{grid-template-columns:1fr}.retail-info-grid{grid-template-columns:1fr}.retail-pagination{align-items:flex-start;flex-direction:column;gap:8px}}
 `;
+

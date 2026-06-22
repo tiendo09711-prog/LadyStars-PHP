@@ -19,7 +19,7 @@ test.describe('Retail invoice actions', () => {
     await closeDB();
   });
 
-  test('shows six row actions in the required order and prints clean A4 HTML', async ({ page }) => {
+  test('shows six row actions in the required order and prints clean 80mm receipt HTML', async ({ page }) => {
     scenarioPrefix = `${PREFIX}${Date.now()}_`;
     const fixture = await createRetailFixture(scenarioPrefix, 1);
     const headers = await authHeaders(page);
@@ -78,9 +78,9 @@ test.describe('Retail invoice actions', () => {
     });
 
     await page.getByRole('button', { name: 'In hóa đơn', exact: true }).click();
-    await expect.poll(async () => page.evaluate(() => (window as any).__printHtml || '')).toContain('@page { size: A4 portrait; margin: 10mm; }');
+    await expect.poll(async () => page.evaluate(() => (window as any).__printHtml || '')).toContain('@page { size: 80mm auto; margin: 0; }');
     const printHtml = await page.evaluate(() => (window as any).__printHtml || '');
-    expect(printHtml).toContain('@page { size: A4 portrait; margin: 10mm; }');
+    expect(printHtml).toContain('@page { size: 80mm auto; margin: 0; }');
     expect(printHtml).toContain('<main class="print-page">');
     expect(printHtml).toContain('<table class="items">');
     expect(printHtml).toContain('Hóa đơn bán lẻ');

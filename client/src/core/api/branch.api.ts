@@ -1,6 +1,6 @@
 import { http } from './http';
 
-const DEFAULT_FOOTER = 'Cảm ơn quý khách đã mua hàng!';
+const DEFAULT_FOOTER = 'CẢM ƠN QUÝ KHÁCH ĐÃ MUA HÀNG!';
 
 export type BranchInvoiceProfile = {
   displayName?: string;
@@ -54,18 +54,19 @@ function trim(value: unknown) {
 
 export function buildInvoiceProfile(branch?: BranchRecord | null, storeSetting?: StoreSettingRecord | null) {
   const invoiceProfile = branch?.invoiceProfile || {};
+  const hasBranch = Boolean(branch?._id || branch?.name || branch?.address || branch?.phone);
   return {
     templateId: 'retail-a4-classic' as const,
-    brandName: trim(invoiceProfile.displayName) || trim(storeSetting?.shopName) || 'Cửa hàng',
-    address: trim(branch?.address) || trim(storeSetting?.address) || '',
-    phone: trim(branch?.phone) || trim(storeSetting?.phone) || '',
-    footerText: trim(invoiceProfile.footerText) || DEFAULT_FOOTER,
+    brandName: trim(invoiceProfile.displayName) || (hasBranch ? trim(branch?.name) : trim(storeSetting?.shopName)) || 'Cửa hàng',
+    address: hasBranch ? trim(branch?.address) : trim(storeSetting?.address),
+    phone: hasBranch ? trim(branch?.phone) : trim(storeSetting?.phone),
+    footerText: DEFAULT_FOOTER,
     branchName: trim(branch?.name) || '',
     showBranchName: Boolean(invoiceProfile.showBranchName),
-    showCashier: invoiceProfile.showCashier !== false,
-    showProductCode: Boolean(invoiceProfile.showProductCode),
-    showLogo: Boolean(invoiceProfile.showLogo),
-    logoUrl: trim(storeSetting?.logoUrl) || '',
+    showCashier: false,
+    showProductCode: false,
+    showLogo: false,
+    logoUrl: '',
   };
 }
 

@@ -1,0 +1,25 @@
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+Error: Transform failed with 11 errors:
+C:\Users\tiend\Desktop\LadyStars\scratch\qa-invoice-print.ts:73:2: ERROR: Top-level await is currently not supported with the "cjs" output format
+C:\Users\tiend\Desktop\LadyStars\scratch\qa-invoice-print.ts:75:20: ERROR: Top-level await is currently not supported with the "cjs" output format
+C:\Users\tiend\Desktop\LadyStars\scratch\qa-invoice-print.ts:76:20: ERROR: Top-level await is currently not supported with the "cjs" output format
+C:\Users\tiend\Desktop\LadyStars\scratch\qa-invoice-print.ts:78:17: ERROR: Top-level await is currently not supported with the "cjs" output format
+C:\Users\tiend\Desktop\LadyStars\scratch\qa-invoice-print.ts:80:18: ERROR: Top-level await is currently not supported with the "cjs" output format
+...
+    at failureErrorWithLog (C:\Users\tiend\Desktop\LadyStars\node_modules\esbuild\lib\main.js:1748:15)
+    at C:\Users\tiend\Desktop\LadyStars\node_modules\esbuild\lib\main.js:1017:50
+    at responseCallbacks.<computed> (C:\Users\tiend\Desktop\LadyStars\node_modules\esbuild\lib\main.js:884:9)
+    at handleIncomingPacket (C:\Users\tiend\Desktop\LadyStars\node_modules\esbuild\lib\main.js:939:12)
+    at Socket.readFromStdout (C:\Users\tiend\Desktop\LadyStars\node_modules\esbuild\lib\main.js:862:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23) {
+  name: 'TransformError'
+}
+
+Node.js v24.13.0

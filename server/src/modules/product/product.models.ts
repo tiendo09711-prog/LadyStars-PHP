@@ -156,6 +156,7 @@ const SalePaymentSchema = new Schema({
   discountType: { type: String, enum: ['percent', 'number'], default: 'number' },
   value: money,
   valuePayment: money,
+  tenderedValue: money,
   settlementValue: money,
   refundedValue: money,
   refundStatus: { type: String, enum: ['none', 'partial', 'full'], default: 'none' },

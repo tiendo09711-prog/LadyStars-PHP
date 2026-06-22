@@ -70,6 +70,8 @@ test.describe('Warehouse branches config', () => {
     await page.getByLabel('Mã kho').fill(invalidCode);
     await page.getByLabel('Địa chỉ').fill('12 Test Street');
     await page.getByLabel('Hotline').fill('0901000001');
+    await page.getByRole('button', { name: /Cấu hình in hóa đơn/ }).click();
+    await page.getByLabel('Tên thương hiệu').fill(`${scenarioPrefix} Brand Wrong`);
     await page.getByRole('button', { name: 'Tạo kho hàng' }).click();
     await page.getByRole('dialog').getByLabel('Nhập lại mật khẩu Admin').fill('wrong-password');
     await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
@@ -81,6 +83,7 @@ test.describe('Warehouse branches config', () => {
     await page.getByLabel('Mã kho').fill(branchCode);
     await page.getByLabel('Địa chỉ').fill('101 Branch Road');
     await page.getByLabel('Hotline').fill('0902000002');
+    await page.getByLabel('Tên thương hiệu').fill(`${scenarioPrefix} Brand`);
     await page.getByRole('button', { name: 'Tạo kho hàng' }).click();
     await page.getByRole('dialog').getByLabel('Nhập lại mật khẩu Admin').fill(admin.password);
     await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
@@ -89,7 +92,7 @@ test.describe('Warehouse branches config', () => {
     const createdBranch = await findBranchByCode(branchCode);
     expect(createdBranch).not.toBeNull();
     expect(createdBranch?.invoiceProfile?.templateId).toBe('retail-a4-classic');
-    expect(createdBranch?.invoiceProfile?.footerText).toBe('Cảm ơn quý khách đã mua hàng!');
+    expect(createdBranch?.invoiceProfile?.displayName).toBe(`${scenarioPrefix} Brand`);
 
     await page.getByRole('button', { name: `${scenarioPrefix} Main Branch` }).click();
     await expect(page.getByLabel('Mã kho')).toHaveValue(branchCode);
@@ -97,7 +100,7 @@ test.describe('Warehouse branches config', () => {
     await page.getByLabel('Tên kho').fill(`${scenarioPrefix} Main Branch Updated`);
     await page.getByLabel('Địa chỉ').fill('102 Branch Road');
     await page.getByLabel('Hotline').fill('0903000003');
-    await page.getByLabel('Nội dung cuối hóa đơn').fill('Footer update từ E2E');
+    await page.getByLabel('Tên thương hiệu').fill(`${scenarioPrefix} Brand Updated`);
     await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
     await page.getByRole('dialog').getByLabel('Nhập lại mật khẩu Admin').fill(admin.password);
     await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
@@ -108,7 +111,7 @@ test.describe('Warehouse branches config', () => {
     expect(updatedBranch?.address).toBe('102 Branch Road');
     expect(updatedBranch?.phone).toBe('0903000003');
     expect(updatedBranch?.code).toBe(branchCode);
-    expect(updatedBranch?.invoiceProfile?.footerText).toBe('Footer update từ E2E');
+    expect(updatedBranch?.invoiceProfile?.displayName).toBe(`${scenarioPrefix} Brand Updated`);
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
 
     const actionPanel = page.locator('.warehouse-actions-row');
@@ -243,12 +246,12 @@ test.describe('Warehouse branches config', () => {
 
     await page.locator('.retail-row-menu button').first().click();
     await page.getByRole('button', { name: 'In hóa đơn', exact: true }).click();
-    await expect.poll(async () => page.evaluate(() => (window as any).__printHtml || '')).toContain('@page { size: A4 portrait; margin: 10mm; }');
+    await expect.poll(async () => page.evaluate(() => (window as any).__printHtml || '')).toContain('@page { size: 80mm auto; margin: 0; }');
 
     const printHtml = await page.evaluate(() => (window as any).__printHtml || '');
-    expect(printHtml).toContain('@page { size: A4 portrait; margin: 10mm; }');
-    expect(printHtml).toContain('<h1>LadyStars Signature</h1>');
-    expect(printHtml).not.toContain(`<h1>${fixture.branch.name}</h1>`);
+    expect(printHtml).toContain('@page { size: 80mm auto; margin: 0; }');
+    expect(printHtml).toContain('LadyStars Signature');
+    expect(printHtml).not.toContain(`<div class="brand">${fixture.branch.name}</div>`);
     expect(printHtml).toContain('55 Branch Address Test');
     expect(printHtml).toContain('0905555555');
     expect(printHtml).toContain('Kho:');

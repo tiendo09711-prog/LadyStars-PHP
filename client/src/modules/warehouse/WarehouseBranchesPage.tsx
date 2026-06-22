@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Building2,
   CheckCircle2,
+  ChevronDown,
   CircleOff,
   Info,
   KeyRound,
@@ -16,7 +17,6 @@ import {
   Search,
   ShieldAlert,
   Star,
-  Store,
   Trash2,
   Warehouse,
 } from 'lucide-react';
@@ -56,7 +56,7 @@ type BranchFormState = {
 type UsageSummary = Awaited<ReturnType<typeof getBranchUsage>>;
 type ConfirmAction = 'create' | 'save' | 'set-default' | 'activate' | 'deactivate' | 'delete';
 
-const DEFAULT_FOOTER = 'Cảm ơn quý khách đã mua hàng!';
+const DEFAULT_FOOTER = 'CẢM ƠN QUÝ KHÁCH ĐÃ MUA HÀNG!';
 
 const USAGE_LABELS: Record<string, string> = {
   productBranchStocks: 'Tồn kho theo chi nhánh',
@@ -157,21 +157,24 @@ function previewHtml(branch: BranchRecord | null, form: BranchFormState, storeSe
     <meta charset="utf-8" />
     <title>In thử mẫu hóa đơn</title>
     <style>
-      @page { size: A4 portrait; margin: 10mm; }
-      body { font-family: Arial, sans-serif; color: #111827; }
-      .page { display: flex; flex-direction: column; gap: 12px; }
-      .meta { display: flex; justify-content: space-between; font-size: 12px; }
+      @page { size: 80mm auto; margin: 0; }
+      * { box-sizing: border-box; }
+      body { width: 80mm; margin: 0; padding: 0; height: auto; min-height: 0; font-family: Arial, sans-serif; color: #111827; font-size: 12.5px; line-height: 1.32; }
+      .page { width: 80mm; margin: 0; padding: 3mm 3.5mm 2.5mm; box-sizing: border-box; min-height: 0; height: auto; }
       .center { text-align: center; }
-      h1 { margin: 0; font-size: 28px; }
-      .sub { margin: 4px 0; }
-      .dash { border-top: 1px dashed #94a3b8; margin: 8px 0; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
-      th:last-child, td:last-child { text-align: right; }
-      .totals td { border: none; padding: 5px 0; }
-      .footer { margin-top: 12px; text-align: center; }
-      .small { font-size: 12px; color: #475569; }
-    </style>
+      h1 { margin: 0 0 4px; font-size: 16px; line-height: 1.2; text-transform: uppercase; }
+      .sub { margin: 2px 0; overflow-wrap: anywhere; }
+      .dash { border-top: 1px dashed #111827; margin: 8px 0; }
+      .heading { text-align: center; font-size: 19px; font-weight: 900; letter-spacing: 0.03em; margin: 8px 0 7px; }
+      .line, .total-line { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+      .items-head { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 4px; border-bottom: 1px solid #111827; font-weight: 700; }
+      .item { padding: 6px 0; border-bottom: 1px dashed #cbd5e1; }
+      .item-name { font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
+      .item-values { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; white-space: nowrap; }
+      .total-line.grand { border-top: 1px solid #111827; margin-top: 5px; padding-top: 5px; font-weight: 800; }
+      .footer { margin-top: 12px; text-align: center; overflow-wrap: anywhere; }
+      .small { font-size: 10px; color: #475569; }
+      @media print { html, body { width: 80mm; height: auto; min-height: 0; } .page { width: 80mm; } }    </style>
   </head>
   <body>
     <main class="page">
@@ -183,35 +186,24 @@ function previewHtml(branch: BranchRecord | null, form: BranchFormState, storeSe
         ${profile.showBranchName && profile.branchName ? `<div class="small">Kho: ${profile.branchName}</div>` : ''}
       </div>
       <div class="dash"></div>
-      <div class="center"><strong>HÓA ĐƠN BÁN HÀNG</strong></div>
-      <div>Mã hóa đơn: HD-MAU-001</div>
-      <div>Khách hàng: Khách lẻ</div>
-      ${profile.showCashier ? '<div>Người lập phiếu: Thu ngân mẫu</div>' : ''}
-      <table>
-        <thead>
-          <tr><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Đầm midi xếp ly${profile.showProductCode ? '<div class="small">SP-001</div>' : ''}</td>
-            <td>1</td>
-            <td>450.000</td>
-            <td>450.000</td>
-          </tr>
-          <tr>
-            <td>Áo sơ mi tay phồng${profile.showProductCode ? '<div class="small">SP-002</div>' : ''}</td>
-            <td>2</td>
-            <td>320.000</td>
-            <td>640.000</td>
-          </tr>
-        </tbody>
-      </table>
-      <table class="totals">
-        <tr><td>Tổng cộng</td><td>1.090.000</td></tr>
-        <tr><td>Giảm giá</td><td>50.000</td></tr>
-        <tr><td>Đã thanh toán</td><td>1.100.000</td></tr>
-        <tr><td>Tiền trả lại</td><td>10.000</td></tr>
-      </table>
+      <div class="heading">ĐƠN BÁN HÀNG</div>
+      <div class="line"><span>Mã HĐ:</span><strong>HD-MAU-001</strong></div>
+      <div class="line"><span>Khách:</span><strong>Khách lẻ</strong></div>
+      <div class="dash"></div>
+      <div class="items-head"><span>Sản phẩm</span><span>Thành tiền</span></div>
+      <div class="item">
+        <div class="item-name">1. Đầm midi xếp ly dáng dài chất liệu mềm dễ xuống dòng</div>
+        <div class="item-values"><span>1 x 450.000</span><strong>450.000</strong></div>
+      </div>
+      <div class="item">
+        <div class="item-name">2. Áo sơ mi tay phồng</div>
+        <div class="item-values"><span>2 x 320.000</span><strong>640.000</strong></div>
+      </div>
+      <div class="total-line"><span>Tổng cộng</span><strong>1.090.000</strong></div>
+      <div class="total-line"><span>Giảm giá</span><strong>50.000</strong></div>
+      <div class="total-line grand"><span>Thành tiền</span><strong>1.040.000</strong></div>
+      <div class="total-line"><span>Đã thanh toán</span><strong>1.100.000</strong></div>
+      <div class="total-line"><span>Tiền trả lại</span><strong>10.000</strong></div>
       <div class="dash"></div>
       <div class="footer">${profile.footerText}</div>
     </main>
@@ -222,6 +214,7 @@ function previewHtml(branch: BranchRecord | null, form: BranchFormState, storeSe
 export function WarehouseBranchesPage() {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [storeSetting, setStoreSetting] = useState<StoreSettingRecord>({ shopName: 'LadyStars' });
+  const [invoiceSettingsOpen, setInvoiceSettingsOpen] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [form, setForm] = useState<BranchFormState>(createEmptyForm);
   const [isCreateMode, setIsCreateMode] = useState(false);
@@ -552,92 +545,69 @@ export function WarehouseBranchesPage() {
           </div>
 
           <div className="card-shell warehouse-branch-section">
-            <div className="section-heading">
-              <div>
-                <h2>Cấu hình in hóa đơn</h2>
-                <p>Tiêu đề lớn luôn là thương hiệu; địa chỉ và hotline lấy theo kho của hóa đơn.</p>
-              </div>
-              <Store size={18} />
-            </div>
+            <section className={`invoice-settings-panel ${invoiceSettingsOpen ? 'is-open' : ''}`}>
+              <button
+                type="button"
+                className="invoice-settings-toggle"
+                aria-expanded={invoiceSettingsOpen}
+                aria-controls="branch-invoice-settings"
+                onClick={() => setInvoiceSettingsOpen((open) => !open)}
+              >
+                <span className="invoice-settings-title">
+                  <Printer size={18} />
+                  <span>
+                    <strong>Cấu hình in hóa đơn</strong>
+                    <small>Thiết lập thông tin đầu hóa đơn của kho đang chọn</small>
+                  </span>
+                </span>
+                <ChevronDown size={18} className="invoice-settings-chevron" />
+              </button>
 
-            <div className="warehouse-branch-grid">
-              <label>
-                <span>Tên thương hiệu in hóa đơn</span>
-                <input
-                  aria-label="Tên thương hiệu in hóa đơn"
-                  value={form.invoiceProfile.displayName}
-                  onChange={(event) => setForm((current) => ({
-                    ...current,
-                    invoiceProfile: { ...current.invoiceProfile, displayName: event.target.value },
-                  }))}
-                  placeholder="Để trống để dùng tên cửa hàng chung"
-                />
-              </label>
-              <label>
-                <span>Mẫu in</span>
-                <input value="Hóa đơn bán lẻ A4 chuẩn" readOnly />
-              </label>
-              <label className="full-width">
-                <span>Nội dung cuối hóa đơn</span>
-                <textarea
-                  aria-label="Nội dung cuối hóa đơn"
-                  rows={3}
-                  value={form.invoiceProfile.footerText}
-                  onChange={(event) => setForm((current) => ({
-                    ...current,
-                    invoiceProfile: { ...current.invoiceProfile, footerText: event.target.value },
-                  }))}
-                />
-              </label>
-            </div>
+              {invoiceSettingsOpen && (
+                <div id="branch-invoice-settings" className="invoice-settings-body">
+                  <div className="warehouse-branch-grid">
+                    <label>
+                      <span>Tên thương hiệu *</span>
+                      <input
+                        aria-label="Tên thương hiệu"
+                        value={form.invoiceProfile.displayName}
+                        onChange={(event) => setForm((current) => ({
+                          ...current,
+                          invoiceProfile: { ...current.invoiceProfile, displayName: event.target.value },
+                        }))}
+                        placeholder="Tên thương hiệu in đậm trên hóa đơn"
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>Điện thoại *</span>
+                      <input
+                        aria-label="Điện thoại"
+                        value={form.phone}
+                        onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                        placeholder="Số điện thoại in trên hóa đơn"
+                        required
+                      />
+                    </label>
+                    <label className="full-width">
+                      <span>Địa chỉ *</span>
+                      <textarea
+                        aria-label="Địa chỉ in hóa đơn"
+                        rows={3}
+                        value={form.address}
+                        onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+                        placeholder="Địa chỉ in trên hóa đơn"
+                        required
+                      />
+                    </label>
+                  </div>
 
-            <div className="warehouse-checkbox-grid">
-              <label><input aria-label="Bật hiển thị chi nhánh trên hóa đơn" type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => setForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showBranchName: event.target.checked } }))} />Hiển thị tên kho</label>
-              <label><input aria-label="Bật hiển thị người lập phiếu" type="checkbox" checked={form.invoiceProfile.showCashier} onChange={(event) => setForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showCashier: event.target.checked } }))} />Hiển thị người lập phiếu</label>
-              <label><input aria-label="Bật hiển thị mã sản phẩm" type="checkbox" checked={form.invoiceProfile.showProductCode} onChange={(event) => setForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showProductCode: event.target.checked } }))} />Hiển thị mã sản phẩm</label>
-              <label><input aria-label="Bật hiển thị logo cửa hàng" type="checkbox" checked={form.invoiceProfile.showLogo} onChange={(event) => setForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showLogo: event.target.checked } }))} />Hiển thị logo cửa hàng</label>
-            </div>
-
-            <div className="invoice-preview-shell">
-              <div className="invoice-preview-sheet">
-                <div className="invoice-preview-meta"><span>In thử A4</span><strong>Hóa đơn bán lẻ</strong></div>
-                <div className="invoice-preview-center">
-                  <h3>{previewProfile.brandName}</h3>
-                  <p>{previewProfile.address || 'Địa chỉ kho sẽ hiển thị tại đây'}</p>
-                  <p>{previewProfile.phone || 'Hotline kho sẽ hiển thị tại đây'}</p>
-                  {previewProfile.showBranchName && previewProfile.branchName ? <span>Kho: {previewProfile.branchName}</span> : null}
+                  <div className="warehouse-checkbox-grid">
+                    <label><input aria-label="Hiển thị cửa hàng trên hóa đơn" type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => setForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showBranchName: event.target.checked } }))} />Hiển thị cửa hàng trên hóa đơn</label>
+                  </div>
                 </div>
-                <div className="invoice-preview-dash" />
-                <div className="invoice-preview-title">HÓA ĐƠN BÁN HÀNG</div>
-                <table>
-                  <thead>
-                    <tr><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Đầm midi xếp ly{previewProfile.showProductCode ? <span>SP-001</span> : null}</td>
-                      <td>1</td>
-                      <td>450.000</td>
-                      <td>450.000</td>
-                    </tr>
-                    <tr>
-                      <td>Áo sơ mi tay phồng{previewProfile.showProductCode ? <span>SP-002</span> : null}</td>
-                      <td>2</td>
-                      <td>320.000</td>
-                      <td>640.000</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="invoice-preview-totals">
-                  <div><span>Tổng cộng</span><strong>1.090.000</strong></div>
-                  <div><span>Giảm giá</span><strong>50.000</strong></div>
-                  <div><span>Đã thanh toán</span><strong>1.100.000</strong></div>
-                  <div><span>Tiền trả lại</span><strong>10.000</strong></div>
-                </div>
-                <div className="invoice-preview-dash" />
-                <div className="invoice-preview-footer">{previewProfile.footerText}</div>
-              </div>
-            </div>
+              )}
+            </section>
           </div>
 
           <div className="card-shell warehouse-branch-section">
@@ -650,7 +620,7 @@ export function WarehouseBranchesPage() {
             </div>
 
             <div className="warehouse-actions-row">
-              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={!trim(form.name) || !trim(form.code)}><Save size={16} /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
+              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={!trim(form.name) || !trim(form.code) || !trim(form.invoiceProfile.displayName) || !trim(form.phone) || !trim(form.address)}><Save size={16} /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
               <button className="btn btn-light" type="button" onClick={() => setConfirmAction('set-default')} disabled={isCreateMode || !selectedBranch || selectedBranch.isDefault === true}><Star size={16} /> Đặt làm kho mặc định</button>
               <button className="btn btn-light" type="button" onClick={() => setConfirmAction(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} /> : <CircleOff size={16} />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
               <button className="btn btn-light" type="button" onClick={() => void loadUsage()} disabled={isCreateMode || !selectedBranch || loadingUsage}><Info size={16} /> {loadingUsage ? 'Đang tải liên kết...' : 'Xem dữ liệu liên kết'}</button>

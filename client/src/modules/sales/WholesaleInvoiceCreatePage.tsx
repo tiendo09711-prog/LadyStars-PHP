@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -26,11 +26,35 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { buildInvoiceProfile, getBranch } from '../../core/api/branch.api';
+import { buildReceiptHtml, receiptMoney, writeAndPrintPopup } from './invoicePrint';
 
 const getStockForWarehouse = (prod: any) => {
   if (typeof prod?.selectedStock === 'number') return prod.selectedStock;
   return prod.totalStock ?? prod.qty ?? 0;
 };
+
+const PRINT_WINDOW_FEATURES = 'popup=yes,width=420,height=720';
+
+function openReceiptWindow() {
+  return window.open('about:blank', 'wholesale-invoice-print', PRINT_WINDOW_FEATURES);
+}
+
+function branchIdFromValue(value: any) {
+  return typeof value === 'string' ? value : value?._id || '';
+}
+
+async function resolveBranchForReceipt(source: any, fallbackBranch: any, fallbackBranchId?: string | null) {
+  const resolvedBranchId = branchIdFromValue(source?.branchId || source?.warehouseId) || branchIdFromValue(fallbackBranch) || fallbackBranchId || '';
+  if (resolvedBranchId) {
+    try {
+      return await getBranch(resolvedBranchId, { includeInactive: true });
+    } catch {
+      return fallbackBranch || null;
+    }
+  }
+  return fallbackBranch || null;
+}
 
 interface InvoiceProduct {
   _id?: string;
@@ -419,6 +443,11 @@ export function WholesaleInvoiceCreatePage() {
     }
 
     setErrorMessage('');
+    const printPopup = form.autoPrint ? openReceiptWindow() : null;
+    if (form.autoPrint && !printPopup) {
+      window.alert('Trình duyệt đang chặn cửa sổ in hóa đơn. Hãy cho phép pop-up và thử lại.');
+      return;
+    }
     setIsSaving(true);
 
     const totalQty = products.reduce((acc, p) => acc + p.qty, 0);
@@ -507,14 +536,39 @@ export function WholesaleInvoiceCreatePage() {
       await http.post(`/products/sales/${saleId}/complete`);
 
       setSuccessMessage(`✅ Hóa đơn đã được lưu & tồn kho đã được trừ tự động! Mã: ${createRes.data.code}`);
-      if (form.autoPrint) {
-        console.log("In hóa đơn...");
-        // In-browser mock print or trigger window.print()
+      if (form.autoPrint && printPopup) {
+        const receiptBranch = await resolveBranchForReceipt(createRes.data, branch, branchId);
+        const profile = buildInvoiceProfile(receiptBranch || undefined);
+        const customerText = `${form.customerName || 'Khách lẻ'}${form.customerPhone ? ` (${form.customerPhone})` : ''}`;
+        const html = buildReceiptHtml({
+          profile,
+          title: 'HÓA ĐƠN',
+          date: new Date().toLocaleDateString('vi-VN'),
+          code: createRes.data.code || saleId,
+          customer: customerText,
+          sections: [{
+            lines: products.map((product) => ({
+              name: [product.code, product.name].filter(Boolean).join(' - '),
+              quantity: product.qty,
+              price: receiptMoney(product.price),
+              total: receiptMoney(product.total),
+            })),
+          }],
+          summary: [
+            { label: 'Tổng cộng', value: receiptMoney(totalCost) },
+            { label: 'Chiết khấu', value: receiptMoney(form.orderDiscount) },
+            { label: 'Thành tiền', value: receiptMoney(form.totalAmount), strong: true },
+            { label: 'Đã thanh toán', value: receiptMoney(form.paidAmount) },
+            { label: 'Còn nợ', value: receiptMoney(form.debtAmount) },
+          ],
+        });
+        writeAndPrintPopup(printPopup, html);
       }
       setTimeout(() => {
         navigate(`/sales-channels/${channel}/wholesale`);
       }, 1200);
     } catch (err: any) {
+      printPopup?.close();
       console.error(err);
       setErrorMessage(err.response?.data?.message ?? 'Lỗi khi lưu hóa đơn bán sỉ.');
       setIsSaving(false);
