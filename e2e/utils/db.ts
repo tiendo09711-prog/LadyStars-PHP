@@ -9,8 +9,61 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const API_BASE = 'http://localhost:4000/api';
 
-const DB_NAME = process.env.MONGO_DB_NAME || 'ladystars';
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ladystars';
+const DB_NAME = process.env.E2E_MONGO_DB_NAME || process.env.MONGO_DB_NAME || 'ladystars';
+const MONGO_URI = process.env.E2E_MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/ladystars';
+
+function validateE2EDatabaseSafety() {
+  const e2eUri = process.env.E2E_MONGO_URI;
+  const appUri = process.env.MONGO_URI;
+
+  // E2E must use E2E_MONGO_URI
+  if (!e2eUri) {
+    throw new Error(
+      '[E2E SAFETY] E2E_MONGO_URI is not set. E2E tests must use a dedicated test database. ' +
+      'Set E2E_MONGO_URI in your .env file to a MongoDB URI with a database name ending in _e2e or containing "test".'
+    );
+  }
+
+  // Parse database name from URI
+  let e2eDbName = '';
+  let appDbName = '';
+  try {
+    const e2eParsed = new URL(e2eUri);
+    e2eDbName = e2eParsed.pathname.replace(/^\//, '');
+  } catch { /* fallback below */ }
+  try {
+    if (appUri) {
+      const appParsed = new URL(appUri);
+      appDbName = appParsed.pathname.replace(/^\//, '');
+    }
+  } catch { /* ignore */ }
+
+  // Reject if E2E URI matches app URI
+  if (appUri && e2eUri === appUri) {
+    throw new Error(
+      '[E2E SAFETY] E2E_MONGO_URI must not equal MONGO_URI. E2E tests cannot run on the application database.'
+    );
+  }
+
+  // Reject if database names match
+  if (appDbName && e2eDbName && e2eDbName === appDbName) {
+    throw new Error(
+      `[E2E SAFETY] E2E database name "${e2eDbName}" matches application database name. E2E tests require a separate database.`
+    );
+  }
+
+  // Reject if database name does not have test marker
+  const hasMarker = /_e2e|_test|test_|e2e_|_e2e$/.test(e2eDbName) || e2eDbName.includes('test') || e2eDbName.includes('e2e');
+  if (!hasMarker) {
+    throw new Error(
+      `[E2E SAFETY] E2E database name "${e2eDbName}" must contain a test marker (e.g., end with "_e2e" or include "test"). ` +
+      'This ensures E2E tests cannot accidentally run on production data.'
+    );
+  }
+}
+
+// Run safety check on module load
+validateE2EDatabaseSafety();
 
 let client: MongoClient | null = null;
 

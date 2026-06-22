@@ -48,16 +48,19 @@ type MenuItem = MenuLeaf | {
 };
 
 type MenuGroup = {
+  id: string;
   label: string;
   items: MenuItem[];
 };
 
 const baseMenuGroups: MenuGroup[] = [
   {
+    id: 'overview',
     label: 'Tổng quan',
     items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }],
   },
   {
+    id: 'product',
     label: 'Sản phẩm',
     items: [
       { to: '/products', label: 'Sản phẩm', icon: Boxes },
@@ -68,6 +71,7 @@ const baseMenuGroups: MenuGroup[] = [
     ],
   },
   {
+    id: 'warehouse',
     label: 'Kho hàng',
     items: [
       { to: '/warehouse/transactions', label: 'Xuất nhập kho', icon: ArrowLeftRight },
@@ -79,6 +83,7 @@ const baseMenuGroups: MenuGroup[] = [
   },
 
   {
+    id: 'sales-channel',
     label: 'Kênh bán - Cửa hàng',
     items: [
       { to: '/sales-channels/store/retail',    label: 'Bán lẻ',                icon: ShoppingCart },
@@ -87,6 +92,7 @@ const baseMenuGroups: MenuGroup[] = [
     ],
   },
   {
+    id: 'orders',
     label: 'Đơn hàng',
     items: [
       { to: '/orders/manage', label: 'Đơn hàng', icon: ShoppingCart },
@@ -100,6 +106,7 @@ const baseMenuGroups: MenuGroup[] = [
     ],
   },
   {
+    id: 'customer',
     label: 'Khách hàng',
     items: [
       { to: '/customers/list', label: 'Danh sách khách hàng', icon: List },
@@ -107,6 +114,7 @@ const baseMenuGroups: MenuGroup[] = [
     ],
   },
   {
+    id: 'accounting',
     label: 'Kế toán',
     items: [
       { to: '/accounting/cash', label: 'Thu chi tiền mặt', icon: WalletCards },
@@ -137,6 +145,7 @@ const baseMenuGroups: MenuGroup[] = [
     ],
   },
   {
+    id: 'operations',
     label: 'Vận hành',
     items: [
       { to: '/tasks', label: 'Dự án - công việc', icon: ClipboardList },
@@ -144,6 +153,7 @@ const baseMenuGroups: MenuGroup[] = [
     ],
   },
   {
+    id: 'report',
     label: 'Báo Cáo',
     items: [
       {
@@ -279,7 +289,7 @@ const baseMenuGroups: MenuGroup[] = [
 ];
 
 const defaultMenuGroupState = Object.fromEntries(
-  baseMenuGroups.map((group) => [group.label, false]),
+  baseMenuGroups.map((group) => [group.id, false]),
 ) as Record<string, boolean>;
 
 type CurrentUser = {
@@ -332,6 +342,7 @@ export function AppLayout() {
     ? [
       ...baseMenuGroups,
       {
+        id: 'staff',
         label: 'Quản lý nhân viên',
         items: [
           { to: '/staff/create', label: 'Tạo tài khoản', icon: UserCog },
@@ -342,10 +353,10 @@ export function AppLayout() {
     ]
     : baseMenuGroups, [isAdmin]);
   const visibleMenuGroups = useMemo<MenuGroup[]>(() => menuGroups.map((group) => {
-    if (group.label !== 'Kho hÃ ng' || !isAdmin) return group;
+    if (group.id !== 'warehouse' || !isAdmin) return group;
     return {
       ...group,
-      items: [...group.items, { to: '/warehouse/branches', label: 'Cáº¥u hÃ¬nh kho hÃ ng', icon: Building2 }],
+      items: [...group.items, { to: '/warehouse/branches', label: 'Cấu hình kho hàng', icon: Building2 }],
     };
   }), [isAdmin, menuGroups]);
 
@@ -398,17 +409,17 @@ export function AppLayout() {
     navigate('/login');
   };
 
-  const openDesktopMenuGroup = (label: string) => {
+  const openDesktopMenuGroup = (key: string) => {
     if (!isDesktopNav()) return;
-    setOpenMenuGroups({ ...defaultMenuGroupState, [label]: true });
+    setOpenMenuGroups({ ...defaultMenuGroupState, [key]: true });
   };
 
-  const toggleMenuGroup = (label: string, parentLabel?: string) => {
+  const toggleMenuGroup = (key: string, parentKey?: string) => {
     setOpenMenuGroups((current) => ({
       ...(isDesktopNav()
-        ? { ...defaultMenuGroupState, ...(parentLabel ? { [parentLabel]: true } : {}) }
+        ? { ...defaultMenuGroupState, ...(parentKey ? { [parentKey]: true } : {}) }
         : current),
-      [label]: !(current[label] ?? false),
+      [key]: !(current[key] ?? false),
     }));
   };
 
@@ -424,7 +435,7 @@ export function AppLayout() {
     if (!sidebarOpen) return;
     const activeUpdates: Record<string, boolean> = {};
     visibleMenuGroups.forEach((group) => {
-      if (groupActive(group)) activeUpdates[group.label] = true;
+      if (groupActive(group)) activeUpdates[group.id] = true;
       group.items.forEach((item) => {
         if (!('to' in item) && itemActive(item)) activeUpdates[item.label] = true;
       });
@@ -476,7 +487,7 @@ export function AppLayout() {
                   aria-expanded={isSubGroupOpen}
                   onClick={(event) => {
                     event.preventDefault();
-                    toggleMenuGroup(item.label, group.label);
+                    toggleMenuGroup(item.label, group.id);
                   }}
                 >
                   <Icon size={16} className="menu-icon" />
@@ -544,25 +555,25 @@ export function AppLayout() {
 
         <nav className="sidebar-nav">
           {visibleMenuGroups.map((group) => {
-            const isGroupOpen = openMenuGroups[group.label] ?? false;
+            const isGroupOpen = openMenuGroups[group.id] ?? false;
             const isActive = groupActive(group);
 
             return (
               <div
                 className={`menu-group ${isActive ? 'active' : ''}`}
-                key={group.label}
-                onMouseEnter={() => openDesktopMenuGroup(group.label)}
+                key={group.id}
+                onMouseEnter={() => openDesktopMenuGroup(group.id)}
               >
                 <button
                   className={`menu-group-title ${isActive ? 'active' : ''}`}
                   type="button"
                   aria-expanded={isGroupOpen}
-                  onClick={() => toggleMenuGroup(group.label)}
+                  onClick={() => toggleMenuGroup(group.id)}
                 >
                   <span>{group.label}</span>
                   <ChevronDown className="menu-group-chevron" size={14} />
                 </button>
-                {group.label === 'Báo Cáo' ? renderReportPanel(group, isGroupOpen) : (
+                {group.id === 'report' ? renderReportPanel(group, isGroupOpen) : (
                 <div className={`menu-panel ${isGroupOpen ? 'open mobile-open' : ''}`}>
                   {group.items.map((item) => {
                     const Icon = item.icon;
@@ -577,7 +588,7 @@ export function AppLayout() {
                             aria-expanded={isSubGroupOpen}
                             onClick={(e) => {
                               e.preventDefault();
-                              toggleMenuGroup(item.label, group.label);
+                              toggleMenuGroup(item.label, group.id);
                             }}
                           >
                             <Icon size={16} className="menu-icon" />

@@ -36,15 +36,15 @@ const CANONICAL_BRANCHES = {
   hanoi: {
     key: 'hanoi',
     name: 'Kho Hà Nội',
-    canonicalCode: 'KHO-HN',
-    legacyCodes: ['HN'],
+    canonicalCode: 'HN',
+    legacyCodes: ['KHO-HN'],
     aliases: ['Kho Hà Nội', 'Hà Nội', 'HN'],
   },
   hcm: {
     key: 'hcm',
     name: 'Kho HCM',
-    canonicalCode: 'KHO-HCM',
-    legacyCodes: ['HCM'],
+    canonicalCode: 'HCM',
+    legacyCodes: ['KHO-HCM'],
     aliases: ['Kho HCM', 'Kho Hồ Chí Minh', 'Hồ Chí Minh', 'HCM', 'TP HCM'],
   },
 } as const;
@@ -243,7 +243,7 @@ async function enrichExistingBranch(existingBranch: any, storeSetting: any) {
   return true;
 }
 
-async function ensureCanonicalBranch(key: CanonicalBranchKey, storeSetting: any, hasDefaultBranch: boolean, warnings: string[]) {
+async function ensureCanonicalBranch(key: CanonicalBranchKey, storeSetting: any, hasDefaultBranch: boolean, warnings: string[], existingBranchCount: number) {
   const meta = CANONICAL_BRANCHES[key];
   const existing = await findMatchingBranchByCanonicalKey(key);
   if (existing) {
@@ -252,6 +252,14 @@ async function ensureCanonicalBranch(key: CanonicalBranchKey, storeSetting: any,
       branch: await Branch.findById(existing._id),
       outcome: 'existing' as const,
     };
+  }
+
+  // Do not auto-create branches when the database already has at least one branch.
+  // This prevents creation of KHO-HN, KHO-HCM, CN001, or "Chi nhánh trung tâm"
+  // from alias text in product, voucher, user, or invoice data.
+  if (existingBranchCount > 0) {
+    warnings.push(`Bỏ qua tạo branch ${meta.name} vì database đã có ${existingBranchCount} branch và không tìm thấy branch khớp mã ${meta.canonicalCode}.`);
+    return { branch: null, outcome: 'skipped' as const };
   }
 
   const conflictingCode = await Branch.findOne({ code: meta.canonicalCode }).lean();
@@ -266,7 +274,7 @@ async function ensureCanonicalBranch(key: CanonicalBranchKey, storeSetting: any,
     address: trim(storeSetting?.address) || undefined,
     phone: normalizePhone(storeSetting?.phone) || undefined,
     isActive: true,
-    isDefault: hasDefaultBranch ? false : undefined,
+    isDefault: key === 'hanoi' ? true : (hasDefaultBranch ? false : undefined),
     invoiceProfile: ensureInvoiceProfile(undefined),
   });
   return { branch: created, outcome: 'created' as const };
@@ -428,13 +436,63 @@ async function backfillUserWarehouseLinks(branchLookup: { branches: any[]; byCod
   return { backfilled, skipped };
 }
 
+async function ensureDefaultBranchInvariant(warnings: string[]) {
+  const defaultBranches = await Branch.find({ isDefault: true }).lean();
+
+  if (defaultBranches.length === 1) {
+    const [defaultBranch] = defaultBranches;
+    if (defaultBranch.isActive === false) {
+      // Default branch must be active
+      await Branch.updateOne({ _id: defaultBranch._id }, { $set: { isActive: true } });
+      warnings.push('Đã tự động kích hoạt lại kho mặc định vì kho mặc định phải luôn hoạt động.');
+    }
+    return;
+  }
+
+  if (defaultBranches.length > 1) {
+    // Multiple defaults — keep the first (by code HN priority) and unset others
+    const hanoiDefault = defaultBranches.find((b) => b.code === 'HN');
+    const keepId = hanoiDefault ? hanoiDefault._id : defaultBranches[0]._id;
+    await Branch.updateMany({ isDefault: true, _id: { $ne: keepId } }, { $set: { isDefault: false } });
+    warnings.push(`Đã bỏ isDefault dư cho ${defaultBranches.length - 1} branch. Giữ lại branch ${keepId}.`);
+    const keepBranch = await Branch.findById(keepId);
+    if (keepBranch && keepBranch.isActive === false) {
+      keepBranch.isActive = true;
+      await keepBranch.save();
+    }
+    return;
+  }
+
+  // No default branch — promote HN if exists, else first active branch
+  const hanoi = await Branch.findOne({ code: 'HN', isActive: { $ne: false } }).lean();
+  if (hanoi) {
+    await Branch.updateOne({ _id: hanoi._id }, { $set: { isDefault: true } });
+    warnings.push('Đã tự động đặt Kho Hà Nội làm kho mặc định vì không có kho mặc định nào.');
+    return;
+  }
+
+  const firstActive = await Branch.findOne({ isActive: { $ne: false } }).lean();
+  if (firstActive) {
+    await Branch.updateOne({ _id: firstActive._id }, { $set: { isDefault: true } });
+    warnings.push(`Đã tự động đặt kho ${firstActive.name} (${firstActive.code}) làm kho mặc định vì không tìm thấy kho Hà Nội.`);
+    return;
+  }
+
+  warnings.push('Không có kho hoạt động nào để đặt làm kho mặc định.');
+}
+
 export async function runBranchDataMigration() {
   const storeSetting = await StoreSetting.findOne({ singletonKey: 'store' }).lean();
   const warnings: string[] = [];
   const currentDefault = await Branch.findOne({ isDefault: true }).lean();
-  const hanoi = await ensureCanonicalBranch('hanoi', storeSetting, Boolean(currentDefault), warnings);
+  const existingBranchCount = await Branch.countDocuments({});
+  const hanoi = await ensureCanonicalBranch('hanoi', storeSetting, Boolean(currentDefault), warnings, existingBranchCount);
   const hasDefaultAfterHanoi = Boolean(currentDefault || hanoi.branch?.isDefault);
-  const hcm = await ensureCanonicalBranch('hcm', storeSetting, hasDefaultAfterHanoi, warnings);
+  const hcm = await ensureCanonicalBranch('hcm', storeSetting, hasDefaultAfterHanoi, warnings, existingBranchCount);
+
+  // Default branch invariant: ensure exactly one active default branch
+  await ensureDefaultBranchInvariant(warnings);
+
   const branchLookup = await ensureBranchMap();
 
   const productBranchStocksBackfilled = await backfillProductStocks(branchLookup, warnings);
@@ -515,6 +573,31 @@ export async function runBranchDataMigration() {
   });
 
   return summary;
+}
+
+export async function hasMigrationCompletedRecently() {
+  // Safety check: if critical invariants are broken, always re-run migration
+  const hnExists = await Branch.findOne({ code: 'HN' });
+  if (!hnExists) return false;
+
+  const hasDefault = await Branch.findOne({ isDefault: true });
+  if (!hasDefault) return false;
+
+  const { AuditLog } = await import('../audit/audit.model.js');
+  const recent = await AuditLog.findOne({
+    action: 'branch.migration_backfill',
+    module: 'branch',
+  }).sort({ createdAt: -1 }).lean();
+  if (!recent) return false;
+
+  // If the most recent migration had no new branch creation and no document backfills,
+  // the system is stable — skip to prevent audit spam on restart.
+  const summary = (recent.metadata || {}) as MigrationSummary;
+  const createdAny = summary.branches?.hanoi?.outcome === 'created' || summary.branches?.hcm?.outcome === 'created';
+  if (createdAny) return false;
+  const hasDocBackfills = (summary.documentsBackfilled ?? 0) > 0 || (summary.productBranchStocksBackfilled ?? 0) > 0;
+  if (hasDocBackfills) return false;
+  return true;
 }
 
 export async function resolveBranchReference(input: { branchId?: unknown; warehouse?: unknown; warehouseCode?: unknown; allowInactive?: boolean }) {
@@ -711,7 +794,7 @@ export async function toggleBranchActiveRecord(req: any, branchId: string, nextA
   }
 
   if (!nextActive && branch.isDefault) {
-    const alternative = await activeDefaultBranch(branchId);
+    const alternative = await Branch.findOne({ isDefault: false, isActive: { $ne: false }, _id: { $ne: branchId } });
     if (!alternative) {
       const error: any = new Error('Không thể ngừng hoạt động kho mặc định khi chưa có kho mặc định hoạt động khác.');
       error.status = 409;

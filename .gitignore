@@ -40,6 +40,9 @@ temp/
 # Coverage
 coverage/
 
+# E2E cleanup backups (contain DB snapshots, must stay outside repo)
+_e2e_cleanup_backups/
+
 # Cache
 .cache/
 .parcel-cache/
