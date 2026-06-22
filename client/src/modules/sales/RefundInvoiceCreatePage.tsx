@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -27,6 +27,30 @@ import {
   CalendarRange
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { buildInvoiceProfile, getBranch } from '../../core/api/branch.api';
+import { buildReceiptHtml, receiptMoney, writeAndPrintPopup } from './invoicePrint';
+
+const PRINT_WINDOW_FEATURES = 'popup=yes,width=420,height=720';
+
+function openRefundReceiptWindow() {
+  return window.open('about:blank', 'refund-invoice-print', PRINT_WINDOW_FEATURES);
+}
+
+function branchIdFromValue(value: any) {
+  return typeof value === 'string' ? value : value?._id || '';
+}
+
+async function resolveRefundBranchForReceipt(source: any, fallbackBranch: any, fallbackBranchId?: string | null) {
+  const resolvedBranchId = branchIdFromValue(source?.branchId || source?.warehouseId) || branchIdFromValue(fallbackBranch) || fallbackBranchId || '';
+  if (resolvedBranchId) {
+    try {
+      return await getBranch(resolvedBranchId, { includeInactive: true });
+    } catch {
+      return fallbackBranch || null;
+    }
+  }
+  return fallbackBranch || null;
+}
 
 interface RefundProduct {
   _id?: string;
@@ -529,6 +553,11 @@ export function RefundInvoiceCreatePage() {
     }
 
     setErrorMessage('');
+    const printPopup = form.autoPrint ? openRefundReceiptWindow() : null;
+    if (form.autoPrint && !printPopup) {
+      window.alert('Trình duyệt đang chặn cửa sổ in hóa đơn. Hãy cho phép pop-up và thử lại.');
+      return;
+    }
     setIsSaving(true);
 
     try {
@@ -577,7 +606,7 @@ export function RefundInvoiceCreatePage() {
       const paymentLines = paymentEntries.map((entry) => ({ methodId: entry.methodId, amount: entry.amount }));
       const amountDelta = Number(form.totalAmount) || 0;
 
-      await http.post(`/products/sales/${saleId}/return-exchange`, {
+      const exchangeResponse = await http.post(`/products/sales/${saleId}/return-exchange`, {
         code: form.id,
         note: [form.description, form.newDescription].filter(Boolean).join('\n'),
         returnedItems,
@@ -587,10 +616,49 @@ export function RefundInvoiceCreatePage() {
       });
 
       setSuccessMessage('Hoa don doi tra hang da duoc tao va luu thanh cong!');
+      if (form.autoPrint && printPopup) {
+        const receiptBranch = await resolveRefundBranchForReceipt(exchangeResponse.data?.sale || exchangeResponse.data?.replacementSale || exchangeResponse.data, branch, resolvedBranchId || branchId);
+        const profile = buildInvoiceProfile(receiptBranch || undefined);
+        const customerText = `${form.customerName || 'Khách lẻ'}${form.customerPhone ? ` (${form.customerPhone})` : ''}`;
+        const amountDelta = Number(form.totalAmount) || 0;
+        const html = buildReceiptHtml({
+          profile,
+          title: 'HÓA ĐƠN ĐỔI TRẢ HÀNG',
+          date: new Date().toLocaleDateString('vi-VN'),
+          customer: customerText,
+          sections: [
+            {
+              title: `Sản phẩm trả (HĐ: ${form.paymentId || saleId || '—'})`,
+              lines: products.map((product) => ({
+                name: [product.code, product.name].filter(Boolean).join(' - '),
+                quantity: product.qty,
+                price: receiptMoney(product.price),
+                total: receiptMoney(product.total),
+              })),
+            },
+            {
+              title: `Sản phẩm mua (HĐ: ${form.id})`,
+              lines: newProducts.map((product) => ({
+                name: [product.code, product.name].filter(Boolean).join(' - '),
+                quantity: product.qty,
+                price: receiptMoney(product.price),
+                total: receiptMoney(product.total),
+              })),
+            },
+          ],
+          summary: [
+            { label: 'Chiết khấu', value: receiptMoney(form.discount) },
+            { label: 'Tổng', value: receiptMoney(Math.abs(amountDelta)), strong: true },
+            { label: amountDelta < 0 ? 'Khách cần thanh toán thêm' : 'Tiền trả khách hàng', value: receiptMoney(Math.abs(amountDelta)), strong: true },
+          ],
+        });
+        writeAndPrintPopup(printPopup, html);
+      }
       setTimeout(() => {
         navigate(`/sales-channels/${channel}/refund`);
       }, 1200);
     } catch (err: any) {
+      printPopup?.close();
       console.error(err);
       setErrorMessage(err.response?.data?.message ?? err.message ?? 'Loi khi luu hoa don doi tra hang.');
       setIsSaving(false);

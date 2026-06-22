@@ -70,6 +70,7 @@ export function RetailInvoiceCreatePage() {
   const [loadedSale, setLoadedSale] = useState<any>(null);
   const [products, setProducts] = useState<SaleLine[]>([]);
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([]);
+  const [tenderedValue, setTenderedValue] = useState(0);
   const [productSearch, setProductSearch] = useState('');
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -182,8 +183,10 @@ export function RetailInvoiceCreatePage() {
               ? existingPayments
               : [createPaymentLine(methods[0]?._id || '', Number(sale.valuePayment || sale.value) || 0)],
           );
+          setTenderedValue(Number(sale.tenderedValue ?? sale.valuePayment ?? sale.value) || 0);
         } else {
           setPaymentLines([createPaymentLine(methods[0]?._id || '', 0)]);
+          setTenderedValue(0);
         }
       } catch (err: any) {
         if (!cancelled) setErrorMessage(err.response?.data?.message || err.message || 'Không tải được dữ liệu tạo hóa đơn.');
@@ -211,6 +214,7 @@ export function RetailInvoiceCreatePage() {
   const totalAmount = Math.max(0, Math.round(subtotal - discountAmount));
   const paidAmount = paymentLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
   const remainingAmount = totalAmount - paidAmount;
+  const changeAmount = Math.max(0, tenderedValue - totalAmount);
   const editBlockedReason = useMemo(() => {
     if (!editId || !loadedSale) return '';
     const status = String(loadedSale.status || '').toLowerCase();
@@ -230,6 +234,7 @@ export function RetailInvoiceCreatePage() {
       if (current[0].amount === totalAmount) return current;
       return [{ ...current[0], amount: totalAmount }];
     });
+    setTenderedValue((current) => (current <= 0 || current < totalAmount ? totalAmount : current));
   }, [totalAmount]);
 
   const filteredProducts = useMemo(() => {
@@ -373,6 +378,10 @@ export function RetailInvoiceCreatePage() {
       );
     }
 
+    if (tenderedValue + 1 < paidAmount) {
+      return setErrorMessage('Tiền khách trả không được nhỏ hơn số tiền đã thanh toán.');
+    }
+
     setIsSaving(true);
     try {
       let customerId: string | null = null;
@@ -417,6 +426,7 @@ export function RetailInvoiceCreatePage() {
         discountValue: discountAmount,
         discountType: 'number',
         valuePayment: paidAmount,
+        tenderedValue: Math.max(tenderedValue, paidAmount),
         typePayment: paymentLines.map((line) => ({ methodId: line.methodId, amount: line.amount })),
         status: loadedSale?.status || 'draft',
         items: products.map((line) => ({
@@ -672,10 +682,27 @@ export function RetailInvoiceCreatePage() {
               ))}
             </div>
 
+            <label className="note-field">
+              <span>Tiền khách trả</span>
+              <input
+                aria-label="Tiền khách trả"
+                type="number"
+                min={0}
+                value={tenderedValue || ''}
+                onChange={(event) => setTenderedValue(Number(event.target.value) || 0)}
+              />
+            </label>
+
             <div className={`payment-balance ${Math.abs(remainingAmount) <= 1 ? 'balanced' : 'unbalanced'}`}>
               <span>{remainingAmount >= 0 ? 'Còn phải thanh toán' : 'Thanh toán vượt'}</span>
               <strong>{formatMoney(Math.abs(remainingAmount))} đ</strong>
             </div>
+            {changeAmount > 0 ? (
+              <div className="payment-balance balanced">
+                <span>Tiền trả lại</span>
+                <strong>{formatMoney(changeAmount)} đ</strong>
+              </div>
+            ) : null}
 
             <label className="note-field">
               <span>Ghi chú hóa đơn</span>

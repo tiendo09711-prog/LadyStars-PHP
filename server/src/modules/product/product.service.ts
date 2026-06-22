@@ -266,6 +266,10 @@ export async function buildSalePaymentPayload(payload: any, options: BuildSaleOp
     ? paymentLineTotal
     : toNumber(payload.valuePayment);
   const valuePayment = Math.min(Math.max(rawValuePayment, 0), value);
+  const rawTenderedValue = payload.tenderedValue === undefined || payload.tenderedValue === null
+    ? valuePayment
+    : toNumber(payload.tenderedValue);
+  const tenderedValue = Math.max(rawTenderedValue, valuePayment);
 
   if (Math.abs(paymentLineTotal - valuePayment) > MONEY_TOLERANCE) {
     throw new ProductFlowError('Payment method amounts must equal the paid amount');
@@ -284,6 +288,7 @@ export async function buildSalePaymentPayload(payload: any, options: BuildSaleOp
     settlementValue,
     value,
     valuePayment,
+    tenderedValue,
     typePayment,
   };
 }
