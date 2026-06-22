@@ -314,8 +314,8 @@ async function ensureAdmin() {
 
 async function importBranches(adminId: mongoose.Types.ObjectId) {
   const branches = await Branch.insertMany([
-    { name: 'Kho Hà Nội', code: 'HN', isDefault: true, isActive: true },
-    { name: 'Kho HCM', code: 'HCM', isDefault: false, isActive: true },
+    { name: 'Kho Hà Nội', code: 'HN', isActive: true },
+    { name: 'Kho HCM', code: 'HCM', isActive: true },
   ]);
   await User.updateMany({}, { $set: { branchId: branches[0]._id, isActive: true } });
   count('branches', branches.length);

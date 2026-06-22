@@ -28,7 +28,6 @@ type Option = {
   value: string;
   label: string;
   code?: string;
-  isDefault?: boolean;
 };
 
 type AuditSummary = {

@@ -85,6 +85,8 @@ export function RefundInvoiceCreatePage() {
 
   const [branch, setBranch] = useState<any>(null);
   const [resolvedBranchId, setResolvedBranchId] = useState(branchId || '');
+  const [branchOptions, setBranchOptions] = useState<any[]>([]);
+  const [sourceSaleHasBranch, setSourceSaleHasBranch] = useState(Boolean(branchId));
   const [loadingBranch, setLoadingBranch] = useState(false);
   const [saleGuardMessage, setSaleGuardMessage] = useState('');
 
@@ -167,6 +169,13 @@ export function RefundInvoiceCreatePage() {
 
   // Fetch branch details
   useEffect(() => {
+    http.get('/system/branches')
+      .then((res) => setBranchOptions((res.data?.items || []).filter((item: any) => item.isActive !== false)))
+      .catch(() => setBranchOptions([]));
+  }, []);
+
+  // Fetch branch details
+  useEffect(() => {
     if (resolvedBranchId) {
       setLoadingBranch(true);
       http.get(`/system/branches/${resolvedBranchId}`)
@@ -192,7 +201,9 @@ export function RefundInvoiceCreatePage() {
       http.get(`/products/sales/${saleId}`)
         .then(res => {
           const sale = res.data;
-          const resolvedBranchId = sale.branchId?._id || sale.branchId || branchId || '';
+          const saleBranchId = sale.branchId?._id || sale.branchId || '';
+          const resolvedBranchId = saleBranchId || branchId || '';
+          setSourceSaleHasBranch(Boolean(saleBranchId || branchId));
           setResolvedBranchId(resolvedBranchId);
           const saleStatus = String(sale.status || '').toLowerCase();
           const refundStatus = String(sale.refundStatus || 'none').toLowerCase();
@@ -605,9 +616,13 @@ export function RefundInvoiceCreatePage() {
       }
       const paymentLines = paymentEntries.map((entry) => ({ methodId: entry.methodId, amount: entry.amount }));
       const amountDelta = Number(form.totalAmount) || 0;
+      if (!resolvedBranchId) {
+        throw new Error('Vui lòng chọn Kho thực hiện trước khi lưu phiếu đổi trả.');
+      }
 
       const exchangeResponse = await http.post(`/products/sales/${saleId}/return-exchange`, {
         code: form.id,
+        branchId: resolvedBranchId,
         note: [form.description, form.newDescription].filter(Boolean).join('\n'),
         returnedItems,
         replacementItems,
@@ -732,7 +747,7 @@ export function RefundInvoiceCreatePage() {
           <button 
             type="button"
             id="save-invoice-btn"
-            disabled={isSaving || Boolean(saleGuardMessage) || !saleId}
+            disabled={isSaving || Boolean(saleGuardMessage) || !saleId || !resolvedBranchId}
             onClick={handleSave}
             style={{ 
               borderRadius: '10px', 
@@ -746,8 +761,8 @@ export function RefundInvoiceCreatePage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              cursor: isSaving || saleGuardMessage || !saleId ? 'not-allowed' : 'pointer',
-              opacity: isSaving || saleGuardMessage || !saleId ? 0.7 : 1
+              cursor: isSaving || saleGuardMessage || !saleId || !resolvedBranchId ? 'not-allowed' : 'pointer',
+              opacity: isSaving || saleGuardMessage || !saleId || !resolvedBranchId ? 0.7 : 1
             }}
           >
             <Save size={16} />
@@ -782,6 +797,26 @@ export function RefundInvoiceCreatePage() {
         
         {/* Left Column - Products, Staff & Notes */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '18px 20px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+              Kho thực hiện *
+              <select
+                value={resolvedBranchId}
+                onChange={(event) => {
+                  setResolvedBranchId(event.target.value);
+                  setProducts([]);
+                  setNewProducts([]);
+                  setErrorMessage('');
+                }}
+                disabled={sourceSaleHasBranch}
+                required
+                style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#1e293b', background: '#ffffff' }}
+              >
+                <option value="">— Chọn kho thực hiện —</option>
+                {branchOptions.map((item) => <option key={item._id} value={item._id}>{item.name}{item.code ? ` (${item.code})` : ''}</option>)}
+              </select>
+            </label>
+          </div>
           
           {/* Products & Search Box */}
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>

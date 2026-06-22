@@ -116,7 +116,6 @@ async function load() {
     code: 'HN',
     phone: '0900000000',
     address: 'LadyStars Store HN',
-    isDefault: true,
     isActive: true,
   });
 
@@ -149,7 +148,6 @@ async function load() {
     name: 'Bán tại cửa hàng',
     description: 'Kênh bán mặc định tại cửa hàng',
     sortOrder: 1,
-    isDefault: true,
     isActive: true,
   });
 

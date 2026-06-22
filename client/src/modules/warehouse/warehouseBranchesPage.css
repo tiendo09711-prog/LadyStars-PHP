@@ -144,11 +144,6 @@
   flex-wrap: wrap;
 }
 
-.status-badge.default {
-  background: #fff7ed;
-  color: #b45309;
-}
-
 .status-badge.active {
   background: #ecfdf5;
   color: #047857;

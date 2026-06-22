@@ -22,7 +22,6 @@ type Branch = {
   _id: string;
   name: string;
   code?: string;
-  isDefault?: boolean;
   isActive?: boolean;
 };
 
@@ -131,8 +130,6 @@ export function VoucherImportPage() {
         if (!mounted) return;
         const branches: Branch[] = (res.data?.items || []).filter((branch: Branch) => branch.isActive !== false);
         setSysBranches(branches);
-        const defaultBranch = branches.find(branch => branch.isDefault) || branches[0];
-        setBranchId(defaultBranch?._id || '');
         if (!branches.length) setError('Không tìm thấy kho hàng nào. Vui lòng tạo kho hàng trước khi nhập kho.');
       })
       .catch(() => {
@@ -366,7 +363,7 @@ export function VoucherImportPage() {
           <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transactions')}>
             <ArrowLeft size={16} /> Quay lại
           </button>
-          <button className="btn btn-primary" type="button" onClick={handleSave}>
+          <button className="btn btn-primary" type="button" onClick={handleSave} disabled={!branchId}>
             Lưu phiếu nhập
           </button>
         </div>
@@ -388,10 +385,11 @@ export function VoucherImportPage() {
 
           <div className="form-grid">
             <label className="form-field">
-              <span>Kho hàng *</span>
+              <span>Kho th?c hi?n *</span>
               <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={loadingBranches || !sysBranches.length}>
                 {loadingBranches && <option value="">Đang tải kho hàng...</option>}
                 {!loadingBranches && !sysBranches.length && <option value="">Không có kho hàng</option>}
+                {!loadingBranches && sysBranches.length > 0 && <option value="">-- Ch?n kho th?c hi?n --</option>}
                 {sysBranches.map(branch => (
                   <option key={branch._id} value={branch._id}>
                     {branch.name}{branch.code ? ` (${branch.code})` : ''}
@@ -754,7 +752,7 @@ export function VoucherImportPage() {
               <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transactions')}>
                 Hủy bỏ
               </button>
-              <button className="btn btn-primary" type="submit">
+              <button className="btn btn-primary" type="submit" disabled={!branchId}>
                 Lưu & Hoàn tất
               </button>
             </div>

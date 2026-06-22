@@ -1,9 +1,10 @@
-import { defineConfig, devices } from '@playwright/test';
+﻿import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from root
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+const repoRoot = path.basename(process.cwd()) === 'e2e' ? path.resolve(process.cwd(), '..') : process.cwd();
+dotenv.config({ path: path.resolve(repoRoot, '.env') });
+dotenv.config({ path: path.resolve(repoRoot, '.env.e2e.local'), override: false });
 
 const baseURL = process.env.E2E_BASE_URL || 'http://localhost:5173';
 

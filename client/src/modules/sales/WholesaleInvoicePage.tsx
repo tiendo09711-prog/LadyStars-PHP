@@ -24,10 +24,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
         .then((res) => {
           const list = res.data.items ?? [];
           setBranches(list);
-          if (list.length > 0) {
-            const defaultBranch = list.find((b: any) => b.isDefault) || list[0];
-            setSelectedBranchId(defaultBranch._id);
-          } else {
+          if (!list.length) {
             setBranchError('Không tìm thấy kho hàng nào. Vui lòng tạo kho hàng trước.');
           }
         })
@@ -253,11 +250,6 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                             <span style={{ background: isSelected ? 'rgba(124, 58, 237, 0.2)' : 'rgba(255, 255, 255, 0.08)', color: isSelected ? '#ddd6fe' : '#94a3b8', fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
                               {branch.code}
                             </span>
-                            {branch.isDefault && (
-                              <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontSize: '11px', padding: '2px 8px', borderRadius: '4px' }}>
-                                Mặc định
-                              </span>
-                            )}
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {branch.address && (

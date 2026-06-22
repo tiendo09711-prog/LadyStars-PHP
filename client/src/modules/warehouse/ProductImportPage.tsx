@@ -7,7 +7,6 @@ type Branch = {
   _id: string;
   name: string;
   code?: string;
-  isDefault?: boolean;
   isActive?: boolean;
 };
 
@@ -120,14 +119,6 @@ export function ProductImportPage() {
     http.get('/system/branches').then(res => {
       const branches = res.data.items || [];
       setSysBranches(branches);
-      const defaultBranch = branches.find((b: any) => b.isDefault && b.isActive !== false);
-      if (defaultBranch) {
-        setWarehouse(defaultBranch.name);
-        setSelectedBranch(defaultBranch);
-      } else if (branches.length > 0) {
-        setWarehouse(branches[0].name);
-        setSelectedBranch(branches[0]);
-      }
     }).catch(() => {});
   }, []);
 
@@ -275,6 +266,10 @@ export function ProductImportPage() {
     setSuccessMsg('');
 
     const validLines = lines.filter(l => l.productId && Number(l.quantity) > 0);
+    if (!selectedBranch || !warehouse) {
+      setError('Vui lòng chọn Kho thực hiện trước khi tạo phiếu nhập kho.');
+      return;
+    }
     if (validLines.length === 0) {
       setError('Phiếu nhập kho phải có ít nhất một sản phẩm với số lượng lớn hơn 0.');
       return;
@@ -360,7 +355,7 @@ export function ProductImportPage() {
           <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transactions')}>
             <ArrowLeft size={16} /> Quay lại
           </button>
-          <button className="btn btn-primary" type="button" onClick={handleSave}>
+          <button className="btn btn-primary" type="button" onClick={handleSave} disabled={!selectedBranch}>
             Lưu phiếu nhập
           </button>
         </div>
@@ -382,12 +377,13 @@ export function ProductImportPage() {
 
           <div className="form-grid">
             <label className="form-field">
-              <span>Kho hàng *</span>
+              <span>Kho thực hiện *</span>
               <select value={warehouse} onChange={(e) => {
                 setWarehouse(e.target.value);
                 const branch = sysBranches.find(b => b.name === e.target.value) || null;
                 setSelectedBranch(branch);
               }}>
+                <option value="">-- Chọn kho thực hiện --</option>
                 {sysBranches.filter(b => b.isActive !== false).map(b => (
                   <option key={b._id} value={b.name}>{b.name}</option>
                 ))}
@@ -747,7 +743,7 @@ export function ProductImportPage() {
               <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transactions')}>
                 Hủy bỏ
               </button>
-              <button className="btn btn-primary" type="submit">
+              <button className="btn btn-primary" type="submit" disabled={!selectedBranch}>
                 Lưu & Hoàn tất
               </button>
             </div>

@@ -57,7 +57,6 @@ const BranchSchema = new Schema({
     },
   },
   address: { type: String, trim: true, set: trimString },
-  isDefault: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
   invoiceProfile: { type: InvoiceProfileSchema, default: () => ({}) },
 }, { timestamps: true });

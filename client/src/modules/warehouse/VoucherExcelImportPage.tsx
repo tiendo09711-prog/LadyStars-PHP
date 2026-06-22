@@ -4,7 +4,7 @@ import { FileUp, ArrowLeft, Download, FileSpreadsheet, CheckCircle2, Trash2 } fr
 import * as XLSX from 'xlsx';
 import { http } from '../../core/api/http';
 
-type Branch = { _id: string; name: string; code?: string; isDefault?: boolean; isActive?: boolean };
+type Branch = { _id: string; name: string; code?: string; isActive?: boolean };
 
 const IMPORT_TYPES = [
   { value: 'Nhập mua', label: 'Nhập mua (Từ NCC)' },
@@ -38,8 +38,7 @@ export function VoucherExcelImportPage() {
         if (!mounted) return;
         const list: Branch[] = (res.data?.items || []).filter((branch: Branch) => branch.isActive !== false);
         setBranches(list);
-        const defaultBranch = list.find((branch) => branch.isDefault) || list[0];
-        setSelectedBranchId(defaultBranch?._id || '');
+        // Admin phải chọn kho rõ ràng trước khi import.
         if (!list.length) setError('Không tìm thấy kho hàng nào. Vui lòng tạo kho hàng trước khi import Excel.');
       })
       .catch(() => { if (mounted) setError('Lỗi tải danh sách kho hàng. Vui lòng kiểm tra kết nối.'); })
@@ -86,7 +85,7 @@ export function VoucherExcelImportPage() {
     setError('');
     setSuccess('');
     if (!selectedFile) return setError('Vui lòng tải lên file Excel dữ liệu.');
-    if (!selectedBranchId || !selectedBranch) return setError('Vui lòng chọn kho hàng hợp lệ.');
+    if (!selectedBranchId || !selectedBranch) return setError('Vui lòng chọn kho thực hiện trước khi nhập dữ liệu.');
 
     try {
       setImporting(true);
@@ -139,7 +138,7 @@ export function VoucherExcelImportPage() {
           <h2 style={{ fontSize: '16px', margin: '0 0 10px', fontWeight: 800 }}>Thiết lập thông số import</h2>
           <label className="form-field"><span>Kiểu *</span><select value="import" disabled><option value="import">Nhập kho (Import)</option></select></label>
           <label className="form-field"><span>Loại nhập kho *</span><select value={voucherType} onChange={(e) => setVoucherType(e.target.value)}>{IMPORT_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label className="form-field"><span>Kho hàng *</span><select value={selectedBranchId} onChange={(e) => setSelectedBranchId(e.target.value)} disabled={loadingBranches || !branches.length}>{loadingBranches && <option value="">Đang tải kho hàng...</option>}{!loadingBranches && !branches.length && <option value="">Không có kho hàng</option>}{branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>)}</select></label>
+          <label className="form-field"><span>Kho thực hiện *</span><select value={selectedBranchId} onChange={(e) => setSelectedBranchId(e.target.value)} disabled={loadingBranches || !branches.length}>{loadingBranches && <option value="">Đang tải kho hàng...</option>}{!loadingBranches && !branches.length && <option value="">Không có kho hàng</option>}{!loadingBranches && branches.length > 0 && <option value="">-- Chọn kho thực hiện --</option>}{branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>)}</select></label>
           <label className="form-field"><span>Ghi chú</span><textarea rows={3} value={note} placeholder="Ghi chú cho phiếu nhập Excel này" onChange={(e) => setNote(e.target.value)} /></label>
           {error && <div className="form-error" style={{ margin: '8px 0 0', whiteSpace: 'pre-line' }}>{error}</div>}
           {success && <div className="status-badge success" style={{ margin: '8px 0 0', display: 'block', padding: '10px' }}>{success}</div>}

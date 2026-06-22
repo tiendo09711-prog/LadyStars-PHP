@@ -64,7 +64,7 @@ export async function bootstrapSystem() {
   // Anti-spam: skip full migration if the most recent run already completed
   // successfully with no new branches created and no document backfills.
   // This prevents audit log spam on every server restart while preserving
-  // the ability to repair when DB is empty, missing a default branch,
+  // the ability to repair when DB is empty or has legacy documents needing backfill,
   // or has legacy documents still needing backfill.
   const migrationRecentlyDone = await hasMigrationCompletedRecently();
   if (migrationRecentlyDone) {

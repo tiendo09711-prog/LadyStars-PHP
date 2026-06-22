@@ -47,7 +47,6 @@ type Branch = {
   code?: string;
   address?: string;
   phone?: string;
-  isDefault?: boolean;
   invoiceProfile?: {
     displayName?: string;
     footerText?: string;
@@ -261,8 +260,6 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       const response = await http.get('/system/branches', { params: { limit: 5000 } });
       const items = Array.isArray(response.data) ? response.data : response.data.items ?? [];
       setBranches(items);
-      const defaultBranch = items.find((branch: Branch) => branch.isDefault) || items[0];
-      setSelectedBranchId((current) => current || defaultBranch?._id || '');
       if (items.length === 0) setBranchError('Chưa có cửa hàng/kho hàng để tạo hóa đơn.');
     } catch (err: any) {
       setBranchError(err.response?.data?.message || 'Không tải được danh sách cửa hàng/kho hàng.');

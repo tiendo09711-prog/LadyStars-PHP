@@ -18,7 +18,6 @@ export type BranchRecord = {
   code: string;
   address?: string;
   phone?: string;
-  isDefault?: boolean;
   isActive?: boolean;
   invoiceProfile?: BranchInvoiceProfile;
   createdAt?: string;
@@ -35,7 +34,6 @@ export type BranchListResponse = {
 export type BranchUsageSummary = {
   branchId: string;
   branchName: string;
-  isDefault: boolean;
   isActive: boolean;
   totalLinked: number;
   links: Record<string, number>;
@@ -75,8 +73,8 @@ export async function listBranches(params?: Record<string, unknown>) {
   return response.data;
 }
 
-export async function getBranch(branchId: string, params?: Record<string, unknown>) {
-  const response = await http.get<BranchRecord>(`/system/branches/${branchId}`, { params });
+export async function getBranch(branchId: string, params?: Record<string, unknown>, signal?: AbortSignal) {
+  const response = await http.get<BranchRecord>(`/system/branches/${branchId}`, { params, signal });
   return response.data;
 }
 
@@ -108,10 +106,6 @@ export async function updateBranch(branchId: string, payload: {
   return response.data;
 }
 
-export async function setDefaultBranch(branchId: string, adminPassword: string) {
-  const response = await http.post<BranchRecord>(`/system/branches/${branchId}/set-default`, { adminPassword });
-  return response.data;
-}
 
 export async function activateBranch(branchId: string, adminPassword: string) {
   const response = await http.post<BranchRecord>(`/system/branches/${branchId}/activate`, { adminPassword });

@@ -683,6 +683,14 @@ export async function createReturnExchange(saleId: string, payload: any) {
         throw new ProductFlowError('Only completed sales can be returned or exchanged');
       }
 
+      // Phase 3B-1: chứng từ mới phải có kho rõ ràng. Hóa đơn gốc có branch thì khóa theo branch gốc;
+      // hóa đơn legacy thiếu branch thì dùng branch admin chọn explicit, không fallback isDefault.
+      const explicitBranchId = String(payload.branchId || '').trim();
+      const documentBranchId = sale.branchId || (explicitBranchId ? new mongoose.Types.ObjectId(explicitBranchId) : null);
+      if (!documentBranchId) {
+        throw new ProductFlowError('Vui lòng chọn kho thực hiện cho phiếu đổi trả.', 400);
+      }
+
       const completedRefunds = await completedRefundsForSale(sale._id, session);
       const refundedByProduct = new Map<string, number>();
       for (const completedRefund of completedRefunds) {
@@ -742,7 +750,7 @@ export async function createReturnExchange(saleId: string, payload: any) {
       if (Array.isArray(payload.replacementItems) && payload.replacementItems.length > 0) {
         const returnedAllowanceByProduct = groupQuantitiesByProduct(returnedItems as any[]);
         replacementPayload = await buildSalePaymentPayload({
-          branchId: sale.branchId,
+          branchId: documentBranchId,
           customerId: sale.customerId,
           saleChannelId: sale.saleChannelId,
           note: payload.note || '',
@@ -798,7 +806,7 @@ export async function createReturnExchange(saleId: string, payload: any) {
       for (const [productId, quantity] of groupQuantitiesByProduct(returnedItems as any[]).entries()) {
         await moveProductQty({
           productId,
-          branchId: sale.branchId,
+          branchId: documentBranchId,
           sourceType: 'ProductRefund',
           sourceId: createdRefund._id,
           amount: quantity,
