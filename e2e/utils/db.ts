@@ -9,8 +9,17 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const API_BASE = 'http://localhost:4000/api';
 
-const DB_NAME = process.env.E2E_MONGO_DB_NAME || process.env.MONGO_DB_NAME || 'ladystars';
-const MONGO_URI = process.env.E2E_MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/ladystars';
+const MONGO_URI = process.env.E2E_MONGO_URI;
+const DB_NAME = process.env.E2E_MONGO_DB_NAME || getDatabaseName(MONGO_URI);
+
+function getDatabaseName(uri?: string) {
+  if (!uri) return '';
+  try {
+    return new URL(uri).pathname.replace(/^\//, '');
+  } catch {
+    return uri.replace(/\?.*$/, '').split('/').filter(Boolean).pop() || '';
+  }
+}
 
 function validateE2EDatabaseSafety() {
   const e2eUri = process.env.E2E_MONGO_URI;
@@ -114,6 +123,7 @@ function withDatabaseName(uri: string, dbName: string) {
 
 export async function connectDB() {
   if (!client) {
+    if (!MONGO_URI) throw new Error('[E2E SAFETY] E2E_MONGO_URI is required.');
     client = new MongoClient(MONGO_URI);
     await client.connect();
   }
@@ -409,7 +419,7 @@ export async function updateStoreSetting(patch: Record<string, unknown>) {
 
 export async function runIsolatedBranchMigrationCheck(prefix: string) {
   const isolatedDbName = `lsbm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-  const isolatedMongoUri = withDatabaseName(MONGO_URI, isolatedDbName);
+  const isolatedMongoUri = withDatabaseName(MONGO_URI as string, isolatedDbName);
   const script = `
     import { MongoClient, ObjectId } from 'mongodb';
     import mongoose from 'mongoose';

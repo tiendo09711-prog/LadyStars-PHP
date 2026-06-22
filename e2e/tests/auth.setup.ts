@@ -7,20 +7,17 @@ const authFile = path.join(__dirname, '../playwright/.auth/user.json');
 setup('authenticate', async ({ page }) => {
   fs.mkdirSync(path.dirname(authFile), { recursive: true });
 
-  const candidates = [
-    { email: 'admin@gmail.com', password: '123456' },
-    { email: 'admin@myerp.local', password: '123456789' },
-  ];
-
-  let token = '';
-  for (const candidate of candidates) {
-    const response = await page.request.post('http://localhost:4000/api/auth/login', {
-      data: candidate,
-    });
-    if (!response.ok()) continue;
-    token = (await response.json()).token || '';
-    if (token) break;
+  const email = process.env.E2E_AUTH_EMAIL;
+  const password = process.env.E2E_AUTH_PASSWORD;
+  if (!email || !password) throw new Error('E2E_AUTH_EMAIL and E2E_AUTH_PASSWORD are required.');
+  if (!/\.test$|[+._-]e2e|e2e[+._-]|test/i.test(email)) {
+    throw new Error('E2E_AUTH_EMAIL must be an isolated .test or E2E-marked account.');
   }
+
+  const response = await page.request.post('http://localhost:4000/api/auth/login', {
+    data: { email, password },
+  });
+  const token = response.ok() ? (await response.json()).token || '' : '';
 
   expect(token).toBeTruthy();
   await page.addInitScript((value) => {

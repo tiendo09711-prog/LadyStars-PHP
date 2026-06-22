@@ -1,6 +1,6 @@
 import type { Model } from 'mongoose';
 import { User } from './auth/user.model.js';
-import { ACTIVE_STATUS, ADMIN_ROLE, EMPLOYEE_ROLE, normalizeRole, normalizeStatus } from './auth/role.utils.js';
+import { ADMIN_ROLE } from './auth/role.utils.js';
 import { runBranchDataMigration, hasMigrationCompletedRecently } from './org/branch.service.js';
 import { StoreSetting } from './settings/settings.model.js';
 import { Customer, CustomerGroup } from '../modules/customer/customer.models.js';
@@ -39,67 +39,19 @@ async function backfillOwnerField(model: Model<any>, field: string, ownerId: unk
   );
 }
 
-function uniqueIds(values: unknown[]) {
-  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
-}
-
-async function migrateUserRoles() {
-  const users = await User.find({ deletedAt: { $exists: false } }).sort({ lastLoginAt: -1, updatedAt: -1, createdAt: 1 });
-  if (!users.length) return null;
-
-  const primaryAdmin = users.find((user) => user.isActive !== false && normalizeRole(user.role, Boolean(user.isRootOwner)) === ADMIN_ROLE)
-    || users.find((user) => user.isActive !== false)
-    || users[0];
-
-  for (const user of users) {
-    const nextRole = String(user._id) === String(primaryAdmin._id) ? ADMIN_ROLE : EMPLOYEE_ROLE;
-    const nextStatus = nextRole === ADMIN_ROLE ? ACTIVE_STATUS : normalizeStatus(user.status);
-    const warehouseIds = uniqueIds([...(Array.isArray(user.assignedWarehouseIds) ? user.assignedWarehouseIds : []), user.branchId]);
-    const defaultWarehouseId = warehouseIds.find((id) => id === String(user.defaultWarehouseId || '')) || warehouseIds[0];
-    let changed = false;
-
-    if (user.role !== nextRole) {
-      user.role = nextRole;
-      changed = true;
-    }
-    if (user.status !== nextStatus) {
-      user.status = nextStatus;
-      changed = true;
-    }
-    if (Boolean(user.isRootOwner) !== (nextRole === ADMIN_ROLE)) {
-      user.isRootOwner = nextRole === ADMIN_ROLE;
-      changed = true;
-    }
-    if (nextRole === ADMIN_ROLE && user.lockedAt) {
-      user.lockedAt = undefined;
-      changed = true;
-    }
-    if (user.createdBy && !user.createdById) {
-      user.createdById = user.createdBy;
-      changed = true;
-    }
-    if (nextRole === EMPLOYEE_ROLE) {
-      const currentAssigned = uniqueIds(Array.isArray(user.assignedWarehouseIds) ? user.assignedWarehouseIds : []);
-      if (currentAssigned.join(',') !== warehouseIds.join(',')) {
-        user.assignedWarehouseIds = warehouseIds as any;
-        changed = true;
-      }
-      if (String(user.defaultWarehouseId || '') !== String(defaultWarehouseId || '')) {
-        user.defaultWarehouseId = defaultWarehouseId as any;
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      await user.save();
-    }
-  }
-
-  return User.findById(primaryAdmin._id);
+async function findBootstrapOwner() {
+  return User.findOne({
+    deletedAt: { $exists: false },
+    isActive: true,
+    $or: [
+      { role: ADMIN_ROLE },
+      { isRootOwner: true },
+    ],
+  }).sort({ isRootOwner: -1, createdAt: 1 });
 }
 
 export async function bootstrapSystem() {
-  const owner = await migrateUserRoles();
+  const owner = await findBootstrapOwner();
 
   if (!owner) return;
 

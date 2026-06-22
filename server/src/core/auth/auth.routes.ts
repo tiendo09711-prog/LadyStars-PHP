@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { requireAuth } from '../middleware/auth.js';
 import { User } from './user.model.js';
-import { ACTIVE_STATUS, LOCKED_STATUS, normalizeRole, normalizeStatus } from './role.utils.js';
+import { LOCKED_STATUS, normalizeRole, normalizeStatus } from './role.utils.js';
 
 const router = Router();
 const LoginInput = z.object({ email: z.string().email(), password: z.string().min(6) });
@@ -20,11 +20,6 @@ router.post('/login', async (req, res) => {
 
   const ok = await bcrypt.compare(input.password, user.passwordHash);
   if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
-  if (user.role !== role || user.status !== status || (role === 'ADMIN' && user.isRootOwner !== true)) {
-    user.role = role;
-    user.status = role === 'ADMIN' ? ACTIVE_STATUS : status;
-    user.isRootOwner = role === 'ADMIN';
-  }
   user.lastLoginAt = new Date();
   await user.save();
   const token = jwt.sign({ sub: user.id, role, tokenVersion: user.tokenVersion ?? 0 }, env.jwtSecret, { expiresIn: '7d' });

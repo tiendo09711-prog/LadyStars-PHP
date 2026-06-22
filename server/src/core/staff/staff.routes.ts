@@ -33,6 +33,15 @@ const StaffUpdateInput = z.object({
 
 const ResetPasswordInput = z.object({ password: z.string().min(6) });
 
+function rejectRoleEscalationBody(body: unknown) {
+  if (!body || typeof body !== 'object') return;
+  if ('role' in body || 'isRootOwner' in body) {
+    const error = new Error('Role fields cannot be changed from staff API');
+    (error as any).status = 403;
+    throw error;
+  }
+}
+
 function ensureEmployeeAccount(user: any) {
   if (!user || normalizeRole(user.role, Boolean(user.isRootOwner)) !== EMPLOYEE_ROLE) {
     const error = new Error('Employee not found');
@@ -152,6 +161,7 @@ router.get('/', async (_req, res) => {
 });
 
 router.post('/', async (req, res) => {
+  rejectRoleEscalationBody(req.body);
   const input = StaffInput.extend({ password: z.string().min(6) }).parse(req.body);
   await ensureEmailAvailable(input.email);
   const warehouses = await resolveWarehouses(input.assignedWarehouseIds, input.defaultWarehouseId);
@@ -169,6 +179,7 @@ router.post('/', async (req, res) => {
     branchId: warehouses.defaultWarehouseId,
     createdBy: actorId,
     createdById: actorId,
+    isRootOwner: false,
     isActive: true,
     lockedAt: status === LOCKED_STATUS ? new Date() : undefined,
   });
@@ -184,6 +195,7 @@ router.post('/', async (req, res) => {
 });
 
 router.patch('/:id', async (req, res) => {
+  rejectRoleEscalationBody(req.body);
   const input = StaffUpdateInput.parse(req.body);
   const employee = await findEmployee(req.params.id);
   if (input.email) await ensureEmailAvailable(input.email, employee.id);
