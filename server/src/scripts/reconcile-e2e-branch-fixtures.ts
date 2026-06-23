@@ -60,7 +60,6 @@ type CandidateBranch = {
   _id: mongoose.Types.ObjectId;
   name: string;
   code: string;
-  isDefault: boolean;
   isActive: boolean;
 };
 
@@ -397,11 +396,6 @@ async function main() {
   const backupPath = saveBackup(backupData, 'pre_cleanup_snapshot');
   console.log(`[BACKUP] Saved to ${backupPath}`);
 
-  // Ensure HN is default before proceeding
-  if (!hnBranch.isDefault) {
-    console.log('\n[SAFETY] HN is not default. Setting HN as default within the transaction.');
-  }
-
   // Apply cleanup with transaction
   const session = await mongoose.startSession();
   let transactionCommitted = false;
@@ -426,21 +420,6 @@ async function main() {
           _id: result.candidate._id,
         }, { session });
       }
-
-      // Ensure HN is default if it wasn't
-      if (!hnBranch.isDefault) {
-        await db.collection('branches').updateMany(
-          { isDefault: true },
-          { $set: { isDefault: false } },
-          { session },
-        );
-        await db.collection('branches').updateOne(
-          { _id: hnBranch._id },
-          { $set: { isDefault: true, isActive: true } },
-          { session },
-        );
-      }
-
       // Compute HN/HCM stock snapshots WITHIN the transaction (before commit)
       // to verify no HN/HCM stock was accidentally modified
       const hnSnapshotInTx = await computeStockSnapshot(db, hnBranch._id, 'HN');
@@ -518,7 +497,7 @@ async function main() {
     : 0;
 
   console.log(`\nRemaining E2E branches: ${remainingCandidates}`);
-  console.log(`HN branch exists: ${Boolean(hnAfter)}, isDefault: ${hnAfter?.isDefault}, isActive: ${hnAfter?.isActive}`);
+  console.log(`HN branch exists: ${Boolean(hnAfter)}, isActive: ${hnAfter?.isActive}`);
   console.log(`HCM branch exists: ${Boolean(hcmAfter)}, isActive: ${hcmAfter?.isActive}`);
   console.log(`Blocked branches still exist: ${blockedBranchesRemaining} (expected: ${denylist.length})`);
 
@@ -546,7 +525,7 @@ async function main() {
     hcmSnapshotBefore,
     hcmSnapshotAfter,
     remainingE2EBranches: remainingCandidates,
-    hnAfter: hnAfter ? { _id: String(hnAfter._id), isDefault: hnAfter.isDefault, isActive: hnAfter.isActive } : null,
+    hnAfter: hnAfter ? { _id: String(hnAfter._id), isActive: hnAfter.isActive } : null,
     hcmAfter: hcmAfter ? { _id: String(hcmAfter._id), isActive: hcmAfter.isActive } : null,
     blockedBranchesRemaining,
     orphanReferences,

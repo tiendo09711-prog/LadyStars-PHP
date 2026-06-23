@@ -22,7 +22,6 @@ type Branch = {
   _id: string;
   name: string;
   code?: string;
-  isDefault?: boolean;
   isActive?: boolean;
 };
 
@@ -124,8 +123,6 @@ export function VoucherExportPage() {
       const branches = (res.data.items || []).filter((branch: Branch) => branch.isActive !== false);
       setSysBranches(branches);
       if (branches.length > 0 && !branchId) {
-        const defaultBranch = branches.find((branch: Branch) => branch.isDefault) || branches[0];
-        setBranchId(defaultBranch?._id || '');
       }
     }).catch(() => {});
   }, []);
@@ -366,7 +363,7 @@ export function VoucherExportPage() {
 
           <div className="form-grid">
             <label className="form-field">
-              <span>Kho hàng *</span>
+              <span>Kho th?c hi?n *</span>
               <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
                 <option value="">-- Chọn kho xuất --</option>
                 {sysBranches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>)}
@@ -736,7 +733,7 @@ export function VoucherExportPage() {
               <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transactions')}>
                 Hủy bỏ
               </button>
-              <button className="btn btn-primary" type="submit" style={{ backgroundColor: 'var(--danger)', borderColor: 'var(--danger)' }}>
+              <button className="btn btn-primary" type="submit" disabled={!branchId} style={{ backgroundColor: 'var(--danger)', borderColor: 'var(--danger)' }}>
                 Lưu & Hoàn tất
               </button>
             </div>

@@ -30,8 +30,6 @@ export function WarehouseTransferCreatePage() {
     http.get('/warehouse/transfers/meta').then((response) => {
       const options: Warehouse[] = response.data?.warehouses || [];
       setWarehouses(options);
-      if (options[0]) setSourceWarehouseId(options[0].value);
-      if (options[1]) setDestinationWarehouseId(options[1].value);
     }).catch(() => setError('Không tải được danh sách kho.'));
   }, []);
 
@@ -74,7 +72,8 @@ export function WarehouseTransferCreatePage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(''); setSuccess('');
-    if (!sourceWarehouseId || !destinationWarehouseId || sourceWarehouseId === destinationWarehouseId) return setError('Kho nguồn và kho đích không được trùng nhau.');
+    if (!sourceWarehouseId || !destinationWarehouseId) return setError('Vui l?ng ch?n r? kho ngu?n v? kho ??ch.');
+    if (sourceWarehouseId === destinationWarehouseId) return setError('Kho ngu?n v? kho ??ch kh?ng ???c tr?ng nhau.');
     if (!lines.length) return setError('Vui lòng thêm ít nhất một sản phẩm.');
     const productIds = new Set<string>();
     for (const line of lines) {
@@ -113,7 +112,7 @@ export function WarehouseTransferCreatePage() {
           <div className="page-icon"><Shuffle size={22} /></div>
           <div><h1>Thêm mới phiếu chuyển kho</h1><p>Lưu nháp hoặc gửi Admin duyệt. Bước này không thay đổi tồn kho.</p></div>
         </div>
-        <div className="page-actions"><button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transfers')}>Hủy</button><button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Đang lưu...' : (submitForApproval ? 'Lưu và gửi duyệt' : 'Lưu nháp')}</button></div>
+        <div className="page-actions"><button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transfers')}>Hủy</button><button className="btn btn-primary" type="submit" disabled={saving || !sourceWarehouseId || !destinationWarehouseId || sourceWarehouseId === destinationWarehouseId}>{saving ? 'Đang lưu...' : (submitForApproval ? 'Lưu và gửi duyệt' : 'Lưu nháp')}</button></div>
       </div>
 
       {error && <div className="data-alert" role="alert">{error}</div>}
@@ -126,10 +125,10 @@ export function WarehouseTransferCreatePage() {
         </section>
 
         <aside style={{ display: 'grid', gap: 14 }}>
-          <div className="filter-panel"><div className="panel-title"><Shuffle size={16} /> Thông tin chuyển kho</div><label className="field-label">Kho nguồn</label><select value={sourceWarehouseId} onChange={(event) => setSourceWarehouseId(event.target.value)}>{warehouses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><div style={{ textAlign: 'center', padding: 8 }}><ChevronRight size={18} style={{ transform: 'rotate(90deg)' }} /></div><label className="field-label">Kho đích</label><select value={destinationWarehouseId} onChange={(event) => setDestinationWarehouseId(event.target.value)}>{warehouses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><label className="field-label">Nhãn phiếu</label><input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="VD: Chuyển hàng bổ sung" /><label className="field-label">Ghi chú</label><textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} /></div>
+          <div className="filter-panel"><div className="panel-title"><Shuffle size={16} /> Th?ng tin chuy?n kho</div><label className="field-label">Kho ngu?n *</label><select value={sourceWarehouseId} onChange={(event) => setSourceWarehouseId(event.target.value)}><option value="">-- Ch?n kho ngu?n --</option>{warehouses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><div style={{ textAlign: 'center', padding: 8 }}><ChevronRight size={18} style={{ transform: 'rotate(90deg)' }} /></div><label className="field-label">Kho ??ch *</label><select value={destinationWarehouseId} onChange={(event) => setDestinationWarehouseId(event.target.value)}><option value="">-- Ch?n kho ??ch --</option>{warehouses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><label className="field-label">Nh?n phi?u</label><input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="VD: Chuy?n h?ng b? sung" /><label className="field-label">Ghi ch?</label><textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} /></div>
           <div className="filter-panel" style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdf4)' }}><strong>{sourceName}</strong><ChevronRight size={18} /><strong>{destinationName}</strong><div style={{ marginTop: 10, color: 'var(--muted)' }}>{lines.length} sản phẩm · {totalQty} số lượng</div></div>
           <div className="filter-panel"><label style={{ display: 'flex', gap: 10, alignItems: 'center', fontWeight: 700 }}><input type="checkbox" checked={submitForApproval} onChange={(event) => setSubmitForApproval(event.target.checked)} /> Gửi Admin duyệt sau khi lưu</label></div>
-          <button className="btn btn-primary full" type="submit" disabled={saving}>{saving ? 'Đang lưu...' : (submitForApproval ? 'Lưu và gửi duyệt' : 'Lưu nháp')}</button>
+          <button className="btn btn-primary full" type="submit" disabled={saving || !sourceWarehouseId || !destinationWarehouseId || sourceWarehouseId === destinationWarehouseId}>{saving ? 'Đang lưu...' : (submitForApproval ? 'Lưu và gửi duyệt' : 'Lưu nháp')}</button>
         </aside>
       </div>
     </form>

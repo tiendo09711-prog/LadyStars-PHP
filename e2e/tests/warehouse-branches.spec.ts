@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import {
   cleanupBranchConfigFixtures,
   closeDB,
-  countDefaultBranches,
   createCompletedSale,
   createEmployeeFixture,
   createEmptyBranch,
@@ -115,23 +114,6 @@ test.describe('Warehouse branches config', () => {
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
 
     const actionPanel = page.locator('.warehouse-actions-row');
-
-    await actionPanel.getByRole('button', { name: 'Đặt làm kho mặc định' }).click();
-    await page.getByRole('dialog').getByLabel('Nhập lại mật khẩu Admin').fill(admin.password);
-    await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
-    await expect(page.getByText('Đã cập nhật kho mặc định.')).toBeVisible();
-    expect(await countDefaultBranches()).toBe(1);
-
-    await actionPanel.getByRole('button', { name: 'Ngừng hoạt động' }).click();
-    await page.getByRole('dialog').getByLabel('Nhập lại mật khẩu Admin').fill(admin.password);
-    await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
-    await expect(page.getByText('Không thể ngừng hoạt động kho mặc định khi chưa có kho mặc định hoạt động khác.')).toBeVisible();
-
-    await page.getByRole('button', { name: protectedFixture.branch.name }).click();
-    await actionPanel.getByRole('button', { name: 'Đặt làm kho mặc định' }).click();
-    await page.getByRole('dialog').getByLabel('Nhập lại mật khẩu Admin').fill(admin.password);
-    await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
-    expect(await countDefaultBranches()).toBe(1);
 
     await page.getByRole('button', { name: `${scenarioPrefix} Main Branch Updated` }).click();
     await actionPanel.getByRole('button', { name: 'Ngừng hoạt động' }).click();

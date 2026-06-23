@@ -75,11 +75,13 @@ interface InvoiceProduct {
 export function WholesaleInvoiceCreatePage() {
   const { channel } = useParams();
   const [searchParams] = useSearchParams();
-  const branchId = searchParams.get('branchId');
+  const requestedBranchId = searchParams.get('branchId') || '';
   const editId = searchParams.get('editId');
   const navigate = useNavigate();
 
   const [branch, setBranch] = useState<any>(null);
+  const [activeBranchId, setActiveBranchId] = useState(requestedBranchId);
+  const [branchOptions, setBranchOptions] = useState<any[]>([]);
   const [loadingBranch, setLoadingBranch] = useState(false);
 
   // Expanded Form State to map 100% with extracted structure
@@ -150,9 +152,9 @@ export function WholesaleInvoiceCreatePage() {
 
   // Fetch branch details
   useEffect(() => {
-    if (branchId) {
+    if (activeBranchId) {
       setLoadingBranch(true);
-      http.get(`/system/branches/${branchId}`)
+      http.get(`/system/branches/${activeBranchId}`)
         .then((res) => {
           setBranch(res.data);
           setForm(prev => ({
@@ -167,18 +169,20 @@ export function WholesaleInvoiceCreatePage() {
           setLoadingBranch(false);
         });
     }
-  }, [branchId]);
+  }, [activeBranchId]);
 
   // Load dependencies (products, customers, staff, me)
   useEffect(() => {
     Promise.all([
       http.get('/auth/me'),
       http.get('/staff').catch(() => null),
-      http.get('/products/inventories', { params: { branchId: branchId || '', limit: 5000 } })
-    ]).then(([meRes, staffRes, prodRes]) => {
+      activeBranchId ? http.get('/products/inventories', { params: { branchId: activeBranchId, limit: 5000 } }) : Promise.resolve({ data: { items: [] } }),
+      http.get('/system/branches').catch(() => null),
+    ]).then(([meRes, staffRes, prodRes, branchListRes]) => {
       setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
       setDbStaffs(staffRes?.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
+      setBranchOptions((branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false));
 
       if (editId) {
         http.get(`/products/sales/${editId}`).then(res => {
@@ -217,7 +221,7 @@ export function WholesaleInvoiceCreatePage() {
         }).catch(err => console.error("Lỗi tải hóa đơn sỉ cũ:", err));
       }
     }).catch(err => console.error("Error fetching dependencies:", err));
-  }, [branchId, editId]);
+  }, [activeBranchId, editId]);
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save, F10 toggle auto-print
   useEffect(() => {
@@ -433,6 +437,10 @@ export function WholesaleInvoiceCreatePage() {
   // Submit Handler
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeBranchId) {
+      setErrorMessage('Vui lòng chọn Kho thực hiện trước khi lưu hóa đơn bán sỉ.');
+      return;
+    }
     if (!form.customerName.trim()) {
       setErrorMessage('Vui lòng nhập tên khách hàng hoặc tìm kiếm bằng SĐT');
       return;
@@ -496,7 +504,7 @@ export function WholesaleInvoiceCreatePage() {
 
       const salePayload = {
         code: form.id,
-        branchId: branchId,
+        branchId: activeBranchId,
         customerId: customerId,
         note: form.description,
         salesperson: form.salesperson,
@@ -537,7 +545,7 @@ export function WholesaleInvoiceCreatePage() {
 
       setSuccessMessage(`✅ Hóa đơn đã được lưu & tồn kho đã được trừ tự động! Mã: ${createRes.data.code}`);
       if (form.autoPrint && printPopup) {
-        const receiptBranch = await resolveBranchForReceipt(createRes.data, branch, branchId);
+        const receiptBranch = await resolveBranchForReceipt(createRes.data, branch, activeBranchId);
         const profile = buildInvoiceProfile(receiptBranch || undefined);
         const customerText = `${form.customerName || 'Khách lẻ'}${form.customerPhone ? ` (${form.customerPhone})` : ''}`;
         const html = buildReceiptHtml({
@@ -639,7 +647,7 @@ export function WholesaleInvoiceCreatePage() {
           <button 
             type="button"
             id="save-invoice-btn"
-            disabled={isSaving}
+            disabled={isSaving || !activeBranchId}
             onClick={handleSave}
             style={{ 
               borderRadius: '10px', 
@@ -653,8 +661,8 @@ export function WholesaleInvoiceCreatePage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              cursor: isSaving ? 'not-allowed' : 'pointer',
-              opacity: isSaving ? 0.7 : 1
+              cursor: isSaving || !activeBranchId ? 'not-allowed' : 'pointer',
+              opacity: isSaving || !activeBranchId ? 0.7 : 1
             }}
           >
             <Save size={16} />
@@ -682,6 +690,25 @@ export function WholesaleInvoiceCreatePage() {
         
         {/* Left Column (70%) - Search, Product Table, Notes, Staff */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '18px 20px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+              Kho thực hiện *
+              <select
+                value={activeBranchId}
+                onChange={(event) => {
+                  setActiveBranchId(event.target.value);
+                  setProducts([]);
+                  setErrorMessage('');
+                }}
+                disabled={Boolean(editId || requestedBranchId)}
+                required
+                style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#1e293b', background: '#ffffff' }}
+              >
+                <option value="">— Chọn kho thực hiện —</option>
+                {branchOptions.map((item) => <option key={item._id} value={item._id}>{item.name}{item.code ? ` (${item.code})` : ''}</option>)}
+              </select>
+            </label>
+          </div>
           
           {/* Product Search & Table Box */}
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>

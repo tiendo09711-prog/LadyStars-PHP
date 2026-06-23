@@ -170,12 +170,12 @@ async function resetPhase12Collections() {
 async function ensureBranches() {
   const hn = await Branch.findOneAndUpdate(
     { code: 'HN' },
-    { name: 'Kho Hà Nội', code: 'HN', isDefault: true, isActive: true },
+    { name: 'Kho Hà Nội', code: 'HN', isActive: true },
     { upsert: true, new: true },
   );
   const hcm = await Branch.findOneAndUpdate(
     { code: 'HCM' },
-    { name: 'Kho HCM', code: 'HCM', isDefault: false, isActive: true },
+    { name: 'Kho HCM', code: 'HCM', isActive: true },
     { upsert: true, new: true },
   );
 

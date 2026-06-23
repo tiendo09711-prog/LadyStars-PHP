@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Building2,
@@ -16,7 +16,6 @@ import {
   Save,
   Search,
   ShieldAlert,
-  Star,
   Trash2,
   Warehouse,
 } from 'lucide-react';
@@ -31,7 +30,6 @@ import {
   getBranchUsage,
   getStoreSetting,
   listBranches,
-  setDefaultBranch,
   StoreSettingRecord,
   updateBranch,
 } from '../../core/api/branch.api';
@@ -54,7 +52,7 @@ type BranchFormState = {
 };
 
 type UsageSummary = Awaited<ReturnType<typeof getBranchUsage>>;
-type ConfirmAction = 'create' | 'save' | 'set-default' | 'activate' | 'deactivate' | 'delete';
+type ConfirmAction = 'create' | 'save' | 'activate' | 'deactivate' | 'delete';
 
 const DEFAULT_FOOTER = 'CẢM ƠN QUÝ KHÁCH ĐÃ MUA HÀNG!';
 
@@ -72,7 +70,7 @@ const USAGE_LABELS: Record<string, string> = {
   stockAdjustments: 'Điều chỉnh tồn kho',
   batches: 'Lô hàng',
   usersBranchId: 'Nhân viên có branchId',
-  usersDefaultWarehouseId: 'Nhân viên có kho mặc định',
+  usersDefaultWarehouseId: 'Nhân viên có defaultWarehouseId',
   usersAssignedWarehouseIds: 'Nhân viên được gán kho',
 };
 
@@ -120,10 +118,14 @@ function mapBranchToForm(branch?: BranchRecord | null): BranchFormState {
   };
 }
 
+function hasInvalidPhone(value: string) {
+  const phone = trim(value);
+  return Boolean(phone) && !/^[0-9+().\-\s]+$/.test(phone);
+}
+
 function actionTitle(action: ConfirmAction) {
   if (action === 'create') return 'Tạo kho hàng';
   if (action === 'save') return 'Lưu thay đổi';
-  if (action === 'set-default') return 'Đặt làm kho mặc định';
   if (action === 'activate') return 'Kích hoạt lại kho';
   if (action === 'deactivate') return 'Ngừng hoạt động kho';
   return 'Xóa vĩnh viễn kho';
@@ -132,10 +134,9 @@ function actionTitle(action: ConfirmAction) {
 function actionWarning(action: ConfirmAction, branchName: string) {
   if (action === 'create') return `Bạn sắp tạo kho mới ${branchName || 'chưa đặt tên'}. Hệ thống sẽ không tự tạo tồn kho giả.`;
   if (action === 'save') return `Tên, địa chỉ, hotline và cấu hình in hóa đơn của ${branchName} sẽ được cập nhật cho chứng từ mới và bản in mới.`;
-  if (action === 'set-default') return `${branchName} sẽ trở thành kho mặc định duy nhất cho các luồng tạo mới.`;
   if (action === 'activate') return `${branchName} sẽ xuất hiện trở lại trong các form tạo mới.`;
   if (action === 'deactivate') return `${branchName} sẽ bị ẩn khỏi các form tạo mới nhưng vẫn giữ nguyên lịch sử và chứng từ cũ.`;
-  return `${branchName} chỉ được xóa khi không còn dữ liệu liên kết và không phải kho mặc định.`;
+  return `${branchName} chỉ được xóa khi không còn dữ liệu liên kết.`;
 }
 
 function previewHtml(branch: BranchRecord | null, form: BranchFormState, storeSetting: StoreSettingRecord) {
@@ -229,6 +230,24 @@ export function WarehouseBranchesPage() {
   const [error, setError] = useState('');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [adminPassword, setAdminPassword] = useState('');
+  const selectedBranchIdRef = useRef(selectedBranchId);
+  const isCreateModeRef = useRef(isCreateMode);
+  const formEditVersionRef = useRef(0);
+  const detailRequestSeqRef = useRef(0);
+  const detailAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    selectedBranchIdRef.current = selectedBranchId;
+  }, [selectedBranchId]);
+
+  useEffect(() => {
+    isCreateModeRef.current = isCreateMode;
+  }, [isCreateMode]);
+
+  const updateForm = (updater: SetStateAction<BranchFormState>) => {
+    formEditVersionRef.current += 1;
+    setForm(updater);
+  };
 
   const selectedBranch = useMemo(
     () => branches.find((branch) => branch._id === selectedBranchId) || null,
@@ -272,9 +291,9 @@ export function WarehouseBranchesPage() {
   const loadBranchesData = async (nextSelectedId?: string) => {
     const data = await listBranches({ page: 1, limit: 200, includeInactive: true });
     setBranches(data.items || []);
+      // Open the first branch only for viewing the detail form.
     const preferredId = nextSelectedId
       || selectedBranchId
-      || data.items?.find((branch) => branch.isDefault)?._id
       || data.items?.[0]?._id
       || '';
     setSelectedBranchId(preferredId);
@@ -287,13 +306,27 @@ export function WarehouseBranchesPage() {
 
   const loadBranchDetail = async (branchId: string) => {
     if (!branchId) return;
+    const requestBranchId = branchId;
+    const requestSeq = detailRequestSeqRef.current + 1;
+    const formVersionAtStart = formEditVersionRef.current;
+    detailRequestSeqRef.current = requestSeq;
+    detailAbortRef.current?.abort();
+    const abortController = new AbortController();
+    detailAbortRef.current = abortController;
     setLoadingDetail(true);
     try {
-      const detail = await getBranch(branchId, { includeInactive: true });
-      setBranches((current) => current.map((branch) => (branch._id === branchId ? detail : branch)));
-      if (!isCreateMode) setForm(mapBranchToForm(detail));
+      const detail = await getBranch(requestBranchId, { includeInactive: true }, abortController.signal);
+      const isLatestRequest = detailRequestSeqRef.current === requestSeq;
+      const isStillSelected = selectedBranchIdRef.current === requestBranchId;
+      const isStillEditingSameForm = formEditVersionRef.current === formVersionAtStart;
+      if (!isLatestRequest) return;
+      setBranches((current) => current.map((branch) => (branch._id === requestBranchId ? detail : branch)));
+      if (isStillSelected && !isCreateModeRef.current && isStillEditingSameForm) setForm(mapBranchToForm(detail));
+    } catch (err: any) {
+      if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+      throw err;
     } finally {
-      setLoadingDetail(false);
+      if (detailRequestSeqRef.current === requestSeq) setLoadingDetail(false);
     }
   };
 
@@ -324,6 +357,7 @@ export function WarehouseBranchesPage() {
       });
     return () => {
       mounted = false;
+      detailAbortRef.current?.abort();
       setAdminPassword('');
       setConfirmAction(null);
     };
@@ -341,6 +375,7 @@ export function WarehouseBranchesPage() {
   }, [notice]);
 
   const openCreateMode = () => {
+    detailAbortRef.current?.abort();
     setIsCreateMode(true);
     setSelectedBranchId('');
     setForm(createEmptyForm());
@@ -362,6 +397,11 @@ export function WarehouseBranchesPage() {
 
   const submitAction = async () => {
     if (!confirmAction || !adminPassword.trim()) return;
+    const targetBranchId = selectedBranchId;
+    if ((confirmAction === 'create' || confirmAction === 'save') && hasInvalidPhone(form.phone)) {
+      setError('Hotline không hợp lệ. Chỉ dùng số, khoảng trắng, dấu +, -, ., ( ).');
+      return;
+    }
     setSubmitting(true);
     setError('');
     setNotice('');
@@ -378,32 +418,29 @@ export function WarehouseBranchesPage() {
         setIsCreateMode(false);
         await loadBranchesData(created._id);
         setNotice('Đã tạo kho hàng mới.');
-      } else if (confirmAction === 'save' && selectedBranchId) {
-        const updated = await updateBranch(selectedBranchId, {
+      } else if (confirmAction === 'save' && targetBranchId) {
+        const updated = await updateBranch(targetBranchId, {
           name: form.name,
           address: form.address,
           phone: form.phone,
           invoiceProfile: form.invoiceProfile,
           adminPassword,
         });
-        await loadBranchesData(updated._id);
+        setBranches((current) => current.map((branch) => (branch._id === targetBranchId ? updated : branch)));
+        if (selectedBranchIdRef.current === targetBranchId && !isCreateModeRef.current) setForm(mapBranchToForm(updated));
         setNotice('Đã lưu thay đổi kho hàng.');
-      } else if (confirmAction === 'set-default' && selectedBranchId) {
-        const updated = await setDefaultBranch(selectedBranchId, adminPassword);
-        await loadBranchesData(updated._id);
-        setNotice('Đã cập nhật kho mặc định.');
-      } else if (confirmAction === 'activate' && selectedBranchId) {
-        const updated = await activateBranch(selectedBranchId, adminPassword);
+      } else if (confirmAction === 'activate' && targetBranchId) {
+        const updated = await activateBranch(targetBranchId, adminPassword);
         await loadBranchesData(updated._id);
         setNotice('Kho hàng đã được kích hoạt lại.');
-      } else if (confirmAction === 'deactivate' && selectedBranchId) {
-        const updated = await deactivateBranch(selectedBranchId, adminPassword);
+      } else if (confirmAction === 'deactivate' && targetBranchId) {
+        const updated = await deactivateBranch(targetBranchId, adminPassword);
         await loadBranchesData(updated._id);
         setNotice('Kho hàng đã được chuyển sang ngừng hoạt động.');
-      } else if (confirmAction === 'delete' && selectedBranchId) {
-        await deleteBranch(selectedBranchId, adminPassword);
+      } else if (confirmAction === 'delete' && targetBranchId) {
+        await deleteBranch(targetBranchId, adminPassword);
         const remaining = await loadBranchesData('');
-        const nextId = remaining.find((branch) => branch.isDefault)?._id || remaining[0]?._id || '';
+        const nextId = remaining[0]?._id || '';
         setSelectedBranchId(nextId);
         setIsCreateMode(false);
         if (nextId) {
@@ -417,8 +454,8 @@ export function WarehouseBranchesPage() {
     } catch (err: any) {
       const responseMessage = err.response?.data?.message || 'Không thể thực hiện thao tác kho hàng.';
       const usage = err.response?.data?.usage;
-      if (usage && selectedBranchId) {
-        setUsageByBranchId((current) => ({ ...current, [selectedBranchId]: usage }));
+      if (usage && targetBranchId) {
+        setUsageByBranchId((current) => ({ ...current, [targetBranchId]: usage }));
       }
       setError(responseMessage);
     } finally {
@@ -496,7 +533,6 @@ export function WarehouseBranchesPage() {
                   <div className="warehouse-branch-meta"><MapPin size={14} /> {branch.address || 'Chưa có địa chỉ'}</div>
                   <div className="warehouse-branch-meta"><Phone size={14} /> {branch.phone || 'Chưa có hotline'}</div>
                   <div className="warehouse-branch-badges">
-                    {branch.isDefault ? <span className="status-badge default"><Star size={12} /> Mặc định</span> : null}
                     <span className={`status-badge ${branch.isActive === false ? 'inactive' : 'active'}`}>
                       {branch.isActive === false ? <CircleOff size={12} /> : <CheckCircle2 size={12} />}
                       {branch.isActive === false ? 'Ngừng hoạt động' : 'Đang hoạt động'}
@@ -523,23 +559,22 @@ export function WarehouseBranchesPage() {
             <div className="warehouse-branch-grid">
               <label>
                 <span>Tên kho</span>
-                <input aria-label="Tên kho" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Ví dụ: Kho Hà Nội" />
+                <input aria-label="Tên kho" value={form.name} onChange={(event) => updateForm((current) => ({ ...current, name: event.target.value }))} placeholder="Ví dụ: Kho Hà Nội" />
               </label>
               <label>
                 <span>Mã kho</span>
-                <input aria-label="Mã kho" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="Ví dụ: KHO-HN" readOnly={!isCreateMode} />
+                <input aria-label="Mã kho" value={form.code} onChange={(event) => updateForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="Ví dụ: KHO-HN" readOnly={!isCreateMode} />
               </label>
               <label className="full-width">
                 <span>Địa chỉ</span>
-                <textarea aria-label="Địa chỉ" rows={3} value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} placeholder="Nhập địa chỉ vận hành của kho" />
+                <textarea aria-label="Địa chỉ" rows={3} value={form.address} onChange={(event) => updateForm((current) => ({ ...current, address: event.target.value }))} placeholder="Nhập địa chỉ vận hành của kho" />
               </label>
               <label>
                 <span>Hotline</span>
-                <input aria-label="Hotline" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Nhập số hotline hiển thị trên hóa đơn" />
+                <input aria-label="Hotline" value={form.phone} onChange={(event) => updateForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Nhập số hotline hiển thị trên hóa đơn" />
               </label>
               <div className="warehouse-state-card">
                 <div><span>Trạng thái</span><strong>{selectedBranch?.isActive === false && !isCreateMode ? 'Ngừng hoạt động' : 'Đang hoạt động'}</strong></div>
-                <div><span>Kho mặc định</span><strong>{selectedBranch?.isDefault && !isCreateMode ? 'Có' : 'Không'}</strong></div>
               </div>
             </div>
           </div>
@@ -571,7 +606,7 @@ export function WarehouseBranchesPage() {
                       <input
                         aria-label="Tên thương hiệu"
                         value={form.invoiceProfile.displayName}
-                        onChange={(event) => setForm((current) => ({
+                        onChange={(event) => updateForm((current) => ({
                           ...current,
                           invoiceProfile: { ...current.invoiceProfile, displayName: event.target.value },
                         }))}
@@ -584,7 +619,7 @@ export function WarehouseBranchesPage() {
                       <input
                         aria-label="Điện thoại"
                         value={form.phone}
-                        onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                        onChange={(event) => updateForm((current) => ({ ...current, phone: event.target.value }))}
                         placeholder="Số điện thoại in trên hóa đơn"
                         required
                       />
@@ -595,7 +630,7 @@ export function WarehouseBranchesPage() {
                         aria-label="Địa chỉ in hóa đơn"
                         rows={3}
                         value={form.address}
-                        onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+                        onChange={(event) => updateForm((current) => ({ ...current, address: event.target.value }))}
                         placeholder="Địa chỉ in trên hóa đơn"
                         required
                       />
@@ -603,7 +638,7 @@ export function WarehouseBranchesPage() {
                   </div>
 
                   <div className="warehouse-checkbox-grid">
-                    <label><input aria-label="Hiển thị cửa hàng trên hóa đơn" type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => setForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showBranchName: event.target.checked } }))} />Hiển thị cửa hàng trên hóa đơn</label>
+                    <label><input aria-label="Hiển thị cửa hàng trên hóa đơn" type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => updateForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showBranchName: event.target.checked } }))} />Hiển thị cửa hàng trên hóa đơn</label>
                   </div>
                 </div>
               )}
@@ -620,12 +655,11 @@ export function WarehouseBranchesPage() {
             </div>
 
             <div className="warehouse-actions-row">
-              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={!trim(form.name) || !trim(form.code) || !trim(form.invoiceProfile.displayName) || !trim(form.phone) || !trim(form.address)}><Save size={16} /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
-              <button className="btn btn-light" type="button" onClick={() => setConfirmAction('set-default')} disabled={isCreateMode || !selectedBranch || selectedBranch.isDefault === true}><Star size={16} /> Đặt làm kho mặc định</button>
-              <button className="btn btn-light" type="button" onClick={() => setConfirmAction(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} /> : <CircleOff size={16} />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
+              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={submitting || !trim(form.name) || !trim(form.code) || !trim(form.invoiceProfile.displayName) || !trim(form.phone) || !trim(form.address)}><Save size={16} /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
+              <button className="btn btn-light" type="button" onClick={() => setConfirmAction(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={submitting || isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} /> : <CircleOff size={16} />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
               <button className="btn btn-light" type="button" onClick={() => void loadUsage()} disabled={isCreateMode || !selectedBranch || loadingUsage}><Info size={16} /> {loadingUsage ? 'Đang tải liên kết...' : 'Xem dữ liệu liên kết'}</button>
               <button className="btn btn-light" type="button" onClick={printPreview}><Printer size={16} /> In thử mẫu hóa đơn</button>
-              <button className="btn btn-light danger" type="button" onClick={() => setConfirmAction('delete')} disabled={isCreateMode || !selectedBranch}><Trash2 size={16} /> Xóa vĩnh viễn</button>
+              <button className="btn btn-light danger" type="button" onClick={() => setConfirmAction('delete')} disabled={submitting || isCreateMode || !selectedBranch}><Trash2 size={16} /> Xóa vĩnh viễn</button>
             </div>
 
             <div className="usage-summary-card">

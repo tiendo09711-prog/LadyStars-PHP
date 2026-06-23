@@ -9,7 +9,6 @@ import {
   getBranchByIdForUser,
   getBranchUsageSummary,
   listBranchesForUser,
-  setDefaultBranchRecord,
   toggleBranchActiveRecord,
   updateBranchRecord,
 } from './branch.service.js';
@@ -99,13 +98,6 @@ router.patch('/:id', requireOwner, async (req, res) => {
   const input = UpdateBranchInput.parse(req.body);
   await verifyAdminPassword(req, input.adminPassword);
   const branch = await updateBranchRecord(req, String(req.params.id || ''), input);
-  res.json(branch);
-});
-
-router.post('/:id/set-default', requireOwner, async (req, res) => {
-  const input = AdminPasswordInput.parse(req.body);
-  await verifyAdminPassword(req, input.adminPassword);
-  const branch = await setDefaultBranchRecord(req, String(req.params.id || ''));
   res.json(branch);
 });
 

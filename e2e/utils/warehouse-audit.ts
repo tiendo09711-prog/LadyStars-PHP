@@ -10,7 +10,6 @@ type BranchRef = {
   _id: string;
   code: string;
   name: string;
-  isDefault?: boolean;
 };
 
 type SeedProductInput = {
@@ -64,7 +63,7 @@ export async function getBranches(api: any) {
   const payload = await response.json();
   const branches = (payload.items || []) as BranchRef[];
   expect(branches.length).toBeGreaterThan(0);
-  const defaultBranch = branches.find((branch) => branch.isDefault) || branches[0];
+  const defaultBranch = branches[0];
   const secondaryBranch = branches.find((branch) => branch._id !== defaultBranch._id) || branches[0];
   return { branches, defaultBranch, secondaryBranch };
 }

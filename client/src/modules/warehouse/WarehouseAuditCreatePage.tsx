@@ -22,7 +22,6 @@ type Option = {
   value: string;
   label: string;
   code?: string;
-  isDefault?: boolean;
 };
 
 type InventoryOption = {
@@ -243,10 +242,6 @@ export function WarehouseAuditCreatePage() {
     const nextWarehouses = response.data.warehouses || [];
     setRole(response.data.role || 'EMPLOYEE');
     setWarehouses(nextWarehouses);
-    if (!warehouseId && nextWarehouses.length) {
-      const preferred = nextWarehouses.find((warehouse: Option) => warehouse.isDefault) || nextWarehouses[0];
-      setWarehouseId(preferred.value);
-    }
   };
 
   const loadAudit = async () => {

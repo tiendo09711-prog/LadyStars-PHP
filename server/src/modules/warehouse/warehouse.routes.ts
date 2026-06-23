@@ -983,6 +983,11 @@ async function validateInventoryVoucherRollback(voucher: any) {
     throw error;
   }
   const branch = await resolveBranch(voucher.warehouse);
+  if (!branch) {
+    const error: any = new Error('Không xác định được kho của phiếu. Vui lòng kiểm tra lại kho trước khi xóa phiếu.');
+    error.status = 400;
+    throw error;
+  }
   const operations = [];
   for (const item of voucherItems) {
     const product = await Product.findOne({ code: item.productCode });
@@ -1117,6 +1122,11 @@ async function createImportVoucher(req: any, payload: any) {
   }
 
   const branch = await resolveBranch(warehouse, inputBranchId);
+  if (!branch) {
+    const error: any = new Error('Vui lòng chọn kho thực hiện hợp lệ trước khi tạo phiếu nhập.');
+    error.status = 400;
+    throw error;
+  }
   const branchId = branch?._id;
   const voucherId = 'PNK-' + Math.floor(Math.random() * 900000 + 100000);
   const spCount = items.length;
@@ -1294,6 +1304,9 @@ router.post('/vouchers/export', async (req, res) => {
 
   try {
     const branch = await resolveBranch(warehouse, inputBranchId);
+    if (!branch) {
+      return res.status(400).json({ message: 'Vui lòng chọn kho thực hiện hợp lệ trước khi tạo phiếu xuất.' });
+    }
     const branchId = branch?._id;
 
     if (type === 'Xuất bán lẻ' || type === 'Xuất bán sỉ') {
@@ -1405,7 +1418,20 @@ router.post('/vouchers/export', async (req, res) => {
 router.post('/vouchers/import-excel', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng tải lên file Excel' });
-    const { warehouse = 'Chi nhánh trung tâm', type = 'Nhập mua', note = '' } = req.body;
+    // Phase 3B-1b: khong tu fallback kho mac dinh; Admin phai chi ro kho thuc hien.
+    const { warehouse, branchId, type = 'Nhập mua', note = '' } = req.body;
+    if (!String(warehouse || '').trim()) {
+      return res.status(400).json({ message: 'Vui lòng chọn kho thực hiện trước khi nhập dữ liệu.' });
+    }
+    // Bat buoc branchId hop le, khong tin warehouse name de tranh fallback ngam.
+    const importBranchId = String(branchId || '').trim();
+    if (!mongoose.isValidObjectId(importBranchId)) {
+      return res.status(400).json({ message: 'Vui lòng chọn kho thực hiện hợp lệ trước khi nhập dữ liệu.' });
+    }
+    const importBranch = await Branch.findOne({ _id: importBranchId, isActive: { $ne: false } });
+    if (!importBranch) {
+      return res.status(400).json({ message: 'Kho thực hiện không hợp lệ hoặc đã ngưng hoạt động.' });
+    }
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer', cellDates: true });
     const sheetName = workbook.SheetNames.includes('XNK') ? 'XNK' : workbook.SheetNames[0];
     const rows = xlsx.utils.sheet_to_json<any>(workbook.Sheets[sheetName], { defval: '' });
@@ -1444,7 +1470,7 @@ router.post('/vouchers/import-excel', upload.single('file'), async (req, res) =>
 
     if (!items.length) return res.status(400).json({ message: 'File không có dòng hợp lệ để nhập kho', errors });
 
-    const result = await createImportVoucher(req as any, { warehouse, type, note: note || `Nhập kho từ Excel - File: ${req.file.originalname}`, items });
+    const result = await createImportVoucher(req as any, { warehouse, branchId, type, note: note || `Nhập kho từ Excel - File: ${req.file.originalname}`, items });
     return res.status(201).json({ ...result, errors });
   } catch (err: any) {
     return res.status(500).json({ message: err.message || 'Lỗi import Excel XNK' });
@@ -1456,7 +1482,7 @@ router.post('/transfers-legacy-disabled', async (_req, res) => {
 });
 
 router.get('/transfers/meta', async (req, res) => {
-  const branches = await Branch.find({ isActive: { $ne: false } }).sort({ isDefault: -1, name: 1 }).select('name code isDefault').lean();
+  const branches = await Branch.find({ isActive: { $ne: false } }).sort({ name: 1, _id: 1 }).select('name code').lean();
   const userWarehouseIds = actorWarehouseIds((req as any).user);
   const visibleBranches = isAdminActor((req as any).user)
     ? branches
@@ -1464,7 +1490,7 @@ router.get('/transfers/meta', async (req, res) => {
   res.json({
     role: isAdminActor((req as any).user) ? 'ADMIN' : 'EMPLOYEE',
     userWarehouseIds,
-    warehouses: visibleBranches.map((branch: any) => ({ value: String(branch._id), label: branch.name, code: branch.code, isDefault: Boolean(branch.isDefault) })),
+    warehouses: visibleBranches.map((branch: any) => ({ value: String(branch._id), label: branch.name, code: branch.code })),
     statuses: TRANSFER_STATUSES.map((status) => ({ value: status, label: transferPublicStatus(status) })),
   });
 });
@@ -1797,13 +1823,12 @@ router.post('/transfers/:id/actions/:action', async (req, res) => {
 });
 
 router.get('/transactions/meta', async (_req, res) => {
-  const branches = await Branch.find({ isActive: { $ne: false } }).sort({ isDefault: -1, name: 1 }).select('name code isDefault').lean();
+  const branches = await Branch.find({ isActive: { $ne: false } }).sort({ name: 1, _id: 1 }).select('name code').lean();
   res.json({
     warehouses: branches.map((branch: any) => ({
       value: String(branch._id),
       label: branch.name,
       code: branch.code,
-      isDefault: Boolean(branch.isDefault),
     })),
     types: transactionTypes,
     kinds: transactionKinds,
@@ -1889,13 +1914,12 @@ legacyTransferPostDisabled(async (req, res, next) => {
 */
 
 router.get('/transactions/meta', async (_req, res) => {
-  const branches = await Branch.find({ isActive: { $ne: false } }).sort({ isDefault: -1, name: 1 }).select('name code isDefault').lean();
+  const branches = await Branch.find({ isActive: { $ne: false } }).sort({ name: 1, _id: 1 }).select('name code').lean();
   res.json({
     warehouses: branches.map((branch: any) => ({
       value: String(branch._id),
       label: branch.name,
       code: branch.code,
-      isDefault: Boolean(branch.isDefault),
     })),
     types: transactionTypes,
     kinds: transactionKinds,
@@ -1965,6 +1989,19 @@ router.post('/transactions/bills/bulk-delete', async (req, res) => {
   }
 });
 
+// Chứng từ nhập/xuất kho mới phải chỉ rõ kho thực hiện, không fallback kho ngầm.
+router.post('/vouchers', (req, res, next) => {
+  if (!String(req.body?.warehouse || '').trim()) {
+    return res.status(400).json({ message: 'Vui lòng chọn kho thực hiện trước khi tạo phiếu.' });
+  }
+  next();
+});
+router.post('/products', (req, res, next) => {
+  if (!String(req.body?.warehouse || '').trim()) {
+    return res.status(400).json({ message: 'Vui lòng chọn kho thực hiện trước khi tạo phiếu.' });
+  }
+  next();
+});
 router.use('/vouchers', crudRoutes(InventoryVoucher));
 router.use('/products', crudRoutes(InventoryProduct));
 // Warehouse transfer uses the guarded state-machine routes above.

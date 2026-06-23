@@ -771,14 +771,13 @@ router.get('/meta', async (req, res) => {
     const branchFilter = !isAdminActor(user)
       ? { _id: { $in: warehouseIds.map((value) => new Types.ObjectId(value)) }, isActive: { $ne: false } }
       : { isActive: { $ne: false } };
-    const warehouses = await Branch.find(branchFilter).sort({ isDefault: -1, name: 1 }).select('name code isDefault').lean();
+    const warehouses = await Branch.find(branchFilter).sort({ name: 1, _id: 1 }).select('name code').lean();
     res.json({
       role: isAdminActor(user) ? 'ADMIN' : 'EMPLOYEE',
       warehouses: warehouses.map((warehouse: any) => ({
         value: String(warehouse._id),
         label: warehouse.name,
         code: warehouse.code,
-        isDefault: Boolean(warehouse.isDefault),
       })),
       auditTypes: AUDIT_TYPES.map((value) => ({ value, label: auditTypeLabel(value) })),
       statuses: AUDIT_STATUSES.map((value) => ({ value, label: auditStatusLabel(value) })),

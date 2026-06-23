@@ -148,6 +148,25 @@ function ensureBranchInScope(req: any, branchId: unknown) {
   }
 }
 
+async function requireExplicitBranchForDocumentCreate(req: any, branchId: unknown) {
+  const targetBranchId = String(branchId || '').trim();
+  if (!targetBranchId || !mongoose.isValidObjectId(targetBranchId)) {
+    const error: any = new Error('Vui lòng chọn kho thực hiện hợp lệ trước khi tạo chứng từ.');
+    error.status = 400;
+    throw error;
+  }
+  if (isAdminUser(req.user)) {
+    const branch = await Branch.exists({ _id: targetBranchId, isActive: { $ne: false } });
+    if (!branch) {
+      const error: any = new Error('Kho thực hiện không hợp lệ hoặc đã ngưng hoạt động.');
+      error.status = 400;
+      throw error;
+    }
+    return;
+  }
+  ensureBranchInScope(req, targetBranchId);
+}
+
 function scopedSaleFilter(req: any, extra: Record<string, any> = {}) {
   const branchIds = scopeObjectIds(req);
   if (branchIds === null) return extra;
@@ -313,8 +332,11 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
       warehouseCode: requestedBranchCode,
       allowInactive: true,
     });
+    if (!branch) {
+      return res.status(400).json({ message: 'Vui long chon kho thuc hien hop le truoc khi nhap file.' });
+    }
     const branchId = branch?._id;
-    const warehouseName = warehouse || branch?.name || 'Kho mặc định';
+    const warehouseName = warehouse || branch.name;
 
     // 2. Parse Excel
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
@@ -443,7 +465,7 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
 
   } catch (err: any) {
     console.error('Import error:', err);
-    res.status(500).json({ message: err.message || 'Lỗi server khi nhập file' });
+    res.status(err.status || 500).json({ message: err.message || 'Lỗi server khi nhập file' });
   }
 });
 
@@ -820,6 +842,7 @@ router.get('/sales', async (req, res) => {
 });
 
 router.post('/sales', async (req, res) => {
+  await requireExplicitBranchForDocumentCreate(req as any, req.body.branchId);
   ensureBranchInScope(req as any, req.body.branchId);
   const payload = await buildSalePaymentPayload({
     ...req.body,
@@ -909,6 +932,9 @@ router.delete('/sales/:id', async (req, res) => {
 router.post('/sales/:id/return-exchange', async (req, res) => {
   const sale = await findScopedSale(req as any, { _id: req.params.id });
   if (!sale) return res.status(404).json({ message: 'Not found' });
+  if (!sale.branchId) {
+    await requireExplicitBranchForDocumentCreate(req as any, req.body.branchId);
+  }
 
   const result = await createReturnExchange(req.params.id, {
     ...req.body,

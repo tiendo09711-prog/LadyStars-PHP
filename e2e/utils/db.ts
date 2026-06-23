@@ -1,13 +1,15 @@
-import { APIRequestContext } from '@playwright/test';
+﻿import { APIRequestContext } from '@playwright/test';
 import bcrypt from 'bcryptjs';
 import { spawnSync } from 'child_process';
 import { MongoClient, ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+const repoRoot = path.basename(process.cwd()) === 'e2e' ? path.resolve(process.cwd(), '..') : process.cwd();
+dotenv.config({ path: path.resolve(repoRoot, '.env') });
+dotenv.config({ path: path.resolve(repoRoot, '.env.e2e.local'), override: false });
 
-export const API_BASE = 'http://localhost:4000/api';
+export const API_BASE = process.env.E2E_API_BASE_URL || 'http://localhost:4000/api';
 
 const MONGO_URI = process.env.E2E_MONGO_URI;
 const DB_NAME = process.env.E2E_MONGO_DB_NAME || getDatabaseName(MONGO_URI);
@@ -19,6 +21,10 @@ function getDatabaseName(uri?: string) {
   } catch {
     return uri.replace(/\?.*$/, '').split('/').filter(Boolean).pop() || '';
   }
+}
+
+function databaseNameFromUri(uri?: string) {
+  return process.env.E2E_MONGO_DB_NAME || getDatabaseName(uri);
 }
 
 function validateE2EDatabaseSafety() {
@@ -39,13 +45,13 @@ function validateE2EDatabaseSafety() {
   try {
     const e2eParsed = new URL(e2eUri);
     e2eDbName = e2eParsed.pathname.replace(/^\//, '');
-  } catch { /* fallback below */ }
+  } catch { e2eDbName = databaseNameFromUri(e2eUri); }
   try {
     if (appUri) {
       const appParsed = new URL(appUri);
       appDbName = appParsed.pathname.replace(/^\//, '');
     }
-  } catch { /* ignore */ }
+  } catch { appDbName = getDatabaseName(appUri); }
 
   // Reject if E2E URI matches app URI
   if (appUri && e2eUri === appUri) {
@@ -223,14 +229,13 @@ export async function createRetailFixture(prefix: string, productCount = 3) {
     invoiceProfile: {
       displayName: '',
       templateId: 'retail-a4-classic',
-      footerText: 'Cảm ơn quý khách đã mua hàng!',
+      footerText: 'Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ mua hÃ ng!',
       showBranchName: false,
       showCashier: true,
       showProductCode: false,
       showLogo: false,
     },
     isActive: true,
-    isDefault: false,
     createdAt: now(),
     updatedAt: now(),
   };
@@ -352,14 +357,13 @@ export async function createEmptyBranch(prefix: string, overrides: Partial<Recor
     invoiceProfile: {
       displayName: String(overrides.displayName || ''),
       templateId: 'retail-a4-classic',
-      footerText: 'Cảm ơn quý khách đã mua hàng!',
+      footerText: 'Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ mua hÃ ng!',
       showBranchName: false,
       showCashier: true,
       showProductCode: false,
       showLogo: false,
     },
     isActive: overrides.isActive === false ? false : true,
-    isDefault: overrides.isDefault === true,
     createdAt: now(),
     updatedAt: now(),
   };
@@ -393,11 +397,6 @@ export async function createEmployeeFixture(prefix: string, branchId: string | O
 export async function findBranchByCode(code: string) {
   const db = await connectDB();
   return db.collection('branches').findOne({ code });
-}
-
-export async function countDefaultBranches() {
-  const db = await connectDB();
-  return db.collection('branches').countDocuments({ isDefault: true });
 }
 
 export async function updateBranchConfig(branchId: string | ObjectId, patch: Record<string, unknown>) {

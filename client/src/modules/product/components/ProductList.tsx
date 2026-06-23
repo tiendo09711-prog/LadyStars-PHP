@@ -66,7 +66,6 @@ interface BranchOption {
   _id: string;
   name: string;
   code?: string;
-  isDefault?: boolean;
   isActive?: boolean;
 }
 
@@ -354,7 +353,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         setBranches(activeBranches);
         setWarehouseQuantities(Object.fromEntries(activeBranches.map((branch) => [branch._id, '0'])));
         if (!isEdit) {
-          const defaultBranch = activeBranches.find((branch) => branch.isDefault) || activeBranches[0];
+          const defaultBranch = activeBranches[0];
           setSingleWarehouseId(defaultBranch?._id || '');
         }
       })
@@ -591,7 +590,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
                       setSingleQuantity('');
                       setWarehouseQuantities(Object.fromEntries(branches.map((branch) => [branch._id, '0'])));
                     } else {
-                      const defaultBranch = branches.find((branch) => branch.isDefault) || branches[0];
+                      const defaultBranch = branches[0];
                       setSingleWarehouseId(defaultBranch?._id || '');
                       setSingleQuantity('0');
                     }
@@ -750,7 +749,7 @@ function ImportModal({
         const items = response.data?.items || [];
         setBranches(items);
 
-        const defaultBranch = items.find((branch: BranchOption) => branch.isDefault) || items[0];
+        const defaultBranch = items[0];
         setSelectedBranchId(defaultBranch?._id || '');
       })
       .catch((error) => {
