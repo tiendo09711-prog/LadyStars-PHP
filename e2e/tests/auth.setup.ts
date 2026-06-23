@@ -11,7 +11,7 @@ setup('authenticate', async ({ page }) => {
 
   const email = process.env.E2E_AUTH_EMAIL;
   const password = process.env.E2E_AUTH_PASSWORD;
-  const apiBaseUrl = process.env.E2E_API_BASE_URL || 'http://localhost:4000/api';
+  const apiBaseUrl = process.env.E2E_API_BASE_URL || 'http://localhost:4100/api';
   if (!email || !password) throw new Error('E2E_AUTH_EMAIL and E2E_AUTH_PASSWORD are required.');
   if (!/\.test$|[+._-]e2e|e2e[+._-]|test/i.test(email)) {
     throw new Error('E2E_AUTH_EMAIL must be an isolated .test or E2E-marked account.');

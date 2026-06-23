@@ -1,44 +1,83 @@
 # AGENTS.md
 
-## Cách làm việc trong project này
+## Mục tiêu workflow
 
-Trước khi sửa code, luôn đọc kỹ yêu cầu của user và xác định phạm vi cần sửa.
+Với task thông thường, agent phải tự làm trọn chu trình:
 
-Không được sửa lan man ngoài phạm vi task.
+1. Đọc yêu cầu và xác định phạm vi.
+2. Chạy `git status --short` và `git diff --check`.
+3. Khảo sát source, API, state và test liên quan trực tiếp.
+4. Chỉ sửa các file cần thiết để hoàn thành đúng yêu cầu.
+5. Chạy `npm.cmd run verify:static`.
+6. Khi verify fail, tự điều tra và sửa tối đa 2 vòng.
+7. Chỉ báo COMPLETE khi các kiểm tra bắt buộc đã pass.
 
-Không được hardcode dữ liệu mẫu.
+## Giới hạn phạm vi
 
-Không được tự bịa API mới.
+- Không sửa ngoài yêu cầu của user.
+- Không tự thêm nghiệp vụ, UI, API, endpoint hoặc dependency mới.
+- Không hardcode dữ liệu mẫu.
+- Không đổi auth, role, permission, inventory, invoice hoặc database schema nếu task không yêu cầu rõ.
+- Không thay đổi file không liên quan chỉ để “dọn đẹp” code.
 
-Không được đổi endpoint, request body, response mapping hoặc logic nghiệp vụ cũ nếu task không yêu cầu.
+## Được tự chạy
 
-Không được thêm thư viện mới nếu chưa hỏi user.
+- đọc source;
+- tạo, sửa, xóa file trong repository khi thuộc scope task;
+- chạy git status, git diff, git diff --check;
+- chạy npm.cmd, npx.cmd, node;
+- chạy typecheck, build, static audit và test local an toàn;
+- tự sửa tối đa 2 vòng khi test fail.
 
-Không được sửa backend, database, auth, permission, config build nếu task chỉ yêu cầu sửa giao diện.
+## Hard gate: phải dừng và báo user
 
-Nếu cần sửa quá 5 file, phải dừng lại và hỏi user trước.
+Không tiếp tục tự động khi cần:
 
-## Với task refactor UI
+- migration, backup, restore hoặc apply database thật;
+- đọc/ghi database thật;
+- deploy;
+- sửa auth, permission hoặc role;
+- xóa dữ liệu thật;
+- sửa quá 25 file;
+- thay đổi nghiệp vụ chưa được user quyết định;
+- verify vẫn fail sau 2 vòng sửa.
 
-Nếu task là refactor UI, đổi giao diện, làm theo mẫu ảnh/html/link, hãy đọc và tuân thủ file:
+## Tuyệt đối không chạy
 
-`docs/codex/ACT_UI_REFACTOR.md`
+- git reset --hard
+- git clean -fd
+- git checkout .
+- git restore .
+- git add
+- git commit
+- git push
+- migration/apply/restore MongoDB thật
+- deploy
 
-Bắt buộc làm theo quy trình:
+## Báo cáo cuối
 
-1. Khảo sát route/component/API/state/handler trước.
-2. Tạo file map chức năng trước khi sửa UI.
-3. Sau đó mới refactor UI.
-4. Giữ nguyên chức năng cũ.
-5. Test lại từng button, filter, tab, table, pagination, modal nếu có theo e2e
-6. Báo cáo cuối theo ACT REPORT.
+Báo cáo bằng tiếng Việt:
 
-## Khi báo cáo
+1. Mục tiêu đã hoàn thành.
+2. File đã sửa/tạo/xóa.
+3. Các lệnh đã chạy và PASS/FAIL.
+4. Rủi ro hoặc phần chưa xác minh.
+5. `git status --short`.
+6. Verdict: COMPLETE / COMPLETE_WITH_LIMITATION / BLOCKED.
 
-Báo cáo ngắn gọn, rõ:
+## Live Database Test Mode
 
-- Đã đọc file nào
-- Đã sửa file nào
-- Đã giữ lại chức năng nào
-- Đã chạy test/command gì
-- Còn rủi ro gì
+Ch? ?? test ghi tr?c ti?p v?o MongoDB ch?nh (live-guarded).
+
+- Ch? ???c d?ng khi prompt c?a user ghi r? "cho ph?p live DB test".
+- Ch? ???c ch?y qua: `npm.cmd run live:test -- --spec e2e/live/<spec>.spec.ts`.
+- Kh?ng ???c ch?y legacy suite trong `e2e/tests/` tr?c ti?p tr?n Mongo th?t.
+- Live mode ch? ch?y khi c? ??: `.env.live-test.local`, `LIVE_TEST_MODE=true`, `LIVE_TEST_ACK=I_ACCEPT_LIVE_DATABASE_WRITES`, backup th?nh c?ng, m?t spec thu?c `e2e/live/`, v? `E2E_RUN_ID` duy nh?t.
+- Backup tr??c test l? b?t bu?c. Kh?ng backup th? kh?ng test.
+- Backend test ch?y port 4100, frontend 5174; kh?ng d?ng 4000/5173 c?a dev server.
+- T?i ?a 2 v?ng test/s?a.
+- Kh?ng c? backup/report th? kh?ng ???c verdict COMPLETE.
+- Runner kh?ng bao gi? t? restore database khi test fail.
+- N?u m?t task kh?ng th? test theo c?c ?i?u ki?n c? l?p (ch? cleanup theo `_id` ?? t?o, kh?ng `deleteMany({})`, kh?ng `dropDatabase()`, kh?ng s?a Store Settings global, kh?ng upsert admin/root owner, kh?ng g?i API c?ng 4000), verdict ph?i l? `BLOCKED_LIVE_TEST_NOT_ISOLATABLE`.
+
+B?o c?o cu?i c?a live mode b?t bu?c n?u: runId, backup path, collection thay ??i (count tr??c/sau), fixture IDs ?? t?o/d?n, test pass/fail v? limitation.

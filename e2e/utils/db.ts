@@ -6,10 +6,12 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 const repoRoot = path.basename(process.cwd()) === 'e2e' ? path.resolve(process.cwd(), '..') : process.cwd();
-dotenv.config({ path: path.resolve(repoRoot, '.env') });
-dotenv.config({ path: path.resolve(repoRoot, '.env.e2e.local'), override: false });
+// E2E/live env files must win over the app .env so tests never inherit real-app values.
+dotenv.config({ path: path.resolve(repoRoot, '.env.live-test.local'), override: true });
+dotenv.config({ path: path.resolve(repoRoot, '.env.e2e.local'), override: true });
+dotenv.config({ path: path.resolve(repoRoot, '.env'), override: false });
 
-export const API_BASE = process.env.E2E_API_BASE_URL || 'http://localhost:4000/api';
+export const API_BASE = process.env.E2E_API_BASE_URL || 'http://localhost:4100/api';
 
 const MONGO_URI = process.env.E2E_MONGO_URI;
 const DB_NAME = process.env.E2E_MONGO_DB_NAME || getDatabaseName(MONGO_URI);

@@ -10,12 +10,16 @@
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w server && npm run build -w client",
     "seed": "npm run seed -w server",
-    "load": "npm run load -w server"
+    "load": "npm run load -w server",
+    "verify:static": "scripts\\verify-static.cmd",
+    "live:preflight": "node e2e/run-live-guarded.mjs --preflight",
+    "live:test": "node e2e/run-live-guarded.mjs",
+    "live:report": "node e2e/run-live-guarded.mjs --latest-report"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
   },
-  "description": "Bản starter này chuyển hóa kiến trúc Polirium ERP Laravel/Livewire sang MERN stack theo hướng module hóa, không copy nguyên code PHP. Mục tiêu là giữ cấu trúc nghiệp vụ: product, sale/payment, stock, customer, vendor, accounting, task, print-forms.",
+  "description": "Báº£n starter nÃ y chuyá»ƒn hÃ³a kiáº¿n trÃºc Polirium ERP Laravel/Livewire sang MERN stack theo hÆ°á»›ng module hÃ³a, khÃ´ng copy nguyÃªn code PHP. Má»¥c tiÃªu lÃ  giá»¯ cáº¥u trÃºc nghiá»‡p vá»¥: product, sale/payment, stock, customer, vendor, accounting, task, print-forms.",
   "main": "index.js",
   "directories": {
     "doc": "docs"
