@@ -47,8 +47,10 @@ const TRANSFER_STATUSES = [
   'CANCELLED',
 ] as const;
 
-const OUTGOING_STATUSES = ['APPROVED_TO_DISPATCH', 'PENDING_DISPATCH_APPROVAL', 'IN_TRANSIT', 'PENDING_RECEIPT_APPROVAL'];
-const INCOMING_STATUSES = ['IN_TRANSIT', 'PENDING_RECEIPT_APPROVAL', 'PENDING_RETURN_APPROVAL'];
+const PUBLIC_TRANSFER_STATUSES = ['DRAFT', 'IN_TRANSIT', 'COMPLETED', 'RETURNED', 'CANCELLED'] as const;
+const OUTGOING_STATUSES = ['IN_TRANSIT'];
+const INCOMING_STATUSES = ['IN_TRANSIT'];
+const LEGACY_APPROVAL_ACTIONS = ['submit', 'approve-request', 'reject-request', 'confirm-dispatch', 'approve-dispatch', 'confirm-receipt', 'reject-receipt', 'approve-receipt', 'approve-return'];
 const IMPORT_SESSION_TTL_MS = 30 * 60 * 1000;
 const transferImportSessions = new Map<string, { expiresAt: number; createdBy: string; fileName: string; fileHash: string; groups: any[]; summary: any }>();
 
@@ -103,16 +105,16 @@ function makeVoucherCode(prefix: string) {
 
 function transferPublicStatus(status: string) {
   const labels: Record<string, string> = {
-    DRAFT: 'Nháp',
-    PENDING_REQUEST_APPROVAL: 'Chờ duyệt yêu cầu',
-    APPROVED_TO_DISPATCH: 'Đã duyệt, chờ kho nguồn xuất',
-    PENDING_DISPATCH_APPROVAL: 'Chờ Admin duyệt xuất',
+    DRAFT: 'Chờ xác nhận xuất',
+    PENDING_REQUEST_APPROVAL: 'Chờ xác nhận xuất',
+    APPROVED_TO_DISPATCH: 'Chờ xác nhận xuất',
+    PENDING_DISPATCH_APPROVAL: 'Đang chuyển',
     IN_TRANSIT: 'Đang chuyển',
-    PENDING_RECEIPT_APPROVAL: 'Chờ Admin duyệt nhận',
-    PENDING_RETURN_APPROVAL: 'Chờ Admin duyệt hoàn tồn',
+    PENDING_RECEIPT_APPROVAL: 'Đang chuyển',
+    PENDING_RETURN_APPROVAL: 'Đơn hoàn',
     COMPLETED: 'Hoàn thành',
-    RETURNED: 'Đã hoàn tồn',
-    REJECTED: 'Đã từ chối',
+    RETURNED: 'Đơn hoàn',
+    REJECTED: 'Đã hủy',
     CANCELLED: 'Đã hủy',
   };
   return labels[status] || status;
@@ -126,31 +128,28 @@ function statusTone(status: string) {
 }
 
 function canCancelTransfer(transfer: any) {
-  return ['DRAFT', 'PENDING_REQUEST_APPROVAL', 'APPROVED_TO_DISPATCH', 'PENDING_DISPATCH_APPROVAL'].includes(String(transfer.status || ''));
+  return String(transfer.status || '') === 'DRAFT';
+}
+function actorCanConfirmSource(user: any, transfer: any) {
+  return isAdminActor(user) || actorCanAccessWarehouse(user, transfer.sourceWarehouseId || transfer.fromWarehouse);
+}
+function actorCanConfirmDestination(user: any, transfer: any) {
+  return isAdminActor(user) || actorCanAccessWarehouse(user, transfer.destinationWarehouseId || transfer.toWarehouse);
+}
+function actorCanEditDraft(user: any, transfer: any) {
+  return String(transfer.status || '') === 'DRAFT' && actorCanConfirmSource(user, transfer);
 }
 
 function availableTransferActions(transfer: any, user: any) {
   const status = String(transfer.status || 'DRAFT');
-  const admin = isAdminActor(user);
-  const canSource = actorCanAccessWarehouse(user, transfer.sourceWarehouseId || transfer.fromWarehouse);
-  const canDestination = actorCanAccessWarehouse(user, transfer.destinationWarehouseId || transfer.toWarehouse);
+  const canSource = actorCanConfirmSource(user, transfer);
+  const canDestination = actorCanConfirmDestination(user, transfer);
   const actions: Array<{ action: string; label: string; needsReason?: boolean; danger?: boolean }> = [];
 
-  if (status === 'DRAFT' && (admin || canSource)) actions.push({ action: 'submit', label: 'Gửi duyệt' });
-  if (status === 'PENDING_REQUEST_APPROVAL' && admin) {
-    actions.push({ action: 'approve-request', label: 'Duyệt yêu cầu' });
-    actions.push({ action: 'reject-request', label: 'Từ chối yêu cầu', needsReason: true, danger: true });
-  }
-  if (status === 'APPROVED_TO_DISPATCH' && (admin || canSource)) actions.push({ action: 'confirm-dispatch', label: 'Xác nhận đã xuất hàng' });
-  if (status === 'PENDING_DISPATCH_APPROVAL' && admin) actions.push({ action: 'approve-dispatch', label: 'Duyệt xuất kho' });
-  if (status === 'IN_TRANSIT' && (admin || canDestination)) {
-    actions.push({ action: 'confirm-receipt', label: 'Xác nhận đã nhận đủ' });
-    actions.push({ action: 'reject-receipt', label: 'Từ chối nhận hàng', needsReason: true, danger: true });
-  }
-  if (status === 'PENDING_RECEIPT_APPROVAL' && admin) actions.push({ action: 'approve-receipt', label: 'Duyệt nhận kho' });
-  if (status === 'PENDING_RETURN_APPROVAL' && admin) actions.push({ action: 'approve-return', label: 'Duyệt hoàn tồn' });
-  if (canCancelTransfer(transfer) && (admin || canSource || String(transfer.createdById || '') === String(user?.sub || ''))) {
-    actions.push({ action: 'cancel', label: 'Hủy phiếu', needsReason: true, danger: true });
+  if (status === 'DRAFT' && canSource) actions.push({ action: 'confirm-source', label: 'Xác nhận xuất' });
+  if (status === 'IN_TRANSIT' && canDestination) {
+    actions.push({ action: 'confirm-destination', label: 'Xác nhận nhận hàng' });
+    actions.push({ action: 'return', label: 'Báo không nhận / Hoàn chuyển', needsReason: true, danger: true });
   }
 
   return actions;
@@ -1491,7 +1490,7 @@ router.get('/transfers/meta', async (req, res) => {
     role: isAdminActor((req as any).user) ? 'ADMIN' : 'EMPLOYEE',
     userWarehouseIds,
     warehouses: visibleBranches.map((branch: any) => ({ value: String(branch._id), label: branch.name, code: branch.code })),
-    statuses: TRANSFER_STATUSES.map((status) => ({ value: status, label: transferPublicStatus(status) })),
+    statuses: PUBLIC_TRANSFER_STATUSES.map((status) => ({ value: status, label: transferPublicStatus(status) })),
   });
 });
 
@@ -1523,6 +1522,15 @@ function serializeTransfer(row: any, user?: any) {
     totalRequestedQuantity: Number(row.qty || totalRequested),
     totalProductLines: Number(row.spCount || lines.length),
     canCancel: canCancelTransfer(row),
+    canEdit: user ? actorCanEditDraft(user, row) : false,
+    canConfirmSource: user ? (String(row.status || 'DRAFT') === 'DRAFT' && actorCanConfirmSource(user, row)) : false,
+    canConfirmDestination: user ? (String(row.status || 'DRAFT') === 'IN_TRANSIT' && actorCanConfirmDestination(user, row)) : false,
+    canReturn: user ? (String(row.status || 'DRAFT') === 'IN_TRANSIT' && actorCanConfirmDestination(user, row)) : false,
+    canPrint: String(row.status || 'DRAFT') === 'COMPLETED',
+    sourceConfirmedBy: row.dispatchConfirmedById,
+    sourceConfirmedAt: row.dispatchConfirmedAt,
+    destinationConfirmedBy: row.receiptConfirmedById,
+    destinationConfirmedAt: row.receiptConfirmedAt,
     availableActions: user ? availableTransferActions(row, user) : [],
   };
 }
@@ -1532,6 +1540,7 @@ const TRANSFER_USER_POPULATE_FIELDS = 'createdById requestApprovedById dispatchC
 function transferListFilter(req: any) {
   const tab = String(req.query.tab || req.query.tabs || 'all');
   const filter: any = {};
+  if (tab === 'draft') filter.status = 'DRAFT';
   if (tab === 'outgoing') filter.status = { $in: OUTGOING_STATUSES };
   if (tab === 'incoming') filter.status = { $in: INCOMING_STATUSES };
   if (req.query.status && TRANSFER_STATUSES.includes(String(req.query.status) as any)) filter.status = req.query.status;
@@ -1546,6 +1555,7 @@ function transferListFilter(req: any) {
     const ids = actorWarehouseIds(req.user).map((id) => objectId(id)).filter(Boolean);
     if (tab === 'outgoing') filter.sourceWarehouseId = { $in: ids };
     else if (tab === 'incoming') filter.destinationWarehouseId = { $in: ids };
+    else if (tab === 'draft') filter.sourceWarehouseId = { $in: ids };
     else filter.$and = [...(filter.$and || []), { $or: [{ sourceWarehouseId: { $in: ids } }, { destinationWarehouseId: { $in: ids } }] }];
   }
   return { tab, filter };
@@ -1708,12 +1718,12 @@ router.post('/transfers/import/commit', async (req, res) => {
         const totals = transferTotals(lines);
         const [transfer] = await WarehouseTransfer.create([{
           id: group.groupCode, code: group.groupCode, externalImportCode: group.groupCode, importBatchId, source: 'IMPORT_EXCEL', sourceFileName: sessionData.fileName, importedAt: now,
-          date: now.toISOString(), dateObj: now, tabs: ['draft'], type: 'Chuyển kho', status: submitForApproval ? 'PENDING_REQUEST_APPROVAL' : 'DRAFT', requestedAt: submitForApproval ? now : undefined,
+          date: now.toISOString(), dateObj: now, tabs: ['draft'], type: 'Chuyển kho', status: 'DRAFT',
           sourceWarehouseId: group.source._id, destinationWarehouseId: group.destination._id, fromWarehouse: group.source._id, toWarehouse: group.destination._id,
           sourceWarehouseName: group.source.name, destinationWarehouseName: group.destination.name, warehouse: `${group.source.name} -> ${group.destination.name}`,
           note: group.note || '', creator: actorName(req), createdById: actorId(req), qty: totals.qty, spCount: totals.spCount, totalAmount: totals.totalAmount, lines,
         }], { session });
-        await addTransferAudit(transfer, req, 'IMPORT_EXCEL', '', transfer.status, group.note || '', { importBatchId, sourceFileName: sessionData.fileName, excelRows: group.excelRows }, session);
+        await addTransferAudit(transfer, req, 'TRANSFER_CREATED', '', 'DRAFT', group.note || '', { importBatchId, sourceFileName: sessionData.fileName, excelRows: group.excelRows }, session);
         successes.push({ groupCode: group.groupCode, transferId: String(transfer._id), status: transfer.status });
       });
     } catch (err: any) {
@@ -1742,17 +1752,16 @@ router.post('/transfers', async (req, res) => {
     if (!actorCanCreateFrom((req as any).user, sourceBranch._id)) return res.status(403).json({ message: 'Bạn không có quyền tạo phiếu từ kho nguồn này.' });
     const lines = await buildTransferLines(req.body.lines);
     const totals = transferTotals(lines);
-    const status = req.body.submitForApproval || req.body.status === 'PENDING_REQUEST_APPROVAL' ? 'PENDING_REQUEST_APPROVAL' : 'DRAFT';
     const now = new Date();
     const transfer = await WarehouseTransfer.create({
       id: req.body.id || makeTransferCode(), code: req.body.code || makeTransferCode(), date: now.toISOString(), dateObj: now,
-      tabs: ['draft'], type: 'Chuyển kho', status,
+      tabs: ['draft'], type: 'Chuyển kho', status: 'DRAFT',
       sourceWarehouseId: sourceBranch._id, destinationWarehouseId: destinationBranch._id, fromWarehouse: sourceBranch._id, toWarehouse: destinationBranch._id,
       sourceWarehouseName: sourceBranch.name, destinationWarehouseName: destinationBranch.name, warehouse: `${sourceBranch.name} -> ${destinationBranch.name}`,
-      label: req.body.label || '', note: req.body.note || '', creator: actorName(req), createdById: actorId(req), requestedAt: status === 'PENDING_REQUEST_APPROVAL' ? now : undefined,
+      label: req.body.label || '', note: req.body.note || '', creator: actorName(req), createdById: actorId(req),
       qty: totals.qty, spCount: totals.spCount, totalAmount: totals.totalAmount, lines,
     });
-    await addTransferAudit(transfer, req, status === 'DRAFT' ? 'CREATE_DRAFT' : 'SUBMIT_REQUEST', '', status, req.body.note || '');
+    await addTransferAudit(transfer, req, 'TRANSFER_CREATED', '', 'DRAFT', req.body.note || '');
     res.status(201).json(serializeTransfer(transfer.toObject(), (req as any).user));
   } catch (err: any) {
     res.status(err.status || 500).json({ message: err.message || 'Lỗi server khi tạo phiếu chuyển kho.' });
@@ -1774,45 +1783,25 @@ router.post('/transfers/:id/actions/:action', async (req, res) => {
       const previous = String(transfer.status || 'DRAFT');
       const reason = String(req.body?.reason || '').trim();
       const now = new Date();
-      const admin = isAdminActor((req as any).user);
-      const requireAdmin = () => { if (!admin) { const error: any = new Error('Chỉ Admin chuỗi được thực hiện thao tác này.'); error.status = 403; throw error; } };
       const requireStatus = (...allowed: string[]) => { if (!allowed.includes(previous)) { const error: any = new Error(`Trạng thái hiện tại (${transferPublicStatus(previous)}) không cho phép thao tác này.`); error.status = 409; throw error; } };
 
-      if (action === 'submit') { requireStatus('DRAFT'); transfer.status = 'PENDING_REQUEST_APPROVAL'; transfer.requestedAt = now; }
-      else if (action === 'approve-request') { requireAdmin(); requireStatus('PENDING_REQUEST_APPROVAL'); transfer.status = 'APPROVED_TO_DISPATCH'; transfer.requestApprovedById = actorId(req); transfer.requestApprovedAt = now; for (const line of transfer.lines || []) line.approvedQuantity = Number(line.approvedQuantity || line.requestedQuantity || 0); }
-      else if (action === 'reject-request') { requireAdmin(); requireStatus('PENDING_REQUEST_APPROVAL'); if (!reason) { const error: any = new Error('Vui lòng nhập lý do từ chối.'); error.status = 400; throw error; } transfer.status = 'REJECTED'; transfer.rejectedById = actorId(req); transfer.rejectedAt = now; transfer.rejectionReason = reason; }
-      else if (action === 'confirm-dispatch') { requireStatus('APPROVED_TO_DISPATCH'); if (!admin && !actorCanAccessWarehouse((req as any).user, transfer.sourceWarehouseId)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được xác nhận xuất hàng.'); error.status = 403; throw error; } transfer.status = 'PENDING_DISPATCH_APPROVAL'; transfer.dispatchConfirmedById = actorId(req); transfer.dispatchConfirmedAt = now; }
-      else if (action === 'approve-dispatch') {
-        requireAdmin(); requireStatus('PENDING_DISPATCH_APPROVAL'); if (transfer.sourceExportBillId) { const error: any = new Error('Phiếu đã có chứng từ xuất chuyển kho.'); error.status = 409; throw error; }
-        await assertEnoughSourceStock(transfer, session);
-        const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.approvedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
-        const voucher = await createTransferVoucher(transfer, req, 'EXPORT_TRANSFER', transfer.sourceWarehouseId, transfer.sourceWarehouseName || String(transfer.sourceWarehouseId || ''), voucherLines, session);
-        for (const line of voucherLines) { await moveStockStrict({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: -Number(line.quantity || 0), sourceType: 'WarehouseTransfer:EXPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session }); const transferLine: any = (transfer.lines || []).find((item: any) => String(item.productId) === String(line.productId)); if (transferLine) transferLine.dispatchedQuantity = Number(line.quantity || 0); }
-        transfer.sourceExportBillId = voucher._id; transfer.dispatchApprovedById = actorId(req); transfer.dispatchApprovedAt = now; transfer.status = 'IN_TRANSIT';
+      if (LEGACY_APPROVAL_ACTIONS.includes(action)) {
+        const error: any = new Error('Quy trình duyệt cũ đã được thay bằng xác nhận xuất và xác nhận nhận.');
+        error.status = 409;
+        throw error;
       }
-      else if (action === 'confirm-receipt') { requireStatus('IN_TRANSIT'); if (!admin && !actorCanAccessWarehouse((req as any).user, transfer.destinationWarehouseId)) { const error: any = new Error('Chỉ quản lý kho đích hoặc Admin được xác nhận nhận hàng.'); error.status = 403; throw error; } transfer.status = 'PENDING_RECEIPT_APPROVAL'; transfer.receiptConfirmedById = actorId(req); transfer.receiptConfirmedAt = now; }
-      else if (action === 'reject-receipt') { requireStatus('IN_TRANSIT'); if (!reason) { const error: any = new Error('Vui lòng nhập lý do từ chối nhận hàng.'); error.status = 400; throw error; } if (!admin && !actorCanAccessWarehouse((req as any).user, transfer.destinationWarehouseId)) { const error: any = new Error('Chỉ quản lý kho đích hoặc Admin được từ chối nhận hàng.'); error.status = 403; throw error; } transfer.status = 'PENDING_RETURN_APPROVAL'; transfer.returnReason = reason; transfer.returnedById = actorId(req); transfer.returnedAt = now; }
-      else if (action === 'approve-receipt') {
-        requireAdmin(); requireStatus('PENDING_RECEIPT_APPROVAL'); if (transfer.destinationImportBillId) { const error: any = new Error('Phiếu đã có chứng từ nhập chuyển kho.'); error.status = 409; throw error; }
-        const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.dispatchedQuantity || line.approvedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
-        const voucher = await createTransferVoucher(transfer, req, 'IMPORT_TRANSFER', transfer.destinationWarehouseId, transfer.destinationWarehouseName || String(transfer.destinationWarehouseId || ''), voucherLines, session);
-        for (const line of voucherLines) { await moveStockStrict({ productId: line.productId, branchId: transfer.destinationWarehouseId, amount: Number(line.quantity || 0), sourceType: 'WarehouseTransfer:IMPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session }); const transferLine: any = (transfer.lines || []).find((item: any) => String(item.productId) === String(line.productId)); if (transferLine) transferLine.receivedQuantity = Number(line.quantity || 0); }
-        transfer.destinationImportBillId = voucher._id; transfer.receiptApprovedById = actorId(req); transfer.receiptApprovedAt = now; transfer.status = 'COMPLETED';
+      if (action === 'cancel') {
+        const error: any = new Error('Xóa mềm phiếu chuyển kho đã chuyển sang endpoint DELETE /warehouse/transfers/:id.');
+        error.status = 409;
+        throw error;
       }
-      else if (action === 'approve-return') {
-        requireAdmin(); requireStatus('PENDING_RETURN_APPROVAL'); if (transfer.returnBillId) { const error: any = new Error('Phiếu đã có chứng từ hoàn tồn.'); error.status = 409; throw error; }
-        const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.dispatchedQuantity || line.approvedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
-        const voucher = await createTransferVoucher(transfer, req, 'RETURN_TRANSFER', transfer.sourceWarehouseId, transfer.sourceWarehouseName || String(transfer.sourceWarehouseId || ''), voucherLines, session);
-        for (const line of voucherLines) await moveStockStrict({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: Number(line.quantity || 0), sourceType: 'WarehouseTransfer:RETURN_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session });
-        transfer.returnBillId = voucher._id; transfer.returnedById = actorId(req); transfer.returnedAt = now; transfer.returnReason = reason || transfer.returnReason; transfer.status = 'RETURNED';
+      {
+        const error: any = new Error('Thao tác không hợp lệ. Sử dụng endpoint xác nhận xuất / xác nhận nhận / hoàn chuyển.');
+        error.status = 400;
+        throw error;
       }
-      else if (action === 'cancel') { if (!canCancelTransfer(transfer)) { const error: any = new Error('Chỉ hủy được trước khi Admin duyệt xuất kho.'); error.status = 409; throw error; } transfer.status = 'CANCELLED'; transfer.cancelledById = actorId(req); transfer.cancelledAt = now; transfer.cancelReason = reason; }
-      else { const error: any = new Error('Thao tác không hợp lệ.'); error.status = 400; throw error; }
 
-      transfer.version = Number(transfer.version || 0) + 1;
-      await transfer.save({ session });
-      await addTransferAudit(transfer, req, action, previous, String(transfer.status), reason, {}, session);
-      result = transfer.toObject();
+      result = {};
     });
     res.json(serializeTransfer(result, (req as any).user));
   } catch (err: any) {
@@ -2070,5 +2059,174 @@ router.post('/checks', async (req, res, next) => {
 
 router.use('/checks', crudRoutes(InventoryCheck));
 router.use('/check-products', crudRoutes(InventoryCheckProduct));
+
+router.patch('/transfers/:id', async (req, res) => {
+  try {
+    const baseTransfer = await readTransferOr404(req.params.id);
+    if (!actorCanAccessTransfer((req as any).user, baseTransfer)) return res.status(403).json({ message: 'Bạn không có quyền xem phiếu chuyển kho này.' });
+    if (String(baseTransfer.status || 'DRAFT') !== 'DRAFT') return res.status(409).json({ message: 'Chỉ được sửa phiếu ở trạng thái Chờ xác nhận xuất.' });
+    if (!actorCanEditDraft((req as any).user, baseTransfer)) return res.status(403).json({ message: 'Chỉ quản lý kho nguồn hoặc Admin được sửa phiếu nháp.' });
+    const sourceBranch = await activeBranchOrError(req.body.sourceWarehouseId || req.body.fromWarehouse || baseTransfer.sourceWarehouseId, 'Kho nguồn');
+    const destinationBranch = await activeBranchOrError(req.body.destinationWarehouseId || req.body.toWarehouse || baseTransfer.destinationWarehouseId, 'Kho đích');
+    if (String(sourceBranch._id) === String(destinationBranch._id)) return res.status(400).json({ message: 'Kho nguồn và kho đích không được trùng nhau.' });
+    if (String(sourceBranch._id) !== String(baseTransfer.sourceWarehouseId || baseTransfer.fromWarehouse || '')) {
+      if (!actorCanCreateFrom((req as any).user, sourceBranch._id)) return res.status(403).json({ message: 'Bạn không có quyền chuyển sang kho nguồn này.' });
+    }
+    const lines = await buildTransferLines(req.body.lines || baseTransfer.lines);
+    const totals = transferTotals(lines);
+    const transfer = await WarehouseTransfer.findById(baseTransfer._id);
+    if (!transfer) return res.status(404).json({ message: 'Không tìm thấy phiếu chuyển kho.' });
+    if (String(transfer.status || 'DRAFT') !== 'DRAFT') return res.status(409).json({ message: 'Phiếu đã thay đổi trạng thái, không thể sửa.' });
+    transfer.sourceWarehouseId = sourceBranch._id as any; transfer.destinationWarehouseId = destinationBranch._id as any;
+    transfer.fromWarehouse = sourceBranch._id as any; transfer.toWarehouse = destinationBranch._id as any;
+    transfer.sourceWarehouseName = sourceBranch.name; transfer.destinationWarehouseName = destinationBranch.name;
+    transfer.warehouse = `${sourceBranch.name} -> ${destinationBranch.name}`;
+    transfer.label = String(req.body.label ?? transfer.label ?? '');
+    transfer.note = String(req.body.note ?? transfer.note ?? '');
+    transfer.lines = lines as any; transfer.qty = totals.qty; transfer.spCount = totals.spCount; transfer.totalAmount = totals.totalAmount;
+    transfer.version = Number(transfer.version || 0) + 1;
+    await transfer.save();
+    await addTransferAudit(transfer, req, 'TRANSFER_UPDATED', 'DRAFT', 'DRAFT', '');
+    res.json(serializeTransfer(transfer.toObject(), (req as any).user));
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Lỗi server khi sửa phiếu chuyển kho.' });
+  }
+});
+
+router.delete('/transfers/:id', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    let result: any;
+    await session.withTransaction(async () => {
+      const baseTransfer = await readTransferOr404(req.params.id);
+      const transfer = await WarehouseTransfer.findById(baseTransfer._id).session(session);
+      if (!transfer) throw new Error('Không tìm thấy phiếu chuyển kho.');
+      if (String(transfer.status || 'DRAFT') !== 'DRAFT') { const error: any = new Error('Chỉ hủy được phiếu ở trạng thái Chờ xác nhận xuất.'); error.status = 409; throw error; }
+      if (!actorCanEditDraft((req as any).user, transfer)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được hủy phiếu.'); error.status = 403; throw error; }
+      const reason = String(req.body?.reason || '').trim();
+      const previous = String(transfer.status || 'DRAFT');
+      transfer.status = 'CANCELLED'; transfer.cancelledById = actorId(req); transfer.cancelledAt = new Date(); transfer.cancelReason = reason;
+      transfer.version = Number(transfer.version || 0) + 1;
+      await transfer.save({ session });
+      await addTransferAudit(transfer, req, 'TRANSFER_CANCELLED', previous, 'CANCELLED', reason, {}, session);
+      result = transfer.toObject();
+    });
+    res.json(serializeTransfer(result, (req as any).user));
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không thể hủy phiếu chuyển kho.' });
+  } finally {
+    await session.endSession();
+  }
+});
+
+async function runConfirmSource(req: any, res: any, session: any) {
+  const baseTransfer = await readTransferOr404(req.params.id);
+  const transfer = await WarehouseTransfer.findById(baseTransfer._id).session(session);
+  if (!transfer) throw new Error('Không tìm thấy phiếu chuyển kho.');
+  if (String(transfer.status || 'DRAFT') !== 'DRAFT') { const error: any = new Error('Chỉ xác nhận xuất được phiếu ở trạng thái Chờ xác nhận xuất.'); error.status = 409; throw error; }
+  if (!actorCanConfirmSource(req.user, transfer)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được xác nhận xuất.'); error.status = 403; throw error; }
+  if (transfer.sourceExportBillId) { const error: any = new Error('Phiếu đã được xác nhận xuất.'); error.status = 409; throw error; }
+  const previous = String(transfer.status || 'DRAFT');
+  await assertEnoughSourceStock(transfer, session);
+  const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.requestedQuantity || line.quantity || 0), price: Number(line.unitCostSnapshot || 0) }));
+  const voucher = await createTransferVoucher(transfer, req, 'EXPORT_TRANSFER', transfer.sourceWarehouseId, transfer.sourceWarehouseName || String(transfer.sourceWarehouseId || ''), voucherLines, session);
+  for (const line of voucherLines) {
+    await moveStockStrict({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: -Number(line.quantity || 0), sourceType: 'WarehouseTransfer:EXPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session });
+    const transferLine: any = (transfer.lines || []).find((item: any) => String(item.productId) === String(line.productId));
+    if (transferLine) transferLine.dispatchedQuantity = Number(line.quantity || 0);
+  }
+  const now = new Date();
+  transfer.sourceExportBillId = voucher._id; transfer.dispatchConfirmedById = actorId(req); transfer.dispatchConfirmedAt = now; transfer.status = 'IN_TRANSIT';
+  transfer.version = Number(transfer.version || 0) + 1;
+  await transfer.save({ session });
+  await addTransferAudit(transfer, req, 'SOURCE_CONFIRMED', previous, 'IN_TRANSIT', '', {}, session);
+  return transfer.toObject();
+}
+
+router.post('/transfers/:id/confirm-source', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    let result: any;
+    await session.withTransaction(async () => { result = await runConfirmSource(req, res, session); });
+    res.json(serializeTransfer(result, (req as any).user));
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không thể xác nhận xuất.' });
+  } finally {
+    await session.endSession();
+  }
+});
+
+async function runConfirmDestination(req: any, _res: any, session: any) {
+  const baseTransfer = await readTransferOr404(req.params.id);
+  const transfer = await WarehouseTransfer.findById(baseTransfer._id).session(session);
+  if (!transfer) throw new Error('Không tìm thấy phiếu chuyển kho.');
+  if (String(transfer.status || 'DRAFT') !== 'IN_TRANSIT') { const error: any = new Error('Chỉ xác nhận nhận được phiếu đang chuyển.'); error.status = 409; throw error; }
+  if (!actorCanConfirmDestination(req.user, transfer)) { const error: any = new Error('Chỉ quản lý kho đích hoặc Admin được xác nhận nhận.'); error.status = 403; throw error; }
+  if (transfer.destinationImportBillId) { const error: any = new Error('Phiếu đã được xác nhận nhận.'); error.status = 409; throw error; }
+  const previous = String(transfer.status || 'DRAFT');
+  const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.dispatchedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
+  const voucher = await createTransferVoucher(transfer, req, 'IMPORT_TRANSFER', transfer.destinationWarehouseId, transfer.destinationWarehouseName || String(transfer.destinationWarehouseId || ''), voucherLines, session);
+  for (const line of voucherLines) {
+    await moveStockStrict({ productId: line.productId, branchId: transfer.destinationWarehouseId, amount: Number(line.quantity || 0), sourceType: 'WarehouseTransfer:IMPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session });
+    const transferLine: any = (transfer.lines || []).find((item: any) => String(item.productId) === String(line.productId));
+    if (transferLine) transferLine.receivedQuantity = Number(line.quantity || 0);
+  }
+  const now = new Date();
+  transfer.destinationImportBillId = voucher._id; transfer.receiptConfirmedById = actorId(req); transfer.receiptConfirmedAt = now; transfer.status = 'COMPLETED';
+  transfer.version = Number(transfer.version || 0) + 1;
+  await transfer.save({ session });
+  await addTransferAudit(transfer, req, 'DESTINATION_CONFIRMED', previous, 'COMPLETED', '', {}, session);
+  return transfer.toObject();
+}
+
+router.post('/transfers/:id/confirm-destination', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    let result: any;
+    await session.withTransaction(async () => { result = await runConfirmDestination(req, res, session); });
+    res.json(serializeTransfer(result, (req as any).user));
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không thể xác nhận nhận.' });
+  } finally {
+    await session.endSession();
+  }
+});
+
+async function runReturn(req: any, _res: any, session: any) {
+  const baseTransfer = await readTransferOr404(req.params.id);
+  const transfer = await WarehouseTransfer.findById(baseTransfer._id).session(session);
+  if (!transfer) throw new Error('Không tìm thấy phiếu chuyển kho.');
+  if (String(transfer.status || 'DRAFT') !== 'IN_TRANSIT') { const error: any = new Error('Chỉ hoàn chuyển được phiếu đang chuyển.'); error.status = 409; throw error; }
+  if (!actorCanConfirmDestination(req.user, transfer)) { const error: any = new Error('Chỉ quản lý kho đích hoặc Admin được báo hoàn chuyển.'); error.status = 403; throw error; }
+  const reason = String(req.body?.reason || '').trim();
+  if (!reason) { const error: any = new Error('Vui lòng nhập lý do hoàn chuyển.'); error.status = 400; throw error; }
+  if (!transfer.sourceExportBillId) { const error: any = new Error('Phiếu chưa có chứng từ xuất, không thể hoàn.'); error.status = 409; throw error; }
+  if (transfer.returnBillId) { const error: any = new Error('Phiếu đã được báo hoàn.'); error.status = 409; throw error; }
+  const previous = String(transfer.status || 'DRAFT');
+  const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.dispatchedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
+  const voucher = await createTransferVoucher(transfer, req, 'RETURN_TRANSFER', transfer.sourceWarehouseId, transfer.sourceWarehouseName || String(transfer.sourceWarehouseId || ''), voucherLines, session);
+  for (const line of voucherLines) {
+    await moveStockStrict({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: Number(line.quantity || 0), sourceType: 'WarehouseTransfer:RETURN_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session });
+  }
+  const now = new Date();
+  transfer.returnBillId = voucher._id; transfer.returnedById = actorId(req); transfer.returnedAt = now; transfer.returnReason = reason; transfer.status = 'RETURNED';
+  transfer.version = Number(transfer.version || 0) + 1;
+  await transfer.save({ session });
+  await addTransferAudit(transfer, req, 'TRANSFER_RETURNED', previous, 'RETURNED', reason, {}, session);
+  return transfer.toObject();
+}
+
+router.post('/transfers/:id/return', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    let result: any;
+    await session.withTransaction(async () => { result = await runReturn(req, res, session); });
+    res.json(serializeTransfer(result, (req as any).user));
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không thể báo hoàn chuyển.' });
+  } finally {
+    await session.endSession();
+  }
+});
 
 export default router;
