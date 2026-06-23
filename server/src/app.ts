@@ -88,7 +88,13 @@ app.use('/api/reports', requireAuth, requireOwner, reportsRoutes);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
-  const status = err.status ?? (err.name === 'ZodError' ? 422 : 500);
+  const isMongooseValidation = err?.name === 'ValidationError';
+  const isDuplicateKey = err?.code === 11000 || err?.code === 11001;
+  const status = err.status
+    ?? (err.name === 'ZodError' ? 422
+      : isMongooseValidation ? 400
+      : isDuplicateKey ? 409
+      : 500);
   res.status(status).json({
     message: err.message ?? 'Server error',
     issues: err.issues,

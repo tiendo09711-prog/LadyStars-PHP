@@ -8,6 +8,28 @@ function normalizeCode(value: unknown) {
   return typeof value === 'string' ? value.trim().toUpperCase() : value;
 }
 
+const TotalLabelsSchema = new Schema({
+  subtotal: { type: String, trim: true, default: 'Tổng cộng' },
+  discount: { type: String, trim: true, default: 'Giảm giá' },
+  total: { type: String, trim: true, default: 'Thành tiền' },
+  paid: { type: String, trim: true, default: 'Đã thanh toán' },
+  change: { type: String, trim: true, default: 'Tiền trả lại' },
+}, { _id: false });
+
+const TypographySchema = new Schema({
+  titleAlign: { type: String, enum: ['left', 'center', 'right'], default: 'center' },
+  bodyFontSize: { type: String, enum: ['small', 'normal'], default: 'normal' },
+}, { _id: false });
+
+const TemplateConfigSchema = new Schema({
+  version: { type: Number, default: 1 },
+  title: { type: String, trim: true, default: '' },
+  subtitle: { type: String, trim: true, default: '' },
+  noteText: { type: String, trim: true, default: '' },
+  totalLabels: { type: TotalLabelsSchema, default: () => ({}) },
+  typography: { type: TypographySchema, default: () => ({}) },
+}, { _id: false });
+
 const InvoiceProfileSchema = new Schema({
   displayName: { type: String, trim: true, default: '' },
   templateId: {
@@ -24,6 +46,7 @@ const InvoiceProfileSchema = new Schema({
   showCashier: { type: Boolean, default: true },
   showProductCode: { type: Boolean, default: false },
   showLogo: { type: Boolean, default: false },
+  templateConfig: { type: TemplateConfigSchema, default: () => ({}) },
 }, { _id: false });
 
 const BranchSchema = new Schema({
@@ -52,7 +75,7 @@ const BranchSchema = new Schema({
     trim: true,
     set: trimString,
     validate: {
-      validator: (value: string | undefined) => !value || /^[0-9+\-()\s]+$/.test(value),
+      validator: (value: string | undefined) => !value || /^[0-9+\-()\s.]+$/.test(value),
       message: 'Hotline không hợp lệ.',
     },
   },

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -550,7 +550,7 @@ export function WholesaleInvoiceCreatePage() {
         const customerText = `${form.customerName || 'Khách lẻ'}${form.customerPhone ? ` (${form.customerPhone})` : ''}`;
         const html = buildReceiptHtml({
           profile,
-          title: 'HÓA ĐƠN',
+          title: profile.templateConfig?.title || 'HÓA ĐƠN',
           date: new Date().toLocaleDateString('vi-VN'),
           code: createRes.data.code || saleId,
           customer: customerText,
