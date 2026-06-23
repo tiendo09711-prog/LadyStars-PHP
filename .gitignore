@@ -47,3 +47,17 @@ _e2e_cleanup_backups/
 .cache/
 .parcel-cache/
 .vite/
+
+# E2E / Playwright artifacts & scratch
+playwright-report/
+test-results/
+e2e/playwright-report/
+e2e/test-results/
+e2e/playwright/.auth/
+scratch/
+
+# Live-guarded test mode (backups, reports, local secrets)
+artifacts/live-db-backups/
+artifacts/live-test-reports/
+.env.live-test.local
+.env.e2e.local

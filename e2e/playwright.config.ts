@@ -1,35 +1,50 @@
-﻿import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
 const repoRoot = path.basename(process.cwd()) === 'e2e' ? path.resolve(process.cwd(), '..') : process.cwd();
-dotenv.config({ path: path.resolve(repoRoot, '.env') });
-dotenv.config({ path: path.resolve(repoRoot, '.env.e2e.local'), override: false });
+// E2E/live env files must win over the app .env so tests never inherit real-app values.
+dotenv.config({ path: path.resolve(repoRoot, '.env.live-test.local'), override: true });
+dotenv.config({ path: path.resolve(repoRoot, '.env.e2e.local'), override: true });
+dotenv.config({ path: path.resolve(repoRoot, '.env'), override: false });
 
-const baseURL = process.env.E2E_BASE_URL || 'http://localhost:5173';
+const isLive = process.env.E2E_LIVE === '1';
+const baseURL = process.env.E2E_BASE_URL || 'http://localhost:5174';
+
+// Live mode: only the isolated e2e/live specs, and NO legacy setup project
+// (the legacy auth.setup upserts a root admin, which is forbidden in live mode).
+const liveProjects = [
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'] },
+  },
+];
+
+const legacyProjects = [
+  { name: 'setup', testMatch: /.*\.setup\.ts/ },
+  {
+    name: 'chromium',
+    use: {
+      ...devices['Desktop Chrome'],
+      storageState: 'playwright/.auth/user.json',
+    },
+    dependencies: ['setup'],
+  },
+];
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: isLive ? './live' : './tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Keep it 1 for sequential e2e tests
-  reporter: 'html',
+  reporter: isLive ? 'list' : 'html',
   timeout: 30000,
+  // No webServer block on purpose: never auto-start the real dev server (port 4000/5173).
+  // The live-guarded runner spawns isolated servers on 4100/5174.
   use: {
     baseURL,
     trace: 'on-first-retry',
   },
-
-  projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    {
-      name: 'chromium',
-      use: { 
-        ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-  ],
+  projects: isLive ? liveProjects : legacyProjects,
 });

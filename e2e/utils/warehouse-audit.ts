@@ -1,7 +1,10 @@
 import { expect, request as playwrightRequest } from '@playwright/test';
 
-export const API_BASE = 'http://localhost:4000/api/';
-export const APP_ORIGIN = 'http://localhost:5173';
+function normalizeApiBase(value) {
+  return value.endsWith('/') ? value : value + '/';
+}
+export const API_BASE = normalizeApiBase(process.env.E2E_API_BASE_URL || 'http://localhost:4100/api');
+export const APP_ORIGIN = process.env.E2E_BASE_URL || 'http://localhost:5174';
 export const ADMIN_EMAIL = 'admin@gmail.com';
 export const ADMIN_PASSWORD = '123456';
 export const EMPLOYEE_PASSWORD = '12345678';
