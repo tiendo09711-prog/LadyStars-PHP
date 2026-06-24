@@ -98,7 +98,7 @@ function normalizeCode(value: unknown) {
 function normalizePhone(value: unknown, options?: { rejectInvalid?: boolean }) {
   const phone = trim(value);
   if (!phone) return '';
-  if (/^[0-9+().\-()\s]+$/.test(phone)) return phone;
+  if (/^[0-9+\-().\s]+$/.test(phone)) return phone;
   if (options?.rejectInvalid) {
     const error: any = new Error('Hotline khong hop le. Chi dung so, khoang trang, dau +, -, ., ( ).');
     error.status = 400;
@@ -117,12 +117,56 @@ function normalizeAlias(value: unknown) {
     .replace(/\s+/g, ' ');
 }
 
+function mapBranchError(err: any) {
+  if (err?.name === 'ValidationError') {
+    const error: any = new Error(err.message || 'Dữ liệu kho hàng không hợp lệ.');
+    error.status = 400;
+    return error;
+  }
+  if (err?.code === 11000 || err?.code === 11001) {
+    const error: any = new Error('Mã kho đã tồn tại.');
+    error.status = 409;
+    return error;
+  }
+  return err;
+}
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function cleanObject<T extends Record<string, any>>(value: T) {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
+}
+
+function cleanPlainText(value: unknown, maxLength = 240) {
+  const text = trim(value);
+  if (!text) return '';
+  // Bo ky tu dieu khien va HTML tag de phong luu HTML/raw script.
+  const safe = text.replace(/[<>\u0000-\u001f]/g, '').replace(/\s+/g, ' ');
+  return safe.slice(0, maxLength);
+}
+
+function ensureTemplateConfig(raw: any) {
+  const cfg = raw && typeof raw === 'object' ? raw : {};
+  const labels = cfg.totalLabels && typeof cfg.totalLabels === 'object' ? cfg.totalLabels : {};
+  const typo = cfg.typography && typeof cfg.typography === 'object' ? cfg.typography : {};
+  const titleAlign = ['left', 'center', 'right'].includes(typo.titleAlign) ? typo.titleAlign : 'center';
+  const bodyFontSize = ['small', 'normal'].includes(typo.bodyFontSize) ? typo.bodyFontSize : 'normal';
+  return {
+    version: 1,
+    title: cleanPlainText(cfg.title, 120),
+    subtitle: cleanPlainText(cfg.subtitle, 160),
+    noteText: cleanPlainText(cfg.noteText, 300),
+    totalLabels: {
+      subtotal: cleanPlainText(labels.subtotal, 60) || 'Tổng cộng',
+      discount: cleanPlainText(labels.discount, 60) || 'Giảm giá',
+      total: cleanPlainText(labels.total, 60) || 'Thành tiền',
+      paid: cleanPlainText(labels.paid, 60) || 'Đã thanh toán',
+      change: cleanPlainText(labels.change, 60) || 'Tiền trả lại',
+    },
+    typography: { titleAlign, bodyFontSize },
+  };
 }
 
 function ensureInvoiceProfile(invoiceProfile: any) {
@@ -136,6 +180,7 @@ function ensureInvoiceProfile(invoiceProfile: any) {
     showCashier: invoiceProfile?.showCashier !== false,
     showProductCode: Boolean(invoiceProfile?.showProductCode),
     showLogo: Boolean(invoiceProfile?.showLogo),
+    templateConfig: ensureTemplateConfig(invoiceProfile?.templateConfig),
   };
 }
 
@@ -661,51 +706,81 @@ export async function createBranchRecord(req: any, input: any) {
 }
 
 export async function updateBranchRecord(req: any, branchId: string, input: any) {
-  const branch = await Branch.findById(branchId);
-  if (!branch) {
+  const existing = await Branch.findById(branchId).lean();
+  if (!existing) {
     const error: any = new Error('Không tìm thấy kho hàng.');
     error.status = 404;
     throw error;
   }
 
-  const before = sanitizeBranchForAudit(branch);
+  const before = sanitizeBranchForAudit(existing);
   const payload = sanitizeBranchPayload(input);
-  branch.name = payload.name || branch.name;
-  branch.address = payload.address;
-  branch.phone = payload.phone;
-  branch.invoiceProfile = ensureInvoiceProfile(payload.invoiceProfile) as any;
-  await branch.save();
+  const update = {
+    name: payload.name || existing.name,
+    address: payload.address,
+    phone: payload.phone,
+    invoiceProfile: ensureInvoiceProfile(payload.invoiceProfile),
+  };
+
+  let updated: any;
+  try {
+    updated = await Branch.findByIdAndUpdate(
+      branchId,
+      { $set: update },
+      { new: true, runValidators: true },
+    );
+  } catch (err: any) {
+    throw mapBranchError(err);
+  }
+  if (!updated) {
+    const error: any = new Error('Không tìm thấy kho hàng.');
+    error.status = 404;
+    throw error;
+  }
 
   await writeBranchAudit('branch.update', {
     req,
     branchId,
     before,
-    after: sanitizeBranchForAudit(branch),
+    after: sanitizeBranchForAudit(updated),
   });
 
-  return branch;
+  return updated;
 }
 
 export async function toggleBranchActiveRecord(req: any, branchId: string, nextActive: boolean) {
-  const branch = await Branch.findById(branchId);
-  if (!branch) {
+  const existing = await Branch.findById(branchId).lean();
+  if (!existing) {
     const error: any = new Error('Không tìm thấy kho hàng.');
     error.status = 404;
     throw error;
   }
 
-  const before = sanitizeBranchForAudit(branch);
-  branch.isActive = nextActive;
-  await branch.save();
+  const before = sanitizeBranchForAudit(existing);
+  let updated: any;
+  try {
+    updated = await Branch.findByIdAndUpdate(
+      branchId,
+      { $set: { isActive: nextActive } },
+      { new: true },
+    );
+  } catch (err: any) {
+    throw mapBranchError(err);
+  }
+  if (!updated) {
+    const error: any = new Error('Không tìm thấy kho hàng.');
+    error.status = 404;
+    throw error;
+  }
 
   await writeBranchAudit(nextActive ? 'branch.activate' : 'branch.deactivate', {
     req,
     branchId,
     before,
-    after: sanitizeBranchForAudit(branch),
+    after: sanitizeBranchForAudit(updated),
   });
 
-  return branch;
+  return updated;
 }
 
 export async function getBranchUsageSummary(branchId: string) {

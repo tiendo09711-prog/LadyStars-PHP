@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -638,7 +638,7 @@ export function RefundInvoiceCreatePage() {
         const amountDelta = Number(form.totalAmount) || 0;
         const html = buildReceiptHtml({
           profile,
-          title: 'HÓA ĐƠN ĐỔI TRẢ HÀNG',
+          title: profile.templateConfig?.title || 'HÓA ĐƠN ĐỔI TRẢ HÀNG',
           date: new Date().toLocaleDateString('vi-VN'),
           customer: customerText,
           sections: [

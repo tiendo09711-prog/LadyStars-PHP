@@ -1,0 +1,102 @@
+import { buildInvoiceProfile, getBranch, getStoreSetting, type BranchRecord, type StoreSettingRecord } from '../../core/api/branch.api';
+import { escapeReceiptHtml, writeAndPrintPopup, type ReceiptProfile } from '../sales/invoicePrint';
+
+type TransferPrintData = {
+  _id: string;
+  id?: string;
+  code?: string;
+  status?: string;
+  createdAt?: string;
+  date?: string;
+  sourceWarehouseId?: string;
+  destinationWarehouseId?: string;
+  sourceWarehouseName?: string;
+  destinationWarehouseName?: string;
+  creator?: string;
+  createdById?: unknown;
+  sourceConfirmedBy?: unknown;
+  sourceConfirmedAt?: string;
+  dispatchConfirmedById?: unknown;
+  dispatchConfirmedAt?: string;
+  destinationConfirmedBy?: unknown;
+  destinationConfirmedAt?: string;
+  receiptConfirmedById?: unknown;
+  receiptConfirmedAt?: string;
+  note?: string;
+  qty?: number;
+  spCount?: number;
+  lines?: Array<{ productCode?: string; productName?: string; unit?: string; requestedQuantity?: number; dispatchedQuantity?: number; receivedQuantity?: number }>;
+};
+
+function trim(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function displayDate(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('vi-VN');
+}
+
+function displayUser(value: unknown, fallback = '-') {
+  if (!value) return fallback;
+  if (typeof value === 'string') return value || fallback;
+  if (typeof value === 'object') {
+    const user = value as { name?: string; email?: string };
+    return user.name || user.email || fallback;
+  }
+  return fallback;
+}
+
+function qty(value: unknown) {
+  return Number(value || 0).toLocaleString('vi-VN');
+}
+
+function profileFor(branch?: BranchRecord | null, store?: StoreSettingRecord | null) {
+  return buildInvoiceProfile(branch || undefined, store || undefined);
+}
+
+function mergeProfile(source?: BranchRecord | null, destination?: BranchRecord | null, store?: StoreSettingRecord | null): ReceiptProfile {
+  const sourceProfile = profileFor(source, store);
+  const destinationProfile = profileFor(destination, store);
+  const globalProfile = profileFor(null, store);
+  return {
+    ...sourceProfile,
+    brandName: trim(sourceProfile.brandName) || trim(destinationProfile.brandName) || trim(globalProfile.brandName),
+    branchName: trim(sourceProfile.branchName) || trim(destinationProfile.branchName) || trim(globalProfile.branchName),
+    address: trim(sourceProfile.address) || trim(destinationProfile.address) || trim(globalProfile.address),
+    phone: trim(sourceProfile.phone) || trim(destinationProfile.phone) || trim(globalProfile.phone),
+    logoUrl: trim(sourceProfile.logoUrl) || trim(destinationProfile.logoUrl) || trim(globalProfile.logoUrl),
+    footerText: trim(sourceProfile.footerText) || trim(destinationProfile.footerText) || trim(globalProfile.footerText),
+    showBranchName: Boolean(sourceProfile.showBranchName ?? destinationProfile.showBranchName ?? globalProfile.showBranchName),
+    showCashier: sourceProfile.showCashier !== false,
+    showProductCode: Boolean(sourceProfile.showProductCode ?? destinationProfile.showProductCode ?? globalProfile.showProductCode),
+    showLogo: Boolean(sourceProfile.showLogo ?? destinationProfile.showLogo ?? globalProfile.showLogo),
+    templateConfig: sourceProfile.templateConfig || destinationProfile.templateConfig || globalProfile.templateConfig,
+  };
+}
+
+async function resolvePrintProfile(transfer: TransferPrintData) {
+  const [store, source, destination] = await Promise.all([
+    getStoreSetting().catch(() => null),
+    transfer.sourceWarehouseId ? getBranch(transfer.sourceWarehouseId).catch(() => null) : Promise.resolve(null),
+    transfer.destinationWarehouseId ? getBranch(transfer.destinationWarehouseId).catch(() => null) : Promise.resolve(null),
+  ]);
+  return { profile: mergeProfile(source, destination, store), source, destination };
+}
+
+function buildTransferSlipHtml(transfer: TransferPrintData, profile: ReceiptProfile, source?: BranchRecord | null, destination?: BranchRecord | null) {
+  const lines = transfer.lines || [];
+  const totalQty = lines.reduce((sum, line) => sum + Number(line.receivedQuantity || line.dispatchedQuantity || line.requestedQuantity || 0), 0);
+  const rows = lines.map((line, index) => `<tr><td class=center>${index + 1}</td><td>${escapeReceiptHtml(line.productCode || '')}</td><td>${escapeReceiptHtml(line.productName || '')}</td><td>${escapeReceiptHtml(line.unit || '')}</td><td class=right>${qty(line.receivedQuantity || line.dispatchedQuantity || line.requestedQuantity)}</td></tr>`).join('');
+  const logo = profile.showLogo && profile.logoUrl ? `<p class=iv-logo><img src=${escapeReceiptHtml(profile.logoUrl)} alt=logo /></p>` : '';
+  return `<!doctype html><html lang=vi><head><meta charset=utf-8 /><title>ĐƠN CHUYỂN KHO</title><style>@page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:13px;line-height:1.45}.receipt{max-width:196mm;margin:0 auto}.iv-header{text-align:center}.iv-logo img{max-width:200px;max-height:56px;object-fit:contain}.iv-brand{font-weight:700;font-size:16px;text-transform:uppercase}.iv-sub{overflow-wrap:anywhere}.iv-title{text-align:center;font-weight:700;font-size:20px;margin:12px 0;text-transform:uppercase}.iv-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin:8px 0}.iv-box{border:1px solid #111;padding:8px;margin:8px 0}.iv-table{width:100%;border-collapse:collapse;margin:8px 0}.iv-table th,.iv-table td{border:1px solid #111;padding:5px 7px;vertical-align:top}.iv-table th{background:#f4f4f4}.center{text-align:center}.right{text-align:right}.iv-sign{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:32px;text-align:center;font-weight:700}.iv-footer{text-align:center;margin-top:20px;border-top:1px dashed #111;padding-top:8px}</style></head><body><main class=receipt><header class=iv-header>${logo}<div class=iv-brand>${escapeReceiptHtml(profile.brandName)}</div>${profile.address ? `<div class=iv-sub>${escapeReceiptHtml(profile.address)}</div>` : ''}${profile.phone ? `<div class=iv-sub>Điện thoại: ${escapeReceiptHtml(profile.phone)}</div>` : ''}</header><h1 class=iv-title>ĐƠN CHUYỂN KHO</h1><div class=iv-meta><div><strong>Mã phiếu:</strong> ${escapeReceiptHtml(transfer.id || transfer.code || transfer._id)}</div><div><strong>Ngày tạo:</strong> ${escapeReceiptHtml(displayDate(transfer.date || transfer.createdAt))}</div><div><strong>Trạng thái:</strong> Hoàn thành</div><div><strong>Người tạo:</strong> ${escapeReceiptHtml(transfer.creator || displayUser(transfer.createdById))}</div></div><section class=iv-box><div><strong>Kho nguồn:</strong> ${escapeReceiptHtml(transfer.sourceWarehouseName || source?.name || '')}</div><div><strong>Địa chỉ kho nguồn:</strong> ${escapeReceiptHtml(source?.address || '')}</div><div><strong>Kho đích:</strong> ${escapeReceiptHtml(transfer.destinationWarehouseName || destination?.name || '')}</div><div><strong>Địa chỉ kho đích:</strong> ${escapeReceiptHtml(destination?.address || '')}</div></section><div class=iv-meta><div><strong>Người xác nhận xuất:</strong> ${escapeReceiptHtml(displayUser(transfer.sourceConfirmedBy || transfer.dispatchConfirmedById))}</div><div><strong>Thời gian xuất:</strong> ${escapeReceiptHtml(displayDate(transfer.sourceConfirmedAt || transfer.dispatchConfirmedAt))}</div><div><strong>Người xác nhận nhận:</strong> ${escapeReceiptHtml(displayUser(transfer.destinationConfirmedBy || transfer.receiptConfirmedById))}</div><div><strong>Thời gian nhận:</strong> ${escapeReceiptHtml(displayDate(transfer.destinationConfirmedAt || transfer.receiptConfirmedAt))}</div></div><h2>BẢNG CHI TIẾT CHUYỂN KHO</h2><table class=iv-table><thead><tr><th>STT</th><th>Mã SP</th><th>Tên sản phẩm</th><th>Đơn vị</th><th>Số lượng</th></tr></thead><tbody>${rows}</tbody></table><div class=iv-meta><div><strong>Tổng số sản phẩm:</strong> ${qty(transfer.spCount || lines.length)}</div><div><strong>Tổng số lượng:</strong> ${qty(transfer.qty || totalQty)}</div><div style=grid-column:1/-1><strong>Ghi chú:</strong> ${escapeReceiptHtml(transfer.note || '-')}</div></div><div class=iv-sign><div>Chữ ký kho gửi</div><div>Chữ ký kho nhận</div></div><div class=iv-footer>${escapeReceiptHtml(profile.footerText)}</div></main></body></html>`;
+}
+
+export async function printWarehouseTransfer(transfer: TransferPrintData) {
+  if (transfer.status !== 'COMPLETED') throw new Error('Chỉ in được đơn chuyển kho đã hoàn thành.');
+  const popup = window.open('', 'warehouse-transfer-print', 'width=960,height=720');
+  if (!popup) throw new Error('Trình duyệt đã chặn cửa sổ in.');
+  const { profile, source, destination } = await resolvePrintProfile(transfer);
+  writeAndPrintPopup(popup, buildTransferSlipHtml(transfer, profile, source, destination));
+}

@@ -23,6 +23,23 @@ const InvoiceProfileInput = z.object({
   showCashier: z.boolean().optional(),
   showProductCode: z.boolean().optional(),
   showLogo: z.boolean().optional(),
+  templateConfig: z.object({
+    version: z.number().optional(),
+    title: z.string().optional().or(z.literal('')),
+    subtitle: z.string().optional().or(z.literal('')),
+    noteText: z.string().optional().or(z.literal('')),
+    totalLabels: z.object({
+      subtotal: z.string().optional().or(z.literal('')),
+      discount: z.string().optional().or(z.literal('')),
+      total: z.string().optional().or(z.literal('')),
+      paid: z.string().optional().or(z.literal('')),
+      change: z.string().optional().or(z.literal('')),
+    }).optional(),
+    typography: z.object({
+      titleAlign: z.enum(['left', 'center', 'right']).optional(),
+      bodyFontSize: z.enum(['small', 'normal']).optional(),
+    }).optional(),
+  }).optional(),
 });
 
 const CreateBranchInput = z.object({

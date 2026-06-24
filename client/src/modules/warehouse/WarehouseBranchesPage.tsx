@@ -24,6 +24,9 @@ import {
   BranchRecord,
   buildInvoiceProfile,
   createBranch,
+  defaultTemplateConfig,
+  normalizeTemplateConfig,
+  TemplateConfig,
   deactivateBranch,
   deleteBranch,
   getBranch,
@@ -33,6 +36,7 @@ import {
   StoreSettingRecord,
   updateBranch,
 } from '../../core/api/branch.api';
+import { buildReceiptHtml } from '../sales/invoicePrint';
 import './warehouseBranchesPage.css';
 
 type BranchFormState = {
@@ -48,6 +52,7 @@ type BranchFormState = {
     showCashier: boolean;
     showProductCode: boolean;
     showLogo: boolean;
+    templateConfig: TemplateConfig;
   };
 };
 
@@ -92,6 +97,7 @@ function createEmptyForm(): BranchFormState {
       showCashier: true,
       showProductCode: false,
       showLogo: false,
+      templateConfig: defaultTemplateConfig(),
     },
   };
 }
@@ -114,6 +120,7 @@ function mapBranchToForm(branch?: BranchRecord | null): BranchFormState {
       showCashier: branch.invoiceProfile?.showCashier !== false,
       showProductCode: Boolean(branch.invoiceProfile?.showProductCode),
       showLogo: Boolean(branch.invoiceProfile?.showLogo),
+      templateConfig: normalizeTemplateConfig(branch.invoiceProfile?.templateConfig),
     },
   };
 }
@@ -139,10 +146,31 @@ function actionWarning(action: ConfirmAction, branchName: string) {
   return `${branchName} chỉ được xóa khi không còn dữ liệu liên kết.`;
 }
 
-function previewHtml(branch: BranchRecord | null, form: BranchFormState, storeSetting: StoreSettingRecord) {
+const DEMO_INVOICE_CODE = 'HD-MAU-001';
+const DEMO_CUSTOMER = 'Khách lẻ';
+const DEMO_CASHIER = 'Thu ngân mẫu';
+const DEMO_DATE = new Date().toLocaleDateString('vi-VN');
+
+function demoReceiptSections(showCode: boolean) {
+  const lines: { name: string; code: string; quantity: number; price: string; total: string }[] = [
+    { name: 'Đầm midi xếp ly dáng dài', code: 'DM001', quantity: 1, price: '450.000', total: '450.000' },
+    { name: 'Áo sơ mi tay phồng', code: 'SM002', quantity: 2, price: '320.000', total: '640.000' },
+  ];
+  return [{ lines }];
+}
+
+const DEMO_SUMMARY = [
+  { label: 'Tổng cộng', value: '1.090.000' },
+  { label: 'Giảm giá', value: '50.000' },
+  { label: 'Thành tiền', value: '1.040.000', strong: true },
+  { label: 'Đã thanh toán', value: '1.100.000' },
+  { label: 'Tiền trả lại', value: '60.000' },
+];
+
+function buildDemoReceiptHtml(form: BranchFormState, storeSetting: StoreSettingRecord) {
   const profile = buildInvoiceProfile(
     {
-      _id: branch?._id || 'preview',
+      _id: 'preview',
       name: form.name,
       code: form.code,
       address: form.address,
@@ -151,71 +179,240 @@ function previewHtml(branch: BranchRecord | null, form: BranchFormState, storeSe
     },
     storeSetting,
   );
+  return buildReceiptHtml({
+    profile,
+    title: form.invoiceProfile.templateConfig?.title || 'HÓA ĐƠN BÁN HÀNG',
+    date: DEMO_DATE,
+    code: DEMO_INVOICE_CODE,
+    customer: DEMO_CUSTOMER,
+    cashier: form.invoiceProfile.showCashier ? DEMO_CASHIER : undefined,
+    sections: demoReceiptSections(Boolean(form.invoiceProfile.showProductCode)),
+    summary: DEMO_SUMMARY,
+  });
+}
 
-  return `<!doctype html>
-<html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <title>In thử mẫu hóa đơn</title>
-    <style>
-      @page { size: 80mm auto; margin: 0; }
-      * { box-sizing: border-box; }
-      body { width: 80mm; margin: 0; padding: 0; height: auto; min-height: 0; font-family: Arial, sans-serif; color: #111827; font-size: 12.5px; line-height: 1.32; }
-      .page { width: 80mm; margin: 0; padding: 3mm 3.5mm 2.5mm; box-sizing: border-box; min-height: 0; height: auto; }
-      .center { text-align: center; }
-      h1 { margin: 0 0 4px; font-size: 16px; line-height: 1.2; text-transform: uppercase; }
-      .sub { margin: 2px 0; overflow-wrap: anywhere; }
-      .dash { border-top: 1px dashed #111827; margin: 8px 0; }
-      .heading { text-align: center; font-size: 19px; font-weight: 900; letter-spacing: 0.03em; margin: 8px 0 7px; }
-      .line, .total-line { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
-      .items-head { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 4px; border-bottom: 1px solid #111827; font-weight: 700; }
-      .item { padding: 6px 0; border-bottom: 1px dashed #cbd5e1; }
-      .item-name { font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
-      .item-values { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; white-space: nowrap; }
-      .total-line.grand { border-top: 1px solid #111827; margin-top: 5px; padding-top: 5px; font-weight: 800; }
-      .footer { margin-top: 12px; text-align: center; overflow-wrap: anywhere; }
-      .small { font-size: 10px; color: #475569; }
-      @media print { html, body { width: 80mm; height: auto; min-height: 0; } .page { width: 80mm; } }    </style>
-  </head>
-  <body>
-    <main class="page">
-      <div class="meta"><span>${new Date().toLocaleString('vi-VN')}</span><strong>Hóa đơn bán lẻ</strong></div>
-      <div class="center">
-        <h1>${profile.brandName}</h1>
-        <div class="sub">${profile.address || '&nbsp;'}</div>
-        <div class="sub">${profile.phone || '&nbsp;'}</div>
-        ${profile.showBranchName && profile.branchName ? `<div class="small">Kho: ${profile.branchName}</div>` : ''}
+type InvoiceTemplateDesignerProps = {
+  form: BranchFormState;
+  updateForm: (updater: SetStateAction<BranchFormState>) => void;
+  storeSetting: StoreSettingRecord;
+  isDirty: boolean;
+  isSaved: boolean;
+  disabled: boolean;
+  onResetDefault: () => void;
+  onSave: () => void;
+};
+
+function inlineInputClass(extra = '') {
+  return `invoice-tpl-inline-input ${extra}`.trim();
+}
+
+function InvoiceTemplateDesigner(props: InvoiceTemplateDesignerProps) {
+  const { form, updateForm, storeSetting, isDirty, isSaved, disabled, onResetDefault, onSave } = props;
+  const cfg = form.invoiceProfile.templateConfig || defaultTemplateConfig();
+  const defaultCfg = defaultTemplateConfig();
+  const labels: NonNullable<TemplateConfig['totalLabels']> = {
+    subtotal: cfg.totalLabels?.subtotal || defaultCfg.totalLabels?.subtotal || 'Tổng cộng',
+    discount: cfg.totalLabels?.discount || defaultCfg.totalLabels?.discount || 'Giảm giá',
+    total: cfg.totalLabels?.total || defaultCfg.totalLabels?.total || 'Thành tiền',
+    paid: cfg.totalLabels?.paid || defaultCfg.totalLabels?.paid || 'Đã thanh toán',
+    change: cfg.totalLabels?.change || defaultCfg.totalLabels?.change || 'Tiền trả lại',
+  };
+  const align = cfg.typography?.titleAlign || 'center';
+
+  const setCfg = (patch: Partial<TemplateConfig>) => {
+    updateForm((current) => ({
+      ...current,
+      invoiceProfile: {
+        ...current.invoiceProfile,
+        templateConfig: { ...current.invoiceProfile.templateConfig, ...patch },
+      },
+    }));
+  };
+  const setLabel = (key: keyof NonNullable<TemplateConfig['totalLabels']>, value: string) => {
+    updateForm((current) => ({
+      ...current,
+      invoiceProfile: {
+        ...current.invoiceProfile,
+        templateConfig: {
+          ...current.invoiceProfile.templateConfig,
+          totalLabels: { ...current.invoiceProfile.templateConfig?.totalLabels, [key]: value },
+        },
+      },
+    }));
+  };
+  const setToggle = (key: 'showBranchName' | 'showCashier' | 'showProductCode' | 'showLogo', value: boolean) => {
+    updateForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, [key]: value } }));
+  };
+
+  const previewDoc = buildDemoReceiptHtml(form, storeSetting);
+  const showCode = Boolean(form.invoiceProfile.showProductCode);
+
+  return (
+    <div className="invoice-tpl-designer">
+      <div className="invoice-tpl-columns">
+        <div className="invoice-tpl-col invoice-tpl-editor-col">
+          <div className="invoice-tpl-col-header">Thiết kế mẫu in</div>
+          <p className="invoice-tpl-hint">Chỉnh các phần cho phép. Thương hiệu, địa chỉ, hotline tự đổ từ cấu hình phía trên.</p>
+
+          <div className="invoice-tpl-paper" dir="ltr">
+            <div className="invoice-tpl-paper-head" style={{ textAlign: 'center' }}>
+              <input
+                className={inlineInputClass('is-brand')}
+                aria-label="Tên thương hiệu"
+                value={form.invoiceProfile.displayName}
+                onChange={(event) => updateForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, displayName: event.target.value } }))}
+                placeholder={form.name || 'Tên thương hiệu'}
+                disabled={disabled}
+              />
+              <div className="invoice-tpl-static">{form.address || 'Địa chỉ kho'}</div>
+              <div className="invoice-tpl-static">Điện thoại: {form.phone || '—'}</div>
+              {form.invoiceProfile.showBranchName ? <div className="invoice-tpl-static">Kho: {form.name || '—'}</div> : null}
+            </div>
+            <div className="invoice-tpl-dash" />
+            <div className="invoice-tpl-static">Ngày bán: {DEMO_DATE}</div>
+            <input
+              className={inlineInputClass('is-title')}
+              aria-label="Tiêu đề hóa đơn"
+              value={cfg.title || ''}
+              onChange={(event) => setCfg({ title: event.target.value })}
+              placeholder="HÓA ĐƠN BÁN HÀNG"
+              style={{ textAlign: align }}
+              disabled={disabled}
+            />
+            <div className="invoice-tpl-static" style={{ textAlign: align }}>{DEMO_INVOICE_CODE}</div>
+            <input
+              className={inlineInputClass('is-subtitle')}
+              aria-label="Lời dẫn dưới tiêu đề"
+              value={cfg.subtitle || ''}
+              onChange={(event) => setCfg({ subtitle: event.target.value })}
+              placeholder="Lời dẫn ngắn dưới tiêu đề (để trống nếu không dùng)"
+              style={{ textAlign: align }}
+              disabled={disabled}
+            />
+            <div className="invoice-tpl-static">Khách hàng: {DEMO_CUSTOMER}</div>
+            {form.invoiceProfile.showCashier ? <div className="invoice-tpl-static">Người lập phiếu: {DEMO_CASHIER}</div> : null}
+            <div className="invoice-tpl-dash" />
+            <table className="invoice-tpl-demo-table">
+              <thead>
+                <tr>
+                  {showCode ? <th>Mã</th> : null}
+                  <th>Tên sản phẩm</th>
+                  <th>Đơn giá</th>
+                  <th>SL</th>
+                  <th>Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {demoReceiptSections(showCode)[0].lines.map((line, index) => (
+                  <tr key={index}>
+                    {showCode ? <td>{line.code}</td> : null}
+                    <td>{line.name}</td>
+                    <td>{line.price}</td>
+                    <td>{line.quantity}</td>
+                    <td>{line.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <textarea
+              className="invoice-tpl-inline-textarea"
+              aria-label="Ghi chú sau bảng sản phẩm"
+              value={cfg.noteText || ''}
+              onChange={(event) => setCfg({ noteText: event.target.value })}
+              placeholder="Ghi chú đơn hàng (để trống nếu không dùng)"
+              rows={2}
+              disabled={disabled}
+            />
+            <div className="invoice-tpl-demo-totals">
+              <div className="invoice-tpl-total-row">
+                <input className={inlineInputClass('is-label')} aria-label="Nhãn tổng cộng" value={labels.subtotal || ''} onChange={(event) => setLabel('subtotal', event.target.value)} disabled={disabled} />
+                <span>1.090.000</span>
+              </div>
+              <div className="invoice-tpl-total-row">
+                <input className={inlineInputClass('is-label')} aria-label="Nhãn giảm giá" value={labels.discount || ''} onChange={(event) => setLabel('discount', event.target.value)} disabled={disabled} />
+                <span>50.000</span>
+              </div>
+              <div className="invoice-tpl-total-row is-strong">
+                <input className={inlineInputClass('is-label')} aria-label="Nhãn thành tiền" value={labels.total || ''} onChange={(event) => setLabel('total', event.target.value)} disabled={disabled} />
+                <span>1.040.000</span>
+              </div>
+              <div className="invoice-tpl-total-row">
+                <input className={inlineInputClass('is-label')} aria-label="Nhãn đã thanh toán" value={labels.paid || ''} onChange={(event) => setLabel('paid', event.target.value)} disabled={disabled} />
+                <span>1.100.000</span>
+              </div>
+              <div className="invoice-tpl-total-row">
+                <input className={inlineInputClass('is-label')} aria-label="Nhãn tiền trả lại" value={labels.change || ''} onChange={(event) => setLabel('change', event.target.value)} disabled={disabled} />
+                <span>60.000</span>
+              </div>
+            </div>
+            <div className="invoice-tpl-dash" />
+            <textarea
+              className="invoice-tpl-inline-textarea is-footer"
+              aria-label="Nội dung footer"
+              value={form.invoiceProfile.footerText}
+              onChange={(event) => updateForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, footerText: event.target.value } }))}
+              rows={2}
+              disabled={disabled}
+            />
+          </div>
+
+          <div className="invoice-tpl-controls">
+            <div className="invoice-tpl-control-group">
+              <span className="invoice-tpl-control-title">Hiển thị</span>
+              <label><input type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => setToggle('showBranchName', event.target.checked)} disabled={disabled} />Tên kho</label>
+              <label><input type="checkbox" checked={form.invoiceProfile.showCashier} onChange={(event) => setToggle('showCashier', event.target.checked)} disabled={disabled} />Thu ngân</label>
+              <label><input type="checkbox" checked={form.invoiceProfile.showProductCode} onChange={(event) => setToggle('showProductCode', event.target.checked)} disabled={disabled} />Mã sản phẩm</label>
+              <label><input type="checkbox" checked={form.invoiceProfile.showLogo} onChange={(event) => setToggle('showLogo', event.target.checked)} disabled={disabled} />Logo</label>
+            </div>
+            <div className="invoice-tpl-control-group">
+              <span className="invoice-tpl-control-title">Văn phong</span>
+              <label>
+                <span>Căn tiêu đề</span>
+                <select value={cfg.typography?.titleAlign || 'center'} onChange={(event) => setCfg({ typography: { ...cfg.typography, titleAlign: event.target.value as 'left' | 'center' | 'right' } })} disabled={disabled}>
+                  <option value="left">Trái</option>
+                  <option value="center">Giữa</option>
+                  <option value="right">Phải</option>
+                </select>
+              </label>
+              <label>
+                <span>Cỡ chữ</span>
+                <select value={cfg.typography?.bodyFontSize || 'normal'} onChange={(event) => setCfg({ typography: { ...cfg.typography, bodyFontSize: event.target.value as 'small' | 'normal' } })} disabled={disabled}>
+                  <option value="small">Nhỏ</option>
+                  <option value="normal">Thường</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="invoice-tpl-actions">
+            <button className="btn btn-light" type="button" onClick={onResetDefault} disabled={disabled}>
+              <RefreshCw size={15} /> Quay về dùng mẫu in mặc định
+            </button>
+            <button className="btn btn-primary" type="button" onClick={onSave} disabled={disabled}>
+              <Save size={15} /> Lưu mẫu
+            </button>
+          </div>
+        </div>
+
+        <div className="invoice-tpl-col invoice-tpl-preview-col">
+          <div className="invoice-tpl-col-header">
+            <span>Bản xem trước</span>
+            <span className={`invoice-tpl-badge ${isDirty ? 'is-draft' : 'is-saved'}`}>
+              {isDirty ? 'Bản nháp chưa lưu' : 'Mẫu chính đã lưu'}
+            </span>
+          </div>
+          <div className="invoice-tpl-preview-scroll">
+            <iframe title="Bản xem trước mẫu in" className="invoice-tpl-preview-frame" srcDoc={previewDoc} sandbox="" />
+          </div>
+        </div>
       </div>
-      <div class="dash"></div>
-      <div class="heading">ĐƠN BÁN HÀNG</div>
-      <div class="line"><span>Mã HĐ:</span><strong>HD-MAU-001</strong></div>
-      <div class="line"><span>Khách:</span><strong>Khách lẻ</strong></div>
-      <div class="dash"></div>
-      <div class="items-head"><span>Sản phẩm</span><span>Thành tiền</span></div>
-      <div class="item">
-        <div class="item-name">1. Đầm midi xếp ly dáng dài chất liệu mềm dễ xuống dòng</div>
-        <div class="item-values"><span>1 x 450.000</span><strong>450.000</strong></div>
-      </div>
-      <div class="item">
-        <div class="item-name">2. Áo sơ mi tay phồng</div>
-        <div class="item-values"><span>2 x 320.000</span><strong>640.000</strong></div>
-      </div>
-      <div class="total-line"><span>Tổng cộng</span><strong>1.090.000</strong></div>
-      <div class="total-line"><span>Giảm giá</span><strong>50.000</strong></div>
-      <div class="total-line grand"><span>Thành tiền</span><strong>1.040.000</strong></div>
-      <div class="total-line"><span>Đã thanh toán</span><strong>1.100.000</strong></div>
-      <div class="total-line"><span>Tiền trả lại</span><strong>10.000</strong></div>
-      <div class="dash"></div>
-      <div class="footer">${profile.footerText}</div>
-    </main>
-  </body>
-</html>`;
+    </div>
+  );
 }
 
 export function WarehouseBranchesPage() {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [storeSetting, setStoreSetting] = useState<StoreSettingRecord>({ shopName: 'LadyStars' });
-  const [invoiceSettingsOpen, setInvoiceSettingsOpen] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [form, setForm] = useState<BranchFormState>(createEmptyForm);
   const [isCreateMode, setIsCreateMode] = useState(false);
@@ -266,6 +463,42 @@ export function WarehouseBranchesPage() {
     },
     storeSetting,
   );
+
+  const savedInvoiceProfile = useMemo(
+    () => mapBranchToForm(selectedBranch).invoiceProfile,
+    [selectedBranch],
+  );
+
+  const templateDirty = useMemo(() => {
+    if (isCreateMode) return true;
+    return JSON.stringify(form.invoiceProfile) !== JSON.stringify(savedInvoiceProfile);
+  }, [form.invoiceProfile, savedInvoiceProfile, isCreateMode]);
+
+  const requiredFieldsMissing = !trim(form.name) || !trim(form.code) || !trim(form.phone) || !trim(form.address);
+
+  const resetTemplateDefault = () => {
+    if (templateDirty && !window.confirm('Bản nháp chưa lưu. Bạn có chắc muốn quay về dùng mẫu in mặc định? Các thay đổi chưa lưu sẽ mất.')) return;
+    updateForm((current) => ({
+      ...current,
+      invoiceProfile: {
+        ...current.invoiceProfile,
+        footerText: DEFAULT_FOOTER,
+        showBranchName: false,
+        showCashier: true,
+        showProductCode: false,
+        showLogo: false,
+        templateConfig: defaultTemplateConfig(),
+      },
+    }));
+  };
+
+  const saveTemplate = () => {
+    if (requiredFieldsMissing) {
+      setError('Vui lòng nhập đầy đủ tên, mã, địa chỉ và hotline trước khi lưu mẫu in.');
+      return;
+    }
+    setConfirmAction(isCreateMode ? 'create' : 'save');
+  };
 
   const filteredBranches = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
@@ -468,7 +701,7 @@ export function WarehouseBranchesPage() {
     const popup = window.open('about:blank', 'branch-invoice-preview', 'popup=yes,width=900,height=1200');
     if (!popup) return;
     popup.document.open();
-    popup.document.write(previewHtml(selectedBranch, form, storeSetting));
+    popup.document.write(buildDemoReceiptHtml(form, storeSetting));
     popup.document.close();
     popup.focus();
     popup.print();
@@ -579,72 +812,25 @@ export function WarehouseBranchesPage() {
             </div>
           </div>
 
-          <div className="card-shell warehouse-branch-section">
-            <section className={`invoice-settings-panel ${invoiceSettingsOpen ? 'is-open' : ''}`}>
-              <button
-                type="button"
-                className="invoice-settings-toggle"
-                aria-expanded={invoiceSettingsOpen}
-                aria-controls="branch-invoice-settings"
-                onClick={() => setInvoiceSettingsOpen((open) => !open)}
-              >
-                <span className="invoice-settings-title">
-                  <Printer size={18} />
-                  <span>
-                    <strong>Cấu hình in hóa đơn</strong>
-                    <small>Thiết lập thông tin đầu hóa đơn của kho đang chọn</small>
-                  </span>
-                </span>
-                <ChevronDown size={18} className="invoice-settings-chevron" />
-              </button>
-
-              {invoiceSettingsOpen && (
-                <div id="branch-invoice-settings" className="invoice-settings-body">
-                  <div className="warehouse-branch-grid">
-                    <label>
-                      <span>Tên thương hiệu *</span>
-                      <input
-                        aria-label="Tên thương hiệu"
-                        value={form.invoiceProfile.displayName}
-                        onChange={(event) => updateForm((current) => ({
-                          ...current,
-                          invoiceProfile: { ...current.invoiceProfile, displayName: event.target.value },
-                        }))}
-                        placeholder="Tên thương hiệu in đậm trên hóa đơn"
-                        required
-                      />
-                    </label>
-                    <label>
-                      <span>Điện thoại *</span>
-                      <input
-                        aria-label="Điện thoại"
-                        value={form.phone}
-                        onChange={(event) => updateForm((current) => ({ ...current, phone: event.target.value }))}
-                        placeholder="Số điện thoại in trên hóa đơn"
-                        required
-                      />
-                    </label>
-                    <label className="full-width">
-                      <span>Địa chỉ *</span>
-                      <textarea
-                        aria-label="Địa chỉ in hóa đơn"
-                        rows={3}
-                        value={form.address}
-                        onChange={(event) => updateForm((current) => ({ ...current, address: event.target.value }))}
-                        placeholder="Địa chỉ in trên hóa đơn"
-                        required
-                      />
-                    </label>
-                  </div>
-
-                  <div className="warehouse-checkbox-grid">
-                    <label><input aria-label="Hiển thị cửa hàng trên hóa đơn" type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => updateForm((current) => ({ ...current, invoiceProfile: { ...current.invoiceProfile, showBranchName: event.target.checked } }))} />Hiển thị cửa hàng trên hóa đơn</label>
-                  </div>
-                </div>
-              )}
-            </section>
+          <div className="card-shell warehouse-branch-section invoice-tpl-module">
+            <div className="invoice-tpl-module-head">
+              <div>
+                <h2>Thiết kế mẫu in hóa đơn</h2>
+                <p>Thiết lập mẫu hóa đơn riêng cho kho đang chọn. Thông tin thương hiệu, địa chỉ và hotline được đồng bộ tự động từ cấu hình phía trên.</p>
+              </div>
+              <Printer size={18} />
+            </div>
+            <InvoiceTemplateDesigner
+              form={form}
+              updateForm={updateForm}
+              storeSetting={storeSetting}
+              isDirty={templateDirty}
+              isSaved={!isCreateMode && !templateDirty}
+              disabled={submitting}
+              onResetDefault={resetTemplateDefault}
+              onSave={saveTemplate}
+            />
           </div>
-
           <div className="card-shell warehouse-branch-section">
             <div className="section-heading">
               <div>
@@ -655,7 +841,7 @@ export function WarehouseBranchesPage() {
             </div>
 
             <div className="warehouse-actions-row">
-              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={submitting || !trim(form.name) || !trim(form.code) || !trim(form.invoiceProfile.displayName) || !trim(form.phone) || !trim(form.address)}><Save size={16} /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
+              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={submitting || !trim(form.name) || !trim(form.code) || !trim(form.phone) || !trim(form.address)}><Save size={16} /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
               <button className="btn btn-light" type="button" onClick={() => setConfirmAction(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={submitting || isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} /> : <CircleOff size={16} />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
               <button className="btn btn-light" type="button" onClick={() => void loadUsage()} disabled={isCreateMode || !selectedBranch || loadingUsage}><Info size={16} /> {loadingUsage ? 'Đang tải liên kết...' : 'Xem dữ liệu liên kết'}</button>
               <button className="btn btn-light" type="button" onClick={printPreview}><Printer size={16} /> In thử mẫu hóa đơn</button>

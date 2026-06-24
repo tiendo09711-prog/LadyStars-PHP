@@ -17,13 +17,7 @@ const inventoryAuditItemsRouter = Router();
 
 const AUDIT_STATUSES = ['DRAFT', 'COUNTING', 'SUBMITTED', 'RECONCILED', 'CANCELLED'] as const;
 const AUDIT_TYPES = ['BY_PRODUCT', 'FULL_WAREHOUSE'] as const;
-const TRANSFER_PENDING_STATUSES = [
-  'APPROVED_TO_DISPATCH',
-  'PENDING_DISPATCH_APPROVAL',
-  'IN_TRANSIT',
-  'PENDING_RECEIPT_APPROVAL',
-  'PENDING_RETURN_APPROVAL',
-];
+const TRANSFER_PENDING_STATUSES = ['IN_TRANSIT'];
 
 function objectId(value: unknown) {
   const raw = String(value || '').trim();

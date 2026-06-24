@@ -92,7 +92,7 @@ export function RetailInvoiceCreatePage() {
     address: '',
     cardId: '',
     customerLevel: '',
-    orderSource: 'Cá»­a hÃ ng',
+    orderSource: 'Cửa hàng',
     discount: 0,
     discountType: 'fixed' as 'fixed' | 'percentage',
     coupon: '',
@@ -205,7 +205,7 @@ export function RetailInvoiceCreatePage() {
           setTenderedValue(0);
         }
       } catch (err: any) {
-        if (!cancelled) setErrorMessage(err.response?.data?.message || err.message || 'KhÃ´ng táº£i Ä‘Æ°á»£c dá»¯ liá»‡u táº¡o hÃ³a Ä‘Æ¡n.');
+        if (!cancelled) setErrorMessage(err.response?.data?.message || err.message || 'Không tải được dữ liệu tạo hóa đơn.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -237,10 +237,10 @@ export function RetailInvoiceCreatePage() {
     const refundStatus = String(loadedSale.refundStatus || 'none').toLowerCase();
     const activeRefundCount = Number(loadedSale.activeRefundCount || 0);
 
-    if (status === 'cancelled') return 'HÃ³a Ä‘Æ¡n Ä‘Ã£ há»§y nÃªn khÃ´ng thá»ƒ sá»­a.';
+    if (status === 'cancelled') return 'Hóa đơn đã hủy nên không thể sửa.';
     if (status !== 'completed') return '';
-    if (refundStatus === 'full') return 'HÃ³a Ä‘Æ¡n Ä‘Ã£ hoÃ n toÃ n bá»™ nÃªn khÃ´ng thá»ƒ sá»­a.';
-    if (refundStatus === 'partial' || activeRefundCount > 0) return 'HÃ³a Ä‘Æ¡n Ä‘Ã£ phÃ¡t sinh Ä‘á»•i tráº£ nÃªn khÃ´ng thá»ƒ sá»­a.';
+    if (refundStatus === 'full') return 'Hóa đơn đã hoàn toàn bộ nên không thể sửa.';
+    if (refundStatus === 'partial' || activeRefundCount > 0) return 'Hóa đơn đã phát sinh đổi trả nên không thể sửa.';
     return '';
   }, [editId, loadedSale]);
 
@@ -333,7 +333,7 @@ export function RetailInvoiceCreatePage() {
     const usedMethods = new Set(paymentLines.map((line) => line.methodId));
     const nextMethod = paymentMethods.find((method) => !usedMethods.has(method._id));
     if (!nextMethod) {
-      setErrorMessage('ÄÃ£ sá»­ dá»¥ng táº¥t cáº£ phÆ°Æ¡ng thá»©c thanh toÃ¡n Ä‘ang hoáº¡t Ä‘á»™ng.');
+      setErrorMessage('Đã sử dụng tất cả phương thức thanh toán đang hoạt động.');
       return;
     }
     setErrorMessage('');
@@ -387,7 +387,7 @@ export function RetailInvoiceCreatePage() {
       setBranch(branchRes.data);
       setDbProducts(productRes.data?.items || []);
     } catch (error) {
-      setErrorMessage('KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u kho Ä‘Ã£ chá»n.');
+      setErrorMessage('Không thể tải dữ liệu kho đã chọn.');
       setBranch(null);
       setDbProducts([]);
     } finally {
@@ -401,28 +401,28 @@ export function RetailInvoiceCreatePage() {
     setErrorMessage('');
 
     if (editBlockedReason) return setErrorMessage(editBlockedReason);
-    if (!activeBranchId) return setErrorMessage('Vui lÃ²ng chá»n cá»­a hÃ ng/kho xuáº¥t hÃ ng.');
-    if (!form.customerName.trim()) return setErrorMessage('Vui lÃ²ng nháº­p tÃªn khÃ¡ch hÃ ng.');
-    if (products.length === 0) return setErrorMessage('Vui lÃ²ng thÃªm Ã­t nháº¥t má»™t sáº£n pháº©m.');
+    if (!activeBranchId) return setErrorMessage('Vui lòng chọn cửa hàng/kho xuất hàng.');
+    if (!form.customerName.trim()) return setErrorMessage('Vui lòng nhập tên khách hàng.');
+    if (products.length === 0) return setErrorMessage('Vui lòng thêm ít nhất một sản phẩm.');
     if (products.some((line) => line.quantity > line.stock + line.originalQuantity)) {
-      return setErrorMessage('Sá»‘ lÆ°á»£ng sáº£n pháº©m vÆ°á»£t quÃ¡ tá»“n kho cá»§a cá»­a hÃ ng.');
+      return setErrorMessage('Số lượng sản phẩm vượt quá tồn kho của cửa hàng.');
     }
     if (paymentLines.length === 0 || paymentLines.some((line) => !line.methodId || line.amount <= 0)) {
-      return setErrorMessage('Má»—i dÃ²ng thanh toÃ¡n pháº£i cÃ³ phÆ°Æ¡ng thá»©c vÃ  sá»‘ tiá»n lá»›n hÆ¡n 0.');
+      return setErrorMessage('Mỗi dòng thanh toán phải có phương thức và số tiền lớn hơn 0.');
     }
     if (new Set(paymentLines.map((line) => line.methodId)).size !== paymentLines.length) {
-      return setErrorMessage('Má»™t phÆ°Æ¡ng thá»©c thanh toÃ¡n chá»‰ Ä‘Æ°á»£c chá»n má»™t láº§n.');
+      return setErrorMessage('Một phương thức thanh toán chỉ được chọn một lần.');
     }
     if (Math.abs(remainingAmount) > 1) {
       return setErrorMessage(
         remainingAmount > 0
-          ? `CÃ²n thiáº¿u ${formatMoney(remainingAmount)} Ä‘ tiá»n thanh toÃ¡n.`
-          : `Sá»‘ tiá»n thanh toÃ¡n Ä‘ang vÆ°á»£t ${formatMoney(Math.abs(remainingAmount))} Ä‘.`,
+          ? `Còn thiếu ${formatMoney(remainingAmount)} đ tiền thanh toán.`
+          : `Số tiền thanh toán đang vượt ${formatMoney(Math.abs(remainingAmount))} đ.`,
       );
     }
 
     if (tenderedValue + 1 < paidAmount) {
-      return setErrorMessage('Tiá»n khÃ¡ch tráº£ khÃ´ng Ä‘Æ°á»£c nhá» hÆ¡n sá»‘ tiá»n Ä‘Ã£ thanh toÃ¡n.');
+      return setErrorMessage('Tiền khách trả không được nhỏ hơn số tiền đã thanh toán.');
     }
 
     setIsSaving(true);
@@ -491,10 +491,10 @@ export function RetailInvoiceCreatePage() {
         createResponse = saleResponse;
         await http.post(`/products/sales/${saleResponse.data._id}/complete`);
       }
-      setSuccessMessage(`HÃ³a Ä‘Æ¡n ${createResponse.data.code} Ä‘Ã£ Ä‘Æ°á»£c lÆ°u vÃ  trá»« tá»“n kho thÃ nh cÃ´ng.`);
+      setSuccessMessage(`Hóa đơn ${createResponse.data.code} đã được lưu và trừ tồn kho thành công.`);
       window.setTimeout(() => navigate(`/sales-channels/${channel}/retail`), 1200);
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.message || 'ÄÃ£ xáº£y ra lá»—i khi lÆ°u hÃ³a Ä‘Æ¡n.');
+      setErrorMessage(err.response?.data?.message || 'Đã xảy ra lỗi khi lưu hóa đơn.');
       setIsSaving(false);
     }
   };
@@ -504,7 +504,7 @@ export function RetailInvoiceCreatePage() {
       <div className="retail-create-loading">
         <style>{styles}</style>
         <LoaderCircle className="spin" size={28} />
-        <span>Äang táº£i dá»¯ liá»‡u bÃ¡n láº»...</span>
+        <span>Đang tải dữ liệu bán lẻ...</span>
       </div>
     );
   }
@@ -519,12 +519,12 @@ export function RetailInvoiceCreatePage() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1>{editId ? 'Sá»­a hÃ³a Ä‘Æ¡n bÃ¡n láº»' : 'ThÃªm hÃ³a Ä‘Æ¡n bÃ¡n láº»'}</h1>
-            <span><Warehouse size={14} /> {branch ? `${branch.name} (${branch.code || 'â€”'})` : 'ChÆ°a xÃ¡c Ä‘á»‹nh kho'}</span>
+            <h1>{editId ? 'Sửa hóa đơn bán lẻ' : 'Thêm hóa đơn bán lẻ'}</h1>
+            <span><Warehouse size={14} /> {branch ? `${branch.name} (${branch.code || '—'})` : 'Chưa xác định kho'}</span>
           </div>
         </div>
         <button className="create-save-top" type="submit" form="retail-create-form" disabled={isSaving || Boolean(editBlockedReason) || !activeBranchId}>
-          <Save size={16} /> {isSaving ? 'Äang lÆ°u...' : 'LÆ°u hÃ³a Ä‘Æ¡n'}
+          <Save size={16} /> {isSaving ? 'Đang lưu...' : 'Lưu hóa đơn'}
         </button>
       </header>
 
@@ -535,7 +535,7 @@ export function RetailInvoiceCreatePage() {
       <form id="retail-create-form" className="retail-create-layout" onSubmit={handleSave}>
         <main>
           <section className="create-card">
-            <h2><Store size={17} /> ThÃ´ng tin chung</h2>
+            <h2><Store size={17} /> Thông tin chung</h2>
             <div className="create-form-grid">
               <label>
                 <span>Kho thực hiện *</span>
@@ -545,13 +545,13 @@ export function RetailInvoiceCreatePage() {
                 </select>
               </label>
               <label>
-                <span>MÃ£ hÃ³a Ä‘Æ¡n</span>
-                <input readOnly value={form.invoiceCode || 'Tá»± Ä‘á»™ng khi lÆ°u'} />
+                <span>Mã hóa đơn</span>
+                <input readOnly value={form.invoiceCode || 'Tự động khi lưu'} />
               </label>
               <label>
-                <span>NhÃ¢n viÃªn bÃ¡n hÃ ng</span>
+                <span>Nhân viên bán hàng</span>
                 <select value={form.salesperson} onChange={(event) => setForm((current) => ({ ...current, salesperson: event.target.value }))}>
-                  <option value="">â€” Chá»n nhÃ¢n viÃªn â€”</option>
+                  <option value="">— Chọn nhân viên —</option>
                   {dbStaffs.map((staff) => <option key={staff._id} value={staff.name}>{staff.name}</option>)}
                   {form.salesperson && !dbStaffs.some((staff) => staff.name === form.salesperson) && (
                     <option value={form.salesperson}>{form.salesperson}</option>
@@ -559,25 +559,25 @@ export function RetailInvoiceCreatePage() {
                 </select>
               </label>
               <label>
-                <span>Nguá»“n Ä‘Æ¡n hÃ ng</span>
+                <span>Nguồn đơn hàng</span>
                 <input value={form.orderSource} onChange={(event) => setForm((current) => ({ ...current, orderSource: event.target.value }))} />
               </label>
               <label>
-                <span>MÃ£ coupon</span>
+                <span>Mã coupon</span>
                 <input value={form.coupon} onChange={(event) => setForm((current) => ({ ...current, coupon: event.target.value }))} />
               </label>
             </div>
           </section>
 
           <section className="create-card">
-            <h2><User size={17} /> KhÃ¡ch hÃ ng</h2>
+            <h2><User size={17} /> Khách hàng</h2>
             <div className="create-form-grid">
               <label className="customer-search">
-                <span>TÃªn khÃ¡ch hÃ ng *</span>
+                <span>Tên khách hàng *</span>
                 <input
                   required
                   value={form.customerName}
-                  placeholder="Nháº­p há» tÃªn hoáº·c sá»‘ Ä‘iá»‡n thoáº¡i"
+                  placeholder="Nhập họ tên hoặc số điện thoại"
                   onFocus={() => setShowCustomerDropdown(true)}
                   onBlur={() => window.setTimeout(() => setShowCustomerDropdown(false), 150)}
                   onChange={(event) => {
@@ -595,28 +595,28 @@ export function RetailInvoiceCreatePage() {
                   </div>
                 )}
               </label>
-              <label><span>Sá»‘ Ä‘iá»‡n thoáº¡i</span><input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} /></label>
+              <label><span>Số điện thoại</span><input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} /></label>
               <label><span>Email</span><input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /></label>
               <label><span>Facebook</span><input value={form.facebook} onChange={(event) => setForm((current) => ({ ...current, facebook: event.target.value }))} /></label>
-              <label><span>NgÃ y sinh</span><input type="date" value={form.dob} onChange={(event) => setForm((current) => ({ ...current, dob: event.target.value }))} /></label>
-              <label><span>MÃ£ tháº»</span><input value={form.cardId} onChange={(event) => setForm((current) => ({ ...current, cardId: event.target.value }))} /></label>
-              <label><span>Cáº¥p Ä‘á»™ thÃ nh viÃªn</span><input value={form.customerLevel} onChange={(event) => setForm((current) => ({ ...current, customerLevel: event.target.value }))} /></label>
+              <label><span>Ngày sinh</span><input type="date" value={form.dob} onChange={(event) => setForm((current) => ({ ...current, dob: event.target.value }))} /></label>
+              <label><span>Mã thẻ</span><input value={form.cardId} onChange={(event) => setForm((current) => ({ ...current, cardId: event.target.value }))} /></label>
+              <label><span>Cấp độ thành viên</span><input value={form.customerLevel} onChange={(event) => setForm((current) => ({ ...current, customerLevel: event.target.value }))} /></label>
               <label><span>Khu vá»±c</span><input value={form.addressLocation} onChange={(event) => setForm((current) => ({ ...current, addressLocation: event.target.value }))} /></label>
-              <label className="wide"><span>Äá»‹a chá»‰</span><input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></label>
+              <label className="wide"><span>Địa chỉ</span><input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></label>
             </div>
           </section>
 
           <section className="create-card product-card">
             <div className="create-card-heading">
               <h2><Package size={17} /> Sáº£n pháº©m ({products.length})</h2>
-              <span>Tá»•ng sá»‘ lÆ°á»£ng: {products.reduce((sum, line) => sum + line.quantity, 0)}</span>
+              <span>Tổng số lượng: {products.reduce((sum, line) => sum + line.quantity, 0)}</span>
             </div>
             <div className="product-search">
               <Search size={16} />
               <input
                 id="retail-product-search"
                 value={productSearch}
-                placeholder="TÃ¬m theo mÃ£, barcode hoáº·c tÃªn sáº£n pháº©m..."
+                placeholder="Tìm theo mã, barcode hoặc tên sản phẩm..."
                 onFocus={() => setShowProductDropdown(true)}
                 onBlur={() => window.setTimeout(() => setShowProductDropdown(false), 150)}
                 onChange={(event) => {
@@ -628,7 +628,7 @@ export function RetailInvoiceCreatePage() {
                 <div className="create-dropdown product-results">
                   {filteredProducts.map((product) => (
                     <button type="button" key={product._id} onMouseDown={(event) => event.preventDefault()} onClick={() => addProduct(product)}>
-                      <span><strong>{product.name}</strong><small>{product.code} Â· {formatMoney(product.price)} Ä‘</small></span>
+                      <span><strong>{product.name}</strong><small>{product.code} · {formatMoney(product.price)} đ</small></span>
                       <em>Tá»“n: {getAvailableStock(product)}</em>
                     </button>
                   ))}
@@ -638,7 +638,7 @@ export function RetailInvoiceCreatePage() {
 
             <div className="create-table-scroll">
               <table>
-                <thead><tr><th>#</th><th>Sáº£n pháº©m</th><th className="number">Tá»“n</th><th className="number">Sá»‘ lÆ°á»£ng</th><th className="number">ÄÆ¡n giÃ¡</th><th className="number">ThÃ nh tiá»n</th><th /></tr></thead>
+                <thead><tr><th>#</th><th>Sản phẩm</th><th className="number">Tồn</th><th className="number">Số lượng</th><th className="number">Đơn giá</th><th className="number">Thành tiền</th><th /></tr></thead>
                 <tbody>
                   {products.map((line, index) => (
                     <tr key={line.productId}>
@@ -647,7 +647,7 @@ export function RetailInvoiceCreatePage() {
                       <td className="number">{line.stock + line.originalQuantity}</td>
                       <td className="number">
                         <input
-                          aria-label={`Sá»‘ lÆ°á»£ng ${line.code}`}
+                          aria-label={`Số lượng ${line.code}`}
                           type="number"
                           min={1}
                           max={line.stock + line.originalQuantity}
@@ -657,18 +657,18 @@ export function RetailInvoiceCreatePage() {
                       </td>
                       <td className="number">
                         <input
-                          aria-label={`ÄÆ¡n giÃ¡ ${line.code}`}
+                          aria-label={`Đơn giá ${line.code}`}
                           type="number"
                           min={0}
                           value={line.price}
                           onChange={(event) => updateProduct(index, 'price', Number(event.target.value))}
                         />
                       </td>
-                      <td className="number line-total">{formatMoney(line.price * line.quantity)} Ä‘</td>
-                      <td><button className="remove-line" type="button" onClick={() => removeProduct(index)} aria-label={`XÃ³a ${line.code}`}><Trash2 size={16} /></button></td>
+                      <td className="number line-total">{formatMoney(line.price * line.quantity)} đ</td>
+                      <td><button className="remove-line" type="button" onClick={() => removeProduct(index)} aria-label={`Xóa ${line.code}`}><Trash2 size={16} /></button></td>
                     </tr>
                   ))}
-                  {products.length === 0 && <tr><td colSpan={7}><div className="create-empty">ChÆ°a cÃ³ sáº£n pháº©m trong hÃ³a Ä‘Æ¡n.</div></td></tr>}
+                  {products.length === 0 && <tr><td colSpan={7}><div className="create-empty">Chưa có sản phẩm trong hóa đơn.</div></td></tr>}
                 </tbody>
               </table>
             </div>
@@ -677,25 +677,25 @@ export function RetailInvoiceCreatePage() {
 
         <aside>
           <section className="create-card payment-card">
-            <h2><CreditCard size={17} /> Thanh toÃ¡n</h2>
+            <h2><CreditCard size={17} /> Thanh toán</h2>
             <dl className="payment-summary">
-              <div><dt>Tiá»n hÃ ng</dt><dd>{formatMoney(subtotal)} Ä‘</dd></div>
+              <div><dt>Tiền hàng</dt><dd>{formatMoney(subtotal)} đ</dd></div>
               <div className="discount-row">
-                <dt>Giáº£m giÃ¡</dt>
+                <dt>Giảm giá</dt>
                 <dd>
                   <input type="number" min={0} value={form.discount || ''} onChange={(event) => setForm((current) => ({ ...current, discount: Number(event.target.value) || 0 }))} />
                   <button type="button" onClick={() => setForm((current) => ({ ...current, discountType: current.discountType === 'fixed' ? 'percentage' : 'fixed' }))}>
-                    {form.discountType === 'percentage' ? '%' : 'Ä‘'}
+                    {form.discountType === 'percentage' ? '%' : 'đ'}
                   </button>
                 </dd>
               </div>
-              <div className="grand"><dt>Tá»•ng thanh toÃ¡n</dt><dd>{formatMoney(totalAmount)} Ä‘</dd></div>
+              <div className="grand"><dt>Tổng thanh toán</dt><dd>{formatMoney(totalAmount)} đ</dd></div>
             </dl>
 
             <div className="payment-heading">
-              <strong>PhÆ°Æ¡ng thá»©c thanh toÃ¡n</strong>
+              <strong>Phương thức thanh toán</strong>
               <button type="button" onClick={addPaymentLine} disabled={paymentLines.length >= paymentMethods.length}>
-                <Plus size={14} /> ThÃªm phÆ°Æ¡ng thá»©c
+                <Plus size={14} /> Thêm phương thức
               </button>
             </div>
 
@@ -703,11 +703,11 @@ export function RetailInvoiceCreatePage() {
               {paymentLines.map((line) => (
                 <div className="payment-line" key={line.key}>
                   <select
-                    aria-label="PhÆ°Æ¡ng thá»©c thanh toÃ¡n"
+                    aria-label="Phương thức thanh toán"
                     value={line.methodId}
                     onChange={(event) => updatePaymentLine(line.key, 'methodId', event.target.value)}
                   >
-                    <option value="">â€” Chá»n phÆ°Æ¡ng thá»©c â€”</option>
+                    <option value="">— Chọn phương thức —</option>
                     {paymentMethods.map((method) => (
                       <option
                         key={method._id}
@@ -719,13 +719,13 @@ export function RetailInvoiceCreatePage() {
                     ))}
                   </select>
                   <input
-                    aria-label="Sá»‘ tiá»n thanh toÃ¡n"
+                    aria-label="Số tiền thanh toán"
                     type="number"
                     min={0}
                     value={line.amount || ''}
                     onChange={(event) => updatePaymentLine(line.key, 'amount', event.target.value)}
                   />
-                  <button type="button" onClick={() => removePaymentLine(line.key)} disabled={paymentLines.length === 1} aria-label="XÃ³a phÆ°Æ¡ng thá»©c thanh toÃ¡n">
+                  <button type="button" onClick={() => removePaymentLine(line.key)} disabled={paymentLines.length === 1} aria-label="Xóa phương thức thanh toán">
                     <Trash2 size={15} />
                   </button>
                 </div>
@@ -733,9 +733,9 @@ export function RetailInvoiceCreatePage() {
             </div>
 
             <label className="note-field">
-              <span>Tiá»n khÃ¡ch tráº£</span>
+              <span>Tiền khách trả</span>
               <input
-                aria-label="Tiá»n khÃ¡ch tráº£"
+                aria-label="Tiền khách trả"
                 type="number"
                 min={0}
                 value={tenderedValue || ''}
@@ -744,23 +744,23 @@ export function RetailInvoiceCreatePage() {
             </label>
 
             <div className={`payment-balance ${Math.abs(remainingAmount) <= 1 ? 'balanced' : 'unbalanced'}`}>
-              <span>{remainingAmount >= 0 ? 'CÃ²n pháº£i thanh toÃ¡n' : 'Thanh toÃ¡n vÆ°á»£t'}</span>
-              <strong>{formatMoney(Math.abs(remainingAmount))} Ä‘</strong>
+              <span>{remainingAmount >= 0 ? 'Còn phải thanh toán' : 'Thanh toán vượt'}</span>
+              <strong>{formatMoney(Math.abs(remainingAmount))} đ</strong>
             </div>
             {changeAmount > 0 ? (
               <div className="payment-balance balanced">
                 <span>Tiá»n tráº£ láº¡i</span>
-                <strong>{formatMoney(changeAmount)} Ä‘</strong>
+                <strong>{formatMoney(changeAmount)} đ</strong>
               </div>
             ) : null}
 
             <label className="note-field">
-              <span>Ghi chÃº hÃ³a Ä‘Æ¡n</span>
+              <span>Ghi chú hóa đơn</span>
               <textarea rows={4} value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} />
             </label>
 
             <button className="submit-sale" type="submit" disabled={isSaving || Boolean(editBlockedReason) || !activeBranchId}>
-              <Save size={17} /> {isSaving ? 'Äang lÆ°u hÃ³a Ä‘Æ¡n...' : 'XÃ¡c nháº­n & LÆ°u'}
+              <Save size={17} /> {isSaving ? 'Đang lưu hóa đơn...' : 'Xác nhận & Lưu'}
             </button>
           </section>
         </aside>

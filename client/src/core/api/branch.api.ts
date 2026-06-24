@@ -2,6 +2,28 @@ import { http } from './http';
 
 const DEFAULT_FOOTER = 'CẢM ƠN QUÝ KHÁCH ĐÃ MUA HÀNG!';
 
+export type TemplateTypography = {
+  titleAlign?: 'left' | 'center' | 'right';
+  bodyFontSize?: 'small' | 'normal';
+};
+
+export type TemplateTotalLabels = {
+  subtotal?: string;
+  discount?: string;
+  total?: string;
+  paid?: string;
+  change?: string;
+};
+
+export type TemplateConfig = {
+  version?: number;
+  title?: string;
+  subtitle?: string;
+  noteText?: string;
+  totalLabels?: TemplateTotalLabels;
+  typography?: TemplateTypography;
+};
+
 export type BranchInvoiceProfile = {
   displayName?: string;
   templateId?: 'retail-a4-classic';
@@ -10,6 +32,7 @@ export type BranchInvoiceProfile = {
   showCashier?: boolean;
   showProductCode?: boolean;
   showLogo?: boolean;
+  templateConfig?: TemplateConfig;
 };
 
 export type BranchRecord = {
@@ -58,13 +81,52 @@ export function buildInvoiceProfile(branch?: BranchRecord | null, storeSetting?:
     brandName: trim(invoiceProfile.displayName) || (hasBranch ? trim(branch?.name) : trim(storeSetting?.shopName)) || 'Cửa hàng',
     address: hasBranch ? trim(branch?.address) : trim(storeSetting?.address),
     phone: hasBranch ? trim(branch?.phone) : trim(storeSetting?.phone),
-    footerText: DEFAULT_FOOTER,
+    footerText: trim(invoiceProfile.footerText) || DEFAULT_FOOTER,
     branchName: trim(branch?.name) || '',
     showBranchName: Boolean(invoiceProfile.showBranchName),
-    showCashier: false,
-    showProductCode: false,
-    showLogo: false,
-    logoUrl: '',
+    showCashier: invoiceProfile.showCashier !== false,
+    showProductCode: Boolean(invoiceProfile.showProductCode),
+    showLogo: Boolean(invoiceProfile.showLogo),
+    logoUrl: trim(storeSetting?.logoUrl) || '',
+    templateConfig: normalizeTemplateConfig(invoiceProfile.templateConfig),
+  };
+}
+
+export function defaultTemplateConfig(): TemplateConfig {
+  return {
+    version: 1,
+    title: 'HÓA ĐƠN BÁN HÀNG',
+    subtitle: '',
+    noteText: '',
+    totalLabels: {
+      subtotal: 'Tổng cộng',
+      discount: 'Giảm giá',
+      total: 'Thành tiền',
+      paid: 'Đã thanh toán',
+      change: 'Tiền trả lại',
+    },
+    typography: { titleAlign: 'center', bodyFontSize: 'normal' },
+  };
+}
+
+export function normalizeTemplateConfig(raw?: TemplateConfig | null): TemplateConfig {
+  const base = defaultTemplateConfig();
+  const cfg = raw && typeof raw === 'object' ? raw : {};
+  const labels = { ...base.totalLabels, ...(cfg.totalLabels || {}) };
+  const typography = { ...base.typography, ...(cfg.typography || {}) };
+  const titleAlign = ['left', 'center', 'right'].includes(typography.titleAlign as string)
+    ? (typography.titleAlign as TemplateTypography['titleAlign'])
+    : 'center';
+  const bodyFontSize = ['small', 'normal'].includes(typography.bodyFontSize as string)
+    ? (typography.bodyFontSize as TemplateTypography['bodyFontSize'])
+    : 'normal';
+  return {
+    version: 1,
+    title: trim(cfg.title) || base.title,
+    subtitle: trim(cfg.subtitle),
+    noteText: trim(cfg.noteText),
+    totalLabels: labels,
+    typography: { titleAlign, bodyFontSize },
   };
 }
 
