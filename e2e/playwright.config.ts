@@ -3,12 +3,12 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 const repoRoot = path.basename(process.cwd()) === 'e2e' ? path.resolve(process.cwd(), '..') : process.cwd();
-// E2E/live env files must win over the app .env so tests never inherit real-app values.
-dotenv.config({ path: path.resolve(repoRoot, '.env.live-test.local'), override: true });
+const isLive = process.env.E2E_LIVE === '1';
+// Non-live E2E must not read live DB config. Live env is loaded only in explicit live mode.
+if (isLive) dotenv.config({ path: path.resolve(repoRoot, '.env.live-test.local'), override: true });
 dotenv.config({ path: path.resolve(repoRoot, '.env.e2e.local'), override: true });
 dotenv.config({ path: path.resolve(repoRoot, '.env'), override: false });
 
-const isLive = process.env.E2E_LIVE === '1';
 const baseURL = process.env.E2E_BASE_URL || 'http://localhost:5174';
 
 // Live mode: only the isolated e2e/live specs, and NO legacy setup project

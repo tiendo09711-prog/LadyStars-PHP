@@ -351,7 +351,7 @@ export function AppLayout() {
         ],
       },
     ]
-    : baseMenuGroups, [isAdmin]);
+    : baseMenuGroups.filter((group) => !['accounting', 'operations', 'report'].includes(group.id)), [isAdmin]);
   const visibleMenuGroups = useMemo<MenuGroup[]>(() => menuGroups.map((group) => {
     if (group.id !== 'warehouse' || !isAdmin) return group;
     return {
@@ -609,7 +609,7 @@ export function AppLayout() {
               </div>
             );
           })}
-          {isAdmin && (
+          {user && (
             <div className="menu-group owner-setting-group" onMouseEnter={() => { if (isDesktopNav()) closeAllMenus(); }}>
               <NavLink className="sidebar-setting" to="/settings" onClick={() => setSidebarOpen(false)}>
                 <Settings size={16} className="menu-icon" />

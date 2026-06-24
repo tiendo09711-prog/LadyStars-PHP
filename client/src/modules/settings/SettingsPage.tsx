@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { AlertTriangle, History, Mail, RefreshCw, Save, Settings, Shield, Store } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { isAdminRole } from '../../core/auth/access';
 
 type StaffAccount = {
   _id: string;
@@ -44,6 +45,8 @@ export function SettingsPage() {
   const [roles, setRoles] = useState<Record<string, any>[]>([]);
   const [menus, setMenus] = useState<Record<string, any>[]>([]);
   const [auditLogs, setAuditLogs] = useState<Record<string, any>[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const visibleTabs = isAdmin ? tabs : tabs.filter((tab) => tab.key === 'store');
 
   const loadStore = async () => {
     const response = await http.get('/settings/store');
@@ -86,14 +89,21 @@ export function SettingsPage() {
 
   useEffect(() => {
     loadStore();
-    loadOwnerAccount();
-    loadStaff();
+    http.get('/auth/me').then((response) => {
+      const admin = isAdminRole(response.data?.role);
+      setIsAdmin(admin);
+      if (admin) {
+        setOwnerEmail(response.data.email ?? '');
+        loadStaff();
+      }
+    });
   }, []);
 
   useEffect(() => {
+    if (!isAdmin) return;
     if (activeTab === 'system') loadSystem();
     if (activeTab === 'audit' || activeTab === 'danger') loadAudit();
-  }, [activeTab]);
+  }, [activeTab, isAdmin]);
 
   const saveStore = async (event: FormEvent) => {
     event.preventDefault();
@@ -149,7 +159,7 @@ export function SettingsPage() {
   return (
     <div className="workspace-page">
       <div className="workspace-tabs" role="tablist" aria-label="Settings tabs">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <button className={activeTab === tab.key ? 'active' : ''} key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}>
@@ -168,7 +178,7 @@ export function SettingsPage() {
               <p>Khu vực Owner-only cho cấu hình cửa hàng, bảo mật, quyền, menu và nhật ký hệ thống.</p>
             </div>
           </div>
-          <button className="btn btn-light" type="button" onClick={() => { loadStore(); loadOwnerAccount(); loadStaff(); }}>
+          <button className="btn btn-light" type="button" onClick={() => { loadStore(); if (isAdmin) { loadOwnerAccount(); loadStaff(); } }}>
             <RefreshCw size={16} /> Làm mới
           </button>
         </div>
@@ -211,7 +221,7 @@ export function SettingsPage() {
           </form>
         )}
 
-        {activeTab === 'security' && (
+        {isAdmin && activeTab === 'security' && (
           <div className="dashboard-columns">
             <form className="data-card" onSubmit={changeOwnerAccount}>
               <div className="data-card-header">
@@ -261,7 +271,7 @@ export function SettingsPage() {
           </div>
         )}
 
-        {activeTab === 'system' && (
+        {isAdmin && activeTab === 'system' && (
           <div className="dashboard-columns">
             <SystemList title="Quyền" items={permissions} fields={['key', 'label', 'module']} />
             <SystemList title="Vai trò" items={roles} fields={['name', 'description', 'isSystem']} />
@@ -269,9 +279,9 @@ export function SettingsPage() {
           </div>
         )}
 
-        {activeTab === 'audit' && <AuditTable items={auditLogs} />}
+        {isAdmin && activeTab === 'audit' && <AuditTable items={auditLogs} />}
 
-        {activeTab === 'danger' && (
+        {isAdmin && activeTab === 'danger' && (
           <section className="data-card">
             <div className="data-card-header">
               <div>

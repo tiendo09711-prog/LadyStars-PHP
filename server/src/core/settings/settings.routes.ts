@@ -17,7 +17,7 @@ const StoreInput = z.object({
   address: z.string().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   taxCode: z.string().optional().or(z.literal('')),
-});
+}).strict();
 
 const ChangePasswordInput = z.object({
   currentPassword: z.string().min(6).optional(),
@@ -73,7 +73,7 @@ router.get('/store', async (_req, res) => {
   res.json(await getStoreSetting());
 });
 
-router.patch('/store', requireOwner, async (req, res) => {
+router.patch('/store', async (req, res) => {
   const input = StoreInput.parse(req.body);
   const before = await getStoreSetting();
   const setting = await StoreSetting.findOneAndUpdate(
