@@ -423,7 +423,11 @@ export function AppLayout() {
     }));
   };
 
-  const routeMatches = (to: string) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+  const exactMenuPaths = new Set(['/products']);
+  const routeMatches = (to: string) => {
+    if (to === '/' || exactMenuPaths.has(to)) return location.pathname === to;
+    return location.pathname === to || location.pathname.startsWith(`${to}/`);
+  };
   const itemActive = (item: MenuItem) => 'to' in item ? routeMatches(item.to) : item.subItems.some((subItem) => routeMatches(subItem.to));
   const groupActive = (group: MenuGroup) => group.items.some(itemActive);
   const closeSidebar = () => {
@@ -448,7 +452,7 @@ export function AppLayout() {
   const renderMenuLink = (item: MenuLeaf) => {
     const Icon = item.icon;
     return (
-      <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={closeSidebar}>
+      <NavLink key={item.to} to={item.to} end={item.to === '/' || exactMenuPaths.has(item.to)} onClick={closeSidebar}>
         <Icon size={16} className="menu-icon" />
         <span>{item.label}</span>
       </NavLink>

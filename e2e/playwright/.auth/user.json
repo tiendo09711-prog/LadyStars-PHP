@@ -10,15 +10,11 @@
         },
         {
           "name": "token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTNjNjRhMjc3M2E4NmZmM2YzZjU4NDQiLCJyb2xlIjoiQURNSU4iLCJ0b2tlblZlcnNpb24iOjAsImlhdCI6MTc4MjM0NzE2MywiZXhwIjoxNzgyOTUxOTYzfQ.3d3aTHa4cGOifQzc_UbhK8XOwbNhZH8BTL9mSgI9z1U"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTNjNjRhMjc3M2E4NmZmM2YzZjU4NDQiLCJyb2xlIjoiQURNSU4iLCJ0b2tlblZlcnNpb24iOjAsImlhdCI6MTc4MjM5MDY5NSwiZXhwIjoxNzgyOTk1NDk1fQ.hTI4ryC2oU865_R39fNyOwOGqG5BwGfQ-NTuAlZMM9M"
         },
         {
           "name": "dashboard.chartRange",
           "value": "7 ngày"
-        },
-        {
-          "name": "dashboard.dateRange",
-          "value": "Hôm nay"
         }
       ]
     }

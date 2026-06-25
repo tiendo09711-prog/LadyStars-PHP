@@ -6,7 +6,6 @@ import {
   Boxes,
   CheckSquare,
   ChevronDown,
-  Clock3,
   Download,
   Eye,
   FileDown,
@@ -32,6 +31,7 @@ import {
   qrcode as renderQrCode,
 } from '@bwip-js/generic';
 import * as XLSX from 'xlsx';
+import { createPortal } from 'react-dom';
 import {
   productApi,
   type ProductSavePayload,
@@ -297,7 +297,7 @@ function DetailModal({ product, onClose }: { product: IProduct; onClose: () => v
   );
 }
 
-interface ProductFormProps {
+﻿interface ProductFormProps {
   product?: IProduct | null;
   onSave: (data: ProductSavePayload) => void;
   onClose: () => void;
@@ -305,37 +305,67 @@ interface ProductFormProps {
   error?: string;
 }
 
+interface FieldErrors {
+  code?: string;
+  name?: string;
+  barcode?: string;
+  type?: string;
+  unit?: string;
+  price?: string;
+  weight?: string;
+  size?: string;
+  color?: string;
+  categoryId?: string;
+  warehouses?: string;
+  cost?: string;
+  wholesalePrice?: string;
+}
+
+const PRODUCT_TYPE_OPTIONS = [
+  { value: 'product', label: 'Sản phẩm' },
+  { value: 'service', label: 'Dịch vụ' },
+  { value: 'combo', label: 'Combo' },
+];
+
+const PRODUCT_UNIT_OPTIONS = [
+  'cái', 'chiếc', 'hộp', 'lốc', 'thùng', 'kg', 'gram', 'g', 'lít', 'l', 'mét', 'm', 'cặp', 'đôi', 'set', 'gói', 'chai', 'lon', 'tuýp', 'túi',
+];
+
+function isValidBarcodeInput(value: string) {
+  return /^\d*$/.test(value);
+}
+
+function isValidNonNegativeNumber(value: string) {
+  if (value.trim() === '') return true;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0;
+}
+
 function ProductForm({ product, onSave, onClose, saving, error }: ProductFormProps) {
   const isEdit = Boolean(product);
+  const formRef = useRef<HTMLDivElement>(null);
+  const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'product', status: 'Mới' });
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
-  const [createOnMultipleWarehouses, setCreateOnMultipleWarehouses] = useState(false);
-  const [singleWarehouseId, setSingleWarehouseId] = useState('');
-  const [singleQuantity, setSingleQuantity] = useState('0');
-  const [warehouseQuantities, setWarehouseQuantities] = useState<Record<string, string>>({});
   const [productStocks, setProductStocks] = useState<ProductWarehouseStock[]>([]);
   const [loadingStocks, setLoadingStocks] = useState(isEdit);
-  const [selectedStockWarehouseId, setSelectedStockWarehouseId] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('');
-  const [initialStockQuantity, setInitialStockQuantity] = useState<number | null>(null);
+  const [warehouseQuantities, setWarehouseQuantities] = useState<Record<string, string>>({});
+  const [selectedWarehouseIds, setSelectedWarehouseIds] = useState<Set<string>>(new Set());
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
     let mounted = true;
-
     productApi
       .getCategories({ limit: 1000 })
       .then((response) => {
-        if (mounted) {
-          setCategories(response.items || []);
-        }
+        if (mounted) setCategories(response.items || []);
       })
-      .catch((error) => {
-        console.error('Lỗi tải danh mục sản phẩm:', error);
+      .catch((loadError) => {
+        console.error('Lỗi tải danh mục sản phẩm:', loadError);
       });
-
     return () => {
       mounted = false;
     };
@@ -351,11 +381,6 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         const activeBranches: BranchOption[] = (response.data?.items || [])
           .filter((branch: BranchOption) => branch.isActive !== false);
         setBranches(activeBranches);
-        setWarehouseQuantities(Object.fromEntries(activeBranches.map((branch) => [branch._id, '0'])));
-        if (!isEdit) {
-          const defaultBranch = activeBranches[0];
-          setSingleWarehouseId(defaultBranch?._id || '');
-        }
       })
       .catch((loadError) => {
         console.error('Lỗi tải kho hàng:', loadError);
@@ -370,7 +395,17 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
       productApi
         .getProductStocks(product._id)
         .then((response) => {
-          if (mounted) setProductStocks(response.items || []);
+          if (!mounted) return;
+          const stocks = response.items || [];
+          setProductStocks(stocks);
+          const quantities: Record<string, string> = {};
+          const ids = new Set<string>();
+          stocks.forEach((stock) => {
+            quantities[stock.warehouseId] = String(stock.quantity ?? 0);
+            ids.add(stock.warehouseId);
+          });
+          setWarehouseQuantities(quantities);
+          setSelectedWarehouseIds(ids);
         })
         .catch((loadError) => {
           console.error('Lỗi tải tồn kho sản phẩm:', loadError);
@@ -379,6 +414,10 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         .finally(() => {
           if (mounted) setLoadingStocks(false);
         });
+    } else {
+      // Create mode: no warehouse pre-selected to force explicit selection.
+      setWarehouseQuantities({});
+      setSelectedWarehouseIds(new Set());
     }
 
     return () => {
@@ -388,107 +427,166 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 
   const updateField = (key: keyof IProduct, value: string | number) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: undefined }));
   };
 
-  const isValidQuantity = (value: string) => /^\d+$/.test(value);
+  const toggleWarehouse = (warehouseId: string) => {
+    setSelectedWarehouseIds((current) => {
+      const next = new Set(current);
+      if (next.has(warehouseId)) {
+        if (next.size === 1) return current; // do not remove the last warehouse
+        next.delete(warehouseId);
+        setWarehouseQuantities((qty) => {
+          const copy = { ...qty };
+          delete copy[warehouseId];
+          return copy;
+        });
+      } else {
+        next.add(warehouseId);
+        setWarehouseQuantities((qty) => ({ ...qty, [warehouseId]: qty[warehouseId] ?? '0' }));
+      }
+      setFieldErrors((errors) => ({ ...errors, warehouses: undefined }));
+      return next;
+    });
+  };
 
-  const handleStockWarehouseChange = (warehouseId: string) => {
-    const stock = productStocks.find((item) => item.warehouseId === warehouseId);
-    setSelectedStockWarehouseId(warehouseId);
-    setStockQuantity(stock ? String(stock.quantity) : '');
-    setInitialStockQuantity(stock?.quantity ?? null);
-    setFormError('');
+  const setWarehouseQuantity = (warehouseId: string, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    setWarehouseQuantities((current) => ({ ...current, [warehouseId]: value }));
+    setFieldErrors((errors) => ({ ...errors, warehouses: undefined }));
+  };
+
+  const validateForm = (): FieldErrors => {
+    const errors: FieldErrors = {};
+
+    if (!String(form.code ?? '').trim()) errors.code = 'Vui lòng nhập mã sản phẩm.';
+    if (!String(form.name ?? '').trim()) errors.name = 'Vui lòng nhập tên sản phẩm.';
+
+    const barcode = String(form.barcode ?? '').trim();
+    if (!barcode) errors.barcode = 'Vui lòng nhập mã vạch.';
+    else if (!/^\d+$/.test(barcode)) errors.barcode = 'Mã vạch chỉ được chứa chữ số.';
+
+    if (!String(form.type ?? '').trim()) errors.type = 'Vui lòng chọn loại sản phẩm.';
+    if (!String(form.unit ?? '').trim()) errors.unit = 'Vui lòng chọn đơn vị.';
+
+    const priceRaw = String(form.price ?? '').trim();
+    if (priceRaw === '') errors.price = 'Vui lòng nhập giá bán hợp lệ.';
+    else if (!isValidNonNegativeNumber(priceRaw)) errors.price = 'Vui lòng nhập giá bán hợp lệ.';
+
+    const weightRaw = String(form.weight ?? '').trim();
+    if (weightRaw === '') errors.weight = 'Khối lượng phải là số không âm.';
+    else if (!isValidNonNegativeNumber(weightRaw)) errors.weight = 'Khối lượng phải là số không âm.';
+
+    if (!String(form.size ?? '').trim()) errors.size = 'Vui lòng nhập kích cỡ.';
+    if (!String(form.color ?? '').trim()) errors.color = 'Vui lòng nhập màu sắc.';
+    if (!String(form.categoryId ?? '').trim()) errors.categoryId = 'Vui lòng chọn danh mục.';
+
+    if (selectedWarehouseIds.size === 0) errors.warehouses = 'Vui lòng chọn ít nhất một kho hàng.';
+    else {
+      const invalidQty = Array.from(selectedWarehouseIds).find((id) => {
+        const raw = String(warehouseQuantities[id] ?? '').trim();
+        return raw === '' || !/^\d+$/.test(raw);
+      });
+      if (invalidQty) errors.warehouses = 'Số lượng tồn kho phải là số nguyên không âm.';
+    }
+
+    const costRaw = String(form.cost ?? '').trim();
+    if (costRaw !== '' && !isValidNonNegativeNumber(costRaw)) errors.cost = 'Giá vốn phải là số không âm.';
+    const wholesaleRaw = String(form.wholesalePrice ?? '').trim();
+    if (wholesaleRaw !== '' && !isValidNonNegativeNumber(wholesaleRaw)) errors.wholesalePrice = 'Giá sỉ phải là số không âm.';
+
+    return errors;
+  };
+
+  const focusFirstError = (errors: FieldErrors) => {
+    const order: (keyof FieldErrors)[] = ['code', 'name', 'barcode', 'type', 'unit', 'price', 'weight', 'size', 'color', 'categoryId', 'warehouses', 'cost', 'wholesalePrice'];
+    const firstKey = order.find((key) => errors[key]);
+    if (firstKey && fieldRefs.current[firstKey]) {
+      fieldRefs.current[firstKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = fieldRefs.current[firstKey]?.querySelector('input, select');
+      if (input) (input as HTMLInputElement).focus({ preventScroll: true });
+    }
   };
 
   const handleSubmit = () => {
-    if (!form.code?.trim() || !form.name?.trim()) {
-      setFormError('Mã và tên sản phẩm là bắt buộc.');
+    const errors = validateForm();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const firstMessage = Object.values(errors).find(Boolean) as string;
+      setFormError(firstMessage);
+      focusFirstError(errors);
       return;
     }
+    setFormError('');
 
-    const payload: ProductSavePayload = { ...form };
+    const trimmedCode = String(form.code ?? '').trim();
+    const trimmedName = String(form.name ?? '').trim();
+    const trimmedBarcode = String(form.barcode ?? '').trim();
+    const trimmedSize = String(form.size ?? '').trim();
+    const trimmedColor = String(form.color ?? '').trim();
+    const trimmedUnit = String(form.unit ?? '').trim();
+
+    const payload: ProductSavePayload = {
+      ...form,
+      code: trimmedCode,
+      name: trimmedName,
+      barcode: trimmedBarcode,
+      size: trimmedSize,
+      color: trimmedColor,
+      unit: trimmedUnit,
+      cost: form.cost === undefined || form.cost === null || String(form.cost).trim() === '' ? 0 : Number(form.cost),
+      wholesalePrice: form.wholesalePrice === undefined || form.wholesalePrice === null || String(form.wholesalePrice).trim() === '' ? 0 : Number(form.wholesalePrice),
+      price: Number(form.price),
+      weight: Number(form.weight),
+    };
     delete payload.trademarkName;
     delete payload.supplierName;
+    delete payload.qty;
+    delete payload.availableStock;
 
     if (!isEdit) {
-      if (createOnMultipleWarehouses) {
-        const initialStocks = branches.map((branch) => ({
-          warehouseId: branch._id,
-          quantity: Number(warehouseQuantities[branch._id] || 0),
-        }));
-        if (initialStocks.some((line) => !Number.isInteger(line.quantity) || line.quantity < 0)) {
-          setFormError('Số lượng tồn kho phải là số nguyên không âm.');
-          return;
-        }
-        payload.initialStocks = initialStocks;
+      payload.initialStocks = Array.from(selectedWarehouseIds).map((warehouseId) => ({
+        warehouseId,
+        quantity: Number(warehouseQuantities[warehouseId] || 0),
+      }));
+    } else {
+      payload.initialStocks = Array.from(selectedWarehouseIds).map((warehouseId) => ({
+        warehouseId,
+        quantity: Number(warehouseQuantities[warehouseId] ?? 0),
+      }));
+      // Send only warehouse lines the user actually changed to preserve untouched stock rows.
+      const changedLines = (payload.initialStocks || []).filter((line) => {
+        const existing = productStocks.find((stock) => stock.warehouseId === line.warehouseId);
+        return !existing || existing.quantity !== line.quantity;
+      });
+      if (changedLines.length) {
+        payload.initialStocks = changedLines;
       } else {
-        if (!singleWarehouseId) {
-          setFormError('Vui lòng chọn kho hàng.');
-          return;
-        }
-        if (!isValidQuantity(singleQuantity)) {
-          setFormError('Số lượng tồn kho ban đầu phải là số nguyên không âm.');
-          return;
-        }
-        payload.initialStocks = [{ warehouseId: singleWarehouseId, quantity: Number(singleQuantity) }];
-      }
-    } else if (selectedStockWarehouseId) {
-      if (!isValidQuantity(stockQuantity)) {
-        setFormError('Số lượng tồn kho phải là số nguyên không âm.');
-        return;
-      }
-      const nextQuantity = Number(stockQuantity);
-      if (initialStockQuantity !== nextQuantity) {
-        payload.stockAdjustment = {
-          warehouseId: selectedStockWarehouseId,
-          quantity: nextQuantity,
-        };
+        delete payload.initialStocks;
       }
     }
 
-    setFormError('');
     onSave(payload);
   };
 
-  const fields: Array<{
-    key: keyof IProduct;
-    label: string;
-    type?: 'text' | 'number';
-    options?: Array<{ value: string; label: string }>;
-  }> = [
-    { key: 'code', label: 'Mã sản phẩm *' },
-    { key: 'name', label: 'Tên sản phẩm *' },
-    { key: 'barcode', label: 'Mã vạch' },
-    {
-      key: 'type',
-      label: 'Loại sản phẩm',
-      options: [
-        { value: 'product', label: 'Sản phẩm' },
-        { value: 'service', label: 'Dịch vụ' },
-        { value: 'combo', label: 'Combo' },
-      ],
-    },
-    { key: 'unit', label: 'Đơn vị' },
-    {
-      key: 'status',
-      label: 'Trạng thái',
-      options: [
-        { value: 'Mới', label: 'Mới' },
-        { value: 'Đang giao', label: 'Đang giao' },
-        { value: 'Ngừng', label: 'Ngừng' },
-      ],
-    },
-    { key: 'cost', label: 'Giá vốn', type: 'number' },
-    { key: 'price', label: 'Giá bán', type: 'number' },
-    { key: 'wholesalePrice', label: 'Giá sỉ', type: 'number' },
-    { key: 'vat', label: 'VAT (%)', type: 'number' },
-    { key: 'warrantyMonths', label: 'Bảo hành (tháng)', type: 'number' },
-    { key: 'weight', label: 'Khối lượng (g)', type: 'number' },
-    { key: 'color', label: 'Màu sắc' },
-    { key: 'size', label: 'Kích cỡ' },
-    { key: 'origin', label: 'Xuất xứ' },
-    { key: 'categoryId', label: 'Danh mục' },
-  ];
+  const setFieldRef = (key: keyof FieldErrors) => (node: HTMLDivElement | null) => {
+    fieldRefs.current[key] = node;
+  };
+
+  const selectedStocks = Array.from(selectedWarehouseIds).map((id) => {
+    const branch = branches.find((item) => item._id === id);
+    const stock = productStocks.find((item) => item.warehouseId === id);
+    return {
+      warehouseId: id,
+      name: stock?.warehouseName || branch?.name || id,
+      code: stock?.warehouseCode || branch?.code,
+      quantity: warehouseQuantities[id] ?? '0',
+      existing: stock?.quantity ?? null,
+    };
+  });
+
+  const availableBranches = branches.filter((branch) => !selectedWarehouseIds.has(branch._id));
+  const totalStock = selectedStocks.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -496,6 +594,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         className="modal-card modal-card-wide"
         style={{ maxHeight: '90vh', overflowY: 'auto' }}
         onClick={(event) => event.stopPropagation()}
+        ref={formRef}
       >
         <div className="modal-header">
           <div>
@@ -509,197 +608,291 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 
         {error || formError ? <div className="form-error">{formError || error}</div> : null}
 
-        <div className="form-grid">
-          {fields.map((field) => {
-            if (field.key === 'categoryId') {
-              return (
-                <div className="form-field" key={field.key}>
-                  <span>{field.label}</span>
-                  <select
-                    value={String(form.categoryId ?? '')}
-                    onChange={(event) => {
-                      const selectedId = event.target.value;
-                      const matchedCategory = categories.find((category) => category._id === selectedId);
+        <div className="form-grid" style={{ position: 'relative' }}>
+          <div className="form-field" ref={setFieldRef('code')}>
+            <span>Mã sản phẩm *</span>
+            <input
+              type="text"
+              value={String(form.code ?? '')}
+              className={fieldErrors.code ? 'input-error' : ''}
+              onChange={(event) => updateField('code', event.target.value)}
+            />
+            {fieldErrors.code ? <span className="field-error-text">{fieldErrors.code}</span> : null}
+          </div>
 
-                      setForm((current) => ({
-                        ...current,
-                        categoryId: selectedId || undefined,
-                        categoryName: matchedCategory?.name || '',
-                      }));
-                    }}
-                  >
-                    <option value="">-- Chọn danh mục --</option>
-                    {categories.map((category) => (
-                      <option key={category._id} value={category._id}>
-                        {category.name}
-                      </option>
+          <div className="form-field" ref={setFieldRef('name')}>
+            <span>Tên sản phẩm *</span>
+            <input
+              type="text"
+              value={String(form.name ?? '')}
+              className={fieldErrors.name ? 'input-error' : ''}
+              onChange={(event) => updateField('name', event.target.value)}
+            />
+            {fieldErrors.name ? <span className="field-error-text">{fieldErrors.name}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('barcode')}>
+            <span>Mã vạch *</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={String(form.barcode ?? '')}
+              className={fieldErrors.barcode ? 'input-error' : ''}
+              onChange={(event) => {
+                if (isValidBarcodeInput(event.target.value)) updateField('barcode', event.target.value);
+              }}
+            />
+            {fieldErrors.barcode ? <span className="field-error-text">{fieldErrors.barcode}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('type')}>
+            <span>Loại sản phẩm *</span>
+            <select
+              value={String(form.type ?? '')}
+              className={fieldErrors.type ? 'input-error' : ''}
+              onChange={(event) => updateField('type', event.target.value)}
+            >
+              <option value="">-- Chọn loại sản phẩm --</option>
+              {PRODUCT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {fieldErrors.type ? <span className="field-error-text">{fieldErrors.type}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('unit')}>
+            <span>Đơn vị *</span>
+            <select
+              value={String(form.unit ?? '')}
+              className={fieldErrors.unit ? 'input-error' : ''}
+              onChange={(event) => updateField('unit', event.target.value)}
+            >
+              <option value="">-- Chọn đơn vị --</option>
+              {PRODUCT_UNIT_OPTIONS.map((unit) => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+            {fieldErrors.unit ? <span className="field-error-text">{fieldErrors.unit}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('categoryId')}>
+            <span>Danh mục *</span>
+            <select
+              value={String(form.categoryId ?? '')}
+              className={fieldErrors.categoryId ? 'input-error' : ''}
+              onChange={(event) => {
+                const selectedId = event.target.value;
+                const matchedCategory = categories.find((category) => category._id === selectedId);
+                setForm((current) => ({
+                  ...current,
+                  categoryId: selectedId || undefined,
+                  categoryName: matchedCategory?.name || '',
+                }));
+                setFieldErrors((current) => ({ ...current, categoryId: undefined }));
+              }}
+            >
+              <option value="">-- Chọn danh mục --</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>{category.name}</option>
+              ))}
+            </select>
+            {fieldErrors.categoryId ? <span className="field-error-text">{fieldErrors.categoryId}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('price')}>
+            <span>Giá bán *</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.price ?? '')}
+              className={fieldErrors.price ? 'input-error' : ''}
+              onChange={(event) => updateField('price', event.target.value)}
+            />
+            {fieldErrors.price ? <span className="field-error-text">{fieldErrors.price}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('weight')}>
+            <span>Khối lượng (g) *</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.weight ?? '')}
+              className={fieldErrors.weight ? 'input-error' : ''}
+              onChange={(event) => updateField('weight', event.target.value)}
+            />
+            {fieldErrors.weight ? <span className="field-error-text">{fieldErrors.weight}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('size')}>
+            <span>Kích cỡ *</span>
+            <input
+              type="text"
+              value={String(form.size ?? '')}
+              className={fieldErrors.size ? 'input-error' : ''}
+              onChange={(event) => updateField('size', event.target.value)}
+            />
+            {fieldErrors.size ? <span className="field-error-text">{fieldErrors.size}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('color')}>
+            <span>Màu sắc *</span>
+            <input
+              type="text"
+              value={String(form.color ?? '')}
+              className={fieldErrors.color ? 'input-error' : ''}
+              onChange={(event) => updateField('color', event.target.value)}
+            />
+            {fieldErrors.color ? <span className="field-error-text">{fieldErrors.color}</span> : null}
+          </div>
+
+          <div className="form-field">
+            <span>Giá vốn</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.cost ?? '')}
+              placeholder="0"
+              className={fieldErrors.cost ? 'input-error' : ''}
+              onChange={(event) => updateField('cost', event.target.value)}
+            />
+            {fieldErrors.cost ? <span className="field-error-text">{fieldErrors.cost}</span> : null}
+          </div>
+
+          <div className="form-field">
+            <span>Giá sỉ</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.wholesalePrice ?? '')}
+              placeholder="0"
+              className={fieldErrors.wholesalePrice ? 'input-error' : ''}
+              onChange={(event) => updateField('wholesalePrice', event.target.value)}
+            />
+            {fieldErrors.wholesalePrice ? <span className="field-error-text">{fieldErrors.wholesalePrice}</span> : null}
+          </div>
+
+          <div className="form-field">
+            <span>Trạng thái</span>
+            <select
+              value={String(form.status ?? 'Mới')}
+              onChange={(event) => updateField('status', event.target.value)}
+            >
+              <option value="Mới">Mới</option>
+              <option value="Đang giao">Đang giao</option>
+              <option value="Ngừng">Ngừng</option>
+            </select>
+          </div>
+
+          <div className="form-field">
+            <span>VAT (%)</span>
+            <input
+              type="number"
+              min={0}
+              value={String(form.vat ?? '')}
+              onChange={(event) => updateField('vat', Number(event.target.value))}
+            />
+          </div>
+
+          <div className="form-field">
+            <span>Bảo hành (tháng)</span>
+            <input
+              type="number"
+              min={0}
+              value={String(form.warrantyMonths ?? '')}
+              onChange={(event) => updateField('warrantyMonths', Number(event.target.value))}
+            />
+          </div>
+
+          <div className="form-field">
+            <span>Xuất xứ</span>
+            <input
+              type="text"
+              value={String(form.origin ?? '')}
+              onChange={(event) => updateField('origin', event.target.value)}
+            />
+          </div>
+
+          <section className="products-warehouse-panel" ref={setFieldRef('warehouses')}>
+            <div className="products-warehouse-head">
+              <strong>Kho hàng và tồn kho *</strong>
+              <p>
+                Đã chọn {selectedStocks.length} kho · Tổng tồn: <strong>{totalStock.toLocaleString('vi-VN')}</strong>
+              </p>
+            </div>
+
+            {fieldErrors.warehouses ? <span className="field-error-text">{fieldErrors.warehouses}</span> : null}
+
+            <div className="products-warehouse-add">
+              <select
+                aria-label="Thêm kho hàng"
+                value=""
+                disabled={loadingBranches || availableBranches.length === 0}
+                onChange={(event) => {
+                  const id = event.target.value;
+                  if (id) toggleWarehouse(id);
+                  event.target.value = '';
+                }}
+              >
+                <option value="">{loadingBranches ? 'Đang tải kho hàng...' : availableBranches.length ? '-- Thêm kho hàng --' : 'Đã chọn hết kho đang hoạt động'}</option>
+                {availableBranches.map((branch) => (
+                  <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>
+                ))}
+              </select>
+            </div>
+
+            {selectedStocks.length > 0 ? (
+              <div className="products-warehouse-table">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Kho hàng</th>
+                      <th style={{ width: 220 }}>Số lượng tồn *</th>
+                      {isEdit ? <th style={{ width: 120 }}>Tồn hiện tại</th> : null}
+                      <th style={{ width: 80 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedStocks.map((row) => (
+                      <tr key={row.warehouseId}>
+                        <td>{row.name}{row.code ? ` (${row.code})` : ''}</td>
+                        <td>
+                          <input
+                            aria-label={`Số lượng tồn ${row.name}`}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={row.quantity}
+                            className={fieldErrors.warehouses && (String(row.quantity).trim() === '' || !/^\d+$/.test(String(row.quantity).trim())) ? 'input-error' : ''}
+                            onChange={(event) => setWarehouseQuantity(row.warehouseId, event.target.value)}
+                          />
+                        </td>
+                        {isEdit ? <td>{row.existing !== null ? row.existing.toLocaleString('vi-VN') : '—'}</td> : null}
+                        <td>
+                          <button
+                            type="button"
+                            className="icon-button"
+                            aria-label={`Bỏ kho ${row.name}`}
+                            title="Bỏ kho hàng"
+                            disabled={selectedStocks.length === 1}
+                            onClick={() => toggleWarehouse(row.warehouseId)}
+                          >
+                            <X size={16} />
+                          </button>
+                        </td>
+                      </tr>
                     ))}
-                  </select>
-                </div>
-              );
-            }
-
-            return (
-              <div className="form-field" key={field.key}>
-                <span>{field.label}</span>
-                {field.options ? (
-                  <select
-                    value={String(form[field.key] ?? '')}
-                    onChange={(event) => updateField(field.key, event.target.value)}
-                  >
-                    <option value="">-- Chọn --</option>
-                    {field.options.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={field.type || 'text'}
-                    value={String(form[field.key] ?? '')}
-                    onChange={(event) =>
-                      updateField(
-                        field.key,
-                        field.type === 'number' ? Number(event.target.value) : event.target.value,
-                      )
-                    }
-                  />
-                )}
+                  </tbody>
+                </table>
               </div>
-            );
-          })}
-
-          {!isEdit ? (
-            <section style={{ gridColumn: '1 / -1', display: 'grid', gap: 14, padding: 16, border: '1px solid #bfdbfe', borderRadius: 16, background: '#f8fbff' }}>
-              <div>
-                <strong style={{ color: '#0f172a' }}>Tồn kho ban đầu</strong>
-                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>Tạo tồn kho cho một kho hoặc phân bổ theo nhiều kho hàng.</p>
-              </div>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-                <input
-                  type="checkbox"
-                  checked={createOnMultipleWarehouses}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setCreateOnMultipleWarehouses(checked);
-                    setFormError('');
-                    if (checked) {
-                      setSingleWarehouseId('');
-                      setSingleQuantity('');
-                      setWarehouseQuantities(Object.fromEntries(branches.map((branch) => [branch._id, '0'])));
-                    } else {
-                      const defaultBranch = branches[0];
-                      setSingleWarehouseId(defaultBranch?._id || '');
-                      setSingleQuantity('0');
-                    }
-                  }}
-                />
-                Tạo mới trên nhiều kho
-              </label>
-
-              {!createOnMultipleWarehouses ? (
-                <div className="form-grid">
-                  <label className="form-field">
-                    <span>Kho hàng *</span>
-                    <select value={singleWarehouseId} onChange={(event) => setSingleWarehouseId(event.target.value)} disabled={loadingBranches}>
-                      <option value="">{loadingBranches ? 'Đang tải kho hàng...' : '-- Chọn kho hàng --'}</option>
-                      {branches.map((branch) => (
-                        <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="form-field">
-                    <span>Số lượng tồn kho ban đầu *</span>
-                    <input
-                      aria-label="Số lượng tồn kho ban đầu"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={singleQuantity}
-                      onChange={(event) => {
-                        if (/^\d*$/.test(event.target.value)) setSingleQuantity(event.target.value);
-                      }}
-                    />
-                  </label>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <strong>Tồn kho theo từng kho hàng</strong>
-                  <div className="products-table-wrap">
-                    <table className="data-table">
-                      <thead><tr><th>Kho hàng</th><th style={{ width: 220 }}>Số lượng tồn</th></tr></thead>
-                      <tbody>
-                        {branches.map((branch) => (
-                          <tr key={branch._id}>
-                            <td>{branch.name}{branch.code ? ` (${branch.code})` : ''}</td>
-                            <td>
-                              <input
-                                aria-label={`Số lượng tồn ${branch.name}`}
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={warehouseQuantities[branch._id] ?? '0'}
-                                onChange={(event) => {
-                                  if (!/^\d*$/.test(event.target.value)) return;
-                                  setWarehouseQuantities((current) => ({ ...current, [branch._id]: event.target.value }));
-                                }}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </section>
-          ) : (
-            <section style={{ gridColumn: '1 / -1', display: 'grid', gap: 14, padding: 16, border: '1px solid #bfdbfe', borderRadius: 16, background: '#f8fbff' }}>
-              <div>
-                <strong style={{ color: '#0f172a' }}>Chỉnh tồn kho theo kho hàng</strong>
-                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>
-                  Tổng tồn kho hiện tại: <strong>{productStocks.reduce((sum, item) => sum + item.quantity, 0).toLocaleString('vi-VN')}</strong>
-                </p>
-              </div>
-              <div className="form-grid">
-                <label className="form-field">
-                  <span>Kho hàng</span>
-                  <select
-                    value={selectedStockWarehouseId}
-                    onChange={(event) => handleStockWarehouseChange(event.target.value)}
-                    disabled={loadingStocks || productStocks.length === 0}
-                  >
-                    <option value="">{loadingStocks ? 'Đang tải tồn kho...' : productStocks.length ? '-- Chọn kho hàng --' : 'Sản phẩm chưa có tồn kho theo kho'}</option>
-                    {productStocks.map((stock) => (
-                      <option key={stock._id} value={stock.warehouseId}>{stock.warehouseName}{stock.warehouseCode ? ` (${stock.warehouseCode})` : ''}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="form-field">
-                  <span>Số lượng tồn kho</span>
-                  <input
-                    aria-label="Số lượng tồn kho"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={stockQuantity}
-                    disabled={!selectedStockWarehouseId}
-                    onChange={(event) => {
-                      if (/^\d*$/.test(event.target.value)) setStockQuantity(event.target.value);
-                    }}
-                  />
-                </label>
-              </div>
-              {selectedStockWarehouseId && initialStockQuantity !== null && isValidQuantity(stockQuantity) ? (
-                <div style={{ color: '#475569', fontSize: 13 }}>
-                  Tồn trước khi chỉnh: <strong>{initialStockQuantity}</strong>
-                  {' · '}Chênh lệch: <strong>{Number(stockQuantity) - initialStockQuantity >= 0 ? '+' : ''}{Number(stockQuantity) - initialStockQuantity}</strong>
-                </div>
-              ) : null}
-            </section>
-          )}
+            ) : (
+              <p className="products-warehouse-empty">Chưa chọn kho hàng nào. Vui lòng thêm ít nhất một kho.</p>
+            )}
+          </section>
         </div>
 
         <div className="modal-footer">
@@ -714,6 +907,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     </div>
   );
 }
+
 
 function ImportModal({
   onClose,
@@ -1501,11 +1695,11 @@ function BarcodePrintWorkspace({
 }
 
 export function ProductList({
-  onShowHistory,
   onBarcodeWorkspaceChange,
+  actionSlot,
 }: {
-  onShowHistory?: () => void;
   onBarcodeWorkspaceChange?: (open: boolean) => void;
+  actionSlot?: React.RefObject<HTMLDivElement | null>;
 }) {
   const [items, setItems] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1868,107 +2062,101 @@ export function ProductList({
   return (
     <div className="products-panel">
       <section className="products-control-card">
-        <div className="products-control-top">
-          <div className="products-title-stack">
-            <h2>Danh sách sản phẩm</h2>
-            <p>Giữ nguyên luồng quản lý cũ, chỉ tổ chức lại giao diện để thao tác nhanh và sáng hơn.</p>
-            <div className="products-stat-row">
-              <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
-              <span className="products-stat-chip">
-                <Boxes size={14} />
-                Trang {page} / {Math.max(1, Math.ceil(total / limit))}
-              </span>
-              <span className="products-stat-chip">
-                <ShieldAlert size={14} />
-                Tổng tồn đồng bộ từ tồn kho từng kho
-              </span>
-            </div>
-          </div>
-
-          <div className="products-action-row">
-            <div className="products-primary-actions">
-              <div className="products-split-add products-floating-menu">
-                <button className="btn products-add-button" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>
-                  <Plus size={15} />
-                  Thêm mới
-                </button>
-                <button className="btn products-add-button products-split-toggle" type="button" onClick={() => setOpenAddMenu((current) => !current)} aria-label="Mở menu thêm mới">
-                  <ChevronDown size={15} />
-                </button>
-                {openAddMenu ? (
-                  <div className="products-floating-dropdown products-add-dropdown">
-                    <button className="products-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImport(true); }}>
-                      <FileUp size={15} />
-                      <span>Nhập từ file</span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="products-bulk-menu products-floating-menu">
-                <button className="btn products-dropdown-button" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
-                  <span>Thao tác</span>
-                  <ChevronDown size={15} />
-                </button>
-                {openBulkMenu ? (
-                  <div className="products-floating-dropdown products-bulk-dropdown">
-                    <button className="products-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
-                      <FileDown size={15} />
-                      <span>Xuất dữ liệu</span>
-                    </button>
-                    <button className="products-dropdown-item" type="button" onClick={openBarcodePrint}>
-                      <Printer size={15} />
-                      <span>In mã vạch</span>
-                    </button>
-                    <div className="products-dropdown-group">
-                      <button className="products-dropdown-item" type="button" onClick={() => {
-                        if (!requireSelection()) return;
-                        setOpenBulkStatusMenu((current) => !current);
-                      }}>
-                        <RefreshCw size={15} />
-                        <span>Đổi trạng thái sản phẩm</span>
-                        <ChevronDown size={14} />
-                      </button>
-                      {openBulkStatusMenu ? (
-                        <div className="products-sub-dropdown">
-                          {statusOptions.map((status) => (
-                            <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
-                              {status}
-                            </button>
-                          ))}
-                          <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
-                            Tùy chọn khác...
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                    <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
-                      <Trash2 size={15} />
-                      <span>Xóa các dòng đã chọn</span>
-                    </button>
-                    <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
-                      <CheckSquare size={15} />
-                      <span>Cập nhật danh mục</span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-              <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
-            </div>
-
-            <div className="products-secondary-actions">
-              <button className="btn btn-light" type="button" onClick={() => void load()} title="Làm mới dữ liệu">
-                <RefreshCw size={15} />
-                Làm mới
-              </button>
-              <button className="btn btn-light" type="button" onClick={onShowHistory} title="Xem lịch sử sửa xóa">
-                <Clock3 size={15} />
-                Lịch sử
-              </button>
-            </div>
-          </div>
+        <div className="products-stat-row">
+          <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
+          <span className="products-stat-chip">
+            <Boxes size={14} />
+            Trang {page} / {Math.max(1, Math.ceil(total / limit))}
+          </span>
+          <span className="products-stat-chip">
+            <ShieldAlert size={14} />
+            Tổng tồn đồng bộ từ tồn kho từng kho
+          </span>
         </div>
 
+        {actionSlot?.current
+          ? createPortal(
+              <div className="products-action-row">
+                <div className="products-primary-actions">
+                  <div className="products-split-add products-floating-menu">
+                    <button className="btn products-add-button" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>
+                      <Plus size={15} />
+                      Thêm mới
+                    </button>
+                    <button className="btn products-add-button products-split-toggle" type="button" onClick={() => setOpenAddMenu((current) => !current)} aria-label="Mở menu thêm mới">
+                      <ChevronDown size={15} />
+                    </button>
+                    {openAddMenu ? (
+                      <div className="products-floating-dropdown products-add-dropdown">
+                        <button className="products-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImport(true); }}>
+                          <FileUp size={15} />
+                          <span>Nhập từ file</span>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="products-bulk-menu products-floating-menu">
+                    <button className="btn products-dropdown-button" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
+                      <span>Thao tác</span>
+                      <ChevronDown size={15} />
+                    </button>
+                    {openBulkMenu ? (
+                      <div className="products-floating-dropdown products-bulk-dropdown">
+                        <button className="products-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
+                          <FileDown size={15} />
+                          <span>Xuất dữ liệu</span>
+                        </button>
+                        <button className="products-dropdown-item" type="button" onClick={openBarcodePrint}>
+                          <Printer size={15} />
+                          <span>In mã vạch</span>
+                        </button>
+                        <div className="products-dropdown-group">
+                          <button className="products-dropdown-item" type="button" onClick={() => {
+                            if (!requireSelection()) return;
+                            setOpenBulkStatusMenu((current) => !current);
+                          }}>
+                            <RefreshCw size={15} />
+                            <span>Đổi trạng thái sản phẩm</span>
+                            <ChevronDown size={14} />
+                          </button>
+                          {openBulkStatusMenu ? (
+                            <div className="products-sub-dropdown">
+                              {statusOptions.map((status) => (
+                                <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
+                                  {status}
+                                </button>
+                              ))}
+                              <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
+                                Tùy chọn khác...
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                        <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
+                          <Trash2 size={15} />
+                          <span>Xóa các dòng đã chọn</span>
+                        </button>
+                        <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
+                          <CheckSquare size={15} />
+                          <span>Cập nhật danh mục</span>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
+                </div>
+
+                <div className="products-secondary-actions">
+                  <button className="btn btn-light" type="button" onClick={() => void load()} title="Làm mới dữ liệu">
+                    <RefreshCw size={15} />
+                    Làm mới
+                  </button>
+                </div>
+              </div>,
+              actionSlot.current,
+            )
+          : null}
         <form className="products-filter-form" onSubmit={handleSearch}>
           <div className="products-filter-grid products-grid-products">
             <label className="products-inline-field">
@@ -2001,11 +2189,6 @@ export function ProductList({
             </button>
           </div>
 
-          <div className="products-filter-note">
-            <p>
-              Bộ lọc hiện đang bám đúng API cũ: tìm kiếm theo <strong>q</strong> và lọc theo <strong>status</strong>.
-            </p>
-          </div>
         </form>
       </section>
 
@@ -2013,7 +2196,7 @@ export function ProductList({
         <div className="products-table-topbar">
           <div>
             <strong>Bảng dữ liệu sản phẩm</strong>
-            <span>Nhấn vào tiêu đề cột để đổi thứ tự sắp xếp, giữ nguyên như hành vi ban đầu.</span>
+
           </div>
           <div className="products-table-hint">
             <ArrowUpDown size={14} />
@@ -2149,14 +2332,6 @@ export function ProductList({
         </div>
 
         <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
-      </section>
-
-      <section className="products-note-card">
-        <strong>Ghi nhớ chức năng cũ</strong>
-        <p>
-          Các nút thêm, sửa, xóa, import, xuất Excel và liên kết sang lịch sử đều đang được giữ nguyên luồng API. Chỉ phần bố
-          cục và trình bày được làm lại.
-        </p>
       </section>
 
       {detailItem ? <DetailModal product={detailItem} onClose={() => setDetailItem(null)} /> : null}

@@ -70,6 +70,68 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+﻿const PRODUCT_TYPES = ['product', 'service', 'combo'];
+
+function toNumberOrZero(value: any): number {
+  const number = parseNumber(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function validateProductFields(payload: any): string[] {
+  const errors: string[] = [];
+
+  const require = (condition: boolean, message: string) => {
+    if (!condition) errors.push(message);
+  };
+
+  const code = String(payload.code ?? '').trim();
+  const name = String(payload.name ?? '').trim();
+  const barcode = String(payload.barcode ?? '').trim();
+  const type = String(payload.type ?? '').trim();
+  const unit = String(payload.unit ?? '').trim();
+  const size = String(payload.size ?? '').trim();
+  const color = String(payload.color ?? '').trim();
+  const categoryId = String(payload.categoryId ?? '').trim();
+  const price = payload.price;
+  const weight = payload.weight;
+  const cost = payload.cost;
+  const wholesalePrice = payload.wholesalePrice;
+
+  require(code.length > 0, 'Vui lòng nhập mã sản phẩm.');
+  require(name.length > 0, 'Vui lòng nhập tên sản phẩm.');
+  require(barcode.length > 0, 'Vui lòng nhập mã vạch.');
+  require(barcode.length === 0 || /^\d+$/.test(barcode), 'Mã vạch chỉ được chứa chữ số.');
+  require(type.length > 0, 'Vui lòng chọn loại sản phẩm.');
+  require(type.length === 0 || PRODUCT_TYPES.includes(type), 'Loại sản phẩm không hợp lệ.');
+  require(unit.length > 0, 'Vui lòng chọn đơn vị.');
+
+  const priceValid = price !== undefined && price !== null && price !== '' && Number.isFinite(Number(price)) && Number(price) >= 0;
+  require(priceValid, 'Vui lòng nhập giá bán hợp lệ.');
+
+  const weightValid = weight !== undefined && weight !== null && weight !== '' && Number.isFinite(Number(weight)) && Number(weight) >= 0;
+  require(weightValid, 'Khối lượng phải là số không âm.');
+
+  const costValid = cost === undefined || cost === null || cost === '' || (Number.isFinite(Number(cost)) && Number(cost) >= 0);
+  require(costValid, 'Giá vốn phải là số không âm.');
+
+  const wholesaleValid = wholesalePrice === undefined || wholesalePrice === null || wholesalePrice === '' || (Number.isFinite(Number(wholesalePrice)) && Number(wholesalePrice) >= 0);
+  require(wholesaleValid, 'Giá sỉ phải là số không âm.');
+
+  require(size.length > 0, 'Vui lòng nhập kích cỡ.');
+  require(color.length > 0, 'Vui lòng nhập màu sắc.');
+  require(categoryId.length > 0, 'Vui lòng chọn danh mục.');
+  require(categoryId.length === 0 || mongoose.isValidObjectId(categoryId), 'Danh mục không hợp lệ.');
+
+  return errors;
+}
+
+function applyMoneyDefaults(payload: any) {
+  if (payload.cost === undefined || payload.cost === null || payload.cost === '') payload.cost = 0; else payload.cost = toNumberOrZero(payload.cost);
+  if (payload.wholesalePrice === undefined || payload.wholesalePrice === null || payload.wholesalePrice === '') payload.wholesalePrice = 0; else payload.wholesalePrice = toNumberOrZero(payload.wholesalePrice);
+  if (payload.price !== undefined && payload.price !== null && payload.price !== '') payload.price = toNumberOrZero(payload.price);
+  if (payload.weight !== undefined && payload.weight !== null && payload.weight !== '') payload.weight = toNumberOrZero(payload.weight);
+}
+
 function sanitizeProductPayload(raw: any) {
   const payload = { ...raw };
   for (const key of [
@@ -560,8 +622,13 @@ router.post('/products', async (req, res) => {
   try {
     const payload = sanitizeProductPayload(req.body);
     const initialStocks = normalizeStockLines(req.body.initialStocks);
-    if (!String(payload.code || '').trim() || !String(payload.name || '').trim()) {
-      return res.status(400).json({ message: 'Mã và tên sản phẩm là bắt buộc.' });
+    const fieldErrors = validateProductFields(payload);
+    if (fieldErrors.length) {
+      return res.status(400).json({ message: fieldErrors[0], errors: fieldErrors });
+    }
+    applyMoneyDefaults(payload);
+    if (initialStocks.length === 0) {
+      return res.status(400).json({ message: 'Vui lòng chọn ít nhất một kho hàng.' });
     }
 
     const warehouseIds = initialStocks.map((line) => line.warehouseId);
@@ -630,15 +697,25 @@ router.post('/products', async (req, res) => {
 router.patch('/products/:id', async (req, res) => {
   const session = await mongoose.startSession();
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Sản phẩm không hợp lệ.' });
-    const productPayload = sanitizeProductPayload(req.body);
+﻿    const productPayload = sanitizeProductPayload(req.body);
     const adjustment = req.body.stockAdjustment;
     let normalizedAdjustment: { warehouseId: string; quantity: number } | undefined;
+    const editInitialStocks = normalizeStockLines(req.body.initialStocks);
+    const hasEditStocks = editInitialStocks.length > 0;
+    const hasAdjustment = adjustment !== undefined;
 
-    if (adjustment !== undefined) {
+    if (hasAdjustment) {
       [normalizedAdjustment] = normalizeStockLines([adjustment]);
       const warehouse = await Branch.findById(normalizedAdjustment.warehouseId).select('_id');
       if (!warehouse) return res.status(400).json({ message: 'Kho hàng không tồn tại.' });
+    }
+
+    if (hasEditStocks) {
+      const warehouseIds = editInitialStocks.map((line) => line.warehouseId);
+      const warehouses = await Branch.find({ _id: { $in: warehouseIds }, isActive: { $ne: false } }).select('_id');
+      if (warehouses.length !== warehouseIds.length) {
+        return res.status(400).json({ message: 'Có kho hàng không tồn tại hoặc đã ngừng hoạt động.' });
+      }
     }
 
     let updated: any;
@@ -651,11 +728,93 @@ router.patch('/products/:id', async (req, res) => {
         throw error;
       }
 
+      // Merge with existing product so partial updates (e.g. bulk status/category)
+      // that do not touch required fields still pass validation, while the full
+      // create/edit form is validated against the merged result.
+      const merged = { ...(before.toObject ? before.toObject() : before), ...productPayload };
+      const fieldErrors = validateProductFields(merged);
+      if (fieldErrors.length) {
+        const error: any = new Error(fieldErrors[0]);
+        error.status = 400;
+        error.errors = fieldErrors;
+        throw error;
+      }
+      applyMoneyDefaults(productPayload);
+
+      const existingStocks = await ProductBranchStock.find({ productId: before._id }).session(session);
+      const existingWarehouseIds = new Set(existingStocks.map((stock) => String(stock.branchId)));
+
+      // Validate warehouse selection: the product must keep at least one warehouse.
+      if (hasEditStocks && hasAdjustment) {
+        const covered = new Set(editInitialStocks.map((line) => line.warehouseId));
+        covered.add(normalizedAdjustment!.warehouseId);
+        for (const stock of existingStocks) {
+          if (!covered.has(String(stock.branchId))) {
+            const error: any = new Error('Không thể bỏ kho cuối cùng hoặc kho đã có tồn kho. Vui lòng giữ ít nhất một kho hàng.');
+            error.status = 422;
+            throw error;
+          }
+        }
+      } else if (hasEditStocks) {
+        const covered = new Set(editInitialStocks.map((line) => line.warehouseId));
+        for (const stock of existingStocks) {
+          if (!covered.has(String(stock.branchId))) {
+            const error: any = new Error('Không thể bỏ kho cuối cùng hoặc kho đã có tồn kho. Vui lòng giữ ít nhất một kho hàng.');
+            error.status = 422;
+            throw error;
+          }
+        }
+      } else if (!hasAdjustment && existingStocks.length === 0) {
+        const error: any = new Error('Vui lòng chọn ít nhất một kho hàng.');
+        error.status = 400;
+        throw error;
+      }
+
       if (Object.keys(productPayload).length) {
         await Product.updateOne({ _id: before._id }, { $set: productPayload }, { runValidators: true, session });
       }
 
-      if (normalizedAdjustment) {
+      // Multi-warehouse upsert: update existing stock rows or create new ones.
+      // Only rows explicitly provided are written; untouched existing rows keep their qty.
+      for (const line of editInitialStocks) {
+        const stock = existingStocks.find((item) => String(item.branchId) === line.warehouseId);
+        if (stock) {
+          const quantityBefore = Number(stock.qty || 0);
+          if (quantityBefore === line.quantity) continue;
+          stock.qty = line.quantity;
+          await stock.save({ session });
+          await ProductLog.create([{
+            productId: before._id,
+            sourceType: 'PRODUCT_EDIT_ADJUSTMENT',
+            sourceId: before._id,
+            amount: line.quantity - quantityBefore,
+            valueBefore: before.price,
+            valueAfter: productPayload.price ?? before.price,
+            amountBefore: quantityBefore,
+            amountAfter: line.quantity,
+          }], { session });
+        } else if (!existingWarehouseIds.has(line.warehouseId)) {
+          await ProductBranchStock.create([{
+            productId: before._id,
+            branchId: line.warehouseId,
+            qty: line.quantity,
+            minQuantity: before.minQuantity,
+            maxQuantity: before.maxQuantity,
+          }], { session });
+          await ProductLog.create([{
+            productId: before._id,
+            sourceType: 'PRODUCT_EDIT_ADD_WAREHOUSE',
+            sourceId: before._id,
+            amount: line.quantity,
+            valueBefore: before.price,
+            valueAfter: productPayload.price ?? before.price,
+            amountBefore: 0,
+            amountAfter: line.quantity,
+          }], { session });
+        }
+      }
+
+      if (normalizedAdjustment && !hasEditStocks) {
         const stock = await ProductBranchStock.findOne({
           productId: before._id,
           branchId: normalizedAdjustment.warehouseId,
@@ -669,13 +828,6 @@ router.patch('/products/:id', async (req, res) => {
         const quantityBefore = Number(stock.qty || 0);
         stock.qty = normalizedAdjustment.quantity;
         await stock.save({ session });
-
-        const totals = await ProductBranchStock.aggregate([
-          { $match: { productId: before._id } },
-          { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
-        ]).session(session);
-        const totalQuantity = Number(totals[0]?.quantity || 0);
-        await Product.updateOne({ _id: before._id }, { $set: { qty: totalQuantity } }, { session });
 
         if (quantityBefore !== normalizedAdjustment.quantity) {
           await ProductLog.create([{
@@ -691,18 +843,26 @@ router.patch('/products/:id', async (req, res) => {
         }
       }
 
+      const totals = await ProductBranchStock.aggregate([
+        { $match: { productId: before._id } },
+        { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
+      ]).session(session);
+      const totalQuantity = Number(totals[0]?.quantity || 0);
+      await Product.updateOne({ _id: before._id }, { $set: { qty: totalQuantity } }, { session });
+
+      const changedStocks = hasEditStocks || normalizedAdjustment;
       updated = await Product.findById(before._id).session(session);
       await ProductEditLog.create([{
         productCode: updated.code,
         productName: updated.name,
         logType: 'Sửa sản phẩm',
-        logAction: normalizedAdjustment ? 'Cập nhật thông tin và tồn kho một kho hàng' : 'Cập nhật thông tin sản phẩm',
+        logAction: changedStocks ? 'Cập nhật thông tin và tồn kho theo kho hàng' : 'Cập nhật thông tin sản phẩm',
         createdBy: (req as any).user?.name || (req as any).user?.email || 'Admin',
       }], { session });
     });
 
     await writeAuditLog(req, {
-      action: normalizedAdjustment ? 'product.update_with_stock_adjustment' : 'product.update_master',
+      action: (hasEditStocks || normalizedAdjustment) ? 'product.update_with_stock_adjustment' : 'product.update_master',
       module: 'Product',
       resource: 'Product',
       resourceId: updated.id,
@@ -710,6 +870,7 @@ router.patch('/products/:id', async (req, res) => {
       after: updated,
     });
     res.json(updated);
+
   } catch (err: any) {
     if (err?.code === 11000) return res.status(409).json({ message: 'Mã sản phẩm đã tồn tại.' });
     res.status(err.status || 500).json({ message: err.message || 'Không thể cập nhật sản phẩm.' });

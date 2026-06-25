@@ -815,7 +815,7 @@
 .wr-transfer-create {
   --wr-border: #dbe6f3;
   --wr-soft: #f8fafc;
-  --wr-primary: #2563eb;
+  --wr-primary: #16a34a;
 }
 
 .wr-transfer-hero {
@@ -859,7 +859,7 @@
 
 .wr-product-search .search-box:focus-within {
   border-color: var(--wr-primary);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
 }
 
 .wr-product-search input {
@@ -911,7 +911,7 @@
 }
 
 .wr-suggestion-item:hover {
-  background: #eff6ff;
+  background: #ecfdf5;
 }
 
 .wr-suggestion-item span {
@@ -958,7 +958,7 @@
 }
 
 .wr-transfer-summary {
-  background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+  background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
 }
 
 .wr-transfer-summary div {
@@ -996,7 +996,7 @@
   min-height: calc(100vh - 76px);
   padding: 22px clamp(18px, 4vw, 44px) 48px;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 30%),
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.12), transparent 30%),
     linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
 }
 
@@ -1028,8 +1028,8 @@
 }
 
 .wr-transfer-create .page-icon {
-  background: linear-gradient(135deg, #2563eb, #06b6d4);
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.28);
 }
 
 .wr-transfer-create .btn {
@@ -1045,8 +1045,8 @@
 
 .wr-transfer-create .btn-primary {
   border: 0;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.28);
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.28);
 }
 
 .wr-transfer-create .btn-light,
@@ -1084,7 +1084,7 @@
   padding: 5px 10px;
   border-radius: 999px;
   background: #dbeafe;
-  color: #1d4ed8;
+  color: #15803d;
   font-weight: 800;
 }
 
@@ -1168,8 +1168,8 @@
 .wr-transfer-create select:focus,
 .wr-transfer-create input:focus,
 .wr-transfer-create textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  border-color: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
 }
 
 .wr-transfer-create select:disabled,
@@ -1237,14 +1237,14 @@
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background: #eff6ff;
-  color: #2563eb;
+  background: #ecfdf5;
+  color: #16a34a;
 }
 
 .wr-transfer-create .wr-transfer-summary {
-  border-color: rgba(37, 99, 235, 0.18);
+  border-color: rgba(22, 163, 74, 0.18);
   background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(16, 185, 129, 0.12)),
+    linear-gradient(135deg, rgba(22, 163, 74, 0.08), rgba(16, 185, 129, 0.12)),
     #fff;
 }
 
@@ -1259,12 +1259,12 @@
 .wr-transfer-create .wr-product-search .search-box {
   border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.08);
 }
 
 .wr-transfer-create .wr-suggestions {
   border-radius: 16px;
-  border-color: rgba(37, 99, 235, 0.18);
+  border-color: rgba(22, 163, 74, 0.18);
 }
 
 .wr-transfer-create .wr-suggestion-item {
@@ -1272,8 +1272,8 @@
 }
 
 .wr-transfer-create .wr-suggestion-item:hover {
-  border-color: #bfdbfe;
-  background: linear-gradient(135deg, #eff6ff, #f8fafc);
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #ecfdf5, #f8fafc);
 }
 
 .wr-transfer-create .empty-cell {
@@ -1287,7 +1287,7 @@
   min-height: calc(100vh - 76px);
   padding: 22px clamp(18px, 4vw, 44px) 46px;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 30%),
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.12), transparent 30%),
     radial-gradient(circle at 85% 10%, rgba(16, 185, 129, 0.1), transparent 26%),
     linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
 }
@@ -1310,7 +1310,7 @@
   border: 0;
   border-radius: 20px 20px 0 0;
   background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.04)),
+    linear-gradient(135deg, rgba(22, 163, 74, 0.08), rgba(34, 197, 94, 0.04)),
     #fff;
 }
 
@@ -1329,16 +1329,16 @@
 
 .warehouse-records:not(.wr-transfer-create) .wr-tabs button:hover {
   transform: translateY(-1px);
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-  background: #eff6ff;
+  color: #15803d;
+  border-color: #bbf7d0;
+  background: #ecfdf5;
 }
 
 .warehouse-records:not(.wr-transfer-create) .wr-tabs button.active {
   border-color: transparent;
-  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  background: linear-gradient(135deg, #16a34a, #22c55e);
   color: #fff;
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.24);
 }
 
 .warehouse-records:not(.wr-transfer-create) .wr-filters {
@@ -1369,8 +1369,8 @@
 .warehouse-records:not(.wr-transfer-create) .wr-search-field:focus-within,
 .warehouse-records:not(.wr-transfer-create) .wr-date-field:focus-within,
 .warehouse-records:not(.wr-transfer-create) .wr-filter:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  border-color: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
 }
 
 .warehouse-records:not(.wr-transfer-create) .wr-search-field input,
@@ -1400,8 +1400,8 @@
 .warehouse-records:not(.wr-transfer-create) .wr-filter-button,
 .warehouse-records:not(.wr-transfer-create) .wr-actions .btn-primary {
   border: 0;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.2);
 }
 
 .warehouse-records:not(.wr-transfer-create) .wr-reset-button {
@@ -1496,7 +1496,7 @@
 }
 
 .warehouse-records:not(.wr-transfer-create) .wr-identity-cell .wr-link {
-  color: #1d4ed8;
+  color: #15803d;
   font-size: 13px;
   font-weight: 900;
 }
@@ -1628,4 +1628,475 @@
 .workspace-page.warehouse-audit-page button:hover:not(:disabled),
 .workspace-page.warehouse-branches-page button:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+
+/* Warehouse UI consistency system: shared visual language for warehouse-only pages. */
+:root {
+  --wh-bg: #f3f7fc;
+  --wh-surface: rgba(255, 255, 255, 0.96);
+  --wh-surface-solid: #ffffff;
+  --wh-border: #dbe6f3;
+  --wh-border-strong: #c7d6e8;
+  --wh-text: #0f172a;
+  --wh-muted: #64748b;
+  --wh-primary: #16a34a;
+  --wh-primary-2: #22c55e;
+  --wh-primary-soft: #ecfdf5;
+  --wh-success: #059669;
+  --wh-success-soft: #ecfdf5;
+  --wh-danger: #dc2626;
+  --wh-danger-soft: #fef2f2;
+  --wh-warning: #d97706;
+  --wh-warning-soft: #fffbeb;
+  --wh-radius-sm: 10px;
+  --wh-radius: 14px;
+  --wh-radius-lg: 20px;
+  --wh-shadow-sm: 0 8px 20px rgba(15, 23, 42, 0.06);
+  --wh-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+  --wh-focus: 0 0 0 4px rgba(22, 163, 74, 0.14);
+}
+
+.workspace-page.warehouse-records,
+.workspace-page.wr-transfer-create,
+.workspace-page.warehouse-audit-admin,
+.workspace-page.warehouse-audit-page,
+.workspace-page.warehouse-branches-page,
+.workspace-page:has(.voucher-form),
+.workspace-page:has(.import-export-page) {
+  min-height: calc(100vh - 76px);
+  padding: 22px clamp(18px, 4vw, 44px) 46px;
+  background:
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.12), transparent 30%),
+    radial-gradient(circle at 86% 8%, rgba(16, 185, 129, 0.1), transparent 26%),
+    linear-gradient(180deg, #f8fbff 0%, var(--wh-bg) 100%);
+  color: var(--wh-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.warehouse-records .page-heading,
+.warehouse-audit-admin .page-heading,
+.warehouse-audit-page .page-heading,
+.warehouse-branches-page .page-heading,
+.wr-transfer-create .page-heading,
+.workspace-page:has(.voucher-form) .page-heading,
+.workspace-page:has(.import-export-page) .page-heading {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: var(--wh-radius-lg);
+  background: var(--wh-surface);
+  box-shadow: var(--wh-shadow);
+  backdrop-filter: blur(10px);
+}
+
+.warehouse-records h1,
+.warehouse-audit-admin h1,
+.warehouse-audit-page h1,
+.warehouse-branches-page h1,
+.wr-transfer-create h1,
+.workspace-page:has(.voucher-form) h1,
+.workspace-page:has(.import-export-page) h1 {
+  color: var(--wh-text);
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  font-weight: 850;
+}
+
+.warehouse-records .page-heading p,
+.warehouse-audit-admin .page-heading p,
+.warehouse-audit-page .page-heading p,
+.warehouse-branches-page .page-heading p,
+.wr-transfer-create .page-heading p,
+.workspace-page:has(.voucher-form) .page-heading p,
+.workspace-page:has(.import-export-page) .page-heading p,
+.wr-sub,
+.audit-sub,
+.branch-sub {
+  color: var(--wh-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.warehouse-records .wr-card,
+.warehouse-audit-admin .wr-card,
+.warehouse-audit-page .wr-card,
+.warehouse-branches-page .wr-card,
+.wr-transfer-create .data-card,
+.wr-transfer-create .filter-panel,
+.workspace-page:has(.voucher-form) .data-card,
+.workspace-page:has(.import-export-page) .data-card,
+.audit-card,
+.branch-card {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: var(--wh-radius-lg);
+  background: var(--wh-surface);
+  box-shadow: var(--wh-shadow-sm);
+  overflow: visible;
+}
+
+.warehouse-records .btn,
+.warehouse-audit-admin .btn,
+.warehouse-audit-page .btn,
+.warehouse-branches-page .btn,
+.wr-transfer-create .btn,
+.workspace-page:has(.voucher-form) .btn,
+.workspace-page:has(.import-export-page) .btn {
+  min-height: 38px;
+  border-radius: var(--wh-radius);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.warehouse-records .btn:hover:not(:disabled),
+.warehouse-audit-admin .btn:hover:not(:disabled),
+.warehouse-audit-page .btn:hover:not(:disabled),
+.warehouse-branches-page .btn:hover:not(:disabled),
+.wr-transfer-create .btn:hover:not(:disabled),
+.workspace-page:has(.voucher-form) .btn:hover:not(:disabled),
+.workspace-page:has(.import-export-page) .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.warehouse-records .btn-primary,
+.warehouse-audit-admin .btn-primary,
+.warehouse-audit-page .btn-primary,
+.warehouse-branches-page .btn-primary,
+.wr-transfer-create .btn-primary,
+.workspace-page:has(.voucher-form) .btn-primary,
+.workspace-page:has(.import-export-page) .btn-primary,
+.wr-create-button {
+  border: 0;
+  background: linear-gradient(135deg, var(--wh-primary), #15803d);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(22, 163, 74, 0.22);
+}
+
+.warehouse-records .btn-light,
+.warehouse-records .btn-outline,
+.warehouse-audit-admin .btn-light,
+.warehouse-audit-admin .btn-outline,
+.warehouse-audit-page .btn-light,
+.warehouse-audit-page .btn-outline,
+.warehouse-branches-page .btn-light,
+.warehouse-branches-page .btn-outline,
+.wr-transfer-create .btn-light,
+.wr-transfer-create .btn-outline,
+.workspace-page:has(.voucher-form) .btn-light,
+.workspace-page:has(.voucher-form) .btn-outline,
+.workspace-page:has(.import-export-page) .btn-light,
+.workspace-page:has(.import-export-page) .btn-outline {
+  border: 1px solid var(--wh-border);
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.warehouse-records .btn:disabled,
+.warehouse-audit-admin .btn:disabled,
+.warehouse-audit-page .btn:disabled,
+.warehouse-branches-page .btn:disabled,
+.wr-transfer-create .btn:disabled,
+.workspace-page:has(.voucher-form) .btn:disabled,
+.workspace-page:has(.import-export-page) .btn:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+  transform: none;
+  box-shadow: none;
+}
+
+.warehouse-records input,
+.warehouse-records select,
+.warehouse-records textarea,
+.warehouse-audit-admin input,
+.warehouse-audit-admin select,
+.warehouse-audit-admin textarea,
+.warehouse-audit-page input,
+.warehouse-audit-page select,
+.warehouse-audit-page textarea,
+.warehouse-branches-page input,
+.warehouse-branches-page select,
+.warehouse-branches-page textarea,
+.wr-transfer-create input,
+.wr-transfer-create select,
+.wr-transfer-create textarea,
+.workspace-page:has(.voucher-form) input,
+.workspace-page:has(.voucher-form) select,
+.workspace-page:has(.voucher-form) textarea,
+.workspace-page:has(.import-export-page) input,
+.workspace-page:has(.import-export-page) select,
+.workspace-page:has(.import-export-page) textarea {
+  border: 1px solid var(--wh-border);
+  border-radius: var(--wh-radius-sm);
+  background: #fff;
+  color: var(--wh-text);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.warehouse-records input:focus,
+.warehouse-records select:focus,
+.warehouse-records textarea:focus,
+.warehouse-audit-admin input:focus,
+.warehouse-audit-admin select:focus,
+.warehouse-audit-admin textarea:focus,
+.warehouse-audit-page input:focus,
+.warehouse-audit-page select:focus,
+.warehouse-audit-page textarea:focus,
+.warehouse-branches-page input:focus,
+.warehouse-branches-page select:focus,
+.warehouse-branches-page textarea:focus,
+.wr-transfer-create input:focus,
+.wr-transfer-create select:focus,
+.wr-transfer-create textarea:focus,
+.workspace-page:has(.voucher-form) input:focus,
+.workspace-page:has(.voucher-form) select:focus,
+.workspace-page:has(.voucher-form) textarea:focus,
+.workspace-page:has(.import-export-page) input:focus,
+.workspace-page:has(.import-export-page) select:focus,
+.workspace-page:has(.import-export-page) textarea:focus {
+  border-color: var(--wh-primary);
+  box-shadow: var(--wh-focus);
+}
+
+.warehouse-records .wr-table,
+.warehouse-audit-admin .wr-table,
+.warehouse-audit-page .wr-table,
+.warehouse-branches-page .wr-table,
+.wr-transfer-create .data-table,
+.workspace-page:has(.voucher-form) .data-table,
+.workspace-page:has(.import-export-page) .data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.warehouse-records .wr-table th,
+.warehouse-audit-admin .wr-table th,
+.warehouse-audit-page .wr-table th,
+.warehouse-branches-page .wr-table th,
+.wr-transfer-create .data-table th,
+.workspace-page:has(.voucher-form) .data-table th,
+.workspace-page:has(.import-export-page) .data-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.warehouse-records .wr-table td,
+.warehouse-audit-admin .wr-table td,
+.warehouse-audit-page .wr-table td,
+.warehouse-branches-page .wr-table td,
+.wr-transfer-create .data-table td,
+.workspace-page:has(.voucher-form) .data-table td,
+.workspace-page:has(.import-export-page) .data-table td {
+  vertical-align: middle;
+}
+
+.warehouse-records .wr-table tbody tr:hover td,
+.warehouse-audit-admin .wr-table tbody tr:hover td,
+.warehouse-audit-page .wr-table tbody tr:hover td,
+.warehouse-branches-page .wr-table tbody tr:hover td,
+.wr-transfer-create .data-table tbody tr:hover,
+.workspace-page:has(.voucher-form) .data-table tbody tr:hover,
+.workspace-page:has(.import-export-page) .data-table tbody tr:hover {
+  background: #f8fbff !important;
+}
+
+.wr-direction,
+.audit-status,
+.branch-status,
+.status-badge,
+.record-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.wr-empty,
+.audit-empty,
+.branch-empty,
+.empty-cell {
+  color: var(--wh-muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: middle;
+  background: linear-gradient(135deg, #f8fafc, #fff);
+}
+
+.wr-menu-panel,
+.audit-menu,
+.branch-menu,
+.wr-confirm-modal,
+.audit-modal {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: var(--wh-radius);
+  background: #fff;
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.18);
+}
+
+@media (max-width: 760px) {
+  .workspace-page.warehouse-records,
+  .workspace-page.wr-transfer-create,
+  .workspace-page.warehouse-audit-admin,
+  .workspace-page.warehouse-audit-page,
+  .workspace-page.warehouse-branches-page,
+  .workspace-page:has(.voucher-form),
+  .workspace-page:has(.import-export-page) {
+    padding: 14px;
+  }
+}
+
+/* Warehouse button role normalization: same action role, same color. */
+.warehouse-records .btn-primary,
+.warehouse-records .wr-filter-button,
+.warehouse-records .wr-create-button,
+.warehouse-audit-admin .btn-primary,
+.warehouse-audit-admin .wr-filter-button,
+.warehouse-audit-admin .wr-create-button,
+.warehouse-audit-page .btn-primary,
+.warehouse-audit-page .wr-filter-button,
+.warehouse-audit-page .wr-create-button,
+.warehouse-branches-page .btn-primary,
+.warehouse-branches-page .wr-create-button,
+.wr-transfer-create .btn-primary,
+.workspace-page:has(.voucher-form) .btn-primary,
+.workspace-page:has(.import-export-page) .btn-primary {
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--wh-primary), #15803d) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 26px rgba(22, 163, 74, 0.22) !important;
+}
+
+.warehouse-records .btn-primary:hover:not(:disabled),
+.warehouse-records .wr-filter-button:hover:not(:disabled),
+.warehouse-records .wr-create-button:hover:not(:disabled),
+.warehouse-audit-admin .btn-primary:hover:not(:disabled),
+.warehouse-audit-admin .wr-filter-button:hover:not(:disabled),
+.warehouse-audit-admin .wr-create-button:hover:not(:disabled),
+.warehouse-audit-page .btn-primary:hover:not(:disabled),
+.warehouse-audit-page .wr-filter-button:hover:not(:disabled),
+.warehouse-audit-page .wr-create-button:hover:not(:disabled),
+.warehouse-branches-page .btn-primary:hover:not(:disabled),
+.warehouse-branches-page .wr-create-button:hover:not(:disabled),
+.wr-transfer-create .btn-primary:hover:not(:disabled),
+.workspace-page:has(.voucher-form) .btn-primary:hover:not(:disabled),
+.workspace-page:has(.import-export-page) .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #15803d, #166534) !important;
+  box-shadow: 0 16px 30px rgba(22, 163, 74, 0.28) !important;
+}
+
+.warehouse-records .btn-light,
+.warehouse-records .btn-outline,
+.warehouse-records .wr-reset-button,
+.warehouse-records .wr-action-button,
+.warehouse-audit-admin .btn-light,
+.warehouse-audit-admin .btn-outline,
+.warehouse-audit-admin .wr-reset-button,
+.warehouse-audit-page .btn-light,
+.warehouse-audit-page .btn-outline,
+.warehouse-audit-page .wr-reset-button,
+.warehouse-branches-page .btn-light,
+.warehouse-branches-page .btn-outline,
+.wr-transfer-create .btn-light,
+.wr-transfer-create .btn-outline,
+.workspace-page:has(.voucher-form) .btn-light,
+.workspace-page:has(.voucher-form) .btn-outline,
+.workspace-page:has(.import-export-page) .btn-light,
+.workspace-page:has(.import-export-page) .btn-outline {
+  border: 1px solid var(--wh-border) !important;
+  background: #fff !important;
+  color: #334155 !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04) !important;
+}
+
+.warehouse-records .btn-light:hover:not(:disabled),
+.warehouse-records .btn-outline:hover:not(:disabled),
+.warehouse-records .wr-reset-button:hover:not(:disabled),
+.warehouse-audit-admin .btn-light:hover:not(:disabled),
+.warehouse-audit-admin .btn-outline:hover:not(:disabled),
+.warehouse-audit-admin .wr-reset-button:hover:not(:disabled),
+.warehouse-audit-page .btn-light:hover:not(:disabled),
+.warehouse-audit-page .btn-outline:hover:not(:disabled),
+.warehouse-audit-page .wr-reset-button:hover:not(:disabled),
+.warehouse-branches-page .btn-light:hover:not(:disabled),
+.warehouse-branches-page .btn-outline:hover:not(:disabled),
+.wr-transfer-create .btn-light:hover:not(:disabled),
+.wr-transfer-create .btn-outline:hover:not(:disabled),
+.workspace-page:has(.voucher-form) .btn-light:hover:not(:disabled),
+.workspace-page:has(.voucher-form) .btn-outline:hover:not(:disabled),
+.workspace-page:has(.import-export-page) .btn-light:hover:not(:disabled),
+.workspace-page:has(.import-export-page) .btn-outline:hover:not(:disabled) {
+  border-color: #bbf7d0 !important;
+  background: var(--wh-primary-soft) !important;
+  color: var(--wh-primary) !important;
+}
+
+/* Draft page alignment with warehouse tab/button system. */
+.warehouse-records > .workspace-tabs:not(.wr-tabs) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-height: auto;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-bottom: 0;
+  border-radius: var(--wh-radius-lg) var(--wh-radius-lg) 0 0;
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.08), rgba(34, 197, 94, 0.04)), #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.warehouse-records > .workspace-tabs:not(.wr-tabs) button {
+  min-height: 44px;
+  justify-content: center;
+  border: 1px solid var(--wh-border);
+  border-radius: var(--wh-radius);
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.warehouse-records > .workspace-tabs:not(.wr-tabs) button:hover {
+  transform: translateY(-1px);
+  border-color: #bbf7d0;
+  background: var(--wh-primary-soft);
+  color: var(--wh-primary);
+}
+
+.warehouse-records > .workspace-tabs:not(.wr-tabs) button.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--wh-primary), var(--wh-primary-2));
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.24);
+}
+
+.warehouse-records > .workspace-tabs:not(.wr-tabs) + .wr-card {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.warehouse-records .btn-success,
+.warehouse-records .btn-success:hover:not(:disabled),
+.warehouse-records .btn-success:focus {
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--wh-primary), #15803d) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 26px rgba(22, 163, 74, 0.22) !important;
+}
+
+@media (max-width: 760px) {
+  .warehouse-records > .workspace-tabs:not(.wr-tabs) {
+    grid-template-columns: 1fr;
+  }
 }

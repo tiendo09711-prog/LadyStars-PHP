@@ -1,4 +1,4 @@
-﻿.categories-page-shell {
+.categories-page-shell {
   gap: 24px;
 }
 
@@ -8,7 +8,7 @@
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 28px;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 34%),
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 34%),
     radial-gradient(circle at bottom right, rgba(251, 146, 60, 0.14), transparent 30%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
   box-shadow:
@@ -97,7 +97,7 @@
 }
 
 .categories-stat-card.accent-blue::after {
-  background: linear-gradient(90deg, #38bdf8, #2563eb);
+  background: linear-gradient(90deg, #38bdf8, #16a34a);
 }
 
 .categories-stat-card.accent-green::after {
@@ -277,9 +277,9 @@
 
 .categories-export-button {
   border: 1px solid #60a5fa;
-  color: #1d4ed8;
+  color: #15803d;
   background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.96));
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.18);
 }
 
 .categories-inline-view-button {
@@ -417,7 +417,7 @@
 .categories-editor-kicker,
 .categories-import-kicker,
 .categories-modal-kicker {
-  color: #1d4ed8;
+  color: #15803d;
   background: rgba(219, 234, 254, 0.82);
   box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.24);
 }
@@ -459,7 +459,7 @@
 }
 
 .categories-summary-pill.highlight {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(59, 130, 246, 0.1));
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(59, 130, 246, 0.1));
 }
 
 .categories-summary-pill span,
@@ -554,7 +554,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  color: #2563eb;
+  color: #16a34a;
 }
 
 .categories-count-button strong {
@@ -622,7 +622,7 @@
   gap: 18px;
   padding: 26px;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 34%),
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 34%),
     radial-gradient(circle at bottom right, rgba(251, 146, 60, 0.14), transparent 26%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
 }
@@ -688,7 +688,7 @@
 
 .categories-editor-help-card {
   background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
 }
 
@@ -778,7 +778,7 @@
   overflow-y: auto;
   border-radius: 24px;
   background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
   box-shadow: 0 28px 56px rgba(15, 23, 42, 0.18);
 }
@@ -848,7 +848,7 @@
 }
 
 .categories-modal-hanoi {
-  color: #2563eb;
+  color: #16a34a;
   font-weight: 800;
 }
 
@@ -1147,4 +1147,79 @@
     flex-wrap: wrap;
     width: 100%;
   }
+}
+
+/* Categories page consistency overrides aligned with Warehouse/Product pilot theme. */
+.categories-page-shell {
+  min-height: calc(100vh - 76px);
+  padding: 22px clamp(18px, 4vw, 44px) 46px;
+  background:
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.12), transparent 30%),
+    radial-gradient(circle at 86% 8%, rgba(16, 185, 129, 0.1), transparent 26%),
+    linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.categories-top-card,
+.categories-table-card,
+.categories-editor-card,
+.categories-import-card,
+.categories-modal-card {
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1) !important;
+}
+
+.categories-primary-button,
+.categories-filter-button,
+.categories-page-shell .btn-primary {
+  border: 0 !important;
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 26px rgba(22, 163, 74, 0.22) !important;
+}
+
+.categories-primary-button:hover:not(:disabled),
+.categories-filter-button:hover:not(:disabled),
+.categories-page-shell .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #15803d, #166534) !important;
+  box-shadow: 0 16px 30px rgba(22, 163, 74, 0.28) !important;
+}
+
+.categories-dropdown-button,
+.categories-ghost-button,
+.categories-export-button,
+.categories-inline-view-button,
+.categories-page-shell .btn-light,
+.categories-page-shell .btn-outline {
+  border: 1px solid #dbe6f3 !important;
+  background: #fff !important;
+  color: #334155 !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04) !important;
+}
+
+.categories-dropdown-button:hover:not(:disabled),
+.categories-ghost-button:hover:not(:disabled),
+.categories-export-button:hover:not(:disabled),
+.categories-inline-view-button:hover:not(:disabled),
+.categories-page-shell .btn-light:hover:not(:disabled),
+.categories-page-shell .btn-outline:hover:not(:disabled) {
+  border-color: #bbf7d0 !important;
+  background: #ecfdf5 !important;
+  color: #16a34a !important;
+}
+
+.categories-page-shell input,
+.categories-page-shell select,
+.categories-page-shell textarea {
+  border-color: #dbe6f3 !important;
+  border-radius: 14px !important;
+}
+
+.categories-page-shell input:focus,
+.categories-page-shell select:focus,
+.categories-page-shell textarea:focus {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14) !important;
 }

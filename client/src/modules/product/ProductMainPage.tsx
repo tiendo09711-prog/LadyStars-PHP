@@ -1,90 +1,88 @@
-import { useMemo, useState } from 'react';
-import { Boxes, Clock3, Sparkles } from 'lucide-react';
+﻿import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Boxes, Clock3 } from 'lucide-react';
 import { ProductList } from './components/ProductList';
 import { ProductHistory } from './components/ProductHistory';
 import './products-page.css';
 
 type ProductTab = 'products' | 'history';
 
-const TAB_META: Record<ProductTab, { label: string; description: string; icon: typeof Boxes }> = {
-  products: {
-    label: 'Sản phẩm',
-    description: 'Quản lý danh sách sản phẩm, cập nhật thông tin, import và xuất dữ liệu nhanh.',
-    icon: Boxes,
-  },
-  history: {
-    label: 'Lịch sử sửa/xóa',
-    description: 'Theo dõi mọi thay đổi sản phẩm để đối chiếu người sửa, thời điểm và kiểu tác động.',
-    icon: Clock3,
-  },
-};
+const TAB_LIST: { key: ProductTab; label: string; icon: typeof Boxes }[] = [
+  { key: 'products', label: 'Sản phẩm', icon: Boxes },
+  { key: 'history', label: 'Lịch sử sửa/xóa', icon: Clock3 },
+];
 
 export function ProductMainPage() {
-  const [activeTab, setActiveTab] = useState<ProductTab>('products');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: ProductTab = searchParams.get('tab') === 'history' ? 'history' : 'products';
   const [barcodeWorkspaceOpen, setBarcodeWorkspaceOpen] = useState(false);
-  const activeMeta = useMemo(() => TAB_META[activeTab], [activeTab]);
+  const actionSlotRef = useRef<HTMLDivElement>(null);
+  const [slotReady, setSlotReady] = useState(false);
+
+  useLayoutEffect(() => {
+    setSlotReady(true);
+  }, []);
+
+  useEffect(() => {
+    document.title = activeTab === 'history' ? 'Lịch sử sửa/xóa sản phẩm' : 'Sản phẩm';
+  }, [activeTab]);
+
+  const handleTabChange = (tab: ProductTab) => {
+    setSearchParams(tab === 'products' ? {} : { tab }, { replace: true });
+  };
 
   return (
     <div className="products-workspace">
-      {!barcodeWorkspaceOpen ? <section className="products-hero">
-        <div className="products-hero-copy">
-          <span className="products-hero-kicker">
-            <Sparkles size={14} />
-            Product Workspace
-          </span>
-          <h1>{activeMeta.label}</h1>
-          <p>{activeMeta.description}</p>
+      <section className="products-workspace-card">
+        <div className="products-toolbar-slot" hidden={barcodeWorkspaceOpen}>
+          <header className="products-toolbar">
+            <div className="products-tabbar is-compact" role="tablist" aria-label="Product tabs">
+              {TAB_LIST.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.key;
+
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`products-panel-${tab.key}`}
+                    className={`products-tab is-compact ${isActive ? 'is-active' : ''}`}
+                    onClick={() => handleTabChange(tab.key)}
+                  >
+                    <Icon size={17} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="products-toolbar-actions" ref={actionSlotRef} />
+          </header>
         </div>
 
-        <div className="products-tabbar" role="tablist" aria-label="Product tabs">
-          {(Object.keys(TAB_META) as ProductTab[]).map((tabKey) => {
-            const tab = TAB_META[tabKey];
-            const Icon = tab.icon;
-            const isActive = activeTab === tabKey;
-
-            return (
-              <button
-                key={tabKey}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                aria-controls={`products-panel-${tabKey}`}
-                className={`products-tab ${isActive ? 'is-active' : ''}`}
-                onClick={() => setActiveTab(tabKey)}
-              >
-                <span className="products-tab-top">
-                  <span className="products-tab-icon">
-                    <Icon size={18} />
-                  </span>
-                  {tab.label}
-                </span>
-                <small>{tab.description}</small>
-              </button>
-            );
-          })}
+        <div
+          id="products-panel-products"
+          role="tabpanel"
+          hidden={activeTab !== 'products'}
+        >
+          {activeTab === 'products' && slotReady && (
+            <ProductList
+              actionSlot={actionSlotRef}
+              onBarcodeWorkspaceChange={setBarcodeWorkspaceOpen}
+            />
+          )}
         </div>
-      </section> : null}
 
-      <div
-        id="products-panel-products"
-        role="tabpanel"
-        hidden={activeTab !== 'products'}
-      >
-        {activeTab === 'products' && (
-          <ProductList
-            onShowHistory={() => setActiveTab('history')}
-            onBarcodeWorkspaceChange={setBarcodeWorkspaceOpen}
-          />
-        )}
-      </div>
-
-      <div
-        id="products-panel-history"
-        role="tabpanel"
-        hidden={activeTab !== 'history'}
-      >
-        {activeTab === 'history' && <ProductHistory />}
-      </div>
+        <div
+          id="products-panel-history"
+          role="tabpanel"
+          hidden={activeTab !== 'history'}
+        >
+          {activeTab === 'history' && slotReady && <ProductHistory actionSlot={actionSlotRef} />}
+        </div>
+      </section>
     </div>
   );
 }

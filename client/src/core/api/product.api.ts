@@ -39,7 +39,7 @@ export const productApi = {
   },
 
   updateProduct: async (id: string, data: ProductSavePayload) => {
-    const { qty: _qty, availableStock: _availableStock, trademarkName: _trademarkName, supplierName: _supplierName, initialStocks: _initialStocks, ...payload } = data;
+    const { qty: _qty, availableStock: _availableStock, trademarkName: _trademarkName, supplierName: _supplierName, ...payload } = data;
     const response = await http.patch<IProduct>(`/products/products/${id}`, payload);
     return response.data;
   },

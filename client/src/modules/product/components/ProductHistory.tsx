@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock3, FileDown, Filter, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { createPortal } from 'react-dom';
 import { productApi } from '../../../core/api/product.api';
 import { Pagination } from '../../../core/components/Pagination';
 import type { IProductHistory } from '../../../types/product.type';
@@ -19,7 +20,7 @@ function uniqueSorted(values: string[]) {
   return Array.from(new Set(values.filter(Boolean))).sort((left, right) => left.localeCompare(right, 'vi'));
 }
 
-export function ProductHistory() {
+export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HTMLDivElement | null> } = {}) {
   const [items, setItems] = useState<IProductHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftFilters, setDraftFilters] = useState<HistoryFilters>({
@@ -209,40 +210,38 @@ export function ProductHistory() {
   return (
     <div className="products-panel">
       <section className="products-control-card">
-        <div className="products-control-top">
-          <div className="products-title-stack">
-            <h2>Lịch sử sửa/xóa sản phẩm</h2>
-            <p>Tất cả dữ liệu đang lấy từ audit log hiện có, không thay đổi nghiệp vụ ghi nhận log.</p>
-            <div className="products-stat-row">
-              <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
-              <span className="products-stat-chip">
-                <Clock3 size={14} />
-                Trang {page} / {Math.max(1, Math.ceil(total / limit))}
-              </span>
-              <span className="products-stat-chip">
-                <Filter size={14} />
-                {activeFilterCount} bộ lọc đang áp dụng
-              </span>
-            </div>
-          </div>
-
-          <div className="products-action-row">
-            <button className="btn btn-light" type="button" onClick={() => void load()}>
-              <RefreshCw size={15} />
-              Làm mới
-            </button>
-            <button
-              className="btn btn-light"
-              type="button"
-              style={{ borderColor: '#bbf7d0', color: '#047857' }}
-              onClick={() => setShowExportModal(true)}
-            >
-              <FileDown size={15} />
-              Xuất Excel
-            </button>
-          </div>
+        <div className="products-stat-row">
+          <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
+          <span className="products-stat-chip">
+            <Clock3 size={14} />
+            Trang {page} / {Math.max(1, Math.ceil(total / limit))}
+          </span>
+          <span className="products-stat-chip">
+            <Filter size={14} />
+            {activeFilterCount} bộ lọc đang áp dụng
+          </span>
         </div>
 
+        {actionSlot?.current
+          ? createPortal(
+              <div className="products-action-row">
+                <button className="btn btn-light" type="button" onClick={() => void load()}>
+                  <RefreshCw size={15} />
+                  Làm mới
+                </button>
+                <button
+                  className="btn btn-light"
+                  type="button"
+                  style={{ borderColor: '#bbf7d0', color: '#047857' }}
+                  onClick={() => setShowExportModal(true)}
+                >
+                  <FileDown size={15} />
+                  Xuất Excel
+                </button>
+              </div>,
+              actionSlot.current,
+            )
+          : null}
         <form className="products-filter-form" onSubmit={handleApplyFilters}>
           <div className="products-filter-grid products-grid-history">
             <label className="products-inline-field">
@@ -341,10 +340,6 @@ export function ProductHistory() {
           </div>
 
           <div className="products-filter-note">
-            <p>
-              Danh sách tùy chọn <strong>Người sửa</strong>, <strong>Loại log</strong> và <strong>Kiểu log</strong> hiện đã
-              lấy động từ dữ liệu log, không còn seed cứng một người cố định.
-            </p>
           </div>
         </form>
       </section>
@@ -353,7 +348,7 @@ export function ProductHistory() {
         <div className="products-table-topbar">
           <div>
             <strong>Bảng lịch sử thay đổi</strong>
-            <span>Dữ liệu được đọc từ endpoint log cũ và vẫn giữ nguyên cách lọc theo backend hiện tại.</span>
+
           </div>
           <div className="products-table-hint">
             <Clock3 size={14} />
