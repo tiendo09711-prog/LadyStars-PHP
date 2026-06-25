@@ -2,7 +2,7 @@
   "cookies": [],
   "origins": [
     {
-      "origin": "http://localhost:5173",
+      "origin": "http://localhost:5174",
       "localStorage": [
         {
           "name": "dashboard.chartType",
@@ -10,7 +10,7 @@
         },
         {
           "name": "token",
-          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OWZjNDRkODM4OTllMTE4MjlkMmI0NDkiLCJyb2xlIjoiQURNSU4iLCJ0b2tlblZlcnNpb24iOjEsImlhdCI6MTc4MTk1ODc1NiwiZXhwIjoxNzgyNTYzNTU2fQ.BF9riLbZI7fYGhqfSKWQ1mMt79N4cmzxvMcOKclw6Sc"
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTNjNjRhMjc3M2E4NmZmM2YzZjU4NDQiLCJyb2xlIjoiQURNSU4iLCJ0b2tlblZlcnNpb24iOjAsImlhdCI6MTc4MjM0NzE2MywiZXhwIjoxNzgyOTUxOTYzfQ.3d3aTHa4cGOifQzc_UbhK8XOwbNhZH8BTL9mSgI9z1U"
         },
         {
           "name": "dashboard.chartRange",

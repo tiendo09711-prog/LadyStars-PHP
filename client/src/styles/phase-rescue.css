@@ -1364,3 +1364,88 @@ h1 {
     padding: 11px 12px;
   }
 }
+
+/* Warehouse pilot visual theme: scoped to the Kho hàng menu only. */
+.menu-group-warehouse .menu-group-title {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(14, 165, 233, 0.08));
+  color: #1d4ed8;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.1);
+}
+
+.menu-group-warehouse .menu-group-title::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.42) 45%, transparent 72%);
+  transform: translateX(-120%);
+  transition: transform 0.45s ease;
+}
+
+.menu-group-warehouse:hover .menu-group-title::before,
+.menu-group-warehouse .menu-group-title.active::before {
+  transform: translateX(120%);
+}
+
+.menu-group-warehouse:hover .menu-group-title,
+.menu-group-warehouse .menu-group-title.active,
+.menu-group-warehouse .menu-group-title[aria-expanded='true'] {
+  border-color: rgba(37, 99, 235, 0.35);
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.24);
+}
+
+.menu-group-warehouse > .menu-panel {
+  min-width: 248px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 38%), rgba(255, 255, 255, 0.98);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.menu-group-warehouse > .menu-panel a {
+  position: relative;
+  min-height: 40px;
+  margin: 2px 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #334155;
+  font-weight: 750;
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.menu-group-warehouse > .menu-panel a:hover,
+.menu-group-warehouse > .menu-panel a.active {
+  transform: translateX(3px);
+  border-color: rgba(37, 99, 235, 0.18);
+  background: linear-gradient(135deg, #eff6ff, #f8fafc);
+  color: #1d4ed8;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.12);
+}
+
+.menu-group-warehouse > .menu-panel a.active::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.menu-group-warehouse > .menu-panel a .menu-icon {
+  color: #64748b;
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.menu-group-warehouse > .menu-panel a:hover .menu-icon,
+.menu-group-warehouse > .menu-panel a.active .menu-icon {
+  color: #2563eb;
+  transform: scale(1.08);
+}

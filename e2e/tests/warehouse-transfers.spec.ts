@@ -1,131 +1,77 @@
-import { test, expect } from '@playwright/test';
-import { connectDB, closeDB } from '../utils/db';
+﻿import { expect, test } from '@playwright/test';
+import { ObjectId } from 'mongodb';
+import { closeDB, connectDB } from '../utils/db';
 
-const TEST_PRODUCT_CODE = 'E2E_TRF_01';
+const runId = `E2E_TRF_SEARCH_${Date.now()}`;
 
-test.describe('Warehouse Transfers - Automation', () => {
+test.describe('Warehouse transfer product search', () => {
   let db: any;
-  let branchFromId: any;
-  let branchToId: any;
-  let testProductId: any;
+  const sourceBranch = { _id: new ObjectId(), code: `${runId}_SRC`.slice(0, 40), name: `${runId} Source`, isActive: true, createdAt: new Date(), updatedAt: new Date() };
+  const destinationBranch = { _id: new ObjectId(), code: `${runId}_DST`.slice(0, 40), name: `${runId} Destination`, isActive: true, createdAt: new Date(), updatedAt: new Date() };
+  const otherBranch = { _id: new ObjectId(), code: `${runId}_OTH`.slice(0, 40), name: `${runId} Other`, isActive: true, createdAt: new Date(), updatedAt: new Date() };
+  const sourceProduct = { _id: new ObjectId(), code: `${runId}_SRC_PRODUCT`.slice(0, 40), name: `${runId} Product In Source`, barcode: `${runId}_BAR`, qty: 17, price: 100000, cost: 50000, unit: 'Hộp', type: 'product', createdAt: new Date(), updatedAt: new Date() };
+  const otherOnlyProduct = { _id: new ObjectId(), code: `${runId}_OTHER_PRODUCT`.slice(0, 40), name: `${runId} Product Other Only`, barcode: `${runId}_OTHER_BAR`, qty: 9, price: 100000, cost: 50000, unit: 'Cái', type: 'product', createdAt: new Date(), updatedAt: new Date() };
 
   test.beforeAll(async () => {
     db = await connectDB();
-    
-    // Clear old data
-    await db.collection('products').deleteMany({ code: TEST_PRODUCT_CODE });
-    
-    // We will transfer from CN001 to HCM
-    const branchFrom = await db.collection('branches').findOne({ code: 'CN001' });
-    const branchTo = await db.collection('branches').findOne({ code: 'HCM' });
-    
-    branchFromId = branchFrom ? branchFrom._id : null;
-    branchToId = branchTo ? branchTo._id : null;
-
-    if (!branchFromId || !branchToId) throw new Error("Missing branches for testing!");
-
-    // Insert test product
-    const productRes = await db.collection('products').insertOne({
-      code: TEST_PRODUCT_CODE,
-      name: 'Sản phẩm Test Chuyển Kho',
-      qty: 20, // global qty
-      price: 150000,
-      cost: 80000,
-      unit: 'Hộp',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    testProductId = productRes.insertedId;
-
-    // Set stock 20 in source branch, 0 in destination branch
-    await db.collection('productbranchstocks').deleteMany({ productId: testProductId });
-    await db.collection('productbranchstocks').insertOne({
-      productId: testProductId,
-      branchId: branchFromId,
-      qty: 20
-    });
-    await db.collection('productbranchstocks').insertOne({
-      productId: testProductId,
-      branchId: branchToId,
-      qty: 0
-    });
+    await db.collection('branches').insertMany([sourceBranch, destinationBranch, otherBranch]);
+    await db.collection('products').insertMany([sourceProduct, otherOnlyProduct]);
+    await db.collection('productbranchstocks').insertMany([
+      { productId: sourceProduct._id, branchId: sourceBranch._id, qty: 17, createdAt: new Date(), updatedAt: new Date() },
+      { productId: sourceProduct._id, branchId: destinationBranch._id, qty: 0, createdAt: new Date(), updatedAt: new Date() },
+      { productId: otherOnlyProduct._id, branchId: otherBranch._id, qty: 9, createdAt: new Date(), updatedAt: new Date() },
+    ]);
   });
 
   test.afterAll(async () => {
-    // Cleanup
-    await db.collection('products').deleteMany({ code: TEST_PRODUCT_CODE });
-    await db.collection('productbranchstocks').deleteMany({ productId: testProductId });
-    await db.collection('warehousetransfers').deleteMany({ note: /E2E Test/ });
+    await db.collection('warehousetransfers').deleteMany({ note: new RegExp(`^${runId}`) });
+    await db.collection('productbranchstocks').deleteMany({ productId: { $in: [sourceProduct._id, otherOnlyProduct._id] } });
+    await db.collection('products').deleteMany({ _id: { $in: [sourceProduct._id, otherOnlyProduct._id] } });
+    await db.collection('branches').deleteMany({ _id: { $in: [sourceBranch._id, destinationBranch._id, otherBranch._id] } });
     await closeDB();
   });
 
-  test('Luồng Chuyển kho nội bộ và kiểm tra biến động tồn kho', async ({ page }) => {
-    await page.goto('/warehouse/transfers');
-    await page.waitForLoadState('networkidle');
-
-    // Mở trang tạo phiếu chuyển
-    await Promise.all([
-      page.waitForResponse(res => res.url().includes('/system/branches') && res.status() === 200),
-      page.getByRole('button', { name: 'Tạo phiếu chuyển kho' }).click()
-    ]);
-    
-    await expect(page).toHaveURL(/.*\/warehouse\/transfers\/create/);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Tạm dừng thêm 1 chút để React render option
-
-    // Chọn Từ kho và Đến kho
-    const fromSelect = page.locator('.filter-panel select').nth(0);
-    const toSelect = page.locator('.filter-panel select').nth(1);
-
-    await fromSelect.selectOption({ value: branchFromId.toString() });
-    await toSelect.selectOption({ value: branchToId.toString() });
-
-    // Ghi chú để dễ clean up
-    await page.getByPlaceholder('Ghi chú thêm...').fill('E2E Test - Chuyển hàng');
-
-    // Bấm thêm dòng nếu chưa có
-    const addLineBtn = page.getByRole('button', { name: 'Thêm dòng' }).first();
-    const rows = page.locator('table.data-table tbody tr');
-    
-    // Nếu bảng đang trống, thêm 1 dòng
-    const rowCount = await rows.count();
-    if (rowCount === 0 || await rows.first().locator('.empty-cell').isVisible()) {
-        await page.getByRole('button', { name: 'Thêm sản phẩm' }).click();
-        await page.waitForTimeout(500);
-    }
-
-    // Test Validate tồn kho: Chuyển quá số lượng
-    const productSelect0 = page.locator('table.data-table tbody tr').first().locator('select');
-    await productSelect0.selectOption({ label: 'Sản phẩm Test Chuyển Kho' });
-    const qtyInput0 = page.locator('table.data-table tbody tr').first().locator('input[type="number"]');
-    await qtyInput0.fill('21');
-
-    await page.getByRole('button', { name: 'Lưu phiếu chuyển' }).first().click();
-
-    // Verify lỗi hiển thị (alert hoặc toast)
-    const errAlert = page.locator('.alert.alert-error, .toast-error'); // Tùy CSS của UI
-    await expect(errAlert).toBeVisible({ timeout: 5000 }).catch(() => {
-        // Fallback kiểm tra page content
-        expect(page.content()).resolves.toContain('không đủ tồn kho');
+  test('requires warehouses and suggests only source-stock products', async ({ page }) => {
+    const inventoryRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/api/products/inventories')) inventoryRequests.push(request.url());
     });
 
-    // Reset lại số lượng đúng để đi tiếp
-    await qtyInput0.fill('5');
+    await page.goto('/warehouse/transfers/create');
+    const search = page.getByTestId('transfer-product-search');
+    await expect(search).toBeDisabled();
+    await expect(search).toHaveAttribute('placeholder', 'Chọn kho nguồn và kho đích trước khi tìm sản phẩm.');
+    await expect.poll(() => inventoryRequests.length).toBe(0);
 
-    // Lưu phiếu chuyển
-    await page.getByRole('button', { name: 'Lưu phiếu chuyển kho' }).first().click();
+    await page.getByTestId('transfer-source-warehouse').selectOption(sourceBranch._id.toString());
+    await expect(search).toBeDisabled();
+    await expect.poll(() => inventoryRequests.length).toBe(0);
 
-    // Chờ 2s để quay về trang danh sách
-    await page.waitForTimeout(2000);
-    await expect(page).toHaveURL(/.*\/warehouse\/transfers/);
+    await Promise.all([
+      page.waitForResponse((response) => response.url().includes('/api/products/inventories') && response.url().includes(sourceBranch._id.toString()) && response.status() === 200),
+      page.getByTestId('transfer-destination-warehouse').selectOption(destinationBranch._id.toString()),
+    ]);
+    await expect(search).toBeEnabled();
 
-    // KIỂM TRA DATABASE
-    const stockFrom = await db.collection('productbranchstocks').findOne({ productId: testProductId, branchId: branchFromId });
-    const stockTo = await db.collection('productbranchstocks').findOne({ productId: testProductId, branchId: branchToId });
+    await search.fill(sourceProduct.code);
+    await search.focus();
+    const suggestions = page.getByTestId('transfer-product-suggestions');
+    await expect(suggestions).toContainText(sourceProduct.code);
+    await expect(suggestions).toContainText(sourceProduct.name);
+    await expect(suggestions).toContainText('Hộp');
+    await expect(suggestions).toContainText(`Tồn tại ${sourceBranch.name}: 17`);
 
-    // Từ 20 trừ đi 5 còn 15
-    expect(stockFrom.qty).toBe(15);
-    // Từ 0 cộng 5 thành 5
-    expect(stockTo.qty).toBe(5);
+    await search.fill(otherOnlyProduct.code);
+    await expect(suggestions).toContainText(`Không tìm thấy sản phẩm còn tồn tại ${sourceBranch.name}.`);
+    await expect(suggestions).not.toContainText(otherOnlyProduct.name);
+
+    await search.fill(sourceProduct.barcode);
+    await suggestions.getByText(sourceProduct.name).click();
+    await expect(page.locator('table.data-table tbody tr')).toContainText(sourceProduct.code);
+    await expect(page.locator('table.data-table tbody tr')).toContainText('17');
+
+    await page.getByLabel('Ghi chú').fill(`${runId} create draft`);
+    await page.getByRole('button', { name: 'Tạo đơn cần duyệt' }).last().click();
+    await expect(page).toHaveURL(/\/warehouse\/transfers\//, { timeout: 10000 });
   });
 });

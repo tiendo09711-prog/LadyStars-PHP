@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeftRight,
@@ -560,7 +560,7 @@ export function AppLayout() {
 
             return (
               <div
-                className={`menu-group ${isActive ? 'active' : ''}`}
+                className={`menu-group menu-group-${group.id} ${isActive ? 'active' : ''}`}
                 key={group.id}
                 onMouseEnter={() => openDesktopMenuGroup(group.id)}
               >
