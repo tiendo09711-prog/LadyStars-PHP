@@ -53,6 +53,17 @@ export function InventoryList() {
     load();
   }, [page, filterWarehouse, sortField, sortOrder]);
 
+  const getBranchStock = (item: IInventory, branch: BranchRecord) => {
+    const byId = item.stockByBranchId?.[branch._id];
+    if (typeof byId === 'number') return byId;
+    const byCode = item.stockByBranchCode?.[branch.code];
+    if (typeof byCode === 'number') return byCode;
+    if (branch.code === 'HN') return item.stockHanoi ?? 0;
+    if (branch.code === 'HCM') return item.stockHCM ?? 0;
+    if (branch.code === 'CN001') return item.stockCN ?? 0;
+    return 0;
+  };
+
   const exportColumns: ColumnOption[] = useMemo(
     () => {
       const base: ColumnOption[] = [
@@ -65,11 +76,7 @@ export function InventoryList() {
       if (branches.length > 0) {
         for (const branch of branches) {
           const branchKey = `stock_${branch.code}`;
-          if (branch.code === 'HN') {
-            base.push({ label: branch.name, key: branchKey, getValue: (item: IInventory) => item.stockHanoi ?? 0 });
-          } else if (branch.code === 'HCM') {
-            base.push({ label: branch.name, key: branchKey, getValue: (item: IInventory) => item.stockHCM ?? 0 });
-          }
+          base.push({ label: branch.name, key: branchKey, getValue: (item: IInventory) => getBranchStock(item, branch) });
         }
       } else {
         // Fallback to legacy labels
@@ -200,7 +207,7 @@ export function InventoryList() {
             <label className="inventory-filter-label">Tìm kiếm sản phẩm</label>
             <div className="search-box inventory-search-box">
               <Search size={16} />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên SP, mã SP..." />
+              <input data-product-search-scan="true" data-product-search-primary="true" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên SP, mã SP..." />
             </div>
           </div>
 
@@ -310,9 +317,9 @@ export function InventoryList() {
                   </div>
                 </th>
                 {branches.map(b => (
-                  <th key={b._id} style={thStyle} onClick={() => handleSort(b.code === 'HN' ? 'stockHanoi' : b.code === 'HCM' ? 'stockHCM' : 'totalStock')}>
+                  <th key={b._id} style={thStyle} onClick={() => handleSort(`stock_${b._id}`)}>
                     <div style={thInner}>
-                      <SortIcon field={b.code === 'HN' ? 'stockHanoi' : b.code === 'HCM' ? 'stockHCM' : 'totalStock'} />
+                      <SortIcon field={`stock_${b._id}`} />
                       {b.name}
                     </div>
                   </th>
@@ -359,9 +366,7 @@ export function InventoryList() {
                     <td className="inventory-money-cell">{formatMoney(item.price)}</td>
                     {branches.map(b => (
                       <td key={b._id} className={`inventory-number-cell inventory-number-${b.code?.toLowerCase() || b._id}`}>
-                        <span>{Number(
-                          b.code === 'HN' ? item.stockHanoi : b.code === 'HCM' ? item.stockHCM : item.totalStock || 0
-                        ).toLocaleString('vi-VN')}</span>
+                        <span>{Number(getBranchStock(item, b)).toLocaleString('vi-VN')}</span>
                       </td>
                     ))}
                     <td className="inventory-number-cell inventory-number-total">

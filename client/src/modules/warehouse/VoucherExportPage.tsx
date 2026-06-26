@@ -1,11 +1,13 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState , useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowLeft, Plus, Trash2, Settings2 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 
 type Product = {
   _id: string;
   code: string;
+  barcode?: string;
   name: string;
   price: number;
   cost: number;
@@ -68,6 +70,7 @@ export function VoucherExportPage() {
 
   // Search query (F3)
   const [searchQuery, setSearchQuery] = useState('');
+  const productSearchRef = useRef<HTMLInputElement>(null);
 
   // Column visibility states
   const [colVisible, setColVisible] = useState({
@@ -196,12 +199,31 @@ export function VoucherExportPage() {
   };
 
   // F3 search handles adding products
+  const handleProductScan = (rawBarcode: string) => {
+    const lower = rawBarcode.trim().toLowerCase();
+    const barcodeMatches = products.filter((p) => String(p.barcode || '').trim().toLowerCase() === lower);
+    const codeMatches = barcodeMatches.length ? [] : products.filter((p) => String(p.code || '').trim().toLowerCase() === lower);
+    const exactMatches = barcodeMatches.length ? barcodeMatches : codeMatches;
+    if (exactMatches.length === 1) {
+      setLines(current => [...current, createLineObj(exactMatches[0])]);
+      setSearchQuery('');
+      window.setTimeout(() => productSearchRef.current?.focus(), 0);
+      return;
+    }
+    setSearchQuery(rawBarcode.trim());
+  };
+
+  useProductScanTarget(productSearchRef, handleProductScan);
+
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim() !== '') {
       e.preventDefault();
       const matched = products.find(p => 
-        p.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+        p.barcode?.toLowerCase() === searchQuery.toLowerCase() ||
+        p.code.toLowerCase() === searchQuery.toLowerCase() ||
+        p.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       if (matched) {
         setLines(current => [...current, createLineObj(matched)]);
@@ -446,7 +468,7 @@ export function VoucherExportPage() {
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: '320px' }}>
                 <div className="search-box" style={{ flex: 1 }}>
                   <input
-                    id="product-f3-search"
+                    id="product-f3-search" ref={productSearchRef} data-product-search-scan="true" data-product-search-primary="true"
                     value={searchQuery}
                     placeholder="Gõ mã/tên hàng và nhấn Enter (F3)"
                     onChange={(e) => setSearchQuery(e.target.value)}

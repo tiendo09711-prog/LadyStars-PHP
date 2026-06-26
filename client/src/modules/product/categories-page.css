@@ -568,26 +568,6 @@
   font-weight: 700;
 }
 
-.categories-visibility-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.categories-visibility-chip.visible {
-  color: #047857;
-  background: rgba(236, 253, 245, 0.96);
-}
-
-.categories-visibility-chip.hidden {
-  color: #be123c;
-  background: rgba(255, 241, 242, 0.96);
-}
-
 .categories-row-actions {
   justify-content: flex-end;
 }
@@ -700,7 +680,7 @@
 }
 
 .categories-import-modal {
-  width: min(580px, calc(100vw - 24px));
+  width: min(720px, calc(100vw - 24px));
   border-radius: 24px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
   box-shadow: 0 28px 56px rgba(15, 23, 42, 0.18);
@@ -718,6 +698,76 @@
   flex-direction: column;
   gap: 16px;
   padding: 22px 24px;
+}
+
+.categories-import-dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 140px;
+  padding: 20px 22px;
+  border: 1px dashed rgba(191, 219, 254, 0.95);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.98));
+  color: #475569;
+  cursor: pointer;
+}
+
+.categories-import-dropzone svg {
+  flex: 0 0 auto;
+  color: #64748b;
+}
+
+.categories-import-dropzone > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.categories-import-dropzone strong {
+  color: #334155;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.categories-import-dropzone span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.categories-import-dropzone input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.categories-import-helper {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.categories-import-helper strong {
+  color: #c2410c;
+  font-weight: 800;
+}
+
+.categories-import-helper span {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.categories-import-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .categories-template-link {

@@ -16,37 +16,42 @@ interface HistoryFilters {
   toDate: string;
 }
 
-function uniqueSorted(values: string[]) {
-  return Array.from(new Set(values.filter(Boolean))).sort((left, right) => left.localeCompare(right, 'vi'));
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function defaultHistoryFilters(): HistoryFilters {
+  const toDate = new Date();
+  const fromDate = new Date(toDate);
+  fromDate.setDate(toDate.getDate() - 6);
+  return {
+    search: '',
+    logType: '',
+    logAction: '',
+    createdBy: '',
+    fromDate: formatDateInput(fromDate),
+    toDate: formatDateInput(toDate),
+  };
 }
 
 export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HTMLDivElement | null> } = {}) {
   const [items, setItems] = useState<IProductHistory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [draftFilters, setDraftFilters] = useState<HistoryFilters>({
-    search: '',
-    logType: '',
-    logAction: '',
-    createdBy: '',
-    fromDate: '',
-    toDate: '',
-  });
-  const [appliedFilters, setAppliedFilters] = useState<HistoryFilters>({
-    search: '',
-    logType: '',
-    logAction: '',
-    createdBy: '',
-    fromDate: '',
-    toDate: '',
-  });
+  const [draftFilters, setDraftFilters] = useState<HistoryFilters>(() => defaultHistoryFilters());
+  const [appliedFilters, setAppliedFilters] = useState<HistoryFilters>(() => defaultHistoryFilters());
   const [filterOptions, setFilterOptions] = useState<{
     logTypes: string[];
     logActions: string[];
     editors: string[];
+    toneByLogType: Record<string, string>;
   }>({
     logTypes: [],
     logActions: [],
     editors: [],
+    toneByLogType: {},
   });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -88,11 +93,14 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
       setItems(response.items);
       setTotal(response.total);
 
-      setFilterOptions((current) => ({
-        logTypes: uniqueSorted(current.logTypes.concat(response.items.map((item) => item.logType || ''))),
-        logActions: uniqueSorted(current.logActions.concat(response.items.map((item) => item.logAction || ''))),
-        editors: uniqueSorted(current.editors.concat(response.items.map((item) => item.createdBy || ''))),
-      }));
+      if (response.meta) {
+        setFilterOptions({
+          logTypes: response.meta.logTypes || [],
+          logActions: response.meta.logActions || [],
+          editors: response.meta.editors || [],
+          toneByLogType: response.meta.toneByLogType || {},
+        });
+      }
     } catch (error) {
       console.error('Lỗi tải lịch sử sản phẩm:', error);
     } finally {
@@ -114,14 +122,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
   };
 
   const handleReset = () => {
-    const emptyFilters: HistoryFilters = {
-      search: '',
-      logType: '',
-      logAction: '',
-      createdBy: '',
-      fromDate: '',
-      toDate: '',
-    };
+    const emptyFilters = defaultHistoryFilters();
 
     setDraftFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
@@ -251,7 +252,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
                 <input
                   value={draftFilters.search}
                   onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))}
-                  placeholder="Mã hoặc tên sản phẩm..."
+                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Mã hoặc tên sản phẩm..."
                 />
               </div>
             </label>
@@ -396,13 +397,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
                       </td>
                       <td>
                         <span
-                          className={`status-badge ${
-                            item.logType === 'Xóa sản phẩm'
-                              ? 'danger'
-                              : item.logType === 'Sửa sản phẩm'
-                                ? 'warning'
-                                : ''
-                          }`}
+                          className={`status-badge ${filterOptions.toneByLogType[item.logType] || ''}`}
                         >
                           {item.logType || 'Hệ thống'}
                         </span>

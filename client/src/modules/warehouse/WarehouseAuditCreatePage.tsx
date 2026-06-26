@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 import './warehouseRecords.css';
 import './warehouseAudit.css';
 
@@ -225,6 +226,7 @@ export function WarehouseAuditCreatePage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const productSearchRef = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [voucherViewer, setVoucherViewer] = useState<{
     codes: Array<{ id: string; code: string }>;
@@ -364,6 +366,21 @@ export function WarehouseAuditCreatePage() {
       return nextLine;
     }));
   };
+
+  const handleProductScan = (rawBarcode: string) => {
+    const lower = rawBarcode.trim().toLowerCase();
+    const barcodeMatches = inventoryOptions.filter((p) => String(p.barcode || '').trim().toLowerCase() === lower);
+    const codeMatches = barcodeMatches.length ? [] : inventoryOptions.filter((p) => String(p.code || '').trim().toLowerCase() === lower);
+    const exactMatches = barcodeMatches.length ? barcodeMatches : codeMatches;
+    if (exactMatches.length === 1) {
+      addProduct(exactMatches[0]);
+      window.setTimeout(() => productSearchRef.current?.focus(), 0);
+      return;
+    }
+    setSearchQuery(rawBarcode.trim());
+  };
+
+  useProductScanTarget(productSearchRef, handleProductScan);
 
   const addProduct = (product: InventoryOption) => {
     if (lines.some((line) => line.productId === product._id)) return;
@@ -656,9 +673,10 @@ export function WarehouseAuditCreatePage() {
                 <label className="wr-search-field wide">
                   <Search size={14} />
                   <input
+                    ref={productSearchRef}
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Tìm theo mã sản phẩm hoặc mã vạch"
+                    data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm theo mã sản phẩm hoặc mã vạch"
                   />
                 </label>
                 {searchQuery.trim() ? (

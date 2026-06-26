@@ -1,5 +1,5 @@
 import { http } from './http';
-import type { ICategory, IProduct, IInventory, IProductHistory, IBatch, ITrademark, IStorageDuration } from '../../types/product.type';
+import type { ICategory, IProduct, IInventory, IProductHistory, IProductHistoryMeta, IBatch, ITrademark, IStorageDuration } from '../../types/product.type';
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -89,7 +89,7 @@ export const productApi = {
   },
 
   getProductLogs: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
-    const response = await http.get<PaginatedResponse<IProductHistory>>('/products/edit-logs', { params });
+    const response = await http.get<PaginatedResponse<IProductHistory> & { meta?: IProductHistoryMeta }>('/products/edit-logs', { params });
     return response.data;
   },
 

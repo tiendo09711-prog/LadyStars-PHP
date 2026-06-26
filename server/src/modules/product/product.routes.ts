@@ -402,6 +402,103 @@ async function populateRefund(query: any) {
   return query.populate('paymentId', 'code value status').populate('items.productId', 'code name price qty unit type');
 }
 
+async function generateCategoryCode() {
+  const categories = await Category.find({ code: /^DM-\d+$/i }).select('code').lean();
+  let maxNumber = 0;
+  for (const category of categories) {
+    const match = String((category as any).code || '').trim().toUpperCase().match(/^DM-(\d+)$/);
+    if (!match) continue;
+    maxNumber = Math.max(maxNumber, Number(match[1]));
+  }
+  return `DM-${String(maxNumber + 1).padStart(4, '0')}`;
+}
+
+router.get('/categories', async (req, res) => {
+  const page = Math.max(Number(req.query.page ?? 1), 1);
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
+  const q = String(req.query.q ?? '').trim();
+  const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
+  const sortOrder = req.query.order === 'asc' ? 1 : -1;
+  const filter: Record<string, any> = q
+    ? { $or: [{ name: { $regex: q, $options: 'i' } }, { code: { $regex: q, $options: 'i' } }] }
+    : {};
+
+  for (const [key, val] of Object.entries(req.query)) {
+    if (['page', 'limit', 'q', 'sort', 'order'].includes(key)) continue;
+    const strVal = String(val ?? '').trim();
+    if (!strVal) continue;
+    if ((key === '_id' || key.endsWith('Id')) && mongoose.Types.ObjectId.isValid(strVal)) {
+      filter[key] = new mongoose.Types.ObjectId(strVal);
+    } else {
+      filter[key] = { $regex: `^${strVal}$`, $options: 'i' };
+    }
+  }
+
+  const [items, total] = await Promise.all([
+    Category.aggregate([
+      { $match: filter },
+      { $sort: { [sortField]: sortOrder } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: Product.collection.name,
+          localField: '_id',
+          foreignField: 'categoryId',
+          as: 'products',
+        },
+      },
+      { $addFields: { productCount: { $size: '$products' } } },
+      { $project: { products: 0 } },
+    ]),
+    Category.countDocuments(filter),
+  ]);
+
+  res.json({ items, total, page, limit });
+});
+
+router.post('/categories', async (req, res) => {
+  try {
+    const payload = { ...req.body, code: String(req.body?.code || '').trim() || await generateCategoryCode() };
+    const item = await Category.create(payload);
+    await writeAuditLog(req, {
+      action: 'crud.create',
+      module: 'Category',
+      resource: 'Category',
+      resourceId: item.id,
+      after: item,
+    });
+    res.status(201).json(item);
+  } catch (err: any) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'M� danh m?c ho?c t�n danh m?c d� t?n t?i.' });
+    throw err;
+  }
+});
+
+router.delete('/categories/:id', async (req, res) => {
+  const categoryId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(categoryId)) return res.status(400).json({ message: 'Invalid category id' });
+
+  const [childCount, productCount] = await Promise.all([
+    Category.countDocuments({ parentId: categoryId }),
+    Product.countDocuments({ categoryId }),
+  ]);
+  if (childCount > 0 || productCount > 0) {
+    return res.status(409).json({ message: 'Danh mục đang có danh mục con hoặc sản phẩm, không thể xóa.' });
+  }
+
+  const item = await Category.findByIdAndDelete(categoryId);
+  if (!item) return res.status(404).json({ message: 'Not found' });
+  await writeAuditLog(req, {
+    action: 'crud.delete',
+    module: 'Category',
+    resource: 'Category',
+    resourceId: item.id,
+    before: item,
+  });
+  res.status(204).send();
+});
+
 router.use('/categories', crudRoutes(Category));
 router.use('/trademarks', crudRoutes(Trademark));
 router.use('/shelves', crudRoutes(Shelf));
@@ -1584,7 +1681,8 @@ router.get('/inventories', async (req, res) => {
     if (q) {
       filter.$or = [
         { name: new RegExp(q, 'i') },
-        { code: new RegExp(q, 'i') }
+        { code: new RegExp(q, 'i') },
+        { barcode: new RegExp(q, 'i') }
       ];
     }
 
@@ -1594,8 +1692,12 @@ router.get('/inventories', async (req, res) => {
     // Fetch all stock records for the found products in one query
     const productIds = products.map(p => p._id);
     const stockQuery: Record<string, any> = { productId: { $in: productIds } };
-    if (inventoryBranchIds) stockQuery.branchId = { $in: inventoryBranchIds };
+    if (warehouseScope) stockQuery.branchId = { $in: warehouseScope };
     const stocksList = await ProductBranchStock.find(stockQuery).lean();
+
+    const branchIds = [...new Set(stocksList.map((stock: any) => String(stock.branchId)).filter(Boolean))];
+    const branchList = branchIds.length ? await Branch.find({ _id: { $in: branchIds } }).select('_id code name').lean() : [];
+    const branchCodeById = new Map(branchList.map((branch: any) => [String(branch._id), String(branch.code || '')]));
 
     // Group stocks by productId
     const stockMap = new Map<string, any[]>();
@@ -1618,7 +1720,17 @@ router.get('/inventories', async (req, res) => {
       const selectedStock = selectedBranchId
         ? stocks.find(s => String(s.branchId) === selectedBranchId)?.qty || 0
         : undefined;
-      const scopedTotalStock = stocks.reduce((sum, stock) => sum + Number(stock.qty || 0), 0);
+      const totalStocks = selectedBranchId ? stocks.filter(s => String(s.branchId) === selectedBranchId) : stocks;
+      const scopedTotalStock = totalStocks.reduce((sum, stock) => sum + Number(stock.qty || 0), 0);
+      const stockByBranchId: Record<string, number> = {};
+      const stockByBranchCode: Record<string, number> = {};
+      for (const stock of stocks) {
+        const stockBranchId = String(stock.branchId);
+        const qty = Number(stock.qty || 0);
+        stockByBranchId[stockBranchId] = (stockByBranchId[stockBranchId] || 0) + qty;
+        const stockBranchCode = branchCodeById.get(stockBranchId);
+        if (stockBranchCode) stockByBranchCode[stockBranchCode] = (stockByBranchCode[stockBranchCode] || 0) + qty;
+      }
       const isLimited = Boolean(warehouseScope);
 
       allItems.push({
@@ -1638,6 +1750,8 @@ router.get('/inventories', async (req, res) => {
         stockHanoi,
         stockHCM,
         selectedStock,
+        stockByBranchId,
+        stockByBranchCode,
         unit: pAny.unit || '',
         createdAt: pAny.createdAt
       });
@@ -1653,6 +1767,12 @@ router.get('/inventories', async (req, res) => {
 
       let valA = a[sortField];
       let valB = b[sortField];
+
+      if (sortField.startsWith('stock_')) {
+        const branchSortId = sortField.slice('stock_'.length);
+        valA = a.stockByBranchId?.[branchSortId] || 0;
+        valB = b.stockByBranchId?.[branchSortId] || 0;
+      }
 
       // Handle string case-insensitive comparison
       if (typeof valA === 'string' && typeof valB === 'string') {
@@ -1727,12 +1847,32 @@ router.get('/edit-logs', async (req, res) => {
       }
     }
 
-    const [items, total] = await Promise.all([
+    const [items, total, logTypes, logActions, editors] = await Promise.all([
       ProductEditLog.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
       ProductEditLog.countDocuments(filter),
+      ProductEditLog.distinct('logType'),
+      ProductEditLog.distinct('logAction'),
+      ProductEditLog.distinct('createdBy'),
     ]);
 
-    res.json({ items, total, page, limit });
+    const toneByLogType = Object.fromEntries(
+      logTypes
+        .filter(Boolean)
+        .map((type) => [type, String(type).toLowerCase().includes('xóa') ? 'danger' : 'warning']),
+    );
+
+    res.json({
+      items,
+      total,
+      page,
+      limit,
+      meta: {
+        logTypes: logTypes.filter(Boolean).sort((left, right) => String(left).localeCompare(String(right), 'vi')),
+        logActions: logActions.filter(Boolean).sort((left, right) => String(left).localeCompare(String(right), 'vi')),
+        editors: editors.filter(Boolean).sort((left, right) => String(left).localeCompare(String(right), 'vi')),
+        toneByLogType,
+      },
+    });
   } catch (err: any) {
     res.status(500).json({ message: err.message || 'Lỗi server' });
   }

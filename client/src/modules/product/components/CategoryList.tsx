@@ -2,7 +2,6 @@
 import {
   Boxes,
   ChevronDown,
-  CircleSlash,
   Eye,
   FileDown,
   Filter,
@@ -14,6 +13,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  UploadCloud,
   X,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -32,18 +32,15 @@ type CategoryFormValues = {
   code: string;
   parentId: string;
   isActive: boolean;
-  isVisible: boolean;
   url: string;
 };
 
 const CATEGORY_IMPORT_HEADERS = [
-  'M\u00e3 danh m\u1ee5c',
-  'Danh m\u1ee5c c\u1ea5p 1',
-  'Danh m\u1ee5c c\u1ea5p 2',
-  'Danh m\u1ee5c c\u1ea5p 3',
-  'Danh m\u1ee5c c\u1ea5p 4',
-  'Ho\u1ea1t \u0111\u1ed9ng',
-  'Hi\u1ec3n th\u1ecb',
+  'Danh mục cấp 1',
+  'Danh mục cấp 2',
+  'Danh mục cấp 3',
+  'Danh mục cấp 4',
+  'Hoạt động',
 ];
 
 function defaultCategoryFormValues(): CategoryFormValues {
@@ -52,9 +49,19 @@ function defaultCategoryFormValues(): CategoryFormValues {
     code: '',
     parentId: '',
     isActive: true,
-    isVisible: true,
     url: '',
   };
+}
+
+function generateCategoryCode(items: ICategory[]) {
+  let maxNumber = 0;
+  for (const item of items) {
+    const rawCode = String(item.code || '').trim().toUpperCase();
+    const match = rawCode.match(/^DM-(\d+)$/);
+    if (!match) continue;
+    maxNumber = Math.max(maxNumber, Number(match[1]));
+  }
+  return `DM-${String(maxNumber + 1).padStart(4, '0')}`;
 }
 
 function parseTemplateBoolean(value: string, fallback: boolean) {
@@ -155,7 +162,6 @@ export function CategoryList() {
       { label: 'T\u00ean danh m\u1ee5c', key: 'name', getValue: (item: ICategory) => item.name },
       { label: 'M\u00e3 danh m\u1ee5c', key: 'code', getValue: (item: ICategory) => item.code || '' },
       { label: 'Tr\u1ea1ng th\u00e1i', key: 'isActive', getValue: (item: ICategory) => (item.isActive !== false ? '\u0110ang ho\u1ea1t \u0111\u1ed9ng' : 'Ng\u1eebng') },
-      { label: 'Hi\u1ec3n th\u1ecb', key: 'isVisible', getValue: (item: ICategory) => (item.isVisible !== false ? 'C\u00f3' : 'Kh\u00f4ng') },
       { label: 'S\u1ed1 s\u1ea3n ph\u1ea9m', key: 'productCount', getValue: (item: ICategory) => item.productCount || 0 },
       { label: 'Ng\u00e0y t\u1ea1o', key: 'createdAt', getValue: (item: ICategory) => new Date(item.createdAt).toLocaleDateString('vi-VN') },
     ],
@@ -311,13 +317,13 @@ export function CategoryList() {
       ['C\u00e1c l\u01b0u \u00fd khi import danh m\u1ee5c s\u1ea3n ph\u1ea9m'],
       ['1', 'Kh\u00f4ng \u0111\u1ed5i t\u00ean ho\u1eb7c th\u1ee9 t\u1ef1 c\u00e1c c\u1ed9t trong sheet Danh m\u1ee5c s\u1ea3n ph\u1ea9m'],
       ['2', 'M\u1ed7i d\u00f2ng th\u1ec3 hi\u1ec7n m\u1ed9t danh m\u1ee5c \u1edf c\u1ea5p s\u00e2u nh\u1ea5t \u0111\u01b0\u1ee3c \u0111i\u1ec1n'],
-      ['3', 'C\u00f3 th\u1ec3 d\u00f9ng c\u1ed9t M\u00e3 danh m\u1ee5c \u0111\u1ec3 c\u1eadp nh\u1eadt d\u1eef li\u1ec7u c\u00f3 s\u1eb5n'],
-      ['4', 'C\u1ed9t Ho\u1ea1t \u0111\u1ed9ng v\u00e0 Hi\u1ec3n th\u1ecb c\u00f3 th\u1ec3 \u0111\u1ec3 tr\u1ed1ng \u0111\u1ec3 d\u00f9ng m\u1eb7c \u0111\u1ecbnh'],
+      ['3', 'Mã danh mục được hệ thống tự động tạo theo dạng DM-Số thứ tự'],
+      ['4', 'C\u1ed9t Ho\u1ea1t \u0111\u1ed9ng c\u00f3 th\u1ec3 \u0111\u1ec3 tr\u1ed1ng \u0111\u1ec3 d\u00f9ng m\u1eb7c \u0111\u1ecbnh'],
     ]);
     const dataSheet = XLSX.utils.aoa_to_sheet([CATEGORY_IMPORT_HEADERS]);
     const suggestSheet = XLSX.utils.aoa_to_sheet([
       ['V\u00ed d\u1ee5'],
-      ['M\u00e3 danh m\u1ee5c', 'Danh m\u1ee5c c\u1ea5p 1', 'Danh m\u1ee5c c\u1ea5p 2', 'Danh m\u1ee5c c\u1ea5p 3', 'Danh m\u1ee5c c\u1ea5p 4', 'Ho\u1ea1t \u0111\u1ed9ng', 'Hi\u1ec3n th\u1ecb'],
+      ['Danh mục cấp 1', 'Danh mục cấp 2', 'Danh mục cấp 3', 'Danh mục cấp 4', 'Hoạt động'],
     ]);
     XLSX.utils.book_append_sheet(wb, noteSheet, 'Ghi ch\u00fa');
     XLSX.utils.book_append_sheet(wb, dataSheet, 'Danh m\u1ee5c s\u1ea3n ph\u1ea9m');
@@ -340,6 +346,8 @@ export function CategoryList() {
       }
 
       const rows = XLSX.utils.sheet_to_json<string[]>(dataSheet, { header: 1, blankrows: false, defval: '' });
+      const headerRow = rows[0] || [];
+      const hasCodeColumn = String(headerRow[0] || '').toLowerCase().includes('mã');
       const importRows = rows.slice(1);
       if (importRows.length === 0) {
         alert('File import kh\u00f4ng c\u00f3 d\u1eef li\u1ec7u.');
@@ -355,9 +363,12 @@ export function CategoryList() {
       let skipped = 0;
 
       for (const row of importRows) {
-        const [codeRaw, level1, level2, level3, level4, activeRaw, visibleRaw] = row.map((cell) => String(cell || '').trim());
+        const cells = row.map((cell) => String(cell || '').trim());
+        const [codeRaw, level1, level2, level3, level4, activeRaw] = hasCodeColumn
+          ? cells
+          : ['', cells[0], cells[1], cells[2], cells[3], cells[4]];
         const names = [level1, level2, level3, level4].filter(Boolean);
-        if (!codeRaw && names.length === 0) continue;
+        if (names.length === 0) continue;
         const name = names[names.length - 1];
         if (!name) {
           skipped += 1;
@@ -372,7 +383,6 @@ export function CategoryList() {
           name,
           parentId: parent?._id || undefined,
           isActive: parseTemplateBoolean(activeRaw, true),
-          isVisible: parseTemplateBoolean(visibleRaw, true),
         };
 
         const existing = codeRaw ? categoryByCode.get(codeRaw.toLowerCase()) : categoryByName.get(name.toLowerCase());
@@ -413,7 +423,6 @@ export function CategoryList() {
   const allRowsSelected = items.length > 0 && selectedIds.length === items.length;
   const selectedCount = selectedIds.length;
   const activeCount = items.filter((item) => item.isActive !== false).length;
-  const hiddenCount = items.filter((item) => item.isVisible === false).length;
   const showingFrom = total === 0 ? 0 : (page - 1) * limit + 1;
   const showingTo = total === 0 ? 0 : Math.min(page * limit, total);
   const hasSearch = search.trim().length > 0;
@@ -465,15 +474,6 @@ export function CategoryList() {
                 <span>Đang hoạt động</span>
               </div>
             </article>
-            <article className="categories-stat-card accent-rose">
-              <div className="categories-stat-icon">
-                <CircleSlash size={18} />
-              </div>
-              <div>
-                <strong>{hiddenCount.toLocaleString('vi-VN')}</strong>
-                <span>Đang ẩn</span>
-              </div>
-            </article>
           </div>
         </div>
 
@@ -522,10 +522,6 @@ export function CategoryList() {
                         </div>
                       )}
                     </div>
-                    <button className="categories-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); alert('Chức năng xóa cache hiện chưa được cấu hình.'); }}>
-                      <Trash2 size={15} />
-                      <span>Xóa cache</span>
-                    </button>
                     <button className="categories-dropdown-item danger" type="button" disabled={actionLoading} onClick={handleDeleteSelected}>
                       <Trash2 size={15} />
                       <span>Xóa các dòng đã chọn</span>
@@ -581,7 +577,6 @@ export function CategoryList() {
                 <th>Mã danh mục</th>
                 <th>Tên danh mục</th>
                 <th>Hoạt động</th>
-                <th>Hiển thị</th>
                 <th>Số sản phẩm</th>
                 <th>Ngày tạo</th>
                 <th className="action-cell">Thao tác</th>
@@ -590,14 +585,14 @@ export function CategoryList() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="empty-cell">
+                  <td colSpan={7} className="empty-cell">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="empty-cell">
+                  <td colSpan={7} className="empty-cell">
                     Chưa có dữ liệu.
                   </td>
                 </tr>
@@ -628,11 +623,6 @@ export function CategoryList() {
                       </span>
                     </td>
                     <td>
-                      <span className={`categories-visibility-chip ${item.isVisible !== false ? 'visible' : 'hidden'}`}>
-                        {item.isVisible !== false ? 'Có' : 'Không'}
-                      </span>
-                    </td>
-                    <td>
                       <button
                         className="categories-count-button"
                         type="button"
@@ -654,7 +644,6 @@ export function CategoryList() {
                             aria-expanded={openActionMenuId === item._id}
                             aria-haspopup="menu"
                           >
-                            <span>Thao tác</span>
                             <MoreHorizontal size={15} />
                           </button>
                           {openActionMenuId === item._id && (
@@ -753,10 +742,17 @@ function CategoryEditorPanel({ mode, category, categories, loadingCategoryOption
     code: category?.code || '',
     parentId: category?.parentId || '',
     isActive: category?.isActive !== false,
-    isVisible: category?.isVisible !== false,
     url: category?.url || '',
   }));
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (mode !== 'create' || form.code.trim()) return;
+    setForm((current) => {
+      if (current.code.trim()) return current;
+      return { ...current, code: generateCategoryCode(categories) };
+    });
+  }, [categories, form.code, mode]);
 
   const parentOptions = categories.filter((item) => item._id !== category?._id);
 
@@ -774,7 +770,6 @@ function CategoryEditorPanel({ mode, category, categories, loadingCategoryOption
         code: form.code.trim() || undefined,
         parentId: form.parentId || undefined,
         isActive: form.isActive,
-        isVisible: form.isVisible,
         url: form.url.trim() || undefined,
       };
 
@@ -821,7 +816,7 @@ function CategoryEditorPanel({ mode, category, categories, loadingCategoryOption
             </label>
             <label className="categories-form-field">
               <span>Mã</span>
-              <input className="form-control" value={form.code} onChange={(e) => setForm((current) => ({ ...current, code: e.target.value }))} />
+              <input className="form-control" value={form.code} readOnly={mode === 'create'} placeholder="Tự động tạo DM-xxxx" onChange={(e) => setForm((current) => ({ ...current, code: e.target.value }))} />
             </label>
             <label className="categories-form-field categories-form-field-wide">
               <span>Chọn danh mục cha</span>
@@ -837,17 +832,6 @@ function CategoryEditorPanel({ mode, category, categories, loadingCategoryOption
                     {item.name}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="categories-form-field">
-              <span>Hiển thị</span>
-              <select
-                className="form-control"
-                value={form.isVisible ? 'visible' : 'hidden'}
-                onChange={(e) => setForm((current) => ({ ...current, isVisible: e.target.value === 'visible' }))}
-              >
-                <option value="visible">Có</option>
-                <option value="hidden">Không</option>
               </select>
             </label>
             <label className="categories-form-field">
@@ -907,22 +891,36 @@ function CategoryImportModal({
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card categories-import-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header categories-import-header">
-          <h2>Nhập danh mục sản phẩm từ Excel</h2>
-          <button className="icon-button" type="button" onClick={onClose}>
+          <div>
+            <h2>Nhập danh mục sản phẩm từ Excel</h2>
+            <p>Nhập file Excel để thêm mới hoặc cập nhật danh sách danh mục. Mã danh mục được tạo tự động.</p>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} disabled={importing}>
             <X size={18} />
           </button>
         </div>
 
         <div className="categories-import-body">
-          <button className="categories-template-link" type="button" onClick={onDownloadTemplate}>
-            Tải file Excel mẫu
-          </button>
+          <div className="categories-import-dropzone">
+            <UploadCloud size={34} />
+            <div>
+              <strong>{importFile ? importFile.name : 'Chọn file Excel (.xlsx, .xls, .csv)'}</strong>
+              <span>Nhấn để chọn file cần import</span>
+            </div>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={(e) => onFileChange(e.target.files?.[0] || null)}
+            />
+          </div>
 
-          <label className="categories-import-file-field">
-            <span>Chọn file</span>
-            <input type="file" accept=".xls,.xlsx,.xlsm" onChange={(e) => onFileChange(e.target.files?.[0] || null)} />
-            <strong>{importFile?.name || 'Chưa chọn file'}</strong>
-          </label>
+          <div className="categories-import-helper">
+            <strong>File import mẫu</strong>
+            <span>File mẫu không cần cột mã danh mục. Hệ thống sẽ tự sinh mã theo dạng DM-Số thứ tự.</span>
+            <button className="btn btn-light" type="button" onClick={onDownloadTemplate} disabled={importing}>
+              Tải file Excel mẫu
+            </button>
+          </div>
 
           <div className="categories-import-mode">
             <label>
@@ -937,8 +935,9 @@ function CategoryImportModal({
         </div>
 
         <div className="modal-footer categories-import-footer">
-          <button className="btn categories-primary-button" type="button" onClick={onSubmit} disabled={importing}>
-            {importing ? 'Đang lưu...' : 'Lưu'}
+          <button className="btn btn-light" type="button" onClick={onClose} disabled={importing}>Hủy</button>
+          <button className="btn categories-primary-button" type="button" onClick={onSubmit} disabled={importing || !importFile}>
+            {importing ? 'Đang xử lý...' : 'Upload và nhập'}
           </button>
         </div>
       </div>
@@ -1025,7 +1024,7 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="Tìm sản phẩm trong danh mục..."
+                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm sản phẩm trong danh mục..."
                 />
               </div>
             </form>

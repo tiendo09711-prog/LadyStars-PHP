@@ -40,6 +40,7 @@ import {
 } from '../../../core/api/product.api';
 import { http } from '../../../core/api/http';
 import { Pagination } from '../../../core/components/Pagination';
+import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import type { ICategory, IProduct } from '../../../types/product.type';
 import { ExportExcelModal, type ColumnOption } from './ExportExcelModal';
 
@@ -76,10 +77,14 @@ interface PaperTemplate {
   id: string;
   title: string;
   size: string;
-  widthMm: number;
-  heightMm: number;
+  pageWidthMm: number;
+  pageHeightMm: number;
+  labelWidthMm: number;
+  labelHeightMm: number;
   columns: number;
   rows?: number;
+  gapXmm?: number;
+  gapYmm?: number;
   previewClass: 'roll' | 'sheet' | 'jewelry';
 }
 
@@ -88,19 +93,19 @@ const PRODUCT_STATUS_OPTIONS = ['Mới', 'Đang bán', 'Ngừng bán', 'Hết h�
 const DEFAULT_BARCODE_PAPER_ID = 'a4-65';
 
 const PAPER_TEMPLATES: PaperTemplate[] = [
-  { id: 'roll-105x22-3', title: 'Mẫu giấy cuộn 3 nhãn', size: 'Khổ 105x22mm.', widthMm: 105, heightMm: 22, columns: 3, previewClass: 'roll' },
-  { id: 'roll-70x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 70x22mm.', widthMm: 70, heightMm: 22, columns: 2, previewClass: 'roll' },
-  { id: 'a4-65', title: 'Mẫu giấy 65 nhãn', size: 'Khổ A4, Tomy 145 - 210x297mm.', widthMm: 210, heightMm: 297, columns: 5, rows: 13, previewClass: 'sheet' },
-  { id: 'roll-77x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 77x22mm.', widthMm: 77, heightMm: 22, columns: 2, previewClass: 'roll' },
-  { id: 'roll-40x25-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 40x25mm.', widthMm: 40, heightMm: 25, columns: 1, previewClass: 'roll' },
-  { id: 'a4-180', title: 'Mẫu giấy 180 nhãn', size: 'Khổ A4 - 20x15mm.', widthMm: 210, heightMm: 297, columns: 10, rows: 18, previewClass: 'sheet' },
-  { id: 'roll-50x40-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 50x40mm.', widthMm: 50, heightMm: 40, columns: 2, previewClass: 'roll' },
-  { id: 'roll-40x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 40x30mm.', widthMm: 40, heightMm: 30, columns: 1, previewClass: 'roll' },
-  { id: 'roll-50x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 50x30mm.', widthMm: 50, heightMm: 30, columns: 1, previewClass: 'roll' },
-  { id: 'roll-30x20-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 30x20mm.', widthMm: 30, heightMm: 20, columns: 2, previewClass: 'roll' },
-  { id: 'jewelry-80x10', title: 'Mẫu tem trang sức / kính mắt', size: 'Khổ 80x10mm.', widthMm: 80, heightMm: 10, columns: 1, previewClass: 'jewelry' },
-  { id: 'a4-30', title: 'Mẫu giấy 30 nhãn', size: 'Khổ A4, Tomy 144 - 67x28mm.', widthMm: 210, heightMm: 297, columns: 3, rows: 10, previewClass: 'sheet' },
-  { id: 'a4-48', title: 'Mẫu giấy 48 nhãn', size: 'Khổ A4, Tomy 132, 45.7mm x 21.2mm', widthMm: 210, heightMm: 297, columns: 4, rows: 12, previewClass: 'sheet' },
+  { id: 'roll-105x22-3', title: 'Mẫu giấy cuộn 3 nhãn', size: 'Mỗi nhãn 35x22mm, 3 nhãn ngang.', pageWidthMm: 105, pageHeightMm: 22, labelWidthMm: 35, labelHeightMm: 22, columns: 3, previewClass: 'roll' },
+  { id: 'roll-70x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 35x22mm, 2 nhãn ngang.', pageWidthMm: 70, pageHeightMm: 22, labelWidthMm: 35, labelHeightMm: 22, columns: 2, previewClass: 'roll' },
+  { id: 'a4-65', title: 'Mẫu giấy 65 nhãn', size: 'Khổ A4, Tomy 145 - tem 38.1x21.2mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 38.1, labelHeightMm: 21.2, columns: 5, rows: 13, gapXmm: 2.55, gapYmm: 0, previewClass: 'sheet' },
+  { id: 'roll-77x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 38.5x22mm, 2 nhãn ngang.', pageWidthMm: 77, pageHeightMm: 22, labelWidthMm: 38.5, labelHeightMm: 22, columns: 2, previewClass: 'roll' },
+  { id: 'roll-40x25-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 40x25mm.', pageWidthMm: 40, pageHeightMm: 25, labelWidthMm: 40, labelHeightMm: 25, columns: 1, previewClass: 'roll' },
+  { id: 'a4-180', title: 'Mẫu giấy 180 nhãn', size: 'Khổ A4 - tem 20x15mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 20, labelHeightMm: 15, columns: 10, rows: 18, gapXmm: 0, gapYmm: 0, previewClass: 'sheet' },
+  { id: 'roll-50x40-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 50x40mm, 2 nhãn ngang.', pageWidthMm: 100, pageHeightMm: 40, labelWidthMm: 50, labelHeightMm: 40, columns: 2, previewClass: 'roll' },
+  { id: 'roll-40x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 40x30mm.', pageWidthMm: 40, pageHeightMm: 30, labelWidthMm: 40, labelHeightMm: 30, columns: 1, previewClass: 'roll' },
+  { id: 'roll-50x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 50x30mm.', pageWidthMm: 50, pageHeightMm: 30, labelWidthMm: 50, labelHeightMm: 30, columns: 1, previewClass: 'roll' },
+  { id: 'roll-30x20-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 30x20mm, 2 nhãn ngang.', pageWidthMm: 60, pageHeightMm: 20, labelWidthMm: 30, labelHeightMm: 20, columns: 2, previewClass: 'roll' },
+  { id: 'jewelry-80x10', title: 'Mẫu tem trang sức / kính mắt', size: 'Mỗi nhãn 80x10mm.', pageWidthMm: 80, pageHeightMm: 10, labelWidthMm: 80, labelHeightMm: 10, columns: 1, previewClass: 'jewelry' },
+  { id: 'a4-30', title: 'Mẫu giấy 30 nhãn', size: 'Khổ A4, Tomy 144 - tem 67x28mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 67, labelHeightMm: 28, columns: 3, rows: 10, gapXmm: 3, gapYmm: 0, previewClass: 'sheet' },
+  { id: 'a4-48', title: 'Mẫu giấy 48 nhãn', size: 'Khổ A4, Tomy 132 - tem 45.7x21.2mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 45.7, labelHeightMm: 21.2, columns: 4, rows: 12, gapXmm: 4, gapYmm: 0, previewClass: 'sheet' },
 ];
 
 function normalizeBarcodeValue(product: IProduct) {
@@ -113,62 +118,67 @@ function computeEan13CheckDigit(value: string) {
   return String((10 - (sum % 10)) % 10);
 }
 
-function decorateBarcodeSvg(svg: string, type: BarcodeType, standard: string, value: string) {
-  const classes = type === 'QRCODE' ? 'barcode-svg qr' : 'barcode-svg';
+function isValidEan13(value: string) {
+  return /^\d{13}$/.test(value) && computeEan13CheckDigit(value.slice(0, 12)) === value[12];
+}
+
+function isValidCode39(value: string) {
+  return /^[0-9A-Z .\-/$+%]+$/.test(value);
+}
+
+type BarcodeBuildResult = {
+  svg: string;
+  requestedType: BarcodeType;
+  actualType: BarcodeType;
+  standard: string;
+  encodedValue: string;
+  warning?: string;
+  error?: string;
+};
+
+function decorateBarcodeSvg(svg: string, result: Omit<BarcodeBuildResult, 'svg'>) {
+  const classes = result.actualType === 'QRCODE' ? 'barcode-svg qr' : 'barcode-svg';
   return svg.replace(
     '<svg ',
-    `<svg class="${classes}" data-barcode-type="${type}" data-barcode-standard="${standard}" role="img" aria-label="${escapeHtml(`${type}: ${value}`)}" `,
+    `<svg class="${classes}" data-barcode-type="${result.actualType}" data-barcode-requested-type="${result.requestedType}" data-barcode-standard="${result.standard}" data-barcode-value="${escapeHtml(result.encodedValue)}" role="img" aria-label="${escapeHtml(`${result.actualType}: ${result.encodedValue}`)}" `,
   );
 }
 
-function buildBarcodeSvg(value: string, type: BarcodeType) {
+function buildBarcodeResult(value: string, requestedType: BarcodeType): BarcodeBuildResult {
   const text = value.trim() || '0';
+  const renderWithMeta = (actualType: BarcodeType, standard: string, render: () => string, warning?: string): BarcodeBuildResult => {
+    const meta = { requestedType, actualType, standard, encodedValue: text, warning };
+    return { ...meta, svg: decorateBarcodeSvg(render(), meta) };
+  };
 
   try {
-    if (type === 'QRCODE') {
-      const svg = renderQrCode(
-        { bcid: 'qrcode', text, scale: 2, paddingwidth: 2, paddingheight: 2 },
-        drawingSVG(),
-      );
-      return decorateBarcodeSvg(svg, type, 'qrcode', text);
+    if (requestedType === 'QRCODE') {
+      return renderWithMeta('QRCODE', 'qrcode', () => renderQrCode({ bcid: 'qrcode', text, scale: 3, paddingwidth: 4, paddingheight: 4 }, drawingSVG()));
     }
-
-    if (type === 'EAN13') {
-      const numeric = text.replace(/\D/g, '');
-      if (numeric.length >= 12) {
-        const base = numeric.slice(0, 12);
-        const ean = `${base}${computeEan13CheckDigit(base)}`;
-        const svg = renderEan13(
-          { bcid: 'ean13', text: ean, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-          drawingSVG(),
-        );
-        return decorateBarcodeSvg(svg, type, 'ean13', ean);
+    if (requestedType === 'EAN13') {
+      if (isValidEan13(text)) {
+        return renderWithMeta('EAN13', 'ean13', () => renderEan13({ bcid: 'ean13', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()));
       }
+      return renderWithMeta('C128', 'code128', () => renderCode128({ bcid: 'code128', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()), 'Mã không hợp lệ EAN13 nên hệ thống in Code128 để giữ nguyên dữ liệu gốc.');
     }
-
-    if (type === 'C39') {
-      const code39Text = text.toUpperCase().replace(/[^0-9A-Z .\-/$+%]/g, '-');
-      const svg = renderCode39(
-        { bcid: 'code39', text: code39Text, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-        drawingSVG(),
-      );
-      return decorateBarcodeSvg(svg, type, 'code39', code39Text);
+    if (requestedType === 'C39') {
+      const code39Text = text.toUpperCase();
+      if (!isValidCode39(code39Text)) {
+        const message = 'Mã có ký tự không hỗ trợ Code39. Chọn Code128 để in nguyên mã gốc.';
+        return { requestedType, actualType: 'C39', standard: 'code39', encodedValue: text, error: message, svg: `<span class="barcode-svg-error">${escapeHtml(message)}</span>` };
+      }
+      const meta = { requestedType, actualType: 'C39' as BarcodeType, standard: 'code39', encodedValue: code39Text };
+      return { ...meta, svg: decorateBarcodeSvg(renderCode39({ bcid: 'code39', text: code39Text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()), meta) };
     }
-
-    const svg = renderCode128(
-      { bcid: 'code128', text, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-      drawingSVG(),
-    );
-    return decorateBarcodeSvg(svg, type, 'code128', text);
+    return renderWithMeta('C128', requestedType === 'C128A' ? 'code128a' : 'code128', () => renderCode128({ bcid: 'code128', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()));
   } catch (error) {
-    console.error(`Không thể tạo mã ${type}:`, error);
-    const fallbackText = text.replace(/[^\x20-\x7E]/g, '?') || '0';
-    const svg = renderCode128(
-      { bcid: 'code128', text: fallbackText, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-      drawingSVG(),
-    );
-    return decorateBarcodeSvg(svg, type, 'code128-fallback', fallbackText);
+    console.error(`Không thể tạo mã ${requestedType}:`, error);
+    return { requestedType, actualType: requestedType, standard: requestedType.toLowerCase(), encodedValue: text, error: 'Không thể tạo mã vạch cho dữ liệu này.', svg: '<span class="barcode-svg-error">Không tạo được mã vạch</span>' };
   }
+}
+
+function buildBarcodeSvg(value: string, type: BarcodeType) {
+  return buildBarcodeResult(value, type).svg;
 }
 
 function BarcodeSvg({ value, type }: { value: string; type: BarcodeType }) {
@@ -1235,26 +1245,70 @@ function BulkCategoryModal({
   );
 }
 
+function getBarcodePrintIssues(rows: Array<{ product: IProduct; qty: number }>, barcodeType: BarcodeType) {
+  return rows
+    .map((row) => {
+      const value = normalizeBarcodeValue(row.product);
+      const result = buildBarcodeResult(value, barcodeType);
+      return result.error ? `${row.product.code || value}: ${result.error}` : '';
+    })
+    .filter(Boolean);
+}
+
 function buildPrintDocument({
-  rows,
-  barcodeType,
-  paper,
-  marginLeft,
-  marginTop,
-  showStore,
-  storeName,
-  showCode,
-  showName,
-  showThreeLineName,
-  showPrice,
-  showOldPrice,
-  currencySuffix,
+  rows, barcodeType, paper, marginLeft, marginTop, showStore, storeName, showCode, showName, showThreeLineName, showPrice, showOldPrice, currencySuffix,
 }: {
-  rows: Array<{ product: IProduct; qty: number }>;
+  rows: Array<{ product: IProduct; qty: number }>; barcodeType: BarcodeType; paper: PaperTemplate; marginLeft: number; marginTop: number; showStore: boolean; storeName: string; showCode: boolean; showName: boolean; showThreeLineName: boolean; showPrice: boolean; showOldPrice: boolean; currencySuffix: string;
+}) {
+  const labels = rows.flatMap((row) => Array.from({ length: Math.max(1, row.qty) }, () => row.product));
+  const safeMarginLeft = Math.min(Math.max(0, marginLeft), Math.max(0, paper.pageWidthMm - paper.labelWidthMm));
+  const safeMarginTop = Math.min(Math.max(0, marginTop), Math.max(0, paper.pageHeightMm - paper.labelHeightMm));
+  const gapXmm = paper.gapXmm ?? 0;
+  const gapYmm = paper.gapYmm ?? 0;
+  const labelPaddingYmm = Math.max(0.5, Math.min(1.4, paper.labelHeightMm * 0.055));
+  const labelPaddingXmm = Math.max(0.7, Math.min(2, paper.labelWidthMm * 0.045));
+  const maxBarcodeHeightMm = Math.max(4, paper.labelHeightMm - 5);
+  const barcodeHeightMm = Math.min(Math.max(7, paper.labelHeightMm * 0.58), maxBarcodeHeightMm);
+  const storeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.38));
+  const codeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.34));
+  const nameFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.36));
+  const priceFontPx = Math.max(8, Math.min(13, paper.labelHeightMm * 0.48));
+  const labelHtml = labels.map((product) => {
+    const value = normalizeBarcodeValue(product);
+    const barcode = buildBarcodeResult(value, barcodeType);
+    const safeCurrencySuffix = escapeHtml(currencySuffix);
+    return `<article class="print-label" data-label-width-mm="${paper.labelWidthMm}" data-label-height-mm="${paper.labelHeightMm}">
+      ${showStore && storeName.trim() ? `<div class="print-store">${escapeHtml(storeName)}</div>` : ''}
+      <div class="print-barcode">${barcode.svg}</div>
+      ${showCode ? `<div class="print-code">${escapeHtml(barcode.encodedValue)}</div>` : ''}
+      ${showName ? `<div class="print-name${showThreeLineName ? ' three' : ''}">${escapeHtml(product.name)}</div>` : ''}
+      ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
+      ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
+    </article>`;
+  }).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>In mã vạch sản phẩm</title>
+    <style>
+      @page { size: ${paper.pageWidthMm}mm ${paper.pageHeightMm}mm; margin: 0; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
+      .print-page { width: ${paper.pageWidthMm}mm; min-height: ${paper.pageHeightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; }
+      .sheet { display: grid; grid-template-columns: repeat(${paper.columns}, ${paper.labelWidthMm}mm); grid-auto-rows: ${paper.labelHeightMm}mm; column-gap: ${gapXmm}mm; row-gap: ${gapYmm}mm; align-content: start; justify-content: start; }
+      .print-label { width: ${paper.labelWidthMm}mm; height: ${paper.labelHeightMm}mm; padding: ${labelPaddingYmm}mm ${labelPaddingXmm}mm; overflow: hidden; text-align: center; break-inside: avoid; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; row-gap: 0.25mm; align-items: center; }
+      .print-store { min-height: 1.2em; font-size: ${storeFontPx}px; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .print-barcode { min-height: 0; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+      .barcode-svg { width: 100%; height: 100%; max-height: ${barcodeHeightMm}mm; display: block; fill: #000; }
+      .barcode-svg.qr { width: ${barcodeHeightMm}mm; margin: 0 auto; }
+      .barcode-svg-error { display: block; color: #b91c1c; font-size: 8px; line-height: 1.1; }
+      .print-code { font-size: ${codeFontPx}px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .print-name { font-size: ${nameFontPx}px; line-height: 1.05; max-height: ${showThreeLineName ? Math.max(9, paper.labelHeightMm * 0.28) : Math.max(6, paper.labelHeightMm * 0.18)}mm; overflow: hidden; }
+      .print-name.three { max-height: ${Math.max(10, paper.labelHeightMm * 0.34)}mm; }
+      .print-price { font-size: ${priceFontPx}px; font-weight: 900; line-height: 1.05; white-space: nowrap; }
+      .print-old-price { font-size: ${Math.max(7, priceFontPx - 2)}px; text-decoration: line-through; color: #6b7280; line-height: 1; }
+    </style></head><body><main class="print-page" data-page-width-mm="${paper.pageWidthMm}" data-page-height-mm="${paper.pageHeightMm}"><section class="sheet">${labelHtml}</section></main></body></html>`;
+}
+type BarcodePrintSettings = {
   barcodeType: BarcodeType;
-  paper: PaperTemplate;
-  marginLeft: number;
-  marginTop: number;
+  paperId: string;
   showStore: boolean;
   storeName: string;
   showCode: boolean;
@@ -1263,44 +1317,28 @@ function buildPrintDocument({
   showPrice: boolean;
   showOldPrice: boolean;
   currencySuffix: string;
-}) {
-  const labels = rows.flatMap((row) => Array.from({ length: Math.max(1, row.qty) }, () => row.product));
-  const safeMarginLeft = Math.min(Math.max(0, marginLeft), Math.max(1, paper.widthMm - 1));
-  const safeMarginTop = Math.min(Math.max(0, marginTop), Math.max(1, paper.heightMm - 1));
-  const printableWidthMm = paper.widthMm - safeMarginLeft;
-  const printableHeightMm = paper.heightMm - safeMarginTop;
-  const labelWidthMm = printableWidthMm / paper.columns;
-  const labelHeightMm = paper.rows ? printableHeightMm / paper.rows : printableHeightMm;
-  const labelHtml = labels.map((product) => {
-    const value = normalizeBarcodeValue(product);
-    const safeCurrencySuffix = escapeHtml(currencySuffix);
-    return `<article class="print-label">
-      ${showStore && storeName.trim() ? `<div class="print-store">${escapeHtml(storeName)}</div>` : ''}
-      ${buildBarcodeSvg(value, barcodeType)}
-      ${showCode ? `<div class="print-code">${escapeHtml(value)}</div>` : ''}
-      ${showName ? `<div class="print-name${showThreeLineName ? ' three' : ''}">${escapeHtml(product.name)}</div>` : ''}
-      ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
-      ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
-    </article>`;
-  }).join('');
+  marginLeft: number;
+  marginTop: number;
+  recentPaperIds: string[];
+};
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>In mã vạch sản phẩm</title>
-    <style>
-      @page { size: ${paper.widthMm}mm ${paper.heightMm}mm; margin: 0; }
-      * { box-sizing: border-box; }
-      body { margin: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
-      .print-page { width: ${paper.widthMm}mm; height: ${paper.heightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; }
-      .sheet { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(${paper.columns}, minmax(0, 1fr)); align-content: start; }
-      .print-label { width: 100%; height: ${labelHeightMm}mm; padding: 1.2mm 2mm; overflow: hidden; text-align: center; break-inside: avoid; }
-      .print-store { font-size: 8px; font-weight: 700; line-height: 1; }
-      .barcode-svg { width: 100%; height: ${Math.max(7, labelHeightMm * 0.35)}mm; display: block; fill: #000; }
-      .barcode-svg.qr { height: ${Math.max(8, labelHeightMm * 0.46)}mm; }
-      .print-code { font-size: 7px; line-height: 1.1; }
-      .print-name { font-size: 8px; line-height: 1.05; max-height: 16px; overflow: hidden; }
-      .print-name.three { max-height: 25px; }
-      .print-price { font-size: 9px; font-weight: 800; line-height: 1.1; }
-      .print-old-price { font-size: 8px; text-decoration: line-through; color: #6b7280; }
-    </style></head><body><main class="print-page"><section class="sheet">${labelHtml}</section></main><script>window.onload = () => window.print();</script></body></html>`;
+const BARCODE_SETTINGS_KEY = 'barcodePrintSettings';
+const BARCODE_RECENT_PAPER_LIMIT = 3;
+const BARCODE_RECENT_PAPER_HISTORY = 8;
+
+function loadBarcodePrintSettings(): Partial<BarcodePrintSettings> {
+  try {
+    const raw = window.localStorage.getItem(BARCODE_SETTINGS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Partial<BarcodePrintSettings>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function buildRecentPaperIds(history: string[], paperId: string): string[] {
+  return [paperId, ...history.filter((id) => id !== paperId)].slice(0, BARCODE_RECENT_PAPER_HISTORY);
 }
 
 function BarcodePrintWorkspace({
@@ -1312,22 +1350,31 @@ function BarcodePrintWorkspace({
   onBack: () => void;
   onClearSelection: () => void;
 }) {
+  const savedSettings = useMemo(() => loadBarcodePrintSettings(), []);
   const [rows, setRows] = useState(() => products.map((product) => ({ product, qty: 1 })));
-  const [barcodeType, setBarcodeType] = useState<BarcodeType>('EAN13');
-  const [paperId, setPaperId] = useState(DEFAULT_BARCODE_PAPER_ID);
+  const [barcodeType, setBarcodeType] = useState<BarcodeType>(savedSettings.barcodeType ?? 'EAN13');
+  const [paperId, setPaperId] = useState<string>(() => {
+    const id = savedSettings.paperId;
+    return id && PAPER_TEMPLATES.some((paper) => paper.id === id) ? id : DEFAULT_BARCODE_PAPER_ID;
+  });
+  const [recentPaperIds, setRecentPaperIds] = useState<string[]>(() => {
+    const list = Array.isArray(savedSettings.recentPaperIds) ? savedSettings.recentPaperIds : [];
+    return list.filter((id) => PAPER_TEMPLATES.some((paper) => paper.id === id));
+  });
   const [showAllPapers, setShowAllPapers] = useState(false);
-  const [showStore, setShowStore] = useState(true);
-  const [storeName, setStoreName] = useState('');
-  const [loadingStoreName, setLoadingStoreName] = useState(true);
-  const [showCode, setShowCode] = useState(false);
-  const [showName, setShowName] = useState(true);
-  const [showPrice, setShowPrice] = useState(true);
-  const [showOldPrice, setShowOldPrice] = useState(false);
-  const [showThreeLineName, setShowThreeLineName] = useState(false);
-  const [currencySuffix, setCurrencySuffix] = useState('đ');
-  const [marginLeft, setMarginLeft] = useState(0);
-  const [marginTop, setMarginTop] = useState(0);
+  const [showStore, setShowStore] = useState(savedSettings.showStore ?? true);
+  const [storeName, setStoreName] = useState(typeof savedSettings.storeName === 'string' ? savedSettings.storeName : '');
+  const [loadingStoreName, setLoadingStoreName] = useState(!('storeName' in savedSettings));
+  const [showCode, setShowCode] = useState(savedSettings.showCode ?? false);
+  const [showName, setShowName] = useState(savedSettings.showName ?? true);
+  const [showPrice, setShowPrice] = useState(savedSettings.showPrice ?? true);
+  const [showOldPrice, setShowOldPrice] = useState(savedSettings.showOldPrice ?? false);
+  const [showThreeLineName, setShowThreeLineName] = useState(savedSettings.showThreeLineName ?? false);
+  const [currencySuffix, setCurrencySuffix] = useState(typeof savedSettings.currencySuffix === 'string' && savedSettings.currencySuffix.length > 0 ? savedSettings.currencySuffix : 'đ');
+  const [marginLeft, setMarginLeft] = useState(typeof savedSettings.marginLeft === 'number' && Number.isFinite(savedSettings.marginLeft) ? savedSettings.marginLeft : 0);
+  const [marginTop, setMarginTop] = useState(typeof savedSettings.marginTop === 'number' && Number.isFinite(savedSettings.marginTop) ? savedSettings.marginTop : 0);
   const [barcodeSearch, setBarcodeSearch] = useState('');
+  const barcodeSearchRef = useRef<HTMLInputElement>(null);
   const [barcodeSearchResults, setBarcodeSearchResults] = useState<IProduct[]>([]);
   const [barcodeSearchLoading, setBarcodeSearchLoading] = useState(false);
   const [barcodeSearchError, setBarcodeSearchError] = useState('');
@@ -1335,15 +1382,68 @@ function BarcodePrintWorkspace({
   const [openPrintAction, setOpenPrintAction] = useState(false);
   const barcodeSearchRequestRef = useRef(0);
   const barcodeSearchBlurTimerRef = useRef<number | null>(null);
+  const printingRef = useRef(false);
   const selectedPaper = PAPER_TEMPLATES.find((paper) => paper.id === paperId)
     || PAPER_TEMPLATES.find((paper) => paper.id === DEFAULT_BARCODE_PAPER_ID)
     || PAPER_TEMPLATES[0];
-  const visiblePapers = showAllPapers ? PAPER_TEMPLATES : PAPER_TEMPLATES.filter((paper) => Boolean(paper.rows));
+  const recentPapers = useMemo(() => recentPaperIds
+    .map((id) => PAPER_TEMPLATES.find((paper) => paper.id === id))
+    .filter((paper): paper is PaperTemplate => Boolean(paper))
+    .slice(0, BARCODE_RECENT_PAPER_LIMIT), [recentPaperIds]);
+
+  const visiblePapers = useMemo(() => {
+    if (showAllPapers) return PAPER_TEMPLATES;
+    const list: PaperTemplate[] = [];
+    const selected = PAPER_TEMPLATES.find((paper) => paper.id === paperId) || selectedPaper;
+    if (selected) list.push(selected);
+    for (const paper of recentPapers) {
+      if (list.length >= BARCODE_RECENT_PAPER_LIMIT) break;
+      if (!list.some((entry) => entry.id === paper.id)) list.push(paper);
+    }
+    for (const paper of PAPER_TEMPLATES) {
+      if (list.length >= BARCODE_RECENT_PAPER_LIMIT) break;
+      if (!list.some((entry) => entry.id === paper.id)) list.push(paper);
+    }
+    return list;
+  }, [showAllPapers, recentPapers, paperId, selectedPaper]);
   const previewProduct = rows[0]?.product || products[0];
   const previewBarcodeValue = previewProduct ? normalizeBarcodeValue(previewProduct) : '';
+  const previewBarcodeResult = buildBarcodeResult(previewBarcodeValue, barcodeType);
   const rowIds = useMemo(() => new Set(rows.map((row) => row.product._id)), [rows]);
 
+  const selectPaper = (id: string) => {
+    setPaperId(id);
+    setRecentPaperIds((current) => buildRecentPaperIds(current, id));
+  };
+
   useEffect(() => {
+    const next: BarcodePrintSettings = {
+      barcodeType,
+      paperId,
+      showStore,
+      storeName,
+      showCode,
+      showName,
+      showThreeLineName,
+      showPrice,
+      showOldPrice,
+      currencySuffix,
+      marginLeft,
+      marginTop,
+      recentPaperIds,
+    };
+    try {
+      window.localStorage.setItem(BARCODE_SETTINGS_KEY, JSON.stringify(next));
+    } catch {
+      // localStorage can be disabled by browser privacy settings.
+    }
+  }, [barcodeType, paperId, showStore, storeName, showCode, showName, showThreeLineName, showPrice, showOldPrice, currencySuffix, marginLeft, marginTop, recentPaperIds]);
+
+  useEffect(() => {
+    if ('storeName' in savedSettings) {
+      setLoadingStoreName(false);
+      return;
+    }
     let active = true;
     http.get('/settings/store')
       .then((response) => {
@@ -1358,7 +1458,7 @@ function BarcodePrintWorkspace({
     return () => {
       active = false;
     };
-  }, []);
+  }, [savedSettings]);
 
   const fetchProductsForBarcodeSearch = async (query: string) => {
     const responses = await Promise.allSettled([
@@ -1425,6 +1525,38 @@ function BarcodePrintWorkspace({
     setBarcodeSearchOpen(false);
   };
 
+  const handleBarcodeScan = async (rawBarcode: string) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    const lower = query.toLocaleLowerCase('vi-VN');
+    try {
+      const productsFound = await fetchProductsForBarcodeSearch(query);
+      const exactMatch = productsFound.find((product) =>
+        [product.barcode, product.code].some((value) => String(value || '').trim().toLocaleLowerCase('vi-VN') === lower),
+      );
+      if (exactMatch) {
+        addProductToPrint(exactMatch);
+        window.setTimeout(() => barcodeSearchRef.current?.focus(), 0);
+        return;
+      }
+      if (productsFound.length > 0) {
+        setBarcodeSearch(query);
+        setBarcodeSearchResults(productsFound);
+        setBarcodeSearchOpen(true);
+        return;
+      }
+      setBarcodeSearch(query);
+      setBarcodeSearchOpen(true);
+    } catch (error) {
+      console.error('Lỗi quét mã vạch vào danh sách in:', error);
+      setBarcodeSearch(query);
+      setBarcodeSearchError('Không thể tìm sản phẩm từ mã vừa quét.');
+      setBarcodeSearchOpen(true);
+    }
+  };
+
+  useProductScanTarget(barcodeSearchRef, handleBarcodeScan);
+
   const handleBarcodeSearchKeyDown = async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
@@ -1483,13 +1615,23 @@ function BarcodePrintWorkspace({
   };
 
   const openPrintPreview = (paper: PaperTemplate) => {
+    if (printingRef.current) return;
     if (rows.length === 0) {
       alert('Vui lòng giữ lại ít nhất một sản phẩm để in mã vạch.');
       return;
     }
 
+    const printIssues = getBarcodePrintIssues(rows, barcodeType);
+    if (printIssues.length) {
+      alert(`Không thể in vì chuẩn mã vạch không tương thích:\n${printIssues.slice(0, 5).join('\n')}`);
+      return;
+    }
+
+    setRecentPaperIds((current) => buildRecentPaperIds(current, paper.id));
+    if (paperId !== paper.id) setPaperId(paper.id);
+
     const html = buildPrintDocument({
-      rows,
+      rows: rows,
       barcodeType,
       paper,
       marginLeft,
@@ -1503,15 +1645,52 @@ function BarcodePrintWorkspace({
       showOldPrice,
       currencySuffix,
     });
+    printingRef.current = true;
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Trình duyệt đang chặn cửa sổ in. Vui lòng cho phép pop-up để xem và in.');
+      printingRef.current = false;
+      alert('Trình duyệt đang chặn cửa sổ in. Vui lòng cho phép pop-up để xem và in mã vạch. Vui lòng cho phép pop-up rồi bấm lại.');
       return;
     }
     printWindow.opener = null;
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
+
+    const expectedLabels = rows.reduce((total, row) => total + Math.max(1, row.qty), 0);
+    let didPrint = false;
+    const firePrint = () => {
+      if (didPrint) return;
+      didPrint = true;
+      try { printWindow.focus(); } catch { /* ignore focus errors */ }
+      try { printWindow.print(); } catch { /* ignore print errors */ }
+      printingRef.current = false;
+    };
+    const schedule = (callback: () => void) => {
+      if (typeof printWindow.requestAnimationFrame === 'function') printWindow.requestAnimationFrame(callback);
+      else if (typeof printWindow.setTimeout === 'function') printWindow.setTimeout(callback, 60);
+      else callback();
+    };
+    const pollReady = (attemptsLeft: number) => {
+      if (didPrint) return;
+      const doc = printWindow.document;
+      const canInspect = typeof doc.querySelectorAll === 'function';
+      let ready = true;
+      if (canInspect) {
+        const nodes = doc.querySelectorAll('svg.barcode-svg, span.barcode-svg-error');
+        const barcodesReady = expectedLabels > 0 ? nodes.length >= expectedLabels : nodes.length > 0;
+        ready = barcodesReady && (doc.readyState === 'complete' || doc.readyState === 'interactive');
+      }
+      if (ready || attemptsLeft <= 0) {
+        firePrint();
+        return;
+      }
+      schedule(() => pollReady(attemptsLeft - 1));
+    };
+    if (typeof printWindow.addEventListener === 'function') {
+      printWindow.addEventListener('afterprint', () => { try { printWindow.close(); } catch { /* ignore close errors */ } }, { once: true });
+    }
+    schedule(() => pollReady(24));
   };
 
   return (
@@ -1556,6 +1735,7 @@ function BarcodePrintWorkspace({
               <label className="barcode-search-row">
                 <Search size={16} />
                 <input
+                  ref={barcodeSearchRef}
                   value={barcodeSearch}
                   onChange={(event) => setBarcodeSearch(event.target.value)}
                   onFocus={() => {
@@ -1572,7 +1752,7 @@ function BarcodePrintWorkspace({
                     }, 120);
                   }}
                   onKeyDown={handleBarcodeSearchKeyDown}
-                  placeholder="Tìm hoặc quét tên, mã sản phẩm, barcode"
+                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm hoặc quét tên, mã sản phẩm, barcode"
                   autoComplete="off"
                   aria-expanded={barcodeSearchOpen}
                   aria-controls="barcode-product-results"
@@ -1652,6 +1832,7 @@ function BarcodePrintWorkspace({
             <div className="barcode-preview-label">
               {showStore && storeName.trim() ? <div className="barcode-preview-store">{storeName}</div> : null}
               <BarcodeSvg value={previewBarcodeValue} type={barcodeType} />
+              <div className={previewBarcodeResult.error ? 'barcode-standard-note danger' : previewBarcodeResult.warning ? 'barcode-standard-note warning' : 'barcode-standard-note'}>Đang dùng: {previewBarcodeResult.actualType}{previewBarcodeResult.warning ? ` · ${previewBarcodeResult.warning}` : ''}{previewBarcodeResult.error ? ` · ${previewBarcodeResult.error}` : ''}</div>
               {showCode ? <div className="barcode-preview-code">{previewBarcodeValue}</div> : null}
               {showName ? <div className={`barcode-preview-name ${showThreeLineName ? 'three' : ''}`}>{previewProduct?.name || 'Tên sản phẩm'}</div> : null}
               {showPrice ? <div className="barcode-preview-price">{Number(previewProduct?.price || 0).toLocaleString('vi-VN')} {currencySuffix}</div> : null}
@@ -1687,13 +1868,13 @@ function BarcodePrintWorkspace({
               <label>Trên: <input type="number" value={marginTop} onChange={(event) => setMarginTop(Number(event.target.value))} /></label>
             </div>
             <button className="barcode-show-all" type="button" onClick={() => setShowAllPapers((current) => !current)}>
-              {showAllPapers ? 'Ẩn khổ giấy cuộn' : 'Hiển thị khổ giấy cuộn'}
+              {showAllPapers ? 'Ẩn bớt khổ giấy' : 'Hiển thị thêm khổ giấy in'}
             </button>
             <div className="barcode-paper-list">
               {visiblePapers.map((paper) => (
                 <article className="barcode-paper-item" key={paper.id}>
                   <label>
-                    <input type="radio" checked={paperId === paper.id} onChange={() => setPaperId(paper.id)} />
+                    <input type="radio" checked={paperId === paper.id} onChange={() => selectPaper(paper.id)} />
                     <span><strong>{paper.title}</strong><em>- {paper.size}</em></span>
                   </label>
                   <div className={`barcode-paper-preview ${paper.previewClass}`} aria-hidden="true" />
@@ -1725,6 +1906,7 @@ export function ProductList({
   const [items, setItems] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftSearch, setDraftSearch] = useState('');
+  const productListSearchRef = useRef<HTMLInputElement>(null);
   const [draftStatus, setDraftStatus] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('');
@@ -1872,6 +2054,18 @@ export function ProductList({
     setAppliedSearch(draftSearch.trim());
     setAppliedStatus(draftStatus);
   };
+
+  const handleProductListScan = (barcode: string) => {
+    const query = barcode.trim();
+    if (!query) return;
+    setDraftSearch(query);
+    setAppliedSearch(query);
+    setAppliedStatus('');
+    setPage(1);
+    window.setTimeout(() => productListSearchRef.current?.focus(), 0);
+  };
+
+  useProductScanTarget(productListSearchRef, handleProductListScan);
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -2186,9 +2380,10 @@ export function ProductList({
               <div className="products-inline-control">
                 <Search size={16} />
                 <input
+                  ref={productListSearchRef}
                   value={draftSearch}
                   onChange={(event) => setDraftSearch(event.target.value)}
-                  placeholder="Tìm theo tên, mã hoặc barcode..."
+                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm theo tên, mã hoặc barcode..."
                 />
               </div>
             </label>

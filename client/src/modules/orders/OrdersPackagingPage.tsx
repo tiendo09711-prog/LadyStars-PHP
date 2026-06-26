@@ -890,7 +890,7 @@ export function OrdersPackagingPage() {
                     <input 
                       ref={productInputRef}
                       type="text" 
-                      placeholder="Quét mã vạch SKU sản phẩm"
+                      data-product-search-scan="true" data-product-search-primary="true" placeholder="Quét mã vạch SKU sản phẩm"
                       disabled={!activeOrder}
                       value={productSearchQuery}
                       onChange={(e) => setProductSearchQuery(e.target.value)}

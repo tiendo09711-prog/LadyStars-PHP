@@ -4,7 +4,7 @@ const money = { type: Number, default: 0, min: 0 };
 
 const CategorySchema = new Schema({
   name: { type: String, required: true, unique: true },
-  code: String,
+  code: { type: String, unique: true, sparse: true },
   parentId: { type: Schema.Types.ObjectId, ref: 'Category' },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   isActive: { type: Boolean, default: true },

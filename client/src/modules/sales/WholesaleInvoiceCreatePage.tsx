@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -142,6 +143,7 @@ export function WholesaleInvoiceCreatePage() {
   const [dbStaffs, setDbStaffs] = useState<any[]>([]);
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const productSearchRef = useRef<HTMLInputElement>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [productTypeTab, setProductTypeTab] = useState<'normal' | 'imei'>('normal');
@@ -375,6 +377,24 @@ export function WholesaleInvoiceCreatePage() {
   };
 
   // Add Product Helpers
+  const handleProductScan = (rawBarcode: string) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    const lower = query.toLowerCase();
+    const barcodeMatches = dbProducts.filter((p) => String(p.barcode || '').trim().toLowerCase() === lower);
+    const codeMatches = barcodeMatches.length ? [] : dbProducts.filter((p) => String(p.code || '').trim().toLowerCase() === lower);
+    const exactMatches = barcodeMatches.length ? barcodeMatches : codeMatches;
+    if (exactMatches.length === 1) {
+      addProduct(exactMatches[0]);
+      window.setTimeout(() => productSearchRef.current?.focus(), 0);
+      return;
+    }
+    setSearchQuery(query);
+    setShowSearchResults(true);
+  };
+
+  useProductScanTarget(productSearchRef, handleProductScan);
+
   const addProduct = (prod: any) => {
     const existing = products.find(p => p.code === prod.code);
     if (existing) {
@@ -585,7 +605,8 @@ export function WholesaleInvoiceCreatePage() {
 
   // Local Search Autocomplete list (filtered by stock in the selected warehouse)
   const autocompleteList = searchQuery.trim() === '' ? [] : dbProducts.filter(p => {
-    const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.code?.toLowerCase().includes(searchQuery.toLowerCase());
+    const keyword = searchQuery.toLowerCase();
+    const matchesSearch = p.barcode?.toLowerCase() === keyword || p.code?.toLowerCase() === keyword || p.name?.toLowerCase().includes(keyword) || p.code?.toLowerCase().includes(keyword) || p.barcode?.toLowerCase().includes(keyword);
     const stock = getStockForWarehouse(p);
     return matchesSearch && stock > 0;
   }).slice(0, 10);
@@ -763,7 +784,8 @@ export function WholesaleInvoiceCreatePage() {
                   <input
                     type="text"
                     id="product-search-input"
-                    placeholder="(F3) Tìm sản phẩm..."
+                    ref={productSearchRef}
+                    data-product-search-scan="true" data-product-search-primary="true" placeholder="(F3) Tìm sản phẩm..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);

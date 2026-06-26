@@ -889,8 +889,8 @@
 }
 
 .barcode-preview-label {
-  width: 230px;
-  min-height: 142px;
+  width: min(260px, 100%);
+  min-height: 0;
   margin: 20px auto 16px;
   padding: 12px 16px;
   border: 1px solid #94a3b8;
@@ -923,6 +923,21 @@
 
 .barcode-preview-code {
   font-size: 11px;
+}
+
+.barcode-standard-note {
+  margin-top: 4px;
+  color: #166534;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.barcode-standard-note.warning {
+  color: #b45309;
+}
+
+.barcode-standard-note.danger {
+  color: #b91c1c;
 }
 
 .barcode-preview-name {
@@ -1436,6 +1451,77 @@
   border-radius: var(--product-pilot-radius) !important;
   background: #fff !important;
   box-shadow: 0 22px 48px rgba(15, 23, 42, 0.18) !important;
+}
+
+.storage-action-cell {
+  overflow: visible !important;
+  position: relative;
+}
+
+.storage-action-menu {
+  display: inline-flex;
+  justify-content: center;
+  position: relative;
+}
+
+.storage-action-trigger {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: #475569;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  width: 34px;
+}
+
+.storage-action-trigger:hover,
+.storage-action-trigger[aria-expanded="true"] {
+  background: #f8fafc;
+  border-color: #93c5fd;
+  color: var(--product-pilot-primary);
+}
+
+.storage-action-dropdown {
+  background: #fff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
+  display: grid;
+  gap: 2px;
+  left: 50%;
+  min-width: 58px;
+  padding: 4px;
+  position: absolute;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+.storage-action-option {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  border-radius: 6px;
+  color: #64748b;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 3px;
+  justify-content: center;
+  line-height: 1.05;
+  padding: 4px 6px;
+  white-space: normal;
+}
+
+.storage-action-option:hover {
+  background: #f8fafc;
+  color: var(--product-pilot-primary);
+}
+
+.storage-action-option-primary {
+  color: #16a34a;
 }
 /* ===== Compact Product workspace: merged hero + list header ===== */
 .products-workspace-card {

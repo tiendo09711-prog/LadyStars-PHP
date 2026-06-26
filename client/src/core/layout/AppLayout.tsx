@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeftRight,
@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { http } from '../api/http';
 import { canAccessPath, isAdminRole, normalizeRole, roleLabel } from '../auth/access';
+import { useProductScannerBridge } from '../hooks/productScanner';
 
 type MenuLeaf = {
   to: string;
@@ -308,6 +309,7 @@ type StoreSettings = {
 };
 
 export function AppLayout() {
+  useProductScannerBridge();
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<CurrentUser | null>(null);
