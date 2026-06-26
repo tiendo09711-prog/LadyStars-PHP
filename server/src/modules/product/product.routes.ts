@@ -16,7 +16,6 @@ import {
 import { Branch } from '../../core/org/branch.model.js';
 import { resolveBranchReference } from '../../core/org/branch.service.js';
 import { Customer } from '../customer/customer.models.js';
-import { Order } from '../orders/orders.models.js';
 import multer from 'multer';
 import * as xlsx from 'xlsx';
 import mongoose from 'mongoose';
@@ -1422,17 +1421,12 @@ router.get('/storage-duration', async (req, res) => {
     const productCodes = products.map(p => p.code).filter(Boolean);
 
     // Fetch all related transactions in parallel for O(1) in-memory resolution
-    const [batches, salePayments, orders, stockAdjustments] = await Promise.all([
+    const [batches, salePayments, stockAdjustments] = await Promise.all([
       Batch.find({ productId: { $in: productIds } }).lean(),
       SalePayment.find(
         targetBranchId
           ? { status: 'completed', 'items.productId': { $in: productIds }, branchId: targetBranchId }
           : { status: 'completed', 'items.productId': { $in: productIds } }
-      ).lean(),
-      Order.find(
-        targetBranchId && branchName
-          ? { 'products.productId': { $in: productIds }, status: { $ne: 'Đã hủy' }, warehouse: branchName }
-          : { 'products.productId': { $in: productIds }, status: { $ne: 'Đã hủy' } }
       ).lean(),
       StockAdjustment.find(
         targetBranchId
@@ -1461,17 +1455,6 @@ router.get('/storage-duration', async (req, res) => {
       }
     }
 
-
-    const ordersMap = new Map<string, any>();
-    for (const o of orders) {
-      for (const item of o.products || []) {
-        const pidStr = String(item.productId);
-        const existing = ordersMap.get(pidStr);
-        if (!existing || new Date(o.createdAt) > new Date(existing.createdAt)) {
-          ordersMap.set(pidStr, o);
-        }
-      }
-    }
 
     const stockAdjustmentsMap = new Map<string, any>();
     for (const sa of stockAdjustments) {
@@ -1520,7 +1503,6 @@ router.get('/storage-duration', async (req, res) => {
       // Find last sold from the maps
       const lastSale = salePaymentsMap.get(String(product._id));
 
-      const lastOrder = ordersMap.get(String(product._id));
 
       const firstTransactionDate = oldestBatch
         ? (oldestBatch.manufactureDate || oldestBatch.createdAt || product.createdAt)
@@ -1547,7 +1529,6 @@ router.get('/storage-duration', async (req, res) => {
       const soldDates: Date[] = [];
       if (lastSale) soldDates.push(new Date(lastSale.completedAt || lastSale.createdAt));
 
-      if (lastOrder) soldDates.push(new Date(lastOrder.createdAt));
 
       if (soldDates.length > 0) {
         lastSoldDate = new Date(Math.max(...soldDates.map(d => d.getTime())));

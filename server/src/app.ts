@@ -13,13 +13,11 @@ import settingsRoutes from './core/settings/settings.routes.js';
 import auditRoutes from './core/audit/audit.routes.js';
 import productRoutes from './modules/product/product.routes.js';
 import customerRoutes from './modules/customer/customer.routes.js';
-import accountingRoutes from './modules/accounting/accounting.routes.js';
 import taskRoutes from './modules/task/task.routes.js';
 import printFormsRoutes from './modules/printForms/printForms.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import warehouseRoutes from './modules/warehouse/warehouse.routes.js';
 import inventoryAuditRoutes, { inventoryAuditItemsRouter } from './modules/warehouse/inventory-audit.routes.js';
-import ordersRoutes from './modules/orders/orders.routes.js';
 import reportsRoutes from './modules/reports/reports.routes.js';
 
 
@@ -52,13 +50,11 @@ app.use('/api/audit-logs', requireAuth, requireOwner, auditRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/products', requireAuth, productRoutes);
 app.use('/api/customers', requireAuth, customerRoutes);
-app.use('/api/accounting', requireAuth, requireOwner, accountingRoutes);
 app.use('/api/tasks', requireAuth, requireOwner, taskRoutes);
 app.use('/api/print-forms', requireAuth, requireOwner, printFormsRoutes);
 app.use('/api/warehouse', requireAuth, warehouseRoutes);
 app.use('/api/inventory-audits', requireAuth, inventoryAuditRoutes);
 app.use('/api/inventory-audit-items', requireAuth, inventoryAuditItemsRouter);
-app.use('/api/orders', requireAuth, ordersRoutes);
 app.use('/api/reports', requireAuth, requireOwner, reportsRoutes);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

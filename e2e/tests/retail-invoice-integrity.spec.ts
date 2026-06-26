@@ -308,10 +308,6 @@ test.describe('Retail invoice integrity', () => {
     const headers = await authHeaders(page);
     const today = todayIsoDate();
 
-    const accountingBeforeResponse = await page.request.get(`${API_BASE}/accounting/reports/sales?page=1&limit=10`, { headers });
-    expect(accountingBeforeResponse.ok()).toBeTruthy();
-    const accountingBefore = await accountingBeforeResponse.json();
-    const accountingBaseline = Number(accountingBefore.summary?.revenue || 0);
 
     const sale = await createCompletedSale(page.request, headers, {
       code: `${prefix}SALE_MAIN`,
@@ -339,10 +335,6 @@ test.describe('Retail invoice integrity', () => {
     const dashboardPayload = await dashboardResponse.json();
     expect(Number(dashboardPayload.totals?.revenue || 0)).toBe(700000);
 
-    const accountingAfterFirstResponse = await page.request.get(`${API_BASE}/accounting/reports/sales?page=1&limit=10`, { headers });
-    expect(accountingAfterFirstResponse.ok()).toBeTruthy();
-    const accountingAfterFirst = await accountingAfterFirstResponse.json();
-    expect(Number(accountingAfterFirst.summary?.revenue || 0) - accountingBaseline).toBe(700000);
 
     const customerAfterFirst = await getCustomerByPhone(page, headers, fixture.customer.phone);
     expect(Number(customerAfterFirst.totalSpent || 0)).toBe(700000);
@@ -359,10 +351,6 @@ test.describe('Retail invoice integrity', () => {
     expect(Number(customerAfterSecond.totalSpent || 0)).toBe(0);
     expect(Number(customerAfterSecond.purchaseCount || 0)).toBe(0);
 
-    const accountingAfterSecondResponse = await page.request.get(`${API_BASE}/accounting/reports/sales?page=1&limit=10`, { headers });
-    expect(accountingAfterSecondResponse.ok()).toBeTruthy();
-    const accountingAfterSecond = await accountingAfterSecondResponse.json();
-    expect(Number(accountingAfterSecond.summary?.revenue || 0) - accountingBaseline).toBe(0);
   });
 
   test('creates a real draft refund with valid payment lines for legacy edit coverage', async ({ page }) => {

@@ -17,22 +17,6 @@ import { CustomerLevelPage } from './modules/customer/CustomerLevelPage';
 import { CustomerGroupPage } from './modules/customer/CustomerGroupPage';
 import { CustomerCareTypePage } from './modules/customer/CustomerCareTypePage';
 import { CustomerCareReasonPage } from './modules/customer/CustomerCareReasonPage';
-import { AccountingPage } from './modules/accounting/AccountingPage';
-import { CashReceiptsPage } from './modules/accounting/CashReceiptsPage';
-import { CashReceiptCreatePage } from './modules/accounting/CashReceiptCreatePage';
-import { BankReceiptsPage } from './modules/accounting/BankReceiptsPage';
-import { BankReceiptCreatePage } from './modules/accounting/BankReceiptCreatePage';
-import { ReceiptsSummaryPage } from './modules/accounting/ReceiptsSummaryPage';
-import { CustomerDebtPage } from './modules/accounting/CustomerDebtPage';
-import { StaffDebtPage } from './modules/accounting/StaffDebtPage';
-import { VendorDebtPage } from './modules/accounting/VendorDebtPage';
-import { InitialDebtPage } from './modules/accounting/InitialDebtPage';
-import { JournalEntriesPage } from './modules/accounting/JournalEntriesPage';
-import { JournalPage } from './modules/accounting/JournalPage';
-import { InstallmentCollectionPage } from './modules/accounting/InstallmentCollectionPage';
-import { AccountingHistoryPage } from './modules/accounting/AccountingHistoryPage';
-import { AccountingAccountsPage } from './modules/accounting/AccountingAccountsPage';
-import { InstallmentServicesPage } from './modules/accounting/InstallmentServicesPage';
 import { TaskPage } from './modules/task/TaskPage';
 import { PrintFormsPage } from './modules/printForms/PrintFormsPage';
 import { StaffPage } from './modules/staff/StaffPage';
@@ -60,19 +44,6 @@ import { RevenueByProductPage } from './modules/reports/RevenueByProductPage';
 import { RevenueByVendorPage } from './modules/reports/RevenueByVendorPage';
 import { RevenueByCustomerPage } from './modules/reports/RevenueByCustomerPage';
 import { RevenueInventoryRatioPage } from './modules/reports/RevenueInventoryRatioPage';
-import { OrdersByChannelPage } from './modules/reports/OrdersByChannelPage';
-import { OrdersCreatedPage } from './modules/reports/OrdersCreatedPage';
-import { OrdersSuccessPage } from './modules/reports/OrdersSuccessPage';
-import { OrdersByValuePage } from './modules/reports/OrdersByValuePage';
-import { OrdersByCategoryPage } from './modules/reports/OrdersByCategoryPage';
-import { OrdersByProductPage } from './modules/reports/OrdersByProductPage';
-import { OrdersByStatusPage } from './modules/reports/OrdersByStatusPage';
-import { OrdersByAddressPage } from './modules/reports/OrdersByAddressPage';
-import { OrdersByReasonPage } from './modules/reports/OrdersByReasonPage';
-import { OrdersByStaffPage } from './modules/reports/OrdersByStaffPage';
-import { OrdersByAdsPage } from './modules/reports/OrdersByAdsPage';
-import { OrdersCodReconciliationPage } from './modules/reports/OrdersCodReconciliationPage';
-import { OrdersByCarrierPage } from './modules/reports/OrdersByCarrierPage';
 import { RetailOverviewPage } from './modules/reports/RetailOverviewPage';
 import { RetailByCustomerSourcePage } from './modules/reports/RetailByCustomerSourcePage';
 import { RetailByStaffPage } from './modules/reports/RetailByStaffPage';
@@ -100,14 +71,6 @@ import { SalesChannelSubPage } from './modules/sales/SalesChannelSubPage';
 import { RetailInvoiceCreatePage } from './modules/sales/RetailInvoiceCreatePage';
 import { WholesaleInvoiceCreatePage } from './modules/sales/WholesaleInvoiceCreatePage';
 import { RefundInvoiceCreatePage } from './modules/sales/RefundInvoiceCreatePage';
-import { OrdersManagePage } from './modules/orders/OrdersManagePage';
-import { OrdersPackagingPage } from './modules/orders/OrdersPackagingPage';
-import { OrdersHandoverPage } from './modules/orders/OrdersHandoverPage';
-import { OrdersShippingPendingPage } from './modules/orders/OrdersShippingPendingPage';
-import { OrdersDisputesPage } from './modules/orders/OrdersDisputesPage';
-import { OrdersCodControlPage } from './modules/orders/OrdersCodControlPage';
-import { OrdersSourcesPage } from './modules/orders/OrdersSourcesPage';
-import { OrdersHistoryPage } from './modules/orders/OrdersHistoryPage';
 import './styles/app.css';
 import './styles/phase-rescue.css';
 
@@ -163,34 +126,10 @@ const router = createBrowserRouter([
       { path: 'sales-channels/:channel/:action', element: <SalesChannelSubPage /> },
 
       // ── Vận hành ────────────────────────────────────────────
-      { path: 'accounting', element: <AccountingPage /> },
-      { path: 'accounting/cash', element: <CashReceiptsPage /> },
-      { path: 'accounting/cash/create', element: <CashReceiptCreatePage /> },
-      { path: 'accounting/bank', element: <BankReceiptsPage /> },
-      { path: 'accounting/bank/create', element: <BankReceiptCreatePage /> },
-      { path: 'accounting/summary', element: <ReceiptsSummaryPage /> },
-      { path: 'accounting/debt/customers', element: <CustomerDebtPage /> },
-      { path: 'accounting/debt/staff', element: <StaffDebtPage /> },
-      { path: 'accounting/debt/vendors', element: <VendorDebtPage /> },
-      { path: 'accounting/debt/initial', element: <InitialDebtPage /> },
-      { path: 'accounting/entries', element: <JournalEntriesPage /> },
-      { path: 'accounting/journal', element: <JournalPage /> },
-      { path: 'accounting/installment-collection', element: <InstallmentCollectionPage /> },
-      { path: 'accounting/history', element: <AccountingHistoryPage /> },
-      { path: 'accounting/accounts', element: <AccountingAccountsPage /> },
-      { path: 'accounting/installment', element: <InstallmentServicesPage /> },
       { path: 'tasks', element: <TaskPage /> },
       { path: 'print-forms', element: <PrintFormsPage /> },
 
       // ── Đơn hàng ────────────────────────────────────────────
-      { path: 'orders/manage', element: <OrdersManagePage /> },
-      { path: 'orders/packing', element: <OrdersPackagingPage /> },
-      { path: 'orders/handover', element: <OrdersHandoverPage /> },
-      { path: 'orders/shipping-pending', element: <OrdersShippingPendingPage /> },
-      { path: 'orders/disputes', element: <OrdersDisputesPage /> },
-      { path: 'orders/cod-control', element: <OrdersCodControlPage /> },
-      { path: 'orders/sources', element: <OrdersSourcesPage /> },
-      { path: 'orders/history', element: <OrdersHistoryPage /> },
 
       // ── Nhân viên & Cài đặt ────────────────────────────────────
       { path: 'staff', element: <StaffPage /> },
@@ -211,19 +150,6 @@ const router = createBrowserRouter([
       { path: 'reports/revenue/vendor', element: <RevenueByVendorPage /> },
       { path: 'reports/revenue/customer', element: <RevenueByCustomerPage /> },
       { path: 'reports/revenue/inventory-ratio', element: <RevenueInventoryRatioPage /> },
-      { path: 'reports/orders/channel', element: <OrdersByChannelPage /> },
-      { path: 'reports/orders/created', element: <OrdersCreatedPage /> },
-      { path: 'reports/orders/success', element: <OrdersSuccessPage /> },
-      { path: 'reports/orders/value', element: <OrdersByValuePage /> },
-      { path: 'reports/orders/category', element: <OrdersByCategoryPage /> },
-      { path: 'reports/orders/product', element: <OrdersByProductPage /> },
-      { path: 'reports/orders/status', element: <OrdersByStatusPage /> },
-      { path: 'reports/orders/address', element: <OrdersByAddressPage /> },
-      { path: 'reports/orders/reason', element: <OrdersByReasonPage /> },
-      { path: 'reports/orders/staff', element: <OrdersByStaffPage /> },
-      { path: 'reports/orders/ads', element: <OrdersByAdsPage /> },
-      { path: 'reports/orders/cod-reconciliation', element: <OrdersCodReconciliationPage /> },
-      { path: 'reports/orders/carrier', element: <OrdersByCarrierPage /> },
       { path: 'reports/retail/overview', element: <RetailOverviewPage /> },
       { path: 'reports/retail/customer-source', element: <RetailByCustomerSourcePage /> },
       { path: 'reports/retail/staff', element: <RetailByStaffPage /> },

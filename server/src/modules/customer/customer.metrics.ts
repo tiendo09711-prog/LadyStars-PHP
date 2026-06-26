@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
 import { Customer } from './customer.models.js';
-import { Order } from '../orders/orders.models.js';
 import { ProductRefund, SalePayment } from '../product/product.models.js';
 
-const VALID_ORDER_STATUSES = ['Hoàn thành', 'In và đóng gói', 'Đang chuyển', 'Đã chuyển'];
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 type CustomerLike = {
@@ -66,9 +64,6 @@ function quantityFromSaleItems(items: Array<{ amount?: number | null }> = []) {
   return items.reduce((sum, item) => sum + toNumber(item.amount), 0);
 }
 
-function quantityFromOrderProducts(products: Array<{ quantity?: number | null }> = []) {
-  return products.reduce((sum, item) => sum + toNumber(item.quantity), 0);
-}
 
 function buildEmptyMetrics(): CustomerMetricsSnapshot {
   return {
@@ -135,25 +130,12 @@ export async function buildCustomerMetricsMap(customers: CustomerLike[]) {
     }
   }
 
-  const [sales, orders] = await Promise.all([
-    SalePayment.find({
+  const sales = await SalePayment.find({
       customerId: { $in: customerIds },
       status: 'completed',
     })
       .select('customerId value completedAt createdAt items amountProducts')
-      .lean(),
-    phones.size || names.size
-      ? Order.find({
-        status: { $in: VALID_ORDER_STATUSES },
-        $or: [
-          ...(phones.size ? [{ customerPhone: { $in: [...phones] } }] : []),
-          ...(names.size ? [{ customerName: { $in: [...names] } }] : []),
-        ],
-      })
-        .select('customerPhone customerName totalAmount createdAt products')
-        .lean()
-      : Promise.resolve([]),
-  ]);
+      .lean();
 
   const saleIds = sales
     .map((sale: any) => toObjectIdString(sale._id))
@@ -198,28 +180,6 @@ export async function buildCustomerMetricsMap(customers: CustomerLike[]) {
       quantity: netQuantity,
       occurredAt,
     });
-  }
-
-  for (const order of orders as any[]) {
-    const matchedCustomerIds = new Set<string>();
-    const phone = normalizePhone(order.customerPhone);
-    const name = normalizeText(order.customerName);
-    if (phoneToCustomerIds.has(phone)) {
-      for (const customerId of phoneToCustomerIds.get(phone) || []) matchedCustomerIds.add(customerId);
-    }
-    if (nameToCustomerIds.has(name)) {
-      for (const customerId of nameToCustomerIds.get(name) || []) matchedCustomerIds.add(customerId);
-    }
-    if (!matchedCustomerIds.size) continue;
-    const occurredAt = new Date(order.createdAt || new Date());
-    const event: PurchaseEvent = {
-      amount: toNumber(order.totalAmount),
-      quantity: quantityFromOrderProducts(order.products || []),
-      occurredAt,
-    };
-    for (const customerId of matchedCustomerIds) {
-      metricsByCustomer.get(customerId)?.push(event);
-    }
   }
 
   const result = new Map<string, CustomerMetricsSnapshot>();

@@ -1,4 +1,4 @@
-﻿import { test, expect, request, type APIRequestContext } from '@playwright/test';
+import { test, expect, request, type APIRequestContext } from '@playwright/test';
 import { MongoClient, ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -253,8 +253,8 @@ test.describe.serial('runtime role access matrix on isolated E2E DB', () => {
     const adminContext = await browser.newContext({ storageState: storageState(adminToken) as any });
     const adminPage = await adminContext.newPage();
     await adminPage.goto('/');
-    for (const text of ['Kế toán', 'Vận hành', 'Báo cáo', 'Quản lý nhân viên', 'Cài đặt']) await expect(adminPage.getByText(text, { exact: false })).toBeVisible();
-    for (const url of ['/staff/create', '/staff/accounts', '/staff/stats', '/warehouse/branches', '/accounting/cash', '/tasks', '/print-forms', '/reports/revenue/time', '/settings']) {
+    for (const text of ['Vận hành', 'Báo cáo', 'Quản lý nhân viên', 'Cài đặt']) await expect(adminPage.getByText(text, { exact: false })).toBeVisible();
+    for (const url of ['/staff/create', '/staff/accounts', '/staff/stats', '/warehouse/branches', '/tasks', '/print-forms', '/reports/revenue/time', '/settings']) {
       await adminPage.goto(url);
       await expect(adminPage).toHaveURL(new RegExp(url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     }
@@ -263,13 +263,13 @@ test.describe.serial('runtime role access matrix on isolated E2E DB', () => {
     const employeeContext = await browser.newContext({ storageState: storageState(sourceToken) as any });
     const page = await employeeContext.newPage();
     await page.goto('/');
-    for (const text of ['Dashboard', 'Sản phẩm', 'Kho hàng', 'Kênh bán', 'Đơn hàng', 'Khách hàng', 'Cài đặt']) await expect(page.getByText(text, { exact: false })).toBeVisible();
-    for (const text of ['Kế toán', 'Vận hành', 'Báo cáo', 'Quản lý nhân viên', 'Cấu hình kho hàng']) await expect(page.getByText(text, { exact: false })).toHaveCount(0);
-    for (const url of ['/staff/accounts', '/accounting/cash', '/tasks', '/print-forms', '/reports/revenue/time', '/warehouse/branches']) {
+    for (const text of ['Dashboard', 'Sản phẩm', 'Kho hàng', 'Kênh bán', 'Khách hàng', 'Cài đặt']) await expect(page.getByText(text, { exact: false })).toBeVisible();
+    for (const text of ['Vận hành', 'Báo cáo', 'Quản lý nhân viên', 'Cấu hình kho hàng']) await expect(page.getByText(text, { exact: false })).toHaveCount(0);
+    for (const url of ['/staff/accounts', '/tasks', '/print-forms', '/reports/revenue/time', '/warehouse/branches']) {
       await page.goto(url);
       await expect(page).toHaveURL(/\/$/);
     }
-    for (const url of ['/', '/products', '/warehouse/transactions', '/warehouse/audit', '/sales-channels/store/retail', '/orders/manage', '/customers/list', '/settings']) {
+    for (const url of ['/', '/products', '/warehouse/transactions', '/warehouse/audit', '/sales-channels/store/retail', '/customers/list', '/settings']) {
       await page.goto(url);
       await expect(page).toHaveURL(new RegExp(url === '/' ? '/$' : url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     }

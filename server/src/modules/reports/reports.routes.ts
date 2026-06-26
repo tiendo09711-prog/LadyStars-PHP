@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-import { Order } from '../orders/orders.models.js';
 import { ProductRefund, SalePayment } from '../product/product.models.js';
 
 const router = Router();
@@ -132,24 +131,12 @@ router.get('/revenue-time', async (req, res) => {
       ProductRefund.aggregate(refundPipeline({ dateFilter, branchObjectId, categoryObjectId, dateFormat })),
     ]);
 
-    const orderMatch: any = { status: { $nin: ['Hủy'] } };
-    if (Object.keys(dateFilter).length > 0) orderMatch.createdAt = dateFilter;
-    const orderAgg = await Order.aggregate([
-      { $match: orderMatch },
-      {
-        $group: {
-          _id: { $dateToString: { format: dateFormat, date: '$createdAt', timezone: 'Asia/Ho_Chi_Minh' } },
-          ordersPlaced: { $sum: 1 },
-        },
-      },
-    ]);
 
     const mergedMap = new Map<string, any>();
     const initDate = (id: string) => {
       if (!mergedMap.has(id)) {
         mergedMap.set(id, {
           time: id,
-          ordersPlaced: 0,
           successfulOrders: 0,
           retail: 0,
           wholesale: 0,
@@ -177,11 +164,6 @@ router.get('/revenue-time', async (req, res) => {
       data.discount += row.discount || 0;
       data.cost += row.cost || 0;
       data.successfulOrders += (row.orderCount || []).filter(Boolean).length;
-    });
-
-    orderAgg.forEach((row: any) => {
-      const data = initDate(row._id);
-      data.ordersPlaced += row.ordersPlaced || 0;
     });
 
     const finalData = Array.from(mergedMap.values()).map((row) => ({

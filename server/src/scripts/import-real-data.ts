@@ -10,26 +10,6 @@ import { Branch } from '../core/org/branch.model.js';
 import { StoreSetting } from '../core/settings/settings.model.js';
 import { Customer, CustomerCare, CustomerGroup } from '../modules/customer/customer.models.js';
 import {
-  AccountingAccount,
-  AccountingTransactionLog,
-  AccountingType,
-  BankTransaction,
-  CashTransaction,
-  CustomerDebtRecord,
-  CustomerDebtSummary,
-  ExpensePayment,
-  InstallmentCollection,
-  InstallmentService,
-  InstallmentSetting,
-  LogBookEntry,
-  PayPerson,
-  Receipt,
-  StaffDebtSummary,
-  SummaryTransaction,
-  VendorDebtRecord,
-  VendorDebtSummary,
-} from '../modules/accounting/accounting.models.js';
-import {
   Batch,
   Category,
   DeliveryPartner,
@@ -52,15 +32,6 @@ import {
   InventoryVoucher,
   WarehouseTransfer,
 } from '../modules/warehouse/warehouse.models.js';
-import {
-  Order,
-  OrderCodControl,
-  OrderDispute,
-  OrderDuplicate,
-  OrderHandover,
-  OrderHistory,
-  OrderSource,
-} from '../modules/orders/orders.models.js';
 import {
   Vendor,
   VendorGroup,
@@ -261,31 +232,6 @@ async function resetCollections() {
     WarehouseTransfer.deleteMany({}),
     InventoryCheckProduct.deleteMany({}),
     InventoryCheck.deleteMany({}),
-    Order.deleteMany({}),
-    OrderDuplicate.deleteMany({}),
-    OrderHandover.deleteMany({}),
-    OrderDispute.deleteMany({}),
-    OrderCodControl.deleteMany({}),
-    OrderSource.deleteMany({}),
-    OrderHistory.deleteMany({}),
-    AccountingType.deleteMany({}),
-    Receipt.deleteMany({}),
-    ExpensePayment.deleteMany({}),
-    PayPerson.deleteMany({}),
-    CashTransaction.deleteMany({}),
-    BankTransaction.deleteMany({}),
-    SummaryTransaction.deleteMany({}),
-    CustomerDebtSummary.deleteMany({}),
-    CustomerDebtRecord.deleteMany({}),
-    StaffDebtSummary.deleteMany({}),
-    VendorDebtSummary.deleteMany({}),
-    VendorDebtRecord.deleteMany({}),
-    LogBookEntry.deleteMany({}),
-    InstallmentCollection.deleteMany({}),
-    AccountingTransactionLog.deleteMany({}),
-    AccountingAccount.deleteMany({}),
-    InstallmentService.deleteMany({}),
-    InstallmentSetting.deleteMany({}),
     Project.deleteMany({}),
     Task.deleteMany({}),
     Branch.deleteMany({}),
@@ -948,108 +894,6 @@ function transactionDoc(row: Row) {
   };
 }
 
-async function importAccounting() {
-  const cash = readRows(files.cash).filter((row) => text(row['ID'])).map(transactionDoc);
-  if (cash.length) await CashTransaction.insertMany(cash);
-
-  const bank = readRows(files.bank).filter((row) => text(row['ID'])).map(transactionDoc);
-  if (bank.length) await BankTransaction.insertMany(bank);
-
-  const summaryRows = readRows(files.summary)
-    .filter((row) => text(row['ID']))
-    .map((row) => ({
-      transactionId: text(row['ID']),
-      date: parseDate(row['Ngày']) || new Date(),
-      type: text(row['Loại phiếu']),
-      accountCode: text(row['Mã tài khoản']),
-      accountName: text(row['Tên tài khoản']),
-      targetName: text(row['Đối tượng']),
-      voucherType: text(row['Loại chứng từ']),
-      voucherId: text(row['ID chứng từ']),
-      revenue: money(row['Thu']),
-      expense: money(row['Chi']),
-      description: text(row['Diễn giải']),
-      createdAt: parseDate(row['Ngày']),
-      updatedAt: parseDate(row['Ngày']),
-    }));
-  if (summaryRows.length) await SummaryTransaction.insertMany(summaryRows);
-
-  const accounts = readRows(files.accounts)
-    .filter((row) => text(row['ID']) && text(row['Code']))
-    .map((row) => ({
-      id: text(row['ID']),
-      code: text(row['Code']),
-      name: text(row['Tên']),
-      warehouse: text(row['Kho hàng']),
-      status: text(row['Tình trạng']) || 'Kích hoạt',
-      creator: text(row['Người tạo']),
-      createdAt: parseDate(row['Ngày tạo']) || new Date(),
-      updatedAt: parseDate(row['Ngày tạo']) || new Date(),
-    }));
-  if (accounts.length) await AccountingAccount.insertMany(accounts);
-
-  const debts = readRows(files.customerDebt)
-    .filter((row) => text(row['Mã đối tượng']))
-    .map((row) => ({
-      code: text(row['Mã đối tượng']),
-      customerName: text(row['Khách hàng']),
-      phone: text(row['Số điện thoại']),
-      address: text(row['Địa chỉ']),
-      initialReceivable: money(row['Nợ [Phải thu] đầu kì']),
-      initialPayable: money(row['Có [Phải trả] đầu kì']),
-      incurredReceivable: money(row['Nợ trong kỳ']),
-      incurredPayable: money(row['Có trong kỳ']),
-      finalReceivable: money(row['Nợ [Phải thu] cuối kì']),
-      finalPayable: money(row['Có [Phải trả] cuối kì']),
-    }));
-  if (debts.length) await CustomerDebtSummary.insertMany(debts);
-
-  const journalRows = readRows(files.journalEntries).filter((row) => text(row['ID']));
-  const logbookEntries = journalRows.map((row) => ({
-    date: displayDate(row['Ngày']),
-    transactionId: text(row['ID']),
-    voucherId: text(row['ID chứng từ']),
-    account: text(row['Nợ']),
-    contraAccount: text(row['Có']),
-    debit: money(row['Số tiền']),
-    credit: null,
-    description: text(row['Diễn giải']),
-    type: text(row['Loại']),
-    objectCode: text(row['Mã đối tượng']),
-    objectName: text(row['Tên đối tượng']),
-    documentType: text(row['Chứng từ']),
-    creatorName: text(row['Người tạo']),
-    createdAt: parseDate(row['Ngày tạo'] || row['Ngày']),
-    updatedAt: parseDate(row['Ngày tạo'] || row['Ngày']),
-  }));
-  if (logbookEntries.length) await LogBookEntry.insertMany(logbookEntries as any[]);
-
-  const transactionLogs = journalRows.map((row) => ({
-    logId: text(row['ID']),
-    transactionId: text(row['ID']),
-    transactionDate: parseDate(row['Ngày']),
-    documentType: text(row['Chứng từ']),
-    documentCode: text(row['ID chứng từ']),
-    transactionType: text(row['Loại']),
-    totalAmount: money(row['Số tiền']),
-    operator: text(row['Người tạo']),
-    operationDate: parseDate(row['Ngày tạo']),
-    action: text(row['Loại']),
-    dataDetail: `Nợ ${text(row['Nợ'])} / Có ${text(row['Có'])}. ${text(row['Diễn giải'])}`,
-    createdAt: parseDate(row['Ngày tạo'] || row['Ngày']),
-    updatedAt: parseDate(row['Ngày tạo'] || row['Ngày']),
-  }));
-  if (transactionLogs.length) await AccountingTransactionLog.insertMany(transactionLogs);
-
-  count('cash_transactions', cash.length);
-  count('bank_transactions', bank.length);
-  count('summary_transactions', summaryRows.length);
-  count('accounting_accounts', accounts.length);
-  count('customer_debt_summaries', debts.length);
-  count('journal_entries', logbookEntries.length);
-  count('accounting_transaction_logs', transactionLogs.length);
-}
-
 async function run() {
   await connectDatabase();
   console.log('[import] Resetting old business data...');
@@ -1067,7 +911,6 @@ async function run() {
   await importWarehouse();
   await importTransfers();
   await importInventoryChecks();
-  await importAccounting();
 
   console.log('\n[import] Done.');
   for (const [key, value] of Object.entries(summary)) {

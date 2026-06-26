@@ -365,7 +365,6 @@
   display: grid;
   grid-template-areas:
     "chart recent"
-    "orders orders"
     "top top"
     "inv inv";
   grid-template-columns: minmax(0, 1.62fr) minmax(300px, 0.9fr);
@@ -374,7 +373,6 @@
   align-items: stretch;
 }
 .dv-card-chart { grid-area: chart; display: flex; flex-direction: column; min-width: 0; }
-.dv-card-orders { grid-area: orders; min-width: 0; }
 .dv-card-top { grid-area: top; min-width: 0; }
 .dv-card-inventory { grid-area: inv; min-width: 0; }
 .dv-card-recent { grid-area: recent; display: flex; flex-direction: column; min-width: 0; }
@@ -654,7 +652,6 @@
     grid-template-areas:
       "chart"
       "recent"
-      "orders"
       "top"
       "inv";
   }

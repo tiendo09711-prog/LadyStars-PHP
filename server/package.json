@@ -12,7 +12,6 @@
     "import-warehouse-drafts": "tsx src/scripts/import-warehouse-drafts-history.ts",
     "import-warehouse-transactions": "tsx src/scripts/import-warehouse-transactions-transfers.ts",
     "import-store-sales": "tsx src/scripts/import-store-sales.ts",
-    "import-orders": "tsx src/scripts/import-orders-data.ts",
     "load-edit-logs": "tsx src/scripts/load-edit-logs.ts",
     "sync-indexes": "tsx src/scripts/sync-performance-indexes.ts",
     "cleanup-retired-features": "tsx src/scripts/remove-retired-features.ts"

@@ -180,34 +180,6 @@ test.describe.serial('E2E Integration Flow - LadyStars 6 Modules', () => {
     await page.waitForTimeout(3000);
   });
 
-  test('Module 5: Cụm ĐƠN HÀNG (Orders)', async () => {
-    test.setTimeout(120000);
-    await page.goto('http://localhost:5173/orders/manage');
-    await page.waitForTimeout(2000);
-
-    // Click và kiểm tra các trạng thái
-    const statusTabs = ['Tất cả', 'Chờ xác nhận', 'Đóng gói', 'Đang giao', 'Thành công'];
-    for (const tab of statusTabs) {
-      const tabBtn = page.locator('.quick-filter-list button', { hasText: tab });
-      if (await tabBtn.count() > 0) {
-        await tabBtn.first().click();
-        await page.waitForTimeout(800);
-      }
-    }
-    
-    // Quay về Tất cả và test nút Đồng bộ
-    await page.locator('.quick-filter-list button', { hasText: 'Tất cả' }).first().click();
-    const refreshBtn = page.locator('button', { hasText: 'Làm mới' });
-    if (await refreshBtn.isVisible()) {
-      await refreshBtn.click();
-      await page.waitForTimeout(1000);
-    }
-    
-    // Có thể check mã đơn hàng hoặc khách hàng vừa tạo có xuất hiện không
-    await page.fill('input[placeholder*="Mã, tên, số điện thoại"]', CUSTOMER_PHONE);
-    await page.waitForTimeout(1500);
-  });
-
   test('Module 6: Cụm TỔNG QUAN (Dashboard)', async () => {
     test.setTimeout(120000);
     await page.goto('http://localhost:5173/');

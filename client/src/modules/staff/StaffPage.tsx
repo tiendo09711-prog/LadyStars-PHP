@@ -472,7 +472,6 @@ export function StaffPage() {
             <div className="metric-card"><span>Da thu</span><strong>{formatMoney(stats.summary?.paid)}</strong></div>
             <div className="metric-card warning"><span>Cong no</span><strong>{formatMoney(stats.summary?.debt)}</strong></div>
             <div className="metric-card danger"><span>Tra hang</span><strong>{formatMoney(stats.summary?.refundCount)}</strong></div>
-            <div className="metric-card"><span>Thu / chi</span><strong>{formatMoney(stats.summary?.receiptsValue)} / {formatMoney(stats.summary?.expensesValue)}</strong></div>
           </div>}
           <div className="table-scroll">
             <table className="data-table compact">

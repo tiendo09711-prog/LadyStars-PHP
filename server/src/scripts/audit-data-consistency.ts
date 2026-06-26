@@ -3,7 +3,6 @@ import path from 'path';
 import mongoose from 'mongoose';
 import xlsxPkg from 'xlsx';
 import { connectDatabase } from '../config/database.js';
-import { Order, OrderDuplicate } from '../modules/orders/orders.models.js';
 import {
   Product,
   ProductBranchStock,
@@ -116,22 +115,6 @@ function summarizeInventory(rows: Row[]) {
   return { rows: rows.length, hn, hcm, total, costValue, saleValue };
 }
 
-function summarizeOrders(rows: Row[]) {
-  const grouped = groupBy(rows, 'ID');
-  let total = 0;
-  let successful = 0;
-  const byStatus: Record<string, number> = {};
-  for (const orderRows of grouped.values()) {
-    const first = orderRows[0];
-    const status = text(first['Trạng thái']) || 'Trống';
-    byStatus[status] = (byStatus[status] ?? 0) + 1;
-    if (status === 'Thành công') successful += 1;
-    total += hasValue(first['Giá trị đơn hàng'])
-      ? money(first['Giá trị đơn hàng'])
-      : orderRows.reduce((sum, row) => sum + money(row['Giá sản phẩm sau chiết khấu']), 0);
-  }
-  return { rows: rows.length, orders: grouped.size, successful, total, byStatus };
-}
 
 async function dbSalesByDay() {
   return SalePayment.aggregate([
@@ -163,8 +146,6 @@ async function main() {
       transfersOutgoing: readRows('Kho hàng - Đang chuyển đi .xlsx').length,
       transfersIncoming: readRows('Kho hàng - Sắp chuyển đến.xlsx').length,
     },
-    orders: summarizeOrders(readRows('Đơn hàng - Tất cả.xlsx')),
-    duplicates: { rows: readRows('Đơn trùng.xlsx').length },
   };
 
   await connectDatabase();
@@ -174,7 +155,6 @@ async function main() {
     dbRefundAgg,
     dbStockAgg,
     dbStockByBranch,
-    dbOrderAgg,
     dbWarehouse,
     dbSaleByDay,
   ] = await Promise.all([
@@ -202,9 +182,6 @@ async function main() {
       { $group: { _id: '$branch.name', rows: { $sum: 1 }, qty: { $sum: '$qty' } } },
       { $sort: { _id: 1 } },
     ]),
-    Order.aggregate([
-      { $group: { _id: null, rows: { $sum: 1 }, total: { $sum: '$totalAmount' } } },
-    ]),
     Promise.all([
       InventoryVoucher.countDocuments(),
       InventoryProduct.countDocuments(),
@@ -220,8 +197,6 @@ async function main() {
     salesByDay: Object.fromEntries(dbSaleByDay.map((row: any) => [row._id, row])),
     refunds: dbRefundAgg[0] ?? { rows: 0, value: 0, qty: 0 },
     warehouse: { vouchers: dbWarehouse[0], products: dbWarehouse[1], transfers: dbWarehouse[2] },
-    orders: dbOrderAgg[0] ?? { rows: 0, total: 0 },
-    duplicates: { rows: await OrderDuplicate.countDocuments() },
   };
 
   const watchDays = ['12/06/2026', '13/06/2026', '14/06/2026', '15/06/2026', '16/06/2026', '17/06/2026'];

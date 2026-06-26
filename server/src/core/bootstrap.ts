@@ -4,7 +4,6 @@ import { ADMIN_ROLE } from './auth/role.utils.js';
 import { runBranchDataMigration, hasMigrationCompletedRecently } from './org/branch.service.js';
 import { StoreSetting } from './settings/settings.model.js';
 import { Customer, CustomerGroup } from '../modules/customer/customer.models.js';
-import { AccountingType, ExpensePayment, PayPerson, Receipt } from '../modules/accounting/accounting.models.js';
 import {
   Batch,
   Category,
@@ -21,15 +20,6 @@ import {
 import { Project, Task } from '../modules/task/task.models.js';
 import { Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer } from '../modules/vendor/vendor.models.js';
 import { PrintForm } from '../modules/printForms/printForms.models.js';
-import {
-  Order,
-  OrderDuplicate,
-  OrderHandover,
-  OrderDispute,
-  OrderCodControl,
-  OrderSource,
-  OrderHistory,
-} from '../modules/orders/orders.models.js';
 
 async function backfillOwnerField(model: Model<any>, field: string, ownerId: unknown) {
   if (!model.schema.path(field)) return;
@@ -77,9 +67,7 @@ export async function bootstrapSystem() {
     Batch, Category, Trademark, Shelf, Product, SalePayment, ProductRefund, StockAdjustment,
     SaleChannel, DeliveryPartner, PaymentMethod, Customer, CustomerGroup,
     Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer,
-    AccountingType, Receipt, ExpensePayment, PayPerson, Project, Task, PrintForm,
-    Order, OrderDuplicate, OrderHandover,
-    OrderDispute, OrderCodControl, OrderSource, OrderHistory,
+    Project, Task, PrintForm,
   ];
 
   for (const model of models) {

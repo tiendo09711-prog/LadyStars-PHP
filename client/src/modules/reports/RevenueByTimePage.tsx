@@ -19,7 +19,6 @@ import './RevenueByTimePage.css';
 interface RevenueData {
   _id: string;
   time: string;
-  ordersPlaced: number;
   successfulOrders: number;
   retail: number;
   wholesale: number;

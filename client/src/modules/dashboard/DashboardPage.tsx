@@ -43,7 +43,6 @@ const CHART_TYPE_OPTIONS = [
   { value: 'line', label: 'Đường doanh thu' },
   { value: 'area', label: 'Miền doanh thu' },
 ];
-const ORDER_RANGE_OPTIONS = ['2 ngày', '7 ngày', '30 ngày'];
 const TOP_RANGE_OPTIONS = ['7 ngày', '14 ngày', '30 ngày'];
 const TOP_LIMIT_OPTIONS = [10, 20, 50];
 const RECENT_RANGE_OPTIONS = ['Hôm nay', '3 ngày', '7 ngày'];
@@ -56,7 +55,6 @@ type DropdownOption = { value: string; label: string };
 type DashboardData = {
   totals: Record<string, number>;
   salesChannels: any[];
-  orderChannels: any[];
   inventory: { totalQty: number; totalCostValue: number; totalSaleValue: number };
   topProducts: any[];
   chartData: { date: string; fullDate: string; revenue: number; prevRevenue: number }[];
@@ -122,7 +120,6 @@ export function DashboardPage() {
   const [storePanelPos, setStorePanelPos] = useState<{ top: number; left: number; width: number; dropUp: boolean } | null>(null);
   const [chartRange, setChartRange] = useStoredOption(DASHBOARD_FILTER_STORAGE.chartRange, '7 ngày', CHART_RANGE_OPTIONS);
   const [chartType, setChartType] = useStoredOption(DASHBOARD_FILTER_STORAGE.chartType, 'bar_compare', CHART_TYPE_OPTIONS.map((option) => option.value));
-  const [orderRange, setOrderRange] = useState('2 ngày');
   const [topRange, setTopRange] = useState('7 ngày');
   const [topLimit, setTopLimit] = useState(10);
   const [recentRange, setRecentRange] = useState('Hôm nay');
@@ -192,7 +189,6 @@ export function DashboardPage() {
       const params = new URLSearchParams();
       if (selectedStores.length) params.set('stores', selectedStores.join(','));
       params.set('chartRange', chartRange);
-      params.set('orderRange', orderRange);
       params.set('topRange', topRange);
       params.set('topLimit', String(topLimit));
 
@@ -217,7 +213,7 @@ export function DashboardPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [selectedStores, chartRange, orderRange, topRange, topLimit, refreshKey]);
+  }, [selectedStores, chartRange, topRange, topLimit, refreshKey]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -239,7 +235,6 @@ export function DashboardPage() {
     const dropUp = spaceBelow < panelHeight + 12 && rect.top > panelHeight + 12;
     setStorePanelPos({ top: dropUp ? rect.top - panelHeight - 8 : rect.bottom + 8, left: rect.left, width: Math.max(rect.width, 244), dropUp });
   }, [storeMenuOpen, stores.length]);
-  const orderChannels = data?.orderChannels ?? [];
   const chartData = data?.chartData ?? [];
   const topProducts = data?.topProducts ?? [];
   const recentSales = data?.recentSales ?? [];
@@ -343,28 +338,6 @@ export function DashboardPage() {
                   )}
                 </ResponsiveContainer>
               </div>
-            </div>
-          </section>
-
-          <section className="dv-surface dv-card-orders">
-            <div className="dv-surface-head">
-              <div><h2>Đơn hàng</h2><p>Trạng thái đơn theo khoảng chọn.</p></div>
-              <Dropdown value={orderRange} options={ORDER_RANGE_OPTIONS.map((option) => ({ value: option, label: option }))} onChange={setOrderRange} testId="orders-range-filter" />
-            </div>
-            <div className="dv-table-wrap">
-              <table className="dv-table">
-                <thead><tr><th>Gian hàng</th><th>Mới / chờ xử lý</th><th>Đóng gói</th><th>Đang chuyển</th><th>Hoàn hủy</th><th>Trả hàng</th></tr></thead>
-                <tbody>
-                  {initialLoading && [0,1,2,3].map((i) => (<tr key={'osk'+i}><td colSpan={6}><span className="dv-skeleton-bar" /></td></tr>))}
-                  {orderChannels.map((channel) => (
-                    <tr key={channel.label}>
-                      <td><span className={`dv-channel-icon ${channel.icon}`}>{channel.label?.[0] || 'A'}</span>{channel.label}</td>
-                      <td>{fmt(channel.newOrders)}</td><td>{fmt(channel.packing)}</td><td>{fmt(channel.shipping)}</td><td>{fmt(channel.cancelled)}</td><td>{fmt(channel.returned)}</td>
-                    </tr>
-                  ))}
-                  {!initialLoading && !orderChannels.length && <tr><td colSpan={6} className="dv-empty">Chưa có dữ liệu</td></tr>}
-                </tbody>
-              </table>
             </div>
           </section>
 
