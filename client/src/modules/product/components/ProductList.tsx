@@ -10,6 +10,7 @@ import {
   Eye,
   FileDown,
   FileUp,
+  MoreHorizontal,
   PackageCheck,
   Pencil,
   Plus,
@@ -331,10 +332,6 @@ const PRODUCT_UNIT_OPTIONS = [
   'cái', 'chiếc', 'hộp', 'lốc', 'thùng', 'kg', 'gram', 'g', 'lít', 'l', 'mét', 'm', 'cặp', 'đôi', 'set', 'gói', 'chai', 'lon', 'tuýp', 'túi',
 ];
 
-function isValidBarcodeInput(value: string) {
-  return /^\d*$/.test(value);
-}
-
 function isValidNonNegativeNumber(value: string) {
   if (value.trim() === '') return true;
   const number = Number(value);
@@ -459,12 +456,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
   const validateForm = (): FieldErrors => {
     const errors: FieldErrors = {};
 
-    if (!String(form.code ?? '').trim()) errors.code = 'Vui lòng nhập mã sản phẩm.';
     if (!String(form.name ?? '').trim()) errors.name = 'Vui lòng nhập tên sản phẩm.';
-
-    const barcode = String(form.barcode ?? '').trim();
-    if (!barcode) errors.barcode = 'Vui lòng nhập mã vạch.';
-    else if (!/^\d+$/.test(barcode)) errors.barcode = 'Mã vạch chỉ được chứa chữ số.';
 
     if (!String(form.type ?? '').trim()) errors.type = 'Vui lòng chọn loại sản phẩm.';
     if (!String(form.unit ?? '').trim()) errors.unit = 'Vui lòng chọn đơn vị.';
@@ -499,7 +491,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
   };
 
   const focusFirstError = (errors: FieldErrors) => {
-    const order: (keyof FieldErrors)[] = ['code', 'name', 'barcode', 'type', 'unit', 'price', 'weight', 'size', 'color', 'categoryId', 'warehouses', 'cost', 'wholesalePrice'];
+    const order: (keyof FieldErrors)[] = ['name', 'type', 'unit', 'price', 'weight', 'size', 'color', 'categoryId', 'warehouses', 'cost', 'wholesalePrice'];
     const firstKey = order.find((key) => errors[key]);
     if (firstKey && fieldRefs.current[firstKey]) {
       fieldRefs.current[firstKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -519,18 +511,14 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     }
     setFormError('');
 
-    const trimmedCode = String(form.code ?? '').trim();
     const trimmedName = String(form.name ?? '').trim();
-    const trimmedBarcode = String(form.barcode ?? '').trim();
     const trimmedSize = String(form.size ?? '').trim();
     const trimmedColor = String(form.color ?? '').trim();
     const trimmedUnit = String(form.unit ?? '').trim();
 
     const payload: ProductSavePayload = {
       ...form,
-      code: trimmedCode,
       name: trimmedName,
-      barcode: trimmedBarcode,
       size: trimmedSize,
       color: trimmedColor,
       unit: trimmedUnit,
@@ -543,6 +531,8 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     delete payload.supplierName;
     delete payload.qty;
     delete payload.availableStock;
+    delete payload.code;
+    delete payload.barcode;
 
     if (!isEdit) {
       payload.initialStocks = Array.from(selectedWarehouseIds).map((warehouseId) => ({
@@ -610,12 +600,12 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 
         <div className="form-grid" style={{ position: 'relative' }}>
           <div className="form-field" ref={setFieldRef('code')}>
-            <span>Mã sản phẩm *</span>
+            <span>Mã sản phẩm</span>
             <input
               type="text"
-              value={String(form.code ?? '')}
+              value={isEdit ? String(form.code ?? '') : 'Tự động tạo khi lưu'}
               className={fieldErrors.code ? 'input-error' : ''}
-              onChange={(event) => updateField('code', event.target.value)}
+              disabled
             />
             {fieldErrors.code ? <span className="field-error-text">{fieldErrors.code}</span> : null}
           </div>
@@ -632,16 +622,14 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
           </div>
 
           <div className="form-field" ref={setFieldRef('barcode')}>
-            <span>Mã vạch *</span>
+            <span>Mã vạch</span>
             <input
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              value={String(form.barcode ?? '')}
+              value={isEdit ? String(form.barcode ?? '') : 'Tự động tạo khi lưu'}
               className={fieldErrors.barcode ? 'input-error' : ''}
-              onChange={(event) => {
-                if (isValidBarcodeInput(event.target.value)) updateField('barcode', event.target.value);
-              }}
+              disabled
             />
             {fieldErrors.barcode ? <span className="field-error-text">{fieldErrors.barcode}</span> : null}
           </div>
@@ -965,6 +953,37 @@ function ImportModal({
 
   const selectedBranch = branches.find((branch) => branch._id === selectedBranchId);
 
+  const downloadSampleCsv = () => {
+    const headers = [
+      'Tên sản phẩm',
+      'Đơn vị tính',
+      'Giá nhập',
+      'Giá bán',
+      'Giá sỉ',
+      'Tồn trong kho',
+      'Danh mục',
+      'Thương hiệu',
+      'Nhà cung cấp',
+      'Màu sắc',
+      'Kích thước',
+      'Trạng thái',
+    ];
+    const rows = [
+      ['Áo thun nữ basic', 'Cái', '120000', '199000', '180000', '10', 'Áo nữ', 'Lady Stars', 'Nhà cung cấp A', 'Trắng', 'M', 'Mới'],
+    ];
+    const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map((row) => row.map(escapeCell).join(';')).join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mau-import-san-pham.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleImport = async () => {
     if (!file) {
       setMessage('Vui lòng chọn file Excel để nhập.');
@@ -1092,13 +1111,15 @@ function ImportModal({
             </p>
           ) : null}
 
-          <div className="products-note-card" style={{ boxShadow: 'none' }}>
-            <strong>Lưu ý import</strong>
-            <ul>
-              <li>Chế độ thêm mới sẽ bỏ qua các dòng có mã sản phẩm đã tồn tại.</li>
-              <li>Chế độ cập nhật thông tin sẽ sửa lại dữ liệu sản phẩm và cộng thêm số lượng tồn từ file.</li>
-              <li>Nếu trong file có số lượng lớn hơn 0, hệ thống sẽ tự tạo phiếu nhập kho.</li>
-            </ul>
+          <div className="products-note-card" style={{ boxShadow: 'none', display: 'grid', gap: 10 }}>
+            <strong>File import mẫu</strong>
+            <span style={{ color: '#64748b', fontSize: 13 }}>
+              Tải file CSV mẫu, điền dữ liệu sản phẩm theo đúng cột; mã sản phẩm và mã vạch sẽ được tự động tạo khi import.
+            </span>
+            <button className="btn btn-light" type="button" onClick={downloadSampleCsv} disabled={loading} style={{ justifySelf: 'flex-start' }}>
+              <Download size={16} />
+              Tải file mẫu CSV
+            </button>
           </div>
         </div>
 
@@ -1724,6 +1745,7 @@ export function ProductList({
   const [openAddMenu, setOpenAddMenu] = useState(false);
   const [openBulkMenu, setOpenBulkMenu] = useState(false);
   const [openBulkStatusMenu, setOpenBulkStatusMenu] = useState(false);
+  const [openRowActionId, setOpenRowActionId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [showBarcodePrint, setShowBarcodePrint] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
@@ -1862,8 +1884,8 @@ export function ProductList({
   };
 
   const handleSave = async (payload: ProductSavePayload) => {
-    if (!payload.code?.trim() || !payload.name?.trim()) {
-      setSaveError('Mã và tên sản phẩm là bắt buộc.');
+    if (!payload.name?.trim()) {
+      setSaveError('Tên sản phẩm là bắt buộc.');
       return;
     }
 
@@ -1909,9 +1931,9 @@ export function ProductList({
       setOpenBulkMenu(false);
       setOpenBulkStatusMenu(false);
       await load();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi đổi trạng thái sản phẩm:', error);
-      alert('Đổi trạng thái sản phẩm thất bại.');
+      alert(error?.response?.data?.message || 'Đổi trạng thái sản phẩm thất bại.');
     } finally {
       setBulkLoading(false);
     }
@@ -2305,23 +2327,30 @@ export function ProductList({
                       </td>
                       <td className="action-cell">
                         <div className="products-actions">
-                          <button className="icon-button" type="button" title="Chi tiết" onClick={() => setDetailItem(item)}>
-                            <Eye size={15} />
-                          </button>
                           <button
-                            className="icon-button"
+                            className="icon-button products-row-menu-button"
                             type="button"
-                            title="Sửa"
-                            onClick={() => {
-                              setSaveError('');
-                              setEditItem(item);
-                            }}
+                            title="Thao tác"
+                            onClick={() => setOpenRowActionId((current) => (current === item._id ? null : item._id))}
                           >
-                            <Pencil size={15} />
+                            <MoreHorizontal size={17} />
                           </button>
-                          <button className="icon-button danger" type="button" title="Xóa" onClick={() => setDeleteItem(item)}>
-                            <Trash2 size={15} />
-                          </button>
+                          {openRowActionId === item._id ? (
+                            <div className="products-row-action-menu">
+                              <button type="button" onClick={() => { setDetailItem(item); setOpenRowActionId(null); }}>
+                                <Eye size={15} />
+                                Chi tiết
+                              </button>
+                              <button type="button" onClick={() => { setSaveError(''); setEditItem(item); setOpenRowActionId(null); }}>
+                                <Pencil size={15} />
+                                Sửa
+                              </button>
+                              <button className="danger" type="button" onClick={() => { setDeleteItem(item); setOpenRowActionId(null); }}>
+                                <Trash2 size={15} />
+                                Xóa
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

@@ -72,6 +72,37 @@ function escapeRegex(value: string) {
 
 ﻿const PRODUCT_TYPES = ['product', 'service', 'combo'];
 
+function randomDigits(length: number) {
+  let value = '';
+  for (let index = 0; index < length; index += 1) value += Math.floor(Math.random() * 10);
+  return value;
+}
+
+function ean13Checksum(first12Digits: string) {
+  const sum = first12Digits
+    .split('')
+    .reduce((total, digit, index) => total + Number(digit) * (index % 2 === 0 ? 1 : 3), 0);
+  return String((10 - (sum % 10)) % 10);
+}
+
+function buildGeneratedBarcode() {
+  const body = `20${Date.now().toString().slice(-5)}${randomDigits(5)}`;
+  return `${body}${ean13Checksum(body)}`;
+}
+
+async function generateProductIdentity(session?: mongoose.ClientSession) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const suffix = `${Date.now().toString(36).toUpperCase()}${randomDigits(4)}`;
+    const code = `SP-${suffix}`;
+    const barcode = buildGeneratedBarcode();
+    const existing = await Product.findOne({ $or: [{ code }, { barcode }] }).session(session || null).select('_id');
+    if (!existing) return { code, barcode };
+  }
+  const error: any = new Error('Không thể tự động tạo mã sản phẩm/mã vạch không trùng. Vui lòng thử lại.');
+  error.status = 409;
+  throw error;
+}
+
 function toNumberOrZero(value: any): number {
   const number = parseNumber(value);
   return Number.isFinite(number) ? number : 0;
@@ -97,9 +128,7 @@ function validateProductFields(payload: any): string[] {
   const cost = payload.cost;
   const wholesalePrice = payload.wholesalePrice;
 
-  require(code.length > 0, 'Vui lòng nhập mã sản phẩm.');
   require(name.length > 0, 'Vui lòng nhập tên sản phẩm.');
-  require(barcode.length > 0, 'Vui lòng nhập mã vạch.');
   require(barcode.length === 0 || /^\d+$/.test(barcode), 'Mã vạch chỉ được chứa chữ số.');
   require(type.length > 0, 'Vui lòng chọn loại sản phẩm.');
   require(type.length === 0 || PRODUCT_TYPES.includes(type), 'Loại sản phẩm không hợp lệ.');
@@ -136,6 +165,8 @@ function sanitizeProductPayload(raw: any) {
   const payload = { ...raw };
   for (const key of [
     '_id',
+    'code',
+    'barcode',
     'createdAt',
     'updatedAt',
     '__v',
@@ -415,19 +446,19 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const code = row['Mã sản phẩm']?.toString().trim();
-      const name = row['Tên sản phẩm']?.toString().trim();
+      const code = row['M\u00e3 s\u1ea3n ph\u1ea9m']?.toString().trim();
+      const name = row['T\u00ean s\u1ea3n ph\u1ea9m']?.toString().trim();
 
-      if (!code || !name) {
-        errors.push(`Dòng ${i + 2}: Thiếu mã hoặc tên sản phẩm`);
+      if (!name) {
+        errors.push(`D\u00f2ng ${i + 2}: Thi\u1ebfu t\u00ean s\u1ea3n ph\u1ea9m`);
         continue;
       }
 
       // Map fields
-      const costStr = row['Giá nhập'] || row['Giá vốn'] || row['Giá vốn (Đ)'] || 0;
-      const priceStr = row['Giá bán'] || row['Giá bán (Đ)'] || 0;
-      const wholesalePriceStr = row['Giá sỉ'] || row['Giá sỉ (Đ)'] || 0;
-      const qtyStr = row['Tồn trong kho'] || row['Tồn'] || row['Tổng tồn'] || 0;
+      const costStr = row['Gi\u00e1 nh\u1eadp'] || row['Gi\u00e1 v\u1ed1n'] || row['Gi\u00e1 v\u1ed1n (\u0110)'] || 0;
+      const priceStr = row['Gi\u00e1 b\u00e1n'] || row['Gi\u00e1 b\u00e1n (\u0110)'] || 0;
+      const wholesalePriceStr = row['Gi\u00e1 s\u1ec9'] || row['Gi\u00e1 s\u1ec9 (\u0110)'] || 0;
+      const qtyStr = row['T\u1ed3n trong kho'] || row['T\u1ed3n'] || row['T\u1ed5ng t\u1ed3n'] || 0;
 
       const cost = Number(costStr.toString().replace(/,/g, '')) || 0;
       const price = Number(priceStr.toString().replace(/,/g, '')) || 0;
@@ -436,25 +467,25 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
 
       const metadata = {
         name,
-        barcode: row['Mã vạch']?.toString(),
-        unit: row['Đơn vị tính']?.toString() || row['Đơn vị']?.toString(),
+        unit: row['\u0110\u01a1n v\u1ecb t\u00ednh']?.toString() || row['\u0110\u01a1n v\u1ecb']?.toString(),
         cost,
         price,
         wholesalePrice,
-        categoryName: row['Danh mục']?.toString(),
-        trademarkName: row['Thương hiệu']?.toString(),
-        supplierName: row['Nhà cung cấp']?.toString(),
-        color: row['Màu sắc']?.toString(),
-        size: row['Kích thước']?.toString() || row['Kích cỡ']?.toString(),
-        status: row['Trạng thái']?.toString() || 'Mới',
+        categoryName: row['Danh m\u1ee5c']?.toString(),
+        trademarkName: row['Th\u01b0\u01a1ng hi\u1ec7u']?.toString(),
+        supplierName: row['Nh\u00e0 cung c\u1ea5p']?.toString(),
+        color: row['M\u00e0u s\u1eafc']?.toString(),
+        size: row['K\u00edch th\u01b0\u1edbc']?.toString() || row['K\u00edch c\u1ee1']?.toString(),
+        status: row['Tr\u1ea1ng th\u00e1i']?.toString() || 'M\u1edbi',
         type: 'product'
       };
 
-      let product = await Product.findOne({ code });
+      let product = code ? await Product.findOne({ code }) : null;
 
       if (!product) {
         // Mới
-        product = await Product.create({ ...metadata, code, qty: 0 });
+        const identity = await generateProductIdentity();
+        product = await Product.create({ ...metadata, ...identity, qty: 0 });
         created++;
       } else {
         if (importMode === 'Thêm mới') {
@@ -641,12 +672,14 @@ router.post('/products', async (req, res) => {
 
     let created: any;
     await session.withTransaction(async () => {
+      const identity = await generateProductIdentity(session);
+      payload.code = identity.code;
+      payload.barcode = identity.barcode;
       const [item] = await Product.create([{ ...payload, qty: 0 }], { session });
       created = item;
       let runningTotal = 0;
 
       for (const line of initialStocks) {
-        if (line.quantity === 0) continue;
         await ProductBranchStock.create([{
           productId: item._id,
           branchId: line.warehouseId,
@@ -654,16 +687,18 @@ router.post('/products', async (req, res) => {
           minQuantity: item.minQuantity,
           maxQuantity: item.maxQuantity,
         }], { session });
-        await ProductLog.create([{
-          productId: item._id,
-          sourceType: 'PRODUCT_CREATE_INITIAL_STOCK',
-          sourceId: item._id,
-          amount: line.quantity,
-          valueBefore: item.price,
-          valueAfter: item.price,
-          amountBefore: runningTotal,
-          amountAfter: runningTotal + line.quantity,
-        }], { session });
+        if (line.quantity > 0) {
+          await ProductLog.create([{
+            productId: item._id,
+            sourceType: 'PRODUCT_CREATE_INITIAL_STOCK',
+            sourceId: item._id,
+            amount: line.quantity,
+            valueBefore: item.price,
+            valueAfter: item.price,
+            amountBefore: runningTotal,
+            amountAfter: runningTotal + line.quantity,
+          }], { session });
+        }
         runningTotal += line.quantity;
       }
 
@@ -728,47 +763,22 @@ router.patch('/products/:id', async (req, res) => {
         throw error;
       }
 
-      // Merge with existing product so partial updates (e.g. bulk status/category)
-      // that do not touch required fields still pass validation, while the full
-      // create/edit form is validated against the merged result.
-      const merged = { ...(before.toObject ? before.toObject() : before), ...productPayload };
-      const fieldErrors = validateProductFields(merged);
-      if (fieldErrors.length) {
-        const error: any = new Error(fieldErrors[0]);
-        error.status = 400;
-        error.errors = fieldErrors;
-        throw error;
+      // Full product form sends name; partial updates such as bulk status/category
+      // must not fail because older products miss fields now required by the form.
+      if (Object.prototype.hasOwnProperty.call(productPayload, 'name')) {
+        const merged = { ...(before.toObject ? before.toObject() : before), ...productPayload };
+        const fieldErrors = validateProductFields(merged);
+        if (fieldErrors.length) {
+          const error: any = new Error(fieldErrors[0]);
+          error.status = 400;
+          error.errors = fieldErrors;
+          throw error;
+        }
       }
       applyMoneyDefaults(productPayload);
 
       const existingStocks = await ProductBranchStock.find({ productId: before._id }).session(session);
       const existingWarehouseIds = new Set(existingStocks.map((stock) => String(stock.branchId)));
-
-      // Validate warehouse selection: the product must keep at least one warehouse.
-      if (hasEditStocks && hasAdjustment) {
-        const covered = new Set(editInitialStocks.map((line) => line.warehouseId));
-        covered.add(normalizedAdjustment!.warehouseId);
-        for (const stock of existingStocks) {
-          if (!covered.has(String(stock.branchId))) {
-            const error: any = new Error('Không thể bỏ kho cuối cùng hoặc kho đã có tồn kho. Vui lòng giữ ít nhất một kho hàng.');
-            error.status = 422;
-            throw error;
-          }
-        }
-      } else if (hasEditStocks) {
-        const covered = new Set(editInitialStocks.map((line) => line.warehouseId));
-        for (const stock of existingStocks) {
-          if (!covered.has(String(stock.branchId))) {
-            const error: any = new Error('Không thể bỏ kho cuối cùng hoặc kho đã có tồn kho. Vui lòng giữ ít nhất một kho hàng.');
-            error.status = 422;
-            throw error;
-          }
-        }
-      } else if (!hasAdjustment && existingStocks.length === 0) {
-        const error: any = new Error('Vui lòng chọn ít nhất một kho hàng.');
-        error.status = 400;
-        throw error;
-      }
 
       if (Object.keys(productPayload).length) {
         await Product.updateOne({ _id: before._id }, { $set: productPayload }, { runValidators: true, session });
@@ -1729,7 +1739,3 @@ router.get('/edit-logs', async (req, res) => {
 });
 
 export default router;
-
-
-
-
