@@ -108,26 +108,52 @@ test.describe('Products bulk toolbar and barcode print', () => {
     await expect(page.getByRole('button', { name: 'Ẩn khổ giấy cuộn' })).toBeVisible();
 
     await page.evaluate(() => {
+      const log: string[] = [];
+      (window as any).__printLog = log;
+      (window as any).__printCount = 0;
       (window as any).__printedHtml = '';
       (window as any).open = () => ({
         opener: null,
         document: {
-          open: () => undefined,
-          write: (html: string) => { (window as any).__printedHtml = html; },
-          close: () => undefined,
+          open: () => { log.push('open'); },
+          write: (html: string) => { (window as any).__printedHtml = html; log.push('write'); },
+          close: () => { log.push('close'); },
+          readyState: 'complete',
+          querySelectorAll: () => {
+            const html = (window as any).__printedHtml as string;
+            return new Array((html.match(/<svg/g) || []).length);
+          },
         },
+        focus: () => { log.push('focus'); },
+        print: () => { (window as any).__printCount += 1; log.push('print'); },
+        close: () => { log.push('windowclose'); },
+        addEventListener: () => undefined,
       });
     });
     await page.getByRole('button', { name: 'Xem và in khổ đang chọn' }).click();
-    const printedHtml = await page.evaluate(() => (window as any).__printedHtml as string);
+    const printResult = await page.evaluate(() => ({
+      html: (window as any).__printedHtml as string,
+      log: (window as any).__printLog as string[],
+      printCount: (window as any).__printCount as number,
+    }));
+    const printedHtml = printResult.html;
+    expect(printedHtml.length).toBeGreaterThan(0);
     expect(printedHtml).toContain('Cửa hàng kiểm thử');
     expect(printedHtml).toContain('VNĐ');
     expect(printedHtml).toContain('print-name three');
     expect(printedHtml).toContain('data-barcode-standard="qrcode"');
+    expect(printedHtml).toMatch(/<svg[^>]*class="barcode-svg[^"]*"/);
     expect(printedHtml).toContain('@page { size: 210mm 297mm; margin: 0; }');
     expect(printedHtml).toContain('class="print-page"');
     expect(printedHtml).toContain('class="sheet"');
-    expect(printedHtml).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
+    expect(printedHtml).toContain('grid-template-columns: repeat(5, 38.1mm)');
+    expect(printResult.printCount).toBe(1);
+    const closeIndex = printResult.log.indexOf('close');
+    const printIndex = printResult.log.indexOf('print');
+    expect(closeIndex).toBeGreaterThanOrEqual(0);
+    expect(printIndex).toBeGreaterThanOrEqual(0);
+    expect(closeIndex).toBeLessThan(printIndex);
+    expect(printResult.log.filter((event) => event === 'print').length).toBe(1);
 
     await page.getByRole('button', { name: 'Thao tác' }).click();
     const downloadPromise = page.waitForEvent('download');

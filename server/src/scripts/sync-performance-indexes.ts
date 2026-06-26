@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
 import { connectDatabase } from '../config/database.js';
 import '../modules/product/product.models.js';
-import '../modules/orders/orders.models.js';
-import '../modules/accounting/accounting.models.js';
 import '../modules/vendor/vendor.models.js';
 import '../modules/customer/customer.models.js';
 import '../modules/warehouse/warehouse.models.js';

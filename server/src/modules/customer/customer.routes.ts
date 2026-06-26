@@ -6,7 +6,6 @@ import { writeAuditLog } from '../../core/audit/audit.service.js';
 import { getAssignedWarehouseIds, isAdminUser, requireOwner } from '../../core/middleware/auth.js';
 import { Customer, CustomerCare, CustomerGroup } from './customer.models.js';
 import { buildCustomerMetricsMap, persistCustomerMetrics, recomputeCustomerMetricsByIds } from './customer.metrics.js';
-import { Order } from '../orders/orders.models.js';
 import { SalePayment } from '../product/product.models.js';
 
 const router = Router();
@@ -377,19 +376,9 @@ async function removeCustomer(req: any, res: any) {
 
   const phone = cleanString(customer.phone);
   const name = cleanString(customer.name);
-  const [saleExists, orderExists] = await Promise.all([
-    SalePayment.exists({ customerId: customer._id }),
-    phone || name
-      ? Order.exists({
-        $or: [
-          ...(phone ? [{ customerPhone: phone }] : []),
-          ...(name ? [{ customerName: name }] : []),
-        ],
-      })
-      : Promise.resolve(null),
-  ]);
+  const saleExists = await SalePayment.exists({ customerId: customer._id });
 
-  if (saleExists || orderExists) {
+  if (saleExists) {
     return res.status(409).json({ message: 'Không thể xóa khách hàng đã có lịch sử đơn hàng hoặc hóa đơn.' });
   }
 

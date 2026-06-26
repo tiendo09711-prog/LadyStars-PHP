@@ -13,6 +13,19 @@ type ApiResult = {
   meta?: Record<string, string[]>;
 };
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function defaultDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - 14);
+  return { fromDate: formatDateInput(start), toDate: formatDateInput(end) };
+}
 const fmt = (value: any) => Number(value || 0).toLocaleString('vi-VN');
 const rangeText = (page: number, limit: number, total: number) => {
   if (!total) return '0 - 0 / 0';
@@ -54,8 +67,7 @@ export function WarehouseDraftPage() {
     id: '',
     voucherId: '',
     product: '',
-    fromDate: '',
-    toDate: '',
+    ...defaultDateRange(),
   });
 
   const endpoint = activeTab === 'vouchers' ? '/warehouse/draft-vouchers' : '/warehouse/draft-products';

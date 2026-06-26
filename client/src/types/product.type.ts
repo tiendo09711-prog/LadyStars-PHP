@@ -41,7 +41,6 @@ export interface IProduct {
   holdQty?: number;      // Tạm giữ
   availableStock?: number; // Có thể bán
   preorderQty?: number;  // Đặt trước
-  image?: string;
   warrantyMonths?: number;
   weight?: number;
   length?: number;
@@ -67,6 +66,10 @@ export interface IInventory {
   wholesalePrice?: number;
   stockHanoi?: number;
   stockHCM?: number;
+  stockCN?: number;
+  selectedStock?: number;
+  stockByBranchId?: Record<string, number>;
+  stockByBranchCode?: Record<string, number>;
   totalStock?: number;
 }
 
@@ -78,6 +81,13 @@ export interface IProductHistory {
   logAction: string;
   createdBy: string;
   createdAt: string;
+}
+
+export interface IProductHistoryMeta {
+  logTypes: string[];
+  logActions: string[];
+  editors: string[];
+  toneByLogType: Record<string, string>;
 }
 
 export interface IBatch {
@@ -116,4 +126,3 @@ export interface IStorageDuration {
   daysFromLast: number;
   daysFromLastSold: number | null;
 }
-

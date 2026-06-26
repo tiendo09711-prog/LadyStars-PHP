@@ -16,7 +16,6 @@ import {
 import { Branch } from '../../core/org/branch.model.js';
 import { resolveBranchReference } from '../../core/org/branch.service.js';
 import { Customer } from '../customer/customer.models.js';
-import { Order } from '../orders/orders.models.js';
 import multer from 'multer';
 import * as xlsx from 'xlsx';
 import mongoose from 'mongoose';
@@ -70,10 +69,103 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+﻿const PRODUCT_TYPES = ['product', 'service', 'combo'];
+
+function randomDigits(length: number) {
+  let value = '';
+  for (let index = 0; index < length; index += 1) value += Math.floor(Math.random() * 10);
+  return value;
+}
+
+function ean13Checksum(first12Digits: string) {
+  const sum = first12Digits
+    .split('')
+    .reduce((total, digit, index) => total + Number(digit) * (index % 2 === 0 ? 1 : 3), 0);
+  return String((10 - (sum % 10)) % 10);
+}
+
+function buildGeneratedBarcode() {
+  const body = `20${Date.now().toString().slice(-5)}${randomDigits(5)}`;
+  return `${body}${ean13Checksum(body)}`;
+}
+
+async function generateProductIdentity(session?: mongoose.ClientSession) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const suffix = `${Date.now().toString(36).toUpperCase()}${randomDigits(4)}`;
+    const code = `SP-${suffix}`;
+    const barcode = buildGeneratedBarcode();
+    const existing = await Product.findOne({ $or: [{ code }, { barcode }] }).session(session || null).select('_id');
+    if (!existing) return { code, barcode };
+  }
+  const error: any = new Error('Không thể tự động tạo mã sản phẩm/mã vạch không trùng. Vui lòng thử lại.');
+  error.status = 409;
+  throw error;
+}
+
+function toNumberOrZero(value: any): number {
+  const number = parseNumber(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function validateProductFields(payload: any): string[] {
+  const errors: string[] = [];
+
+  const require = (condition: boolean, message: string) => {
+    if (!condition) errors.push(message);
+  };
+
+  const code = String(payload.code ?? '').trim();
+  const name = String(payload.name ?? '').trim();
+  const barcode = String(payload.barcode ?? '').trim();
+  const type = String(payload.type ?? '').trim();
+  const unit = String(payload.unit ?? '').trim();
+  const size = String(payload.size ?? '').trim();
+  const color = String(payload.color ?? '').trim();
+  const categoryId = String(payload.categoryId ?? '').trim();
+  const price = payload.price;
+  const weight = payload.weight;
+  const cost = payload.cost;
+  const wholesalePrice = payload.wholesalePrice;
+
+  require(name.length > 0, 'Vui lòng nhập tên sản phẩm.');
+  require(barcode.length === 0 || /^\d+$/.test(barcode), 'Mã vạch chỉ được chứa chữ số.');
+  require(type.length > 0, 'Vui lòng chọn loại sản phẩm.');
+  require(type.length === 0 || PRODUCT_TYPES.includes(type), 'Loại sản phẩm không hợp lệ.');
+  require(unit.length > 0, 'Vui lòng chọn đơn vị.');
+
+  const priceValid = price !== undefined && price !== null && price !== '' && Number.isFinite(Number(price)) && Number(price) >= 0;
+  require(priceValid, 'Vui lòng nhập giá bán hợp lệ.');
+
+  const weightValid = weight !== undefined && weight !== null && weight !== '' && Number.isFinite(Number(weight)) && Number(weight) >= 0;
+  require(weightValid, 'Khối lượng phải là số không âm.');
+
+  const costValid = cost === undefined || cost === null || cost === '' || (Number.isFinite(Number(cost)) && Number(cost) >= 0);
+  require(costValid, 'Giá vốn phải là số không âm.');
+
+  const wholesaleValid = wholesalePrice === undefined || wholesalePrice === null || wholesalePrice === '' || (Number.isFinite(Number(wholesalePrice)) && Number(wholesalePrice) >= 0);
+  require(wholesaleValid, 'Giá sỉ phải là số không âm.');
+
+  require(size.length > 0, 'Vui lòng nhập kích cỡ.');
+  require(color.length > 0, 'Vui lòng nhập màu sắc.');
+  require(categoryId.length > 0, 'Vui lòng chọn danh mục.');
+  require(categoryId.length === 0 || mongoose.isValidObjectId(categoryId), 'Danh mục không hợp lệ.');
+
+  return errors;
+}
+
+function applyMoneyDefaults(payload: any) {
+  if (payload.cost === undefined || payload.cost === null || payload.cost === '') payload.cost = 0; else payload.cost = toNumberOrZero(payload.cost);
+  if (payload.wholesalePrice === undefined || payload.wholesalePrice === null || payload.wholesalePrice === '') payload.wholesalePrice = 0; else payload.wholesalePrice = toNumberOrZero(payload.wholesalePrice);
+  if (payload.price !== undefined && payload.price !== null && payload.price !== '') payload.price = toNumberOrZero(payload.price);
+  if (payload.weight !== undefined && payload.weight !== null && payload.weight !== '') payload.weight = toNumberOrZero(payload.weight);
+}
+
 function sanitizeProductPayload(raw: any) {
   const payload = { ...raw };
   for (const key of [
     '_id',
+    'code',
+    'barcode',
     'createdAt',
     'updatedAt',
     '__v',
@@ -309,6 +401,103 @@ async function populateRefund(query: any) {
   return query.populate('paymentId', 'code value status').populate('items.productId', 'code name price qty unit type');
 }
 
+async function generateCategoryCode() {
+  const categories = await Category.find({ code: /^DM-\d+$/i }).select('code').lean();
+  let maxNumber = 0;
+  for (const category of categories) {
+    const match = String((category as any).code || '').trim().toUpperCase().match(/^DM-(\d+)$/);
+    if (!match) continue;
+    maxNumber = Math.max(maxNumber, Number(match[1]));
+  }
+  return `DM-${String(maxNumber + 1).padStart(4, '0')}`;
+}
+
+router.get('/categories', async (req, res) => {
+  const page = Math.max(Number(req.query.page ?? 1), 1);
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
+  const q = String(req.query.q ?? '').trim();
+  const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
+  const sortOrder = req.query.order === 'asc' ? 1 : -1;
+  const filter: Record<string, any> = q
+    ? { $or: [{ name: { $regex: q, $options: 'i' } }, { code: { $regex: q, $options: 'i' } }] }
+    : {};
+
+  for (const [key, val] of Object.entries(req.query)) {
+    if (['page', 'limit', 'q', 'sort', 'order'].includes(key)) continue;
+    const strVal = String(val ?? '').trim();
+    if (!strVal) continue;
+    if ((key === '_id' || key.endsWith('Id')) && mongoose.Types.ObjectId.isValid(strVal)) {
+      filter[key] = new mongoose.Types.ObjectId(strVal);
+    } else {
+      filter[key] = { $regex: `^${strVal}$`, $options: 'i' };
+    }
+  }
+
+  const [items, total] = await Promise.all([
+    Category.aggregate([
+      { $match: filter },
+      { $sort: { [sortField]: sortOrder } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: Product.collection.name,
+          localField: '_id',
+          foreignField: 'categoryId',
+          as: 'products',
+        },
+      },
+      { $addFields: { productCount: { $size: '$products' } } },
+      { $project: { products: 0 } },
+    ]),
+    Category.countDocuments(filter),
+  ]);
+
+  res.json({ items, total, page, limit });
+});
+
+router.post('/categories', async (req, res) => {
+  try {
+    const payload = { ...req.body, code: String(req.body?.code || '').trim() || await generateCategoryCode() };
+    const item = await Category.create(payload);
+    await writeAuditLog(req, {
+      action: 'crud.create',
+      module: 'Category',
+      resource: 'Category',
+      resourceId: item.id,
+      after: item,
+    });
+    res.status(201).json(item);
+  } catch (err: any) {
+    if (err?.code === 11000) return res.status(409).json({ message: 'M� danh m?c ho?c t�n danh m?c d� t?n t?i.' });
+    throw err;
+  }
+});
+
+router.delete('/categories/:id', async (req, res) => {
+  const categoryId = req.params.id;
+  if (!mongoose.Types.ObjectId.isValid(categoryId)) return res.status(400).json({ message: 'Invalid category id' });
+
+  const [childCount, productCount] = await Promise.all([
+    Category.countDocuments({ parentId: categoryId }),
+    Product.countDocuments({ categoryId }),
+  ]);
+  if (childCount > 0 || productCount > 0) {
+    return res.status(409).json({ message: 'Danh mục đang có danh mục con hoặc sản phẩm, không thể xóa.' });
+  }
+
+  const item = await Category.findByIdAndDelete(categoryId);
+  if (!item) return res.status(404).json({ message: 'Not found' });
+  await writeAuditLog(req, {
+    action: 'crud.delete',
+    module: 'Category',
+    resource: 'Category',
+    resourceId: item.id,
+    before: item,
+  });
+  res.status(204).send();
+});
+
 router.use('/categories', crudRoutes(Category));
 router.use('/trademarks', crudRoutes(Trademark));
 router.use('/shelves', crudRoutes(Shelf));
@@ -353,19 +542,19 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const code = row['Mã sản phẩm']?.toString().trim();
-      const name = row['Tên sản phẩm']?.toString().trim();
+      const code = row['M\u00e3 s\u1ea3n ph\u1ea9m']?.toString().trim();
+      const name = row['T\u00ean s\u1ea3n ph\u1ea9m']?.toString().trim();
 
-      if (!code || !name) {
-        errors.push(`Dòng ${i + 2}: Thiếu mã hoặc tên sản phẩm`);
+      if (!name) {
+        errors.push(`D\u00f2ng ${i + 2}: Thi\u1ebfu t\u00ean s\u1ea3n ph\u1ea9m`);
         continue;
       }
 
       // Map fields
-      const costStr = row['Giá nhập'] || row['Giá vốn'] || row['Giá vốn (Đ)'] || 0;
-      const priceStr = row['Giá bán'] || row['Giá bán (Đ)'] || 0;
-      const wholesalePriceStr = row['Giá sỉ'] || row['Giá sỉ (Đ)'] || 0;
-      const qtyStr = row['Tồn trong kho'] || row['Tồn'] || row['Tổng tồn'] || 0;
+      const costStr = row['Gi\u00e1 nh\u1eadp'] || row['Gi\u00e1 v\u1ed1n'] || row['Gi\u00e1 v\u1ed1n (\u0110)'] || 0;
+      const priceStr = row['Gi\u00e1 b\u00e1n'] || row['Gi\u00e1 b\u00e1n (\u0110)'] || 0;
+      const wholesalePriceStr = row['Gi\u00e1 s\u1ec9'] || row['Gi\u00e1 s\u1ec9 (\u0110)'] || 0;
+      const qtyStr = row['T\u1ed3n trong kho'] || row['T\u1ed3n'] || row['T\u1ed5ng t\u1ed3n'] || 0;
 
       const cost = Number(costStr.toString().replace(/,/g, '')) || 0;
       const price = Number(priceStr.toString().replace(/,/g, '')) || 0;
@@ -374,25 +563,25 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
 
       const metadata = {
         name,
-        barcode: row['Mã vạch']?.toString(),
-        unit: row['Đơn vị tính']?.toString() || row['Đơn vị']?.toString(),
+        unit: row['\u0110\u01a1n v\u1ecb t\u00ednh']?.toString() || row['\u0110\u01a1n v\u1ecb']?.toString(),
         cost,
         price,
         wholesalePrice,
-        categoryName: row['Danh mục']?.toString(),
-        trademarkName: row['Thương hiệu']?.toString(),
-        supplierName: row['Nhà cung cấp']?.toString(),
-        color: row['Màu sắc']?.toString(),
-        size: row['Kích thước']?.toString() || row['Kích cỡ']?.toString(),
-        status: row['Trạng thái']?.toString() || 'Mới',
+        categoryName: row['Danh m\u1ee5c']?.toString(),
+        trademarkName: row['Th\u01b0\u01a1ng hi\u1ec7u']?.toString(),
+        supplierName: row['Nh\u00e0 cung c\u1ea5p']?.toString(),
+        color: row['M\u00e0u s\u1eafc']?.toString(),
+        size: row['K\u00edch th\u01b0\u1edbc']?.toString() || row['K\u00edch c\u1ee1']?.toString(),
+        status: row['Tr\u1ea1ng th\u00e1i']?.toString() || 'M\u1edbi',
         type: 'product'
       };
 
-      let product = await Product.findOne({ code });
+      let product = code ? await Product.findOne({ code }) : null;
 
       if (!product) {
         // Mới
-        product = await Product.create({ ...metadata, code, qty: 0 });
+        const identity = await generateProductIdentity();
+        product = await Product.create({ ...metadata, ...identity, qty: 0 });
         created++;
       } else {
         if (importMode === 'Thêm mới') {
@@ -560,8 +749,13 @@ router.post('/products', async (req, res) => {
   try {
     const payload = sanitizeProductPayload(req.body);
     const initialStocks = normalizeStockLines(req.body.initialStocks);
-    if (!String(payload.code || '').trim() || !String(payload.name || '').trim()) {
-      return res.status(400).json({ message: 'Mã và tên sản phẩm là bắt buộc.' });
+    const fieldErrors = validateProductFields(payload);
+    if (fieldErrors.length) {
+      return res.status(400).json({ message: fieldErrors[0], errors: fieldErrors });
+    }
+    applyMoneyDefaults(payload);
+    if (initialStocks.length === 0) {
+      return res.status(400).json({ message: 'Vui lòng chọn ít nhất một kho hàng.' });
     }
 
     const warehouseIds = initialStocks.map((line) => line.warehouseId);
@@ -574,12 +768,14 @@ router.post('/products', async (req, res) => {
 
     let created: any;
     await session.withTransaction(async () => {
+      const identity = await generateProductIdentity(session);
+      payload.code = identity.code;
+      payload.barcode = identity.barcode;
       const [item] = await Product.create([{ ...payload, qty: 0 }], { session });
       created = item;
       let runningTotal = 0;
 
       for (const line of initialStocks) {
-        if (line.quantity === 0) continue;
         await ProductBranchStock.create([{
           productId: item._id,
           branchId: line.warehouseId,
@@ -587,16 +783,18 @@ router.post('/products', async (req, res) => {
           minQuantity: item.minQuantity,
           maxQuantity: item.maxQuantity,
         }], { session });
-        await ProductLog.create([{
-          productId: item._id,
-          sourceType: 'PRODUCT_CREATE_INITIAL_STOCK',
-          sourceId: item._id,
-          amount: line.quantity,
-          valueBefore: item.price,
-          valueAfter: item.price,
-          amountBefore: runningTotal,
-          amountAfter: runningTotal + line.quantity,
-        }], { session });
+        if (line.quantity > 0) {
+          await ProductLog.create([{
+            productId: item._id,
+            sourceType: 'PRODUCT_CREATE_INITIAL_STOCK',
+            sourceId: item._id,
+            amount: line.quantity,
+            valueBefore: item.price,
+            valueAfter: item.price,
+            amountBefore: runningTotal,
+            amountAfter: runningTotal + line.quantity,
+          }], { session });
+        }
         runningTotal += line.quantity;
       }
 
@@ -630,15 +828,25 @@ router.post('/products', async (req, res) => {
 router.patch('/products/:id', async (req, res) => {
   const session = await mongoose.startSession();
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Sản phẩm không hợp lệ.' });
-    const productPayload = sanitizeProductPayload(req.body);
+﻿    const productPayload = sanitizeProductPayload(req.body);
     const adjustment = req.body.stockAdjustment;
     let normalizedAdjustment: { warehouseId: string; quantity: number } | undefined;
+    const editInitialStocks = normalizeStockLines(req.body.initialStocks);
+    const hasEditStocks = editInitialStocks.length > 0;
+    const hasAdjustment = adjustment !== undefined;
 
-    if (adjustment !== undefined) {
+    if (hasAdjustment) {
       [normalizedAdjustment] = normalizeStockLines([adjustment]);
       const warehouse = await Branch.findById(normalizedAdjustment.warehouseId).select('_id');
       if (!warehouse) return res.status(400).json({ message: 'Kho hàng không tồn tại.' });
+    }
+
+    if (hasEditStocks) {
+      const warehouseIds = editInitialStocks.map((line) => line.warehouseId);
+      const warehouses = await Branch.find({ _id: { $in: warehouseIds }, isActive: { $ne: false } }).select('_id');
+      if (warehouses.length !== warehouseIds.length) {
+        return res.status(400).json({ message: 'Có kho hàng không tồn tại hoặc đã ngừng hoạt động.' });
+      }
     }
 
     let updated: any;
@@ -651,11 +859,68 @@ router.patch('/products/:id', async (req, res) => {
         throw error;
       }
 
+      // Full product form sends name; partial updates such as bulk status/category
+      // must not fail because older products miss fields now required by the form.
+      if (Object.prototype.hasOwnProperty.call(productPayload, 'name')) {
+        const merged = { ...(before.toObject ? before.toObject() : before), ...productPayload };
+        const fieldErrors = validateProductFields(merged);
+        if (fieldErrors.length) {
+          const error: any = new Error(fieldErrors[0]);
+          error.status = 400;
+          error.errors = fieldErrors;
+          throw error;
+        }
+      }
+      applyMoneyDefaults(productPayload);
+
+      const existingStocks = await ProductBranchStock.find({ productId: before._id }).session(session);
+      const existingWarehouseIds = new Set(existingStocks.map((stock) => String(stock.branchId)));
+
       if (Object.keys(productPayload).length) {
         await Product.updateOne({ _id: before._id }, { $set: productPayload }, { runValidators: true, session });
       }
 
-      if (normalizedAdjustment) {
+      // Multi-warehouse upsert: update existing stock rows or create new ones.
+      // Only rows explicitly provided are written; untouched existing rows keep their qty.
+      for (const line of editInitialStocks) {
+        const stock = existingStocks.find((item) => String(item.branchId) === line.warehouseId);
+        if (stock) {
+          const quantityBefore = Number(stock.qty || 0);
+          if (quantityBefore === line.quantity) continue;
+          stock.qty = line.quantity;
+          await stock.save({ session });
+          await ProductLog.create([{
+            productId: before._id,
+            sourceType: 'PRODUCT_EDIT_ADJUSTMENT',
+            sourceId: before._id,
+            amount: line.quantity - quantityBefore,
+            valueBefore: before.price,
+            valueAfter: productPayload.price ?? before.price,
+            amountBefore: quantityBefore,
+            amountAfter: line.quantity,
+          }], { session });
+        } else if (!existingWarehouseIds.has(line.warehouseId)) {
+          await ProductBranchStock.create([{
+            productId: before._id,
+            branchId: line.warehouseId,
+            qty: line.quantity,
+            minQuantity: before.minQuantity,
+            maxQuantity: before.maxQuantity,
+          }], { session });
+          await ProductLog.create([{
+            productId: before._id,
+            sourceType: 'PRODUCT_EDIT_ADD_WAREHOUSE',
+            sourceId: before._id,
+            amount: line.quantity,
+            valueBefore: before.price,
+            valueAfter: productPayload.price ?? before.price,
+            amountBefore: 0,
+            amountAfter: line.quantity,
+          }], { session });
+        }
+      }
+
+      if (normalizedAdjustment && !hasEditStocks) {
         const stock = await ProductBranchStock.findOne({
           productId: before._id,
           branchId: normalizedAdjustment.warehouseId,
@@ -669,13 +934,6 @@ router.patch('/products/:id', async (req, res) => {
         const quantityBefore = Number(stock.qty || 0);
         stock.qty = normalizedAdjustment.quantity;
         await stock.save({ session });
-
-        const totals = await ProductBranchStock.aggregate([
-          { $match: { productId: before._id } },
-          { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
-        ]).session(session);
-        const totalQuantity = Number(totals[0]?.quantity || 0);
-        await Product.updateOne({ _id: before._id }, { $set: { qty: totalQuantity } }, { session });
 
         if (quantityBefore !== normalizedAdjustment.quantity) {
           await ProductLog.create([{
@@ -691,18 +949,26 @@ router.patch('/products/:id', async (req, res) => {
         }
       }
 
+      const totals = await ProductBranchStock.aggregate([
+        { $match: { productId: before._id } },
+        { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
+      ]).session(session);
+      const totalQuantity = Number(totals[0]?.quantity || 0);
+      await Product.updateOne({ _id: before._id }, { $set: { qty: totalQuantity } }, { session });
+
+      const changedStocks = hasEditStocks || normalizedAdjustment;
       updated = await Product.findById(before._id).session(session);
       await ProductEditLog.create([{
         productCode: updated.code,
         productName: updated.name,
         logType: 'Sửa sản phẩm',
-        logAction: normalizedAdjustment ? 'Cập nhật thông tin và tồn kho một kho hàng' : 'Cập nhật thông tin sản phẩm',
+        logAction: changedStocks ? 'Cập nhật thông tin và tồn kho theo kho hàng' : 'Cập nhật thông tin sản phẩm',
         createdBy: (req as any).user?.name || (req as any).user?.email || 'Admin',
       }], { session });
     });
 
     await writeAuditLog(req, {
-      action: normalizedAdjustment ? 'product.update_with_stock_adjustment' : 'product.update_master',
+      action: (hasEditStocks || normalizedAdjustment) ? 'product.update_with_stock_adjustment' : 'product.update_master',
       module: 'Product',
       resource: 'Product',
       resourceId: updated.id,
@@ -710,6 +976,7 @@ router.patch('/products/:id', async (req, res) => {
       after: updated,
     });
     res.json(updated);
+
   } catch (err: any) {
     if (err?.code === 11000) return res.status(409).json({ message: 'Mã sản phẩm đã tồn tại.' });
     res.status(err.status || 500).json({ message: err.message || 'Không thể cập nhật sản phẩm.' });
@@ -1154,17 +1421,12 @@ router.get('/storage-duration', async (req, res) => {
     const productCodes = products.map(p => p.code).filter(Boolean);
 
     // Fetch all related transactions in parallel for O(1) in-memory resolution
-    const [batches, salePayments, orders, stockAdjustments] = await Promise.all([
+    const [batches, salePayments, stockAdjustments] = await Promise.all([
       Batch.find({ productId: { $in: productIds } }).lean(),
       SalePayment.find(
         targetBranchId
           ? { status: 'completed', 'items.productId': { $in: productIds }, branchId: targetBranchId }
           : { status: 'completed', 'items.productId': { $in: productIds } }
-      ).lean(),
-      Order.find(
-        targetBranchId && branchName
-          ? { 'products.productId': { $in: productIds }, status: { $ne: 'Đã hủy' }, warehouse: branchName }
-          : { 'products.productId': { $in: productIds }, status: { $ne: 'Đã hủy' } }
       ).lean(),
       StockAdjustment.find(
         targetBranchId
@@ -1193,17 +1455,6 @@ router.get('/storage-duration', async (req, res) => {
       }
     }
 
-
-    const ordersMap = new Map<string, any>();
-    for (const o of orders) {
-      for (const item of o.products || []) {
-        const pidStr = String(item.productId);
-        const existing = ordersMap.get(pidStr);
-        if (!existing || new Date(o.createdAt) > new Date(existing.createdAt)) {
-          ordersMap.set(pidStr, o);
-        }
-      }
-    }
 
     const stockAdjustmentsMap = new Map<string, any>();
     for (const sa of stockAdjustments) {
@@ -1252,7 +1503,6 @@ router.get('/storage-duration', async (req, res) => {
       // Find last sold from the maps
       const lastSale = salePaymentsMap.get(String(product._id));
 
-      const lastOrder = ordersMap.get(String(product._id));
 
       const firstTransactionDate = oldestBatch
         ? (oldestBatch.manufactureDate || oldestBatch.createdAt || product.createdAt)
@@ -1279,7 +1529,6 @@ router.get('/storage-duration', async (req, res) => {
       const soldDates: Date[] = [];
       if (lastSale) soldDates.push(new Date(lastSale.completedAt || lastSale.createdAt));
 
-      if (lastOrder) soldDates.push(new Date(lastOrder.createdAt));
 
       if (soldDates.length > 0) {
         lastSoldDate = new Date(Math.max(...soldDates.map(d => d.getTime())));
@@ -1413,7 +1662,8 @@ router.get('/inventories', async (req, res) => {
     if (q) {
       filter.$or = [
         { name: new RegExp(q, 'i') },
-        { code: new RegExp(q, 'i') }
+        { code: new RegExp(q, 'i') },
+        { barcode: new RegExp(q, 'i') }
       ];
     }
 
@@ -1423,8 +1673,12 @@ router.get('/inventories', async (req, res) => {
     // Fetch all stock records for the found products in one query
     const productIds = products.map(p => p._id);
     const stockQuery: Record<string, any> = { productId: { $in: productIds } };
-    if (inventoryBranchIds) stockQuery.branchId = { $in: inventoryBranchIds };
+    if (warehouseScope) stockQuery.branchId = { $in: warehouseScope };
     const stocksList = await ProductBranchStock.find(stockQuery).lean();
+
+    const branchIds = [...new Set(stocksList.map((stock: any) => String(stock.branchId)).filter(Boolean))];
+    const branchList = branchIds.length ? await Branch.find({ _id: { $in: branchIds } }).select('_id code name').lean() : [];
+    const branchCodeById = new Map(branchList.map((branch: any) => [String(branch._id), String(branch.code || '')]));
 
     // Group stocks by productId
     const stockMap = new Map<string, any[]>();
@@ -1447,7 +1701,17 @@ router.get('/inventories', async (req, res) => {
       const selectedStock = selectedBranchId
         ? stocks.find(s => String(s.branchId) === selectedBranchId)?.qty || 0
         : undefined;
-      const scopedTotalStock = stocks.reduce((sum, stock) => sum + Number(stock.qty || 0), 0);
+      const totalStocks = selectedBranchId ? stocks.filter(s => String(s.branchId) === selectedBranchId) : stocks;
+      const scopedTotalStock = totalStocks.reduce((sum, stock) => sum + Number(stock.qty || 0), 0);
+      const stockByBranchId: Record<string, number> = {};
+      const stockByBranchCode: Record<string, number> = {};
+      for (const stock of stocks) {
+        const stockBranchId = String(stock.branchId);
+        const qty = Number(stock.qty || 0);
+        stockByBranchId[stockBranchId] = (stockByBranchId[stockBranchId] || 0) + qty;
+        const stockBranchCode = branchCodeById.get(stockBranchId);
+        if (stockBranchCode) stockByBranchCode[stockBranchCode] = (stockByBranchCode[stockBranchCode] || 0) + qty;
+      }
       const isLimited = Boolean(warehouseScope);
 
       allItems.push({
@@ -1467,6 +1731,8 @@ router.get('/inventories', async (req, res) => {
         stockHanoi,
         stockHCM,
         selectedStock,
+        stockByBranchId,
+        stockByBranchCode,
         unit: pAny.unit || '',
         createdAt: pAny.createdAt
       });
@@ -1482,6 +1748,12 @@ router.get('/inventories', async (req, res) => {
 
       let valA = a[sortField];
       let valB = b[sortField];
+
+      if (sortField.startsWith('stock_')) {
+        const branchSortId = sortField.slice('stock_'.length);
+        valA = a.stockByBranchId?.[branchSortId] || 0;
+        valB = b.stockByBranchId?.[branchSortId] || 0;
+      }
 
       // Handle string case-insensitive comparison
       if (typeof valA === 'string' && typeof valB === 'string') {
@@ -1556,19 +1828,35 @@ router.get('/edit-logs', async (req, res) => {
       }
     }
 
-    const [items, total] = await Promise.all([
+    const [items, total, logTypes, logActions, editors] = await Promise.all([
       ProductEditLog.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
       ProductEditLog.countDocuments(filter),
+      ProductEditLog.distinct('logType'),
+      ProductEditLog.distinct('logAction'),
+      ProductEditLog.distinct('createdBy'),
     ]);
 
-    res.json({ items, total, page, limit });
+    const toneByLogType = Object.fromEntries(
+      logTypes
+        .filter(Boolean)
+        .map((type) => [type, String(type).toLowerCase().includes('xóa') ? 'danger' : 'warning']),
+    );
+
+    res.json({
+      items,
+      total,
+      page,
+      limit,
+      meta: {
+        logTypes: logTypes.filter(Boolean).sort((left, right) => String(left).localeCompare(String(right), 'vi')),
+        logActions: logActions.filter(Boolean).sort((left, right) => String(left).localeCompare(String(right), 'vi')),
+        editors: editors.filter(Boolean).sort((left, right) => String(left).localeCompare(String(right), 'vi')),
+        toneByLogType,
+      },
+    });
   } catch (err: any) {
     res.status(500).json({ message: err.message || 'Lỗi server' });
   }
 });
 
 export default router;
-
-
-
-

@@ -1,5 +1,5 @@
 import { http } from './http';
-import type { ICategory, IProduct, IInventory, IProductHistory, IBatch, ITrademark, IStorageDuration } from '../../types/product.type';
+import type { ICategory, IProduct, IInventory, IProductHistory, IProductHistoryMeta, IBatch, ITrademark, IStorageDuration } from '../../types/product.type';
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -39,7 +39,7 @@ export const productApi = {
   },
 
   updateProduct: async (id: string, data: ProductSavePayload) => {
-    const { qty: _qty, availableStock: _availableStock, trademarkName: _trademarkName, supplierName: _supplierName, initialStocks: _initialStocks, ...payload } = data;
+    const { qty: _qty, availableStock: _availableStock, trademarkName: _trademarkName, supplierName: _supplierName, ...payload } = data;
     const response = await http.patch<IProduct>(`/products/products/${id}`, payload);
     return response.data;
   },
@@ -89,7 +89,7 @@ export const productApi = {
   },
 
   getProductLogs: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
-    const response = await http.get<PaginatedResponse<IProductHistory>>('/products/edit-logs', { params });
+    const response = await http.get<PaginatedResponse<IProductHistory> & { meta?: IProductHistoryMeta }>('/products/edit-logs', { params });
     return response.data;
   },
 

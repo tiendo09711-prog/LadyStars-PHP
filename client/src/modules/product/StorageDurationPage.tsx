@@ -12,7 +12,8 @@ import {
   ArrowRight, 
   X, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  MoreHorizontal
 } from 'lucide-react';
 import { productApi } from '../../core/api/product.api';
 import type { IStorageDuration, ICategory } from '../../types/product.type';
@@ -55,6 +56,7 @@ export function StorageDurationPage() {
 
   // Action Dialogs
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   
   // Discount Modal state
   const [discountProduct, setDiscountProduct] = useState<IStorageDuration | null>(null);
@@ -161,6 +163,7 @@ export function StorageDurationPage() {
 
   // Discount (Xả hàng) Action handlers
   const handleOpenDiscount = (product: IStorageDuration) => {
+    setOpenActionMenu(null);
     setDiscountProduct(product);
     setDiscountType('percent');
     setDiscountVal('10');
@@ -202,6 +205,7 @@ export function StorageDurationPage() {
 
   // Return to Vendor Action handlers
   const handleOpenReturn = (product: IStorageDuration) => {
+    setOpenActionMenu(null);
     if (!selectedBranch) {
       setToast({ message: 'Vui lòng chọn một chi nhánh cụ thể ở bộ lọc trước khi trả hàng.', type: 'error' });
       return;
@@ -427,7 +431,7 @@ export function StorageDurationPage() {
               <input 
                 value={tempSearch} 
                 onChange={(e) => setTempSearch(e.target.value)} 
-                placeholder="Tên SP, mã SP..." 
+                data-product-search-scan="true" data-product-search-primary="true" placeholder="Tên SP, mã SP..."
               />
             </div>
 
@@ -678,24 +682,37 @@ export function StorageDurationPage() {
                         </span>
                       )}
                     </td>
-                    <td className="action-cell">
-                      <button 
-                        className="mini-action" 
-                        type="button"
-                        onClick={() => handleOpenDiscount(item)}
-                        style={{ color: 'var(--primary)', borderColor: '#bfdbfe' }}
-                      >
-                        <Percent size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />
-                        Xả hàng
-                      </button>
-                      <button 
-                        className="mini-action" 
-                        type="button"
-                        onClick={() => handleOpenReturn(item)}
-                        style={{ color: 'var(--muted)' }}
-                      >
-                        Trả hàng
-                      </button>
+                    <td className="action-cell storage-action-cell">
+                      <div className="storage-action-menu">
+                        <button
+                          className="storage-action-trigger"
+                          type="button"
+                          aria-label={`Mở thao tác cho ${item.code}`}
+                          aria-expanded={openActionMenu === item._id}
+                          onClick={() => setOpenActionMenu((current) => (current === item._id ? null : item._id))}
+                        >
+                          <MoreHorizontal size={18} />
+                        </button>
+                        {openActionMenu === item._id ? (
+                          <div className="storage-action-dropdown">
+                            <button
+                              className="storage-action-option storage-action-option-primary"
+                              type="button"
+                              onClick={() => handleOpenDiscount(item)}
+                            >
+                              <Percent size={12} />
+                              <span>Xả hàng</span>
+                            </button>
+                            <button
+                              className="storage-action-option"
+                              type="button"
+                              onClick={() => handleOpenReturn(item)}
+                            >
+                              Trả hàng
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

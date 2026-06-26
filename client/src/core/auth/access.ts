@@ -20,7 +20,6 @@ export function canAccessPath(role: string | null | undefined, pathname: string)
   if (pathname.startsWith('/products')) return true;
   if (pathname.startsWith('/warehouse') && !pathname.startsWith('/warehouse/branches')) return true;
   if (pathname.startsWith('/sales-channels')) return true;
-  if (pathname.startsWith('/orders')) return true;
   if (pathname.startsWith('/customers')) return true;
   if (pathname.startsWith('/settings')) return true;
   return false;

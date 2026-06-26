@@ -6,11 +6,11 @@ import {
   Boxes,
   CheckSquare,
   ChevronDown,
-  Clock3,
   Download,
   Eye,
   FileDown,
   FileUp,
+  MoreHorizontal,
   PackageCheck,
   Pencil,
   Plus,
@@ -32,6 +32,7 @@ import {
   qrcode as renderQrCode,
 } from '@bwip-js/generic';
 import * as XLSX from 'xlsx';
+import { createPortal } from 'react-dom';
 import {
   productApi,
   type ProductSavePayload,
@@ -39,6 +40,7 @@ import {
 } from '../../../core/api/product.api';
 import { http } from '../../../core/api/http';
 import { Pagination } from '../../../core/components/Pagination';
+import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import type { ICategory, IProduct } from '../../../types/product.type';
 import { ExportExcelModal, type ColumnOption } from './ExportExcelModal';
 
@@ -75,10 +77,14 @@ interface PaperTemplate {
   id: string;
   title: string;
   size: string;
-  widthMm: number;
-  heightMm: number;
+  pageWidthMm: number;
+  pageHeightMm: number;
+  labelWidthMm: number;
+  labelHeightMm: number;
   columns: number;
   rows?: number;
+  gapXmm?: number;
+  gapYmm?: number;
   previewClass: 'roll' | 'sheet' | 'jewelry';
 }
 
@@ -87,19 +93,19 @@ const PRODUCT_STATUS_OPTIONS = ['Mới', 'Đang bán', 'Ngừng bán', 'Hết h�
 const DEFAULT_BARCODE_PAPER_ID = 'a4-65';
 
 const PAPER_TEMPLATES: PaperTemplate[] = [
-  { id: 'roll-105x22-3', title: 'Mẫu giấy cuộn 3 nhãn', size: 'Khổ 105x22mm.', widthMm: 105, heightMm: 22, columns: 3, previewClass: 'roll' },
-  { id: 'roll-70x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 70x22mm.', widthMm: 70, heightMm: 22, columns: 2, previewClass: 'roll' },
-  { id: 'a4-65', title: 'Mẫu giấy 65 nhãn', size: 'Khổ A4, Tomy 145 - 210x297mm.', widthMm: 210, heightMm: 297, columns: 5, rows: 13, previewClass: 'sheet' },
-  { id: 'roll-77x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 77x22mm.', widthMm: 77, heightMm: 22, columns: 2, previewClass: 'roll' },
-  { id: 'roll-40x25-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 40x25mm.', widthMm: 40, heightMm: 25, columns: 1, previewClass: 'roll' },
-  { id: 'a4-180', title: 'Mẫu giấy 180 nhãn', size: 'Khổ A4 - 20x15mm.', widthMm: 210, heightMm: 297, columns: 10, rows: 18, previewClass: 'sheet' },
-  { id: 'roll-50x40-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 50x40mm.', widthMm: 50, heightMm: 40, columns: 2, previewClass: 'roll' },
-  { id: 'roll-40x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 40x30mm.', widthMm: 40, heightMm: 30, columns: 1, previewClass: 'roll' },
-  { id: 'roll-50x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Khổ 50x30mm.', widthMm: 50, heightMm: 30, columns: 1, previewClass: 'roll' },
-  { id: 'roll-30x20-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Khổ 30x20mm.', widthMm: 30, heightMm: 20, columns: 2, previewClass: 'roll' },
-  { id: 'jewelry-80x10', title: 'Mẫu tem trang sức / kính mắt', size: 'Khổ 80x10mm.', widthMm: 80, heightMm: 10, columns: 1, previewClass: 'jewelry' },
-  { id: 'a4-30', title: 'Mẫu giấy 30 nhãn', size: 'Khổ A4, Tomy 144 - 67x28mm.', widthMm: 210, heightMm: 297, columns: 3, rows: 10, previewClass: 'sheet' },
-  { id: 'a4-48', title: 'Mẫu giấy 48 nhãn', size: 'Khổ A4, Tomy 132, 45.7mm x 21.2mm', widthMm: 210, heightMm: 297, columns: 4, rows: 12, previewClass: 'sheet' },
+  { id: 'roll-105x22-3', title: 'Mẫu giấy cuộn 3 nhãn', size: 'Mỗi nhãn 35x22mm, 3 nhãn ngang.', pageWidthMm: 105, pageHeightMm: 22, labelWidthMm: 35, labelHeightMm: 22, columns: 3, previewClass: 'roll' },
+  { id: 'roll-70x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 35x22mm, 2 nhãn ngang.', pageWidthMm: 70, pageHeightMm: 22, labelWidthMm: 35, labelHeightMm: 22, columns: 2, previewClass: 'roll' },
+  { id: 'a4-65', title: 'Mẫu giấy 65 nhãn', size: 'Khổ A4, Tomy 145 - tem 38.1x21.2mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 38.1, labelHeightMm: 21.2, columns: 5, rows: 13, gapXmm: 2.55, gapYmm: 0, previewClass: 'sheet' },
+  { id: 'roll-77x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 38.5x22mm, 2 nhãn ngang.', pageWidthMm: 77, pageHeightMm: 22, labelWidthMm: 38.5, labelHeightMm: 22, columns: 2, previewClass: 'roll' },
+  { id: 'roll-40x25-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 40x25mm.', pageWidthMm: 40, pageHeightMm: 25, labelWidthMm: 40, labelHeightMm: 25, columns: 1, previewClass: 'roll' },
+  { id: 'a4-180', title: 'Mẫu giấy 180 nhãn', size: 'Khổ A4 - tem 20x15mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 20, labelHeightMm: 15, columns: 10, rows: 18, gapXmm: 0, gapYmm: 0, previewClass: 'sheet' },
+  { id: 'roll-50x40-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 50x40mm, 2 nhãn ngang.', pageWidthMm: 100, pageHeightMm: 40, labelWidthMm: 50, labelHeightMm: 40, columns: 2, previewClass: 'roll' },
+  { id: 'roll-40x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 40x30mm.', pageWidthMm: 40, pageHeightMm: 30, labelWidthMm: 40, labelHeightMm: 30, columns: 1, previewClass: 'roll' },
+  { id: 'roll-50x30-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 50x30mm.', pageWidthMm: 50, pageHeightMm: 30, labelWidthMm: 50, labelHeightMm: 30, columns: 1, previewClass: 'roll' },
+  { id: 'roll-30x20-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 30x20mm, 2 nhãn ngang.', pageWidthMm: 60, pageHeightMm: 20, labelWidthMm: 30, labelHeightMm: 20, columns: 2, previewClass: 'roll' },
+  { id: 'jewelry-80x10', title: 'Mẫu tem trang sức / kính mắt', size: 'Mỗi nhãn 80x10mm.', pageWidthMm: 80, pageHeightMm: 10, labelWidthMm: 80, labelHeightMm: 10, columns: 1, previewClass: 'jewelry' },
+  { id: 'a4-30', title: 'Mẫu giấy 30 nhãn', size: 'Khổ A4, Tomy 144 - tem 67x28mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 67, labelHeightMm: 28, columns: 3, rows: 10, gapXmm: 3, gapYmm: 0, previewClass: 'sheet' },
+  { id: 'a4-48', title: 'Mẫu giấy 48 nhãn', size: 'Khổ A4, Tomy 132 - tem 45.7x21.2mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 45.7, labelHeightMm: 21.2, columns: 4, rows: 12, gapXmm: 4, gapYmm: 0, previewClass: 'sheet' },
 ];
 
 function normalizeBarcodeValue(product: IProduct) {
@@ -112,62 +118,67 @@ function computeEan13CheckDigit(value: string) {
   return String((10 - (sum % 10)) % 10);
 }
 
-function decorateBarcodeSvg(svg: string, type: BarcodeType, standard: string, value: string) {
-  const classes = type === 'QRCODE' ? 'barcode-svg qr' : 'barcode-svg';
+function isValidEan13(value: string) {
+  return /^\d{13}$/.test(value) && computeEan13CheckDigit(value.slice(0, 12)) === value[12];
+}
+
+function isValidCode39(value: string) {
+  return /^[0-9A-Z .\-/$+%]+$/.test(value);
+}
+
+type BarcodeBuildResult = {
+  svg: string;
+  requestedType: BarcodeType;
+  actualType: BarcodeType;
+  standard: string;
+  encodedValue: string;
+  warning?: string;
+  error?: string;
+};
+
+function decorateBarcodeSvg(svg: string, result: Omit<BarcodeBuildResult, 'svg'>) {
+  const classes = result.actualType === 'QRCODE' ? 'barcode-svg qr' : 'barcode-svg';
   return svg.replace(
     '<svg ',
-    `<svg class="${classes}" data-barcode-type="${type}" data-barcode-standard="${standard}" role="img" aria-label="${escapeHtml(`${type}: ${value}`)}" `,
+    `<svg class="${classes}" data-barcode-type="${result.actualType}" data-barcode-requested-type="${result.requestedType}" data-barcode-standard="${result.standard}" data-barcode-value="${escapeHtml(result.encodedValue)}" role="img" aria-label="${escapeHtml(`${result.actualType}: ${result.encodedValue}`)}" `,
   );
 }
 
-function buildBarcodeSvg(value: string, type: BarcodeType) {
+function buildBarcodeResult(value: string, requestedType: BarcodeType): BarcodeBuildResult {
   const text = value.trim() || '0';
+  const renderWithMeta = (actualType: BarcodeType, standard: string, render: () => string, warning?: string): BarcodeBuildResult => {
+    const meta = { requestedType, actualType, standard, encodedValue: text, warning };
+    return { ...meta, svg: decorateBarcodeSvg(render(), meta) };
+  };
 
   try {
-    if (type === 'QRCODE') {
-      const svg = renderQrCode(
-        { bcid: 'qrcode', text, scale: 2, paddingwidth: 2, paddingheight: 2 },
-        drawingSVG(),
-      );
-      return decorateBarcodeSvg(svg, type, 'qrcode', text);
+    if (requestedType === 'QRCODE') {
+      return renderWithMeta('QRCODE', 'qrcode', () => renderQrCode({ bcid: 'qrcode', text, scale: 3, paddingwidth: 4, paddingheight: 4 }, drawingSVG()));
     }
-
-    if (type === 'EAN13') {
-      const numeric = text.replace(/\D/g, '');
-      if (numeric.length >= 12) {
-        const base = numeric.slice(0, 12);
-        const ean = `${base}${computeEan13CheckDigit(base)}`;
-        const svg = renderEan13(
-          { bcid: 'ean13', text: ean, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-          drawingSVG(),
-        );
-        return decorateBarcodeSvg(svg, type, 'ean13', ean);
+    if (requestedType === 'EAN13') {
+      if (isValidEan13(text)) {
+        return renderWithMeta('EAN13', 'ean13', () => renderEan13({ bcid: 'ean13', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()));
       }
+      return renderWithMeta('C128', 'code128', () => renderCode128({ bcid: 'code128', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()), 'Mã không hợp lệ EAN13 nên hệ thống in Code128 để giữ nguyên dữ liệu gốc.');
     }
-
-    if (type === 'C39') {
-      const code39Text = text.toUpperCase().replace(/[^0-9A-Z .\-/$+%]/g, '-');
-      const svg = renderCode39(
-        { bcid: 'code39', text: code39Text, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-        drawingSVG(),
-      );
-      return decorateBarcodeSvg(svg, type, 'code39', code39Text);
+    if (requestedType === 'C39') {
+      const code39Text = text.toUpperCase();
+      if (!isValidCode39(code39Text)) {
+        const message = 'Mã có ký tự không hỗ trợ Code39. Chọn Code128 để in nguyên mã gốc.';
+        return { requestedType, actualType: 'C39', standard: 'code39', encodedValue: text, error: message, svg: `<span class="barcode-svg-error">${escapeHtml(message)}</span>` };
+      }
+      const meta = { requestedType, actualType: 'C39' as BarcodeType, standard: 'code39', encodedValue: code39Text };
+      return { ...meta, svg: decorateBarcodeSvg(renderCode39({ bcid: 'code39', text: code39Text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()), meta) };
     }
-
-    const svg = renderCode128(
-      { bcid: 'code128', text, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-      drawingSVG(),
-    );
-    return decorateBarcodeSvg(svg, type, 'code128', text);
+    return renderWithMeta('C128', requestedType === 'C128A' ? 'code128a' : 'code128', () => renderCode128({ bcid: 'code128', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()));
   } catch (error) {
-    console.error(`Không thể tạo mã ${type}:`, error);
-    const fallbackText = text.replace(/[^\x20-\x7E]/g, '?') || '0';
-    const svg = renderCode128(
-      { bcid: 'code128', text: fallbackText, scale: 1, height: 12, paddingwidth: 0, paddingheight: 0 },
-      drawingSVG(),
-    );
-    return decorateBarcodeSvg(svg, type, 'code128-fallback', fallbackText);
+    console.error(`Không thể tạo mã ${requestedType}:`, error);
+    return { requestedType, actualType: requestedType, standard: requestedType.toLowerCase(), encodedValue: text, error: 'Không thể tạo mã vạch cho dữ liệu này.', svg: '<span class="barcode-svg-error">Không tạo được mã vạch</span>' };
   }
+}
+
+function buildBarcodeSvg(value: string, type: BarcodeType) {
+  return buildBarcodeResult(value, type).svg;
 }
 
 function BarcodeSvg({ value, type }: { value: string; type: BarcodeType }) {
@@ -297,7 +308,7 @@ function DetailModal({ product, onClose }: { product: IProduct; onClose: () => v
   );
 }
 
-interface ProductFormProps {
+﻿interface ProductFormProps {
   product?: IProduct | null;
   onSave: (data: ProductSavePayload) => void;
   onClose: () => void;
@@ -305,37 +316,63 @@ interface ProductFormProps {
   error?: string;
 }
 
+interface FieldErrors {
+  code?: string;
+  name?: string;
+  barcode?: string;
+  type?: string;
+  unit?: string;
+  price?: string;
+  weight?: string;
+  size?: string;
+  color?: string;
+  categoryId?: string;
+  warehouses?: string;
+  cost?: string;
+  wholesalePrice?: string;
+}
+
+const PRODUCT_TYPE_OPTIONS = [
+  { value: 'product', label: 'Sản phẩm' },
+  { value: 'service', label: 'Dịch vụ' },
+  { value: 'combo', label: 'Combo' },
+];
+
+const PRODUCT_UNIT_OPTIONS = [
+  'cái', 'chiếc', 'hộp', 'lốc', 'thùng', 'kg', 'gram', 'g', 'lít', 'l', 'mét', 'm', 'cặp', 'đôi', 'set', 'gói', 'chai', 'lon', 'tuýp', 'túi',
+];
+
+function isValidNonNegativeNumber(value: string) {
+  if (value.trim() === '') return true;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0;
+}
+
 function ProductForm({ product, onSave, onClose, saving, error }: ProductFormProps) {
   const isEdit = Boolean(product);
+  const formRef = useRef<HTMLDivElement>(null);
+  const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'product', status: 'Mới' });
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
-  const [createOnMultipleWarehouses, setCreateOnMultipleWarehouses] = useState(false);
-  const [singleWarehouseId, setSingleWarehouseId] = useState('');
-  const [singleQuantity, setSingleQuantity] = useState('0');
-  const [warehouseQuantities, setWarehouseQuantities] = useState<Record<string, string>>({});
   const [productStocks, setProductStocks] = useState<ProductWarehouseStock[]>([]);
   const [loadingStocks, setLoadingStocks] = useState(isEdit);
-  const [selectedStockWarehouseId, setSelectedStockWarehouseId] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('');
-  const [initialStockQuantity, setInitialStockQuantity] = useState<number | null>(null);
+  const [warehouseQuantities, setWarehouseQuantities] = useState<Record<string, string>>({});
+  const [selectedWarehouseIds, setSelectedWarehouseIds] = useState<Set<string>>(new Set());
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
     let mounted = true;
-
     productApi
       .getCategories({ limit: 1000 })
       .then((response) => {
-        if (mounted) {
-          setCategories(response.items || []);
-        }
+        if (mounted) setCategories(response.items || []);
       })
-      .catch((error) => {
-        console.error('Lỗi tải danh mục sản phẩm:', error);
+      .catch((loadError) => {
+        console.error('Lỗi tải danh mục sản phẩm:', loadError);
       });
-
     return () => {
       mounted = false;
     };
@@ -351,11 +388,6 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         const activeBranches: BranchOption[] = (response.data?.items || [])
           .filter((branch: BranchOption) => branch.isActive !== false);
         setBranches(activeBranches);
-        setWarehouseQuantities(Object.fromEntries(activeBranches.map((branch) => [branch._id, '0'])));
-        if (!isEdit) {
-          const defaultBranch = activeBranches[0];
-          setSingleWarehouseId(defaultBranch?._id || '');
-        }
       })
       .catch((loadError) => {
         console.error('Lỗi tải kho hàng:', loadError);
@@ -370,7 +402,17 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
       productApi
         .getProductStocks(product._id)
         .then((response) => {
-          if (mounted) setProductStocks(response.items || []);
+          if (!mounted) return;
+          const stocks = response.items || [];
+          setProductStocks(stocks);
+          const quantities: Record<string, string> = {};
+          const ids = new Set<string>();
+          stocks.forEach((stock) => {
+            quantities[stock.warehouseId] = String(stock.quantity ?? 0);
+            ids.add(stock.warehouseId);
+          });
+          setWarehouseQuantities(quantities);
+          setSelectedWarehouseIds(ids);
         })
         .catch((loadError) => {
           console.error('Lỗi tải tồn kho sản phẩm:', loadError);
@@ -379,6 +421,10 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         .finally(() => {
           if (mounted) setLoadingStocks(false);
         });
+    } else {
+      // Create mode: no warehouse pre-selected to force explicit selection.
+      setWarehouseQuantities({});
+      setSelectedWarehouseIds(new Set());
     }
 
     return () => {
@@ -388,107 +434,159 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 
   const updateField = (key: keyof IProduct, value: string | number) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: undefined }));
   };
 
-  const isValidQuantity = (value: string) => /^\d+$/.test(value);
+  const toggleWarehouse = (warehouseId: string) => {
+    setSelectedWarehouseIds((current) => {
+      const next = new Set(current);
+      if (next.has(warehouseId)) {
+        if (next.size === 1) return current; // do not remove the last warehouse
+        next.delete(warehouseId);
+        setWarehouseQuantities((qty) => {
+          const copy = { ...qty };
+          delete copy[warehouseId];
+          return copy;
+        });
+      } else {
+        next.add(warehouseId);
+        setWarehouseQuantities((qty) => ({ ...qty, [warehouseId]: qty[warehouseId] ?? '0' }));
+      }
+      setFieldErrors((errors) => ({ ...errors, warehouses: undefined }));
+      return next;
+    });
+  };
 
-  const handleStockWarehouseChange = (warehouseId: string) => {
-    const stock = productStocks.find((item) => item.warehouseId === warehouseId);
-    setSelectedStockWarehouseId(warehouseId);
-    setStockQuantity(stock ? String(stock.quantity) : '');
-    setInitialStockQuantity(stock?.quantity ?? null);
-    setFormError('');
+  const setWarehouseQuantity = (warehouseId: string, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    setWarehouseQuantities((current) => ({ ...current, [warehouseId]: value }));
+    setFieldErrors((errors) => ({ ...errors, warehouses: undefined }));
+  };
+
+  const validateForm = (): FieldErrors => {
+    const errors: FieldErrors = {};
+
+    if (!String(form.name ?? '').trim()) errors.name = 'Vui lòng nhập tên sản phẩm.';
+
+    if (!String(form.type ?? '').trim()) errors.type = 'Vui lòng chọn loại sản phẩm.';
+    if (!String(form.unit ?? '').trim()) errors.unit = 'Vui lòng chọn đơn vị.';
+
+    const priceRaw = String(form.price ?? '').trim();
+    if (priceRaw === '') errors.price = 'Vui lòng nhập giá bán hợp lệ.';
+    else if (!isValidNonNegativeNumber(priceRaw)) errors.price = 'Vui lòng nhập giá bán hợp lệ.';
+
+    const weightRaw = String(form.weight ?? '').trim();
+    if (weightRaw === '') errors.weight = 'Khối lượng phải là số không âm.';
+    else if (!isValidNonNegativeNumber(weightRaw)) errors.weight = 'Khối lượng phải là số không âm.';
+
+    if (!String(form.size ?? '').trim()) errors.size = 'Vui lòng nhập kích cỡ.';
+    if (!String(form.color ?? '').trim()) errors.color = 'Vui lòng nhập màu sắc.';
+    if (!String(form.categoryId ?? '').trim()) errors.categoryId = 'Vui lòng chọn danh mục.';
+
+    if (selectedWarehouseIds.size === 0) errors.warehouses = 'Vui lòng chọn ít nhất một kho hàng.';
+    else {
+      const invalidQty = Array.from(selectedWarehouseIds).find((id) => {
+        const raw = String(warehouseQuantities[id] ?? '').trim();
+        return raw === '' || !/^\d+$/.test(raw);
+      });
+      if (invalidQty) errors.warehouses = 'Số lượng tồn kho phải là số nguyên không âm.';
+    }
+
+    const costRaw = String(form.cost ?? '').trim();
+    if (costRaw !== '' && !isValidNonNegativeNumber(costRaw)) errors.cost = 'Giá vốn phải là số không âm.';
+    const wholesaleRaw = String(form.wholesalePrice ?? '').trim();
+    if (wholesaleRaw !== '' && !isValidNonNegativeNumber(wholesaleRaw)) errors.wholesalePrice = 'Giá sỉ phải là số không âm.';
+
+    return errors;
+  };
+
+  const focusFirstError = (errors: FieldErrors) => {
+    const order: (keyof FieldErrors)[] = ['name', 'type', 'unit', 'price', 'weight', 'size', 'color', 'categoryId', 'warehouses', 'cost', 'wholesalePrice'];
+    const firstKey = order.find((key) => errors[key]);
+    if (firstKey && fieldRefs.current[firstKey]) {
+      fieldRefs.current[firstKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = fieldRefs.current[firstKey]?.querySelector('input, select');
+      if (input) (input as HTMLInputElement).focus({ preventScroll: true });
+    }
   };
 
   const handleSubmit = () => {
-    if (!form.code?.trim() || !form.name?.trim()) {
-      setFormError('Mã và tên sản phẩm là bắt buộc.');
+    const errors = validateForm();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const firstMessage = Object.values(errors).find(Boolean) as string;
+      setFormError(firstMessage);
+      focusFirstError(errors);
       return;
     }
+    setFormError('');
 
-    const payload: ProductSavePayload = { ...form };
+    const trimmedName = String(form.name ?? '').trim();
+    const trimmedSize = String(form.size ?? '').trim();
+    const trimmedColor = String(form.color ?? '').trim();
+    const trimmedUnit = String(form.unit ?? '').trim();
+
+    const payload: ProductSavePayload = {
+      ...form,
+      name: trimmedName,
+      size: trimmedSize,
+      color: trimmedColor,
+      unit: trimmedUnit,
+      cost: form.cost === undefined || form.cost === null || String(form.cost).trim() === '' ? 0 : Number(form.cost),
+      wholesalePrice: form.wholesalePrice === undefined || form.wholesalePrice === null || String(form.wholesalePrice).trim() === '' ? 0 : Number(form.wholesalePrice),
+      price: Number(form.price),
+      weight: Number(form.weight),
+    };
     delete payload.trademarkName;
     delete payload.supplierName;
+    delete payload.qty;
+    delete payload.availableStock;
+    delete payload.code;
+    delete payload.barcode;
 
     if (!isEdit) {
-      if (createOnMultipleWarehouses) {
-        const initialStocks = branches.map((branch) => ({
-          warehouseId: branch._id,
-          quantity: Number(warehouseQuantities[branch._id] || 0),
-        }));
-        if (initialStocks.some((line) => !Number.isInteger(line.quantity) || line.quantity < 0)) {
-          setFormError('Số lượng tồn kho phải là số nguyên không âm.');
-          return;
-        }
-        payload.initialStocks = initialStocks;
+      payload.initialStocks = Array.from(selectedWarehouseIds).map((warehouseId) => ({
+        warehouseId,
+        quantity: Number(warehouseQuantities[warehouseId] || 0),
+      }));
+    } else {
+      payload.initialStocks = Array.from(selectedWarehouseIds).map((warehouseId) => ({
+        warehouseId,
+        quantity: Number(warehouseQuantities[warehouseId] ?? 0),
+      }));
+      // Send only warehouse lines the user actually changed to preserve untouched stock rows.
+      const changedLines = (payload.initialStocks || []).filter((line) => {
+        const existing = productStocks.find((stock) => stock.warehouseId === line.warehouseId);
+        return !existing || existing.quantity !== line.quantity;
+      });
+      if (changedLines.length) {
+        payload.initialStocks = changedLines;
       } else {
-        if (!singleWarehouseId) {
-          setFormError('Vui lòng chọn kho hàng.');
-          return;
-        }
-        if (!isValidQuantity(singleQuantity)) {
-          setFormError('Số lượng tồn kho ban đầu phải là số nguyên không âm.');
-          return;
-        }
-        payload.initialStocks = [{ warehouseId: singleWarehouseId, quantity: Number(singleQuantity) }];
-      }
-    } else if (selectedStockWarehouseId) {
-      if (!isValidQuantity(stockQuantity)) {
-        setFormError('Số lượng tồn kho phải là số nguyên không âm.');
-        return;
-      }
-      const nextQuantity = Number(stockQuantity);
-      if (initialStockQuantity !== nextQuantity) {
-        payload.stockAdjustment = {
-          warehouseId: selectedStockWarehouseId,
-          quantity: nextQuantity,
-        };
+        delete payload.initialStocks;
       }
     }
 
-    setFormError('');
     onSave(payload);
   };
 
-  const fields: Array<{
-    key: keyof IProduct;
-    label: string;
-    type?: 'text' | 'number';
-    options?: Array<{ value: string; label: string }>;
-  }> = [
-    { key: 'code', label: 'Mã sản phẩm *' },
-    { key: 'name', label: 'Tên sản phẩm *' },
-    { key: 'barcode', label: 'Mã vạch' },
-    {
-      key: 'type',
-      label: 'Loại sản phẩm',
-      options: [
-        { value: 'product', label: 'Sản phẩm' },
-        { value: 'service', label: 'Dịch vụ' },
-        { value: 'combo', label: 'Combo' },
-      ],
-    },
-    { key: 'unit', label: 'Đơn vị' },
-    {
-      key: 'status',
-      label: 'Trạng thái',
-      options: [
-        { value: 'Mới', label: 'Mới' },
-        { value: 'Đang giao', label: 'Đang giao' },
-        { value: 'Ngừng', label: 'Ngừng' },
-      ],
-    },
-    { key: 'cost', label: 'Giá vốn', type: 'number' },
-    { key: 'price', label: 'Giá bán', type: 'number' },
-    { key: 'wholesalePrice', label: 'Giá sỉ', type: 'number' },
-    { key: 'vat', label: 'VAT (%)', type: 'number' },
-    { key: 'warrantyMonths', label: 'Bảo hành (tháng)', type: 'number' },
-    { key: 'weight', label: 'Khối lượng (g)', type: 'number' },
-    { key: 'color', label: 'Màu sắc' },
-    { key: 'size', label: 'Kích cỡ' },
-    { key: 'origin', label: 'Xuất xứ' },
-    { key: 'categoryId', label: 'Danh mục' },
-  ];
+  const setFieldRef = (key: keyof FieldErrors) => (node: HTMLDivElement | null) => {
+    fieldRefs.current[key] = node;
+  };
+
+  const selectedStocks = Array.from(selectedWarehouseIds).map((id) => {
+    const branch = branches.find((item) => item._id === id);
+    const stock = productStocks.find((item) => item.warehouseId === id);
+    return {
+      warehouseId: id,
+      name: stock?.warehouseName || branch?.name || id,
+      code: stock?.warehouseCode || branch?.code,
+      quantity: warehouseQuantities[id] ?? '0',
+      existing: stock?.quantity ?? null,
+    };
+  });
+
+  const availableBranches = branches.filter((branch) => !selectedWarehouseIds.has(branch._id));
+  const totalStock = selectedStocks.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -496,6 +594,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
         className="modal-card modal-card-wide"
         style={{ maxHeight: '90vh', overflowY: 'auto' }}
         onClick={(event) => event.stopPropagation()}
+        ref={formRef}
       >
         <div className="modal-header">
           <div>
@@ -509,197 +608,289 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 
         {error || formError ? <div className="form-error">{formError || error}</div> : null}
 
-        <div className="form-grid">
-          {fields.map((field) => {
-            if (field.key === 'categoryId') {
-              return (
-                <div className="form-field" key={field.key}>
-                  <span>{field.label}</span>
-                  <select
-                    value={String(form.categoryId ?? '')}
-                    onChange={(event) => {
-                      const selectedId = event.target.value;
-                      const matchedCategory = categories.find((category) => category._id === selectedId);
+        <div className="form-grid" style={{ position: 'relative' }}>
+          <div className="form-field" ref={setFieldRef('code')}>
+            <span>Mã sản phẩm</span>
+            <input
+              type="text"
+              value={isEdit ? String(form.code ?? '') : 'Tự động tạo khi lưu'}
+              className={fieldErrors.code ? 'input-error' : ''}
+              disabled
+            />
+            {fieldErrors.code ? <span className="field-error-text">{fieldErrors.code}</span> : null}
+          </div>
 
-                      setForm((current) => ({
-                        ...current,
-                        categoryId: selectedId || undefined,
-                        categoryName: matchedCategory?.name || '',
-                      }));
-                    }}
-                  >
-                    <option value="">-- Chọn danh mục --</option>
-                    {categories.map((category) => (
-                      <option key={category._id} value={category._id}>
-                        {category.name}
-                      </option>
+          <div className="form-field" ref={setFieldRef('name')}>
+            <span>Tên sản phẩm *</span>
+            <input
+              type="text"
+              value={String(form.name ?? '')}
+              className={fieldErrors.name ? 'input-error' : ''}
+              onChange={(event) => updateField('name', event.target.value)}
+            />
+            {fieldErrors.name ? <span className="field-error-text">{fieldErrors.name}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('barcode')}>
+            <span>Mã vạch</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={isEdit ? String(form.barcode ?? '') : 'Tự động tạo khi lưu'}
+              className={fieldErrors.barcode ? 'input-error' : ''}
+              disabled
+            />
+            {fieldErrors.barcode ? <span className="field-error-text">{fieldErrors.barcode}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('type')}>
+            <span>Loại sản phẩm *</span>
+            <select
+              value={String(form.type ?? '')}
+              className={fieldErrors.type ? 'input-error' : ''}
+              onChange={(event) => updateField('type', event.target.value)}
+            >
+              <option value="">-- Chọn loại sản phẩm --</option>
+              {PRODUCT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {fieldErrors.type ? <span className="field-error-text">{fieldErrors.type}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('unit')}>
+            <span>Đơn vị *</span>
+            <select
+              value={String(form.unit ?? '')}
+              className={fieldErrors.unit ? 'input-error' : ''}
+              onChange={(event) => updateField('unit', event.target.value)}
+            >
+              <option value="">-- Chọn đơn vị --</option>
+              {PRODUCT_UNIT_OPTIONS.map((unit) => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+            {fieldErrors.unit ? <span className="field-error-text">{fieldErrors.unit}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('categoryId')}>
+            <span>Danh mục *</span>
+            <select
+              value={String(form.categoryId ?? '')}
+              className={fieldErrors.categoryId ? 'input-error' : ''}
+              onChange={(event) => {
+                const selectedId = event.target.value;
+                const matchedCategory = categories.find((category) => category._id === selectedId);
+                setForm((current) => ({
+                  ...current,
+                  categoryId: selectedId || undefined,
+                  categoryName: matchedCategory?.name || '',
+                }));
+                setFieldErrors((current) => ({ ...current, categoryId: undefined }));
+              }}
+            >
+              <option value="">-- Chọn danh mục --</option>
+              {categories.map((category) => (
+                <option key={category._id} value={category._id}>{category.name}</option>
+              ))}
+            </select>
+            {fieldErrors.categoryId ? <span className="field-error-text">{fieldErrors.categoryId}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('price')}>
+            <span>Giá bán *</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.price ?? '')}
+              className={fieldErrors.price ? 'input-error' : ''}
+              onChange={(event) => updateField('price', event.target.value)}
+            />
+            {fieldErrors.price ? <span className="field-error-text">{fieldErrors.price}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('weight')}>
+            <span>Khối lượng (g) *</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.weight ?? '')}
+              className={fieldErrors.weight ? 'input-error' : ''}
+              onChange={(event) => updateField('weight', event.target.value)}
+            />
+            {fieldErrors.weight ? <span className="field-error-text">{fieldErrors.weight}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('size')}>
+            <span>Kích cỡ *</span>
+            <input
+              type="text"
+              value={String(form.size ?? '')}
+              className={fieldErrors.size ? 'input-error' : ''}
+              onChange={(event) => updateField('size', event.target.value)}
+            />
+            {fieldErrors.size ? <span className="field-error-text">{fieldErrors.size}</span> : null}
+          </div>
+
+          <div className="form-field" ref={setFieldRef('color')}>
+            <span>Màu sắc *</span>
+            <input
+              type="text"
+              value={String(form.color ?? '')}
+              className={fieldErrors.color ? 'input-error' : ''}
+              onChange={(event) => updateField('color', event.target.value)}
+            />
+            {fieldErrors.color ? <span className="field-error-text">{fieldErrors.color}</span> : null}
+          </div>
+
+          <div className="form-field">
+            <span>Giá vốn</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.cost ?? '')}
+              placeholder="0"
+              className={fieldErrors.cost ? 'input-error' : ''}
+              onChange={(event) => updateField('cost', event.target.value)}
+            />
+            {fieldErrors.cost ? <span className="field-error-text">{fieldErrors.cost}</span> : null}
+          </div>
+
+          <div className="form-field">
+            <span>Giá sỉ</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={String(form.wholesalePrice ?? '')}
+              placeholder="0"
+              className={fieldErrors.wholesalePrice ? 'input-error' : ''}
+              onChange={(event) => updateField('wholesalePrice', event.target.value)}
+            />
+            {fieldErrors.wholesalePrice ? <span className="field-error-text">{fieldErrors.wholesalePrice}</span> : null}
+          </div>
+
+          <div className="form-field">
+            <span>Trạng thái</span>
+            <select
+              value={String(form.status ?? 'Mới')}
+              onChange={(event) => updateField('status', event.target.value)}
+            >
+              <option value="Mới">Mới</option>
+              <option value="Đang giao">Đang giao</option>
+              <option value="Ngừng">Ngừng</option>
+            </select>
+          </div>
+
+          <div className="form-field">
+            <span>VAT (%)</span>
+            <input
+              type="number"
+              min={0}
+              value={String(form.vat ?? '')}
+              onChange={(event) => updateField('vat', Number(event.target.value))}
+            />
+          </div>
+
+          <div className="form-field">
+            <span>Bảo hành (tháng)</span>
+            <input
+              type="number"
+              min={0}
+              value={String(form.warrantyMonths ?? '')}
+              onChange={(event) => updateField('warrantyMonths', Number(event.target.value))}
+            />
+          </div>
+
+          <div className="form-field">
+            <span>Xuất xứ</span>
+            <input
+              type="text"
+              value={String(form.origin ?? '')}
+              onChange={(event) => updateField('origin', event.target.value)}
+            />
+          </div>
+
+          <section className="products-warehouse-panel" ref={setFieldRef('warehouses')}>
+            <div className="products-warehouse-head">
+              <strong>Kho hàng và tồn kho *</strong>
+              <p>
+                Đã chọn {selectedStocks.length} kho · Tổng tồn: <strong>{totalStock.toLocaleString('vi-VN')}</strong>
+              </p>
+            </div>
+
+            {fieldErrors.warehouses ? <span className="field-error-text">{fieldErrors.warehouses}</span> : null}
+
+            <div className="products-warehouse-add">
+              <select
+                aria-label="Thêm kho hàng"
+                value=""
+                disabled={loadingBranches || availableBranches.length === 0}
+                onChange={(event) => {
+                  const id = event.target.value;
+                  if (id) toggleWarehouse(id);
+                  event.target.value = '';
+                }}
+              >
+                <option value="">{loadingBranches ? 'Đang tải kho hàng...' : availableBranches.length ? '-- Thêm kho hàng --' : 'Đã chọn hết kho đang hoạt động'}</option>
+                {availableBranches.map((branch) => (
+                  <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>
+                ))}
+              </select>
+            </div>
+
+            {selectedStocks.length > 0 ? (
+              <div className="products-warehouse-table">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Kho hàng</th>
+                      <th style={{ width: 220 }}>Số lượng tồn *</th>
+                      {isEdit ? <th style={{ width: 120 }}>Tồn hiện tại</th> : null}
+                      <th style={{ width: 80 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedStocks.map((row) => (
+                      <tr key={row.warehouseId}>
+                        <td>{row.name}{row.code ? ` (${row.code})` : ''}</td>
+                        <td>
+                          <input
+                            aria-label={`Số lượng tồn ${row.name}`}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={row.quantity}
+                            className={fieldErrors.warehouses && (String(row.quantity).trim() === '' || !/^\d+$/.test(String(row.quantity).trim())) ? 'input-error' : ''}
+                            onChange={(event) => setWarehouseQuantity(row.warehouseId, event.target.value)}
+                          />
+                        </td>
+                        {isEdit ? <td>{row.existing !== null ? row.existing.toLocaleString('vi-VN') : '—'}</td> : null}
+                        <td>
+                          <button
+                            type="button"
+                            className="icon-button"
+                            aria-label={`Bỏ kho ${row.name}`}
+                            title="Bỏ kho hàng"
+                            disabled={selectedStocks.length === 1}
+                            onClick={() => toggleWarehouse(row.warehouseId)}
+                          >
+                            <X size={16} />
+                          </button>
+                        </td>
+                      </tr>
                     ))}
-                  </select>
-                </div>
-              );
-            }
-
-            return (
-              <div className="form-field" key={field.key}>
-                <span>{field.label}</span>
-                {field.options ? (
-                  <select
-                    value={String(form[field.key] ?? '')}
-                    onChange={(event) => updateField(field.key, event.target.value)}
-                  >
-                    <option value="">-- Chọn --</option>
-                    {field.options.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={field.type || 'text'}
-                    value={String(form[field.key] ?? '')}
-                    onChange={(event) =>
-                      updateField(
-                        field.key,
-                        field.type === 'number' ? Number(event.target.value) : event.target.value,
-                      )
-                    }
-                  />
-                )}
+                  </tbody>
+                </table>
               </div>
-            );
-          })}
-
-          {!isEdit ? (
-            <section style={{ gridColumn: '1 / -1', display: 'grid', gap: 14, padding: 16, border: '1px solid #bfdbfe', borderRadius: 16, background: '#f8fbff' }}>
-              <div>
-                <strong style={{ color: '#0f172a' }}>Tồn kho ban đầu</strong>
-                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>Tạo tồn kho cho một kho hoặc phân bổ theo nhiều kho hàng.</p>
-              </div>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-                <input
-                  type="checkbox"
-                  checked={createOnMultipleWarehouses}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setCreateOnMultipleWarehouses(checked);
-                    setFormError('');
-                    if (checked) {
-                      setSingleWarehouseId('');
-                      setSingleQuantity('');
-                      setWarehouseQuantities(Object.fromEntries(branches.map((branch) => [branch._id, '0'])));
-                    } else {
-                      const defaultBranch = branches[0];
-                      setSingleWarehouseId(defaultBranch?._id || '');
-                      setSingleQuantity('0');
-                    }
-                  }}
-                />
-                Tạo mới trên nhiều kho
-              </label>
-
-              {!createOnMultipleWarehouses ? (
-                <div className="form-grid">
-                  <label className="form-field">
-                    <span>Kho hàng *</span>
-                    <select value={singleWarehouseId} onChange={(event) => setSingleWarehouseId(event.target.value)} disabled={loadingBranches}>
-                      <option value="">{loadingBranches ? 'Đang tải kho hàng...' : '-- Chọn kho hàng --'}</option>
-                      {branches.map((branch) => (
-                        <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="form-field">
-                    <span>Số lượng tồn kho ban đầu *</span>
-                    <input
-                      aria-label="Số lượng tồn kho ban đầu"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={singleQuantity}
-                      onChange={(event) => {
-                        if (/^\d*$/.test(event.target.value)) setSingleQuantity(event.target.value);
-                      }}
-                    />
-                  </label>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <strong>Tồn kho theo từng kho hàng</strong>
-                  <div className="products-table-wrap">
-                    <table className="data-table">
-                      <thead><tr><th>Kho hàng</th><th style={{ width: 220 }}>Số lượng tồn</th></tr></thead>
-                      <tbody>
-                        {branches.map((branch) => (
-                          <tr key={branch._id}>
-                            <td>{branch.name}{branch.code ? ` (${branch.code})` : ''}</td>
-                            <td>
-                              <input
-                                aria-label={`Số lượng tồn ${branch.name}`}
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={warehouseQuantities[branch._id] ?? '0'}
-                                onChange={(event) => {
-                                  if (!/^\d*$/.test(event.target.value)) return;
-                                  setWarehouseQuantities((current) => ({ ...current, [branch._id]: event.target.value }));
-                                }}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </section>
-          ) : (
-            <section style={{ gridColumn: '1 / -1', display: 'grid', gap: 14, padding: 16, border: '1px solid #bfdbfe', borderRadius: 16, background: '#f8fbff' }}>
-              <div>
-                <strong style={{ color: '#0f172a' }}>Chỉnh tồn kho theo kho hàng</strong>
-                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 13 }}>
-                  Tổng tồn kho hiện tại: <strong>{productStocks.reduce((sum, item) => sum + item.quantity, 0).toLocaleString('vi-VN')}</strong>
-                </p>
-              </div>
-              <div className="form-grid">
-                <label className="form-field">
-                  <span>Kho hàng</span>
-                  <select
-                    value={selectedStockWarehouseId}
-                    onChange={(event) => handleStockWarehouseChange(event.target.value)}
-                    disabled={loadingStocks || productStocks.length === 0}
-                  >
-                    <option value="">{loadingStocks ? 'Đang tải tồn kho...' : productStocks.length ? '-- Chọn kho hàng --' : 'Sản phẩm chưa có tồn kho theo kho'}</option>
-                    {productStocks.map((stock) => (
-                      <option key={stock._id} value={stock.warehouseId}>{stock.warehouseName}{stock.warehouseCode ? ` (${stock.warehouseCode})` : ''}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="form-field">
-                  <span>Số lượng tồn kho</span>
-                  <input
-                    aria-label="Số lượng tồn kho"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={stockQuantity}
-                    disabled={!selectedStockWarehouseId}
-                    onChange={(event) => {
-                      if (/^\d*$/.test(event.target.value)) setStockQuantity(event.target.value);
-                    }}
-                  />
-                </label>
-              </div>
-              {selectedStockWarehouseId && initialStockQuantity !== null && isValidQuantity(stockQuantity) ? (
-                <div style={{ color: '#475569', fontSize: 13 }}>
-                  Tồn trước khi chỉnh: <strong>{initialStockQuantity}</strong>
-                  {' · '}Chênh lệch: <strong>{Number(stockQuantity) - initialStockQuantity >= 0 ? '+' : ''}{Number(stockQuantity) - initialStockQuantity}</strong>
-                </div>
-              ) : null}
-            </section>
-          )}
+            ) : (
+              <p className="products-warehouse-empty">Chưa chọn kho hàng nào. Vui lòng thêm ít nhất một kho.</p>
+            )}
+          </section>
         </div>
 
         <div className="modal-footer">
@@ -714,6 +905,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     </div>
   );
 }
+
 
 function ImportModal({
   onClose,
@@ -770,6 +962,37 @@ function ImportModal({
   }, []);
 
   const selectedBranch = branches.find((branch) => branch._id === selectedBranchId);
+
+  const downloadSampleCsv = () => {
+    const headers = [
+      'Tên sản phẩm',
+      'Đơn vị tính',
+      'Giá nhập',
+      'Giá bán',
+      'Giá sỉ',
+      'Tồn trong kho',
+      'Danh mục',
+      'Thương hiệu',
+      'Nhà cung cấp',
+      'Màu sắc',
+      'Kích thước',
+      'Trạng thái',
+    ];
+    const rows = [
+      ['Áo thun nữ basic', 'Cái', '120000', '199000', '180000', '10', 'Áo nữ', 'Lady Stars', 'Nhà cung cấp A', 'Trắng', 'M', 'Mới'],
+    ];
+    const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map((row) => row.map(escapeCell).join(';')).join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mau-import-san-pham.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const handleImport = async () => {
     if (!file) {
@@ -898,13 +1121,15 @@ function ImportModal({
             </p>
           ) : null}
 
-          <div className="products-note-card" style={{ boxShadow: 'none' }}>
-            <strong>Lưu ý import</strong>
-            <ul>
-              <li>Chế độ thêm mới sẽ bỏ qua các dòng có mã sản phẩm đã tồn tại.</li>
-              <li>Chế độ cập nhật thông tin sẽ sửa lại dữ liệu sản phẩm và cộng thêm số lượng tồn từ file.</li>
-              <li>Nếu trong file có số lượng lớn hơn 0, hệ thống sẽ tự tạo phiếu nhập kho.</li>
-            </ul>
+          <div className="products-note-card" style={{ boxShadow: 'none', display: 'grid', gap: 10 }}>
+            <strong>File import mẫu</strong>
+            <span style={{ color: '#64748b', fontSize: 13 }}>
+              Tải file CSV mẫu, điền dữ liệu sản phẩm theo đúng cột; mã sản phẩm và mã vạch sẽ được tự động tạo khi import.
+            </span>
+            <button className="btn btn-light" type="button" onClick={downloadSampleCsv} disabled={loading} style={{ justifySelf: 'flex-start' }}>
+              <Download size={16} />
+              Tải file mẫu CSV
+            </button>
           </div>
         </div>
 
@@ -1020,26 +1245,70 @@ function BulkCategoryModal({
   );
 }
 
+function getBarcodePrintIssues(rows: Array<{ product: IProduct; qty: number }>, barcodeType: BarcodeType) {
+  return rows
+    .map((row) => {
+      const value = normalizeBarcodeValue(row.product);
+      const result = buildBarcodeResult(value, barcodeType);
+      return result.error ? `${row.product.code || value}: ${result.error}` : '';
+    })
+    .filter(Boolean);
+}
+
 function buildPrintDocument({
-  rows,
-  barcodeType,
-  paper,
-  marginLeft,
-  marginTop,
-  showStore,
-  storeName,
-  showCode,
-  showName,
-  showThreeLineName,
-  showPrice,
-  showOldPrice,
-  currencySuffix,
+  rows, barcodeType, paper, marginLeft, marginTop, showStore, storeName, showCode, showName, showThreeLineName, showPrice, showOldPrice, currencySuffix,
 }: {
-  rows: Array<{ product: IProduct; qty: number }>;
+  rows: Array<{ product: IProduct; qty: number }>; barcodeType: BarcodeType; paper: PaperTemplate; marginLeft: number; marginTop: number; showStore: boolean; storeName: string; showCode: boolean; showName: boolean; showThreeLineName: boolean; showPrice: boolean; showOldPrice: boolean; currencySuffix: string;
+}) {
+  const labels = rows.flatMap((row) => Array.from({ length: Math.max(1, row.qty) }, () => row.product));
+  const safeMarginLeft = Math.min(Math.max(0, marginLeft), Math.max(0, paper.pageWidthMm - paper.labelWidthMm));
+  const safeMarginTop = Math.min(Math.max(0, marginTop), Math.max(0, paper.pageHeightMm - paper.labelHeightMm));
+  const gapXmm = paper.gapXmm ?? 0;
+  const gapYmm = paper.gapYmm ?? 0;
+  const labelPaddingYmm = Math.max(0.5, Math.min(1.4, paper.labelHeightMm * 0.055));
+  const labelPaddingXmm = Math.max(0.7, Math.min(2, paper.labelWidthMm * 0.045));
+  const maxBarcodeHeightMm = Math.max(4, paper.labelHeightMm - 5);
+  const barcodeHeightMm = Math.min(Math.max(7, paper.labelHeightMm * 0.58), maxBarcodeHeightMm);
+  const storeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.38));
+  const codeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.34));
+  const nameFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.36));
+  const priceFontPx = Math.max(8, Math.min(13, paper.labelHeightMm * 0.48));
+  const labelHtml = labels.map((product) => {
+    const value = normalizeBarcodeValue(product);
+    const barcode = buildBarcodeResult(value, barcodeType);
+    const safeCurrencySuffix = escapeHtml(currencySuffix);
+    return `<article class="print-label" data-label-width-mm="${paper.labelWidthMm}" data-label-height-mm="${paper.labelHeightMm}">
+      ${showStore && storeName.trim() ? `<div class="print-store">${escapeHtml(storeName)}</div>` : ''}
+      <div class="print-barcode">${barcode.svg}</div>
+      ${showCode ? `<div class="print-code">${escapeHtml(barcode.encodedValue)}</div>` : ''}
+      ${showName ? `<div class="print-name${showThreeLineName ? ' three' : ''}">${escapeHtml(product.name)}</div>` : ''}
+      ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
+      ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
+    </article>`;
+  }).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>In mã vạch sản phẩm</title>
+    <style>
+      @page { size: ${paper.pageWidthMm}mm ${paper.pageHeightMm}mm; margin: 0; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
+      .print-page { width: ${paper.pageWidthMm}mm; min-height: ${paper.pageHeightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; }
+      .sheet { display: grid; grid-template-columns: repeat(${paper.columns}, ${paper.labelWidthMm}mm); grid-auto-rows: ${paper.labelHeightMm}mm; column-gap: ${gapXmm}mm; row-gap: ${gapYmm}mm; align-content: start; justify-content: start; }
+      .print-label { width: ${paper.labelWidthMm}mm; height: ${paper.labelHeightMm}mm; padding: ${labelPaddingYmm}mm ${labelPaddingXmm}mm; overflow: hidden; text-align: center; break-inside: avoid; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; row-gap: 0.25mm; align-items: center; }
+      .print-store { min-height: 1.2em; font-size: ${storeFontPx}px; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .print-barcode { min-height: 0; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+      .barcode-svg { width: 100%; height: 100%; max-height: ${barcodeHeightMm}mm; display: block; fill: #000; }
+      .barcode-svg.qr { width: ${barcodeHeightMm}mm; margin: 0 auto; }
+      .barcode-svg-error { display: block; color: #b91c1c; font-size: 8px; line-height: 1.1; }
+      .print-code { font-size: ${codeFontPx}px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .print-name { font-size: ${nameFontPx}px; line-height: 1.05; max-height: ${showThreeLineName ? Math.max(9, paper.labelHeightMm * 0.28) : Math.max(6, paper.labelHeightMm * 0.18)}mm; overflow: hidden; }
+      .print-name.three { max-height: ${Math.max(10, paper.labelHeightMm * 0.34)}mm; }
+      .print-price { font-size: ${priceFontPx}px; font-weight: 900; line-height: 1.05; white-space: nowrap; }
+      .print-old-price { font-size: ${Math.max(7, priceFontPx - 2)}px; text-decoration: line-through; color: #6b7280; line-height: 1; }
+    </style></head><body><main class="print-page" data-page-width-mm="${paper.pageWidthMm}" data-page-height-mm="${paper.pageHeightMm}"><section class="sheet">${labelHtml}</section></main></body></html>`;
+}
+type BarcodePrintSettings = {
   barcodeType: BarcodeType;
-  paper: PaperTemplate;
-  marginLeft: number;
-  marginTop: number;
+  paperId: string;
   showStore: boolean;
   storeName: string;
   showCode: boolean;
@@ -1048,44 +1317,28 @@ function buildPrintDocument({
   showPrice: boolean;
   showOldPrice: boolean;
   currencySuffix: string;
-}) {
-  const labels = rows.flatMap((row) => Array.from({ length: Math.max(1, row.qty) }, () => row.product));
-  const safeMarginLeft = Math.min(Math.max(0, marginLeft), Math.max(1, paper.widthMm - 1));
-  const safeMarginTop = Math.min(Math.max(0, marginTop), Math.max(1, paper.heightMm - 1));
-  const printableWidthMm = paper.widthMm - safeMarginLeft;
-  const printableHeightMm = paper.heightMm - safeMarginTop;
-  const labelWidthMm = printableWidthMm / paper.columns;
-  const labelHeightMm = paper.rows ? printableHeightMm / paper.rows : printableHeightMm;
-  const labelHtml = labels.map((product) => {
-    const value = normalizeBarcodeValue(product);
-    const safeCurrencySuffix = escapeHtml(currencySuffix);
-    return `<article class="print-label">
-      ${showStore && storeName.trim() ? `<div class="print-store">${escapeHtml(storeName)}</div>` : ''}
-      ${buildBarcodeSvg(value, barcodeType)}
-      ${showCode ? `<div class="print-code">${escapeHtml(value)}</div>` : ''}
-      ${showName ? `<div class="print-name${showThreeLineName ? ' three' : ''}">${escapeHtml(product.name)}</div>` : ''}
-      ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
-      ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
-    </article>`;
-  }).join('');
+  marginLeft: number;
+  marginTop: number;
+  recentPaperIds: string[];
+};
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>In mã vạch sản phẩm</title>
-    <style>
-      @page { size: ${paper.widthMm}mm ${paper.heightMm}mm; margin: 0; }
-      * { box-sizing: border-box; }
-      body { margin: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
-      .print-page { width: ${paper.widthMm}mm; height: ${paper.heightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; }
-      .sheet { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(${paper.columns}, minmax(0, 1fr)); align-content: start; }
-      .print-label { width: 100%; height: ${labelHeightMm}mm; padding: 1.2mm 2mm; overflow: hidden; text-align: center; break-inside: avoid; }
-      .print-store { font-size: 8px; font-weight: 700; line-height: 1; }
-      .barcode-svg { width: 100%; height: ${Math.max(7, labelHeightMm * 0.35)}mm; display: block; fill: #000; }
-      .barcode-svg.qr { height: ${Math.max(8, labelHeightMm * 0.46)}mm; }
-      .print-code { font-size: 7px; line-height: 1.1; }
-      .print-name { font-size: 8px; line-height: 1.05; max-height: 16px; overflow: hidden; }
-      .print-name.three { max-height: 25px; }
-      .print-price { font-size: 9px; font-weight: 800; line-height: 1.1; }
-      .print-old-price { font-size: 8px; text-decoration: line-through; color: #6b7280; }
-    </style></head><body><main class="print-page"><section class="sheet">${labelHtml}</section></main><script>window.onload = () => window.print();</script></body></html>`;
+const BARCODE_SETTINGS_KEY = 'barcodePrintSettings';
+const BARCODE_RECENT_PAPER_LIMIT = 3;
+const BARCODE_RECENT_PAPER_HISTORY = 8;
+
+function loadBarcodePrintSettings(): Partial<BarcodePrintSettings> {
+  try {
+    const raw = window.localStorage.getItem(BARCODE_SETTINGS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Partial<BarcodePrintSettings>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function buildRecentPaperIds(history: string[], paperId: string): string[] {
+  return [paperId, ...history.filter((id) => id !== paperId)].slice(0, BARCODE_RECENT_PAPER_HISTORY);
 }
 
 function BarcodePrintWorkspace({
@@ -1097,22 +1350,31 @@ function BarcodePrintWorkspace({
   onBack: () => void;
   onClearSelection: () => void;
 }) {
+  const savedSettings = useMemo(() => loadBarcodePrintSettings(), []);
   const [rows, setRows] = useState(() => products.map((product) => ({ product, qty: 1 })));
-  const [barcodeType, setBarcodeType] = useState<BarcodeType>('EAN13');
-  const [paperId, setPaperId] = useState(DEFAULT_BARCODE_PAPER_ID);
+  const [barcodeType, setBarcodeType] = useState<BarcodeType>(savedSettings.barcodeType ?? 'EAN13');
+  const [paperId, setPaperId] = useState<string>(() => {
+    const id = savedSettings.paperId;
+    return id && PAPER_TEMPLATES.some((paper) => paper.id === id) ? id : DEFAULT_BARCODE_PAPER_ID;
+  });
+  const [recentPaperIds, setRecentPaperIds] = useState<string[]>(() => {
+    const list = Array.isArray(savedSettings.recentPaperIds) ? savedSettings.recentPaperIds : [];
+    return list.filter((id) => PAPER_TEMPLATES.some((paper) => paper.id === id));
+  });
   const [showAllPapers, setShowAllPapers] = useState(false);
-  const [showStore, setShowStore] = useState(true);
-  const [storeName, setStoreName] = useState('');
-  const [loadingStoreName, setLoadingStoreName] = useState(true);
-  const [showCode, setShowCode] = useState(false);
-  const [showName, setShowName] = useState(true);
-  const [showPrice, setShowPrice] = useState(true);
-  const [showOldPrice, setShowOldPrice] = useState(false);
-  const [showThreeLineName, setShowThreeLineName] = useState(false);
-  const [currencySuffix, setCurrencySuffix] = useState('đ');
-  const [marginLeft, setMarginLeft] = useState(0);
-  const [marginTop, setMarginTop] = useState(0);
+  const [showStore, setShowStore] = useState(savedSettings.showStore ?? true);
+  const [storeName, setStoreName] = useState(typeof savedSettings.storeName === 'string' ? savedSettings.storeName : '');
+  const [loadingStoreName, setLoadingStoreName] = useState(!('storeName' in savedSettings));
+  const [showCode, setShowCode] = useState(savedSettings.showCode ?? false);
+  const [showName, setShowName] = useState(savedSettings.showName ?? true);
+  const [showPrice, setShowPrice] = useState(savedSettings.showPrice ?? true);
+  const [showOldPrice, setShowOldPrice] = useState(savedSettings.showOldPrice ?? false);
+  const [showThreeLineName, setShowThreeLineName] = useState(savedSettings.showThreeLineName ?? false);
+  const [currencySuffix, setCurrencySuffix] = useState(typeof savedSettings.currencySuffix === 'string' && savedSettings.currencySuffix.length > 0 ? savedSettings.currencySuffix : 'đ');
+  const [marginLeft, setMarginLeft] = useState(typeof savedSettings.marginLeft === 'number' && Number.isFinite(savedSettings.marginLeft) ? savedSettings.marginLeft : 0);
+  const [marginTop, setMarginTop] = useState(typeof savedSettings.marginTop === 'number' && Number.isFinite(savedSettings.marginTop) ? savedSettings.marginTop : 0);
   const [barcodeSearch, setBarcodeSearch] = useState('');
+  const barcodeSearchRef = useRef<HTMLInputElement>(null);
   const [barcodeSearchResults, setBarcodeSearchResults] = useState<IProduct[]>([]);
   const [barcodeSearchLoading, setBarcodeSearchLoading] = useState(false);
   const [barcodeSearchError, setBarcodeSearchError] = useState('');
@@ -1120,15 +1382,68 @@ function BarcodePrintWorkspace({
   const [openPrintAction, setOpenPrintAction] = useState(false);
   const barcodeSearchRequestRef = useRef(0);
   const barcodeSearchBlurTimerRef = useRef<number | null>(null);
+  const printingRef = useRef(false);
   const selectedPaper = PAPER_TEMPLATES.find((paper) => paper.id === paperId)
     || PAPER_TEMPLATES.find((paper) => paper.id === DEFAULT_BARCODE_PAPER_ID)
     || PAPER_TEMPLATES[0];
-  const visiblePapers = showAllPapers ? PAPER_TEMPLATES : PAPER_TEMPLATES.filter((paper) => Boolean(paper.rows));
+  const recentPapers = useMemo(() => recentPaperIds
+    .map((id) => PAPER_TEMPLATES.find((paper) => paper.id === id))
+    .filter((paper): paper is PaperTemplate => Boolean(paper))
+    .slice(0, BARCODE_RECENT_PAPER_LIMIT), [recentPaperIds]);
+
+  const visiblePapers = useMemo(() => {
+    if (showAllPapers) return PAPER_TEMPLATES;
+    const list: PaperTemplate[] = [];
+    const selected = PAPER_TEMPLATES.find((paper) => paper.id === paperId) || selectedPaper;
+    if (selected) list.push(selected);
+    for (const paper of recentPapers) {
+      if (list.length >= BARCODE_RECENT_PAPER_LIMIT) break;
+      if (!list.some((entry) => entry.id === paper.id)) list.push(paper);
+    }
+    for (const paper of PAPER_TEMPLATES) {
+      if (list.length >= BARCODE_RECENT_PAPER_LIMIT) break;
+      if (!list.some((entry) => entry.id === paper.id)) list.push(paper);
+    }
+    return list;
+  }, [showAllPapers, recentPapers, paperId, selectedPaper]);
   const previewProduct = rows[0]?.product || products[0];
   const previewBarcodeValue = previewProduct ? normalizeBarcodeValue(previewProduct) : '';
+  const previewBarcodeResult = buildBarcodeResult(previewBarcodeValue, barcodeType);
   const rowIds = useMemo(() => new Set(rows.map((row) => row.product._id)), [rows]);
 
+  const selectPaper = (id: string) => {
+    setPaperId(id);
+    setRecentPaperIds((current) => buildRecentPaperIds(current, id));
+  };
+
   useEffect(() => {
+    const next: BarcodePrintSettings = {
+      barcodeType,
+      paperId,
+      showStore,
+      storeName,
+      showCode,
+      showName,
+      showThreeLineName,
+      showPrice,
+      showOldPrice,
+      currencySuffix,
+      marginLeft,
+      marginTop,
+      recentPaperIds,
+    };
+    try {
+      window.localStorage.setItem(BARCODE_SETTINGS_KEY, JSON.stringify(next));
+    } catch {
+      // localStorage can be disabled by browser privacy settings.
+    }
+  }, [barcodeType, paperId, showStore, storeName, showCode, showName, showThreeLineName, showPrice, showOldPrice, currencySuffix, marginLeft, marginTop, recentPaperIds]);
+
+  useEffect(() => {
+    if ('storeName' in savedSettings) {
+      setLoadingStoreName(false);
+      return;
+    }
     let active = true;
     http.get('/settings/store')
       .then((response) => {
@@ -1143,7 +1458,7 @@ function BarcodePrintWorkspace({
     return () => {
       active = false;
     };
-  }, []);
+  }, [savedSettings]);
 
   const fetchProductsForBarcodeSearch = async (query: string) => {
     const responses = await Promise.allSettled([
@@ -1210,6 +1525,38 @@ function BarcodePrintWorkspace({
     setBarcodeSearchOpen(false);
   };
 
+  const handleBarcodeScan = async (rawBarcode: string) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    const lower = query.toLocaleLowerCase('vi-VN');
+    try {
+      const productsFound = await fetchProductsForBarcodeSearch(query);
+      const exactMatch = productsFound.find((product) =>
+        [product.barcode, product.code].some((value) => String(value || '').trim().toLocaleLowerCase('vi-VN') === lower),
+      );
+      if (exactMatch) {
+        addProductToPrint(exactMatch);
+        window.setTimeout(() => barcodeSearchRef.current?.focus(), 0);
+        return;
+      }
+      if (productsFound.length > 0) {
+        setBarcodeSearch(query);
+        setBarcodeSearchResults(productsFound);
+        setBarcodeSearchOpen(true);
+        return;
+      }
+      setBarcodeSearch(query);
+      setBarcodeSearchOpen(true);
+    } catch (error) {
+      console.error('Lỗi quét mã vạch vào danh sách in:', error);
+      setBarcodeSearch(query);
+      setBarcodeSearchError('Không thể tìm sản phẩm từ mã vừa quét.');
+      setBarcodeSearchOpen(true);
+    }
+  };
+
+  useProductScanTarget(barcodeSearchRef, handleBarcodeScan);
+
   const handleBarcodeSearchKeyDown = async (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
@@ -1268,13 +1615,23 @@ function BarcodePrintWorkspace({
   };
 
   const openPrintPreview = (paper: PaperTemplate) => {
+    if (printingRef.current) return;
     if (rows.length === 0) {
       alert('Vui lòng giữ lại ít nhất một sản phẩm để in mã vạch.');
       return;
     }
 
+    const printIssues = getBarcodePrintIssues(rows, barcodeType);
+    if (printIssues.length) {
+      alert(`Không thể in vì chuẩn mã vạch không tương thích:\n${printIssues.slice(0, 5).join('\n')}`);
+      return;
+    }
+
+    setRecentPaperIds((current) => buildRecentPaperIds(current, paper.id));
+    if (paperId !== paper.id) setPaperId(paper.id);
+
     const html = buildPrintDocument({
-      rows,
+      rows: rows,
       barcodeType,
       paper,
       marginLeft,
@@ -1288,15 +1645,52 @@ function BarcodePrintWorkspace({
       showOldPrice,
       currencySuffix,
     });
+    printingRef.current = true;
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Trình duyệt đang chặn cửa sổ in. Vui lòng cho phép pop-up để xem và in.');
+      printingRef.current = false;
+      alert('Trình duyệt đang chặn cửa sổ in. Vui lòng cho phép pop-up để xem và in mã vạch. Vui lòng cho phép pop-up rồi bấm lại.');
       return;
     }
     printWindow.opener = null;
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
+
+    const expectedLabels = rows.reduce((total, row) => total + Math.max(1, row.qty), 0);
+    let didPrint = false;
+    const firePrint = () => {
+      if (didPrint) return;
+      didPrint = true;
+      try { printWindow.focus(); } catch { /* ignore focus errors */ }
+      try { printWindow.print(); } catch { /* ignore print errors */ }
+      printingRef.current = false;
+    };
+    const schedule = (callback: () => void) => {
+      if (typeof printWindow.requestAnimationFrame === 'function') printWindow.requestAnimationFrame(callback);
+      else if (typeof printWindow.setTimeout === 'function') printWindow.setTimeout(callback, 60);
+      else callback();
+    };
+    const pollReady = (attemptsLeft: number) => {
+      if (didPrint) return;
+      const doc = printWindow.document;
+      const canInspect = typeof doc.querySelectorAll === 'function';
+      let ready = true;
+      if (canInspect) {
+        const nodes = doc.querySelectorAll('svg.barcode-svg, span.barcode-svg-error');
+        const barcodesReady = expectedLabels > 0 ? nodes.length >= expectedLabels : nodes.length > 0;
+        ready = barcodesReady && (doc.readyState === 'complete' || doc.readyState === 'interactive');
+      }
+      if (ready || attemptsLeft <= 0) {
+        firePrint();
+        return;
+      }
+      schedule(() => pollReady(attemptsLeft - 1));
+    };
+    if (typeof printWindow.addEventListener === 'function') {
+      printWindow.addEventListener('afterprint', () => { try { printWindow.close(); } catch { /* ignore close errors */ } }, { once: true });
+    }
+    schedule(() => pollReady(24));
   };
 
   return (
@@ -1341,6 +1735,7 @@ function BarcodePrintWorkspace({
               <label className="barcode-search-row">
                 <Search size={16} />
                 <input
+                  ref={barcodeSearchRef}
                   value={barcodeSearch}
                   onChange={(event) => setBarcodeSearch(event.target.value)}
                   onFocus={() => {
@@ -1357,7 +1752,7 @@ function BarcodePrintWorkspace({
                     }, 120);
                   }}
                   onKeyDown={handleBarcodeSearchKeyDown}
-                  placeholder="Tìm hoặc quét tên, mã sản phẩm, barcode"
+                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm hoặc quét tên, mã sản phẩm, barcode"
                   autoComplete="off"
                   aria-expanded={barcodeSearchOpen}
                   aria-controls="barcode-product-results"
@@ -1437,6 +1832,7 @@ function BarcodePrintWorkspace({
             <div className="barcode-preview-label">
               {showStore && storeName.trim() ? <div className="barcode-preview-store">{storeName}</div> : null}
               <BarcodeSvg value={previewBarcodeValue} type={barcodeType} />
+              <div className={previewBarcodeResult.error ? 'barcode-standard-note danger' : previewBarcodeResult.warning ? 'barcode-standard-note warning' : 'barcode-standard-note'}>Đang dùng: {previewBarcodeResult.actualType}{previewBarcodeResult.warning ? ` · ${previewBarcodeResult.warning}` : ''}{previewBarcodeResult.error ? ` · ${previewBarcodeResult.error}` : ''}</div>
               {showCode ? <div className="barcode-preview-code">{previewBarcodeValue}</div> : null}
               {showName ? <div className={`barcode-preview-name ${showThreeLineName ? 'three' : ''}`}>{previewProduct?.name || 'Tên sản phẩm'}</div> : null}
               {showPrice ? <div className="barcode-preview-price">{Number(previewProduct?.price || 0).toLocaleString('vi-VN')} {currencySuffix}</div> : null}
@@ -1472,13 +1868,13 @@ function BarcodePrintWorkspace({
               <label>Trên: <input type="number" value={marginTop} onChange={(event) => setMarginTop(Number(event.target.value))} /></label>
             </div>
             <button className="barcode-show-all" type="button" onClick={() => setShowAllPapers((current) => !current)}>
-              {showAllPapers ? 'Ẩn khổ giấy cuộn' : 'Hiển thị khổ giấy cuộn'}
+              {showAllPapers ? 'Ẩn bớt khổ giấy' : 'Hiển thị thêm khổ giấy in'}
             </button>
             <div className="barcode-paper-list">
               {visiblePapers.map((paper) => (
                 <article className="barcode-paper-item" key={paper.id}>
                   <label>
-                    <input type="radio" checked={paperId === paper.id} onChange={() => setPaperId(paper.id)} />
+                    <input type="radio" checked={paperId === paper.id} onChange={() => selectPaper(paper.id)} />
                     <span><strong>{paper.title}</strong><em>- {paper.size}</em></span>
                   </label>
                   <div className={`barcode-paper-preview ${paper.previewClass}`} aria-hidden="true" />
@@ -1501,15 +1897,16 @@ function BarcodePrintWorkspace({
 }
 
 export function ProductList({
-  onShowHistory,
   onBarcodeWorkspaceChange,
+  actionSlot,
 }: {
-  onShowHistory?: () => void;
   onBarcodeWorkspaceChange?: (open: boolean) => void;
+  actionSlot?: React.RefObject<HTMLDivElement | null>;
 }) {
   const [items, setItems] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftSearch, setDraftSearch] = useState('');
+  const productListSearchRef = useRef<HTMLInputElement>(null);
   const [draftStatus, setDraftStatus] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('');
@@ -1530,6 +1927,7 @@ export function ProductList({
   const [openAddMenu, setOpenAddMenu] = useState(false);
   const [openBulkMenu, setOpenBulkMenu] = useState(false);
   const [openBulkStatusMenu, setOpenBulkStatusMenu] = useState(false);
+  const [openRowActionId, setOpenRowActionId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [showBarcodePrint, setShowBarcodePrint] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
@@ -1657,6 +2055,18 @@ export function ProductList({
     setAppliedStatus(draftStatus);
   };
 
+  const handleProductListScan = (barcode: string) => {
+    const query = barcode.trim();
+    if (!query) return;
+    setDraftSearch(query);
+    setAppliedSearch(query);
+    setAppliedStatus('');
+    setPage(1);
+    window.setTimeout(() => productListSearchRef.current?.focus(), 0);
+  };
+
+  useProductScanTarget(productListSearchRef, handleProductListScan);
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortOrder((current) => (current === 'asc' ? 'desc' : 'asc'));
@@ -1668,8 +2078,8 @@ export function ProductList({
   };
 
   const handleSave = async (payload: ProductSavePayload) => {
-    if (!payload.code?.trim() || !payload.name?.trim()) {
-      setSaveError('Mã và tên sản phẩm là bắt buộc.');
+    if (!payload.name?.trim()) {
+      setSaveError('Tên sản phẩm là bắt buộc.');
       return;
     }
 
@@ -1715,9 +2125,9 @@ export function ProductList({
       setOpenBulkMenu(false);
       setOpenBulkStatusMenu(false);
       await load();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi đổi trạng thái sản phẩm:', error);
-      alert('Đổi trạng thái sản phẩm thất bại.');
+      alert(error?.response?.data?.message || 'Đổi trạng thái sản phẩm thất bại.');
     } finally {
       setBulkLoading(false);
     }
@@ -1868,107 +2278,101 @@ export function ProductList({
   return (
     <div className="products-panel">
       <section className="products-control-card">
-        <div className="products-control-top">
-          <div className="products-title-stack">
-            <h2>Danh sách sản phẩm</h2>
-            <p>Giữ nguyên luồng quản lý cũ, chỉ tổ chức lại giao diện để thao tác nhanh và sáng hơn.</p>
-            <div className="products-stat-row">
-              <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
-              <span className="products-stat-chip">
-                <Boxes size={14} />
-                Trang {page} / {Math.max(1, Math.ceil(total / limit))}
-              </span>
-              <span className="products-stat-chip">
-                <ShieldAlert size={14} />
-                Tổng tồn đồng bộ từ tồn kho từng kho
-              </span>
-            </div>
-          </div>
-
-          <div className="products-action-row">
-            <div className="products-primary-actions">
-              <div className="products-split-add products-floating-menu">
-                <button className="btn products-add-button" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>
-                  <Plus size={15} />
-                  Thêm mới
-                </button>
-                <button className="btn products-add-button products-split-toggle" type="button" onClick={() => setOpenAddMenu((current) => !current)} aria-label="Mở menu thêm mới">
-                  <ChevronDown size={15} />
-                </button>
-                {openAddMenu ? (
-                  <div className="products-floating-dropdown products-add-dropdown">
-                    <button className="products-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImport(true); }}>
-                      <FileUp size={15} />
-                      <span>Nhập từ file</span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="products-bulk-menu products-floating-menu">
-                <button className="btn products-dropdown-button" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
-                  <span>Thao tác</span>
-                  <ChevronDown size={15} />
-                </button>
-                {openBulkMenu ? (
-                  <div className="products-floating-dropdown products-bulk-dropdown">
-                    <button className="products-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
-                      <FileDown size={15} />
-                      <span>Xuất dữ liệu</span>
-                    </button>
-                    <button className="products-dropdown-item" type="button" onClick={openBarcodePrint}>
-                      <Printer size={15} />
-                      <span>In mã vạch</span>
-                    </button>
-                    <div className="products-dropdown-group">
-                      <button className="products-dropdown-item" type="button" onClick={() => {
-                        if (!requireSelection()) return;
-                        setOpenBulkStatusMenu((current) => !current);
-                      }}>
-                        <RefreshCw size={15} />
-                        <span>Đổi trạng thái sản phẩm</span>
-                        <ChevronDown size={14} />
-                      </button>
-                      {openBulkStatusMenu ? (
-                        <div className="products-sub-dropdown">
-                          {statusOptions.map((status) => (
-                            <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
-                              {status}
-                            </button>
-                          ))}
-                          <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
-                            Tùy chọn khác...
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                    <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
-                      <Trash2 size={15} />
-                      <span>Xóa các dòng đã chọn</span>
-                    </button>
-                    <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
-                      <CheckSquare size={15} />
-                      <span>Cập nhật danh mục</span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-              <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
-            </div>
-
-            <div className="products-secondary-actions">
-              <button className="btn btn-light" type="button" onClick={() => void load()} title="Làm mới dữ liệu">
-                <RefreshCw size={15} />
-                Làm mới
-              </button>
-              <button className="btn btn-light" type="button" onClick={onShowHistory} title="Xem lịch sử sửa xóa">
-                <Clock3 size={15} />
-                Lịch sử
-              </button>
-            </div>
-          </div>
+        <div className="products-stat-row">
+          <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
+          <span className="products-stat-chip">
+            <Boxes size={14} />
+            Trang {page} / {Math.max(1, Math.ceil(total / limit))}
+          </span>
+          <span className="products-stat-chip">
+            <ShieldAlert size={14} />
+            Tổng tồn đồng bộ từ tồn kho từng kho
+          </span>
         </div>
 
+        {actionSlot?.current
+          ? createPortal(
+              <div className="products-action-row">
+                <div className="products-primary-actions">
+                  <div className="products-split-add products-floating-menu">
+                    <button className="btn products-add-button" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>
+                      <Plus size={15} />
+                      Thêm mới
+                    </button>
+                    <button className="btn products-add-button products-split-toggle" type="button" onClick={() => setOpenAddMenu((current) => !current)} aria-label="Mở menu thêm mới">
+                      <ChevronDown size={15} />
+                    </button>
+                    {openAddMenu ? (
+                      <div className="products-floating-dropdown products-add-dropdown">
+                        <button className="products-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImport(true); }}>
+                          <FileUp size={15} />
+                          <span>Nhập từ file</span>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="products-bulk-menu products-floating-menu">
+                    <button className="btn products-dropdown-button" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
+                      <span>Thao tác</span>
+                      <ChevronDown size={15} />
+                    </button>
+                    {openBulkMenu ? (
+                      <div className="products-floating-dropdown products-bulk-dropdown">
+                        <button className="products-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
+                          <FileDown size={15} />
+                          <span>Xuất dữ liệu</span>
+                        </button>
+                        <button className="products-dropdown-item" type="button" onClick={openBarcodePrint}>
+                          <Printer size={15} />
+                          <span>In mã vạch</span>
+                        </button>
+                        <div className="products-dropdown-group">
+                          <button className="products-dropdown-item" type="button" onClick={() => {
+                            if (!requireSelection()) return;
+                            setOpenBulkStatusMenu((current) => !current);
+                          }}>
+                            <RefreshCw size={15} />
+                            <span>Đổi trạng thái sản phẩm</span>
+                            <ChevronDown size={14} />
+                          </button>
+                          {openBulkStatusMenu ? (
+                            <div className="products-sub-dropdown">
+                              {statusOptions.map((status) => (
+                                <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
+                                  {status}
+                                </button>
+                              ))}
+                              <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
+                                Tùy chọn khác...
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                        <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
+                          <Trash2 size={15} />
+                          <span>Xóa các dòng đã chọn</span>
+                        </button>
+                        <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
+                          <CheckSquare size={15} />
+                          <span>Cập nhật danh mục</span>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
+                </div>
+
+                <div className="products-secondary-actions">
+                  <button className="btn btn-light" type="button" onClick={() => void load()} title="Làm mới dữ liệu">
+                    <RefreshCw size={15} />
+                    Làm mới
+                  </button>
+                </div>
+              </div>,
+              actionSlot.current,
+            )
+          : null}
         <form className="products-filter-form" onSubmit={handleSearch}>
           <div className="products-filter-grid products-grid-products">
             <label className="products-inline-field">
@@ -1976,9 +2380,10 @@ export function ProductList({
               <div className="products-inline-control">
                 <Search size={16} />
                 <input
+                  ref={productListSearchRef}
                   value={draftSearch}
                   onChange={(event) => setDraftSearch(event.target.value)}
-                  placeholder="Tìm theo tên, mã hoặc barcode..."
+                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm theo tên, mã hoặc barcode..."
                 />
               </div>
             </label>
@@ -2001,11 +2406,6 @@ export function ProductList({
             </button>
           </div>
 
-          <div className="products-filter-note">
-            <p>
-              Bộ lọc hiện đang bám đúng API cũ: tìm kiếm theo <strong>q</strong> và lọc theo <strong>status</strong>.
-            </p>
-          </div>
         </form>
       </section>
 
@@ -2013,7 +2413,7 @@ export function ProductList({
         <div className="products-table-topbar">
           <div>
             <strong>Bảng dữ liệu sản phẩm</strong>
-            <span>Nhấn vào tiêu đề cột để đổi thứ tự sắp xếp, giữ nguyên như hành vi ban đầu.</span>
+
           </div>
           <div className="products-table-hint">
             <ArrowUpDown size={14} />
@@ -2122,23 +2522,30 @@ export function ProductList({
                       </td>
                       <td className="action-cell">
                         <div className="products-actions">
-                          <button className="icon-button" type="button" title="Chi tiết" onClick={() => setDetailItem(item)}>
-                            <Eye size={15} />
-                          </button>
                           <button
-                            className="icon-button"
+                            className="icon-button products-row-menu-button"
                             type="button"
-                            title="Sửa"
-                            onClick={() => {
-                              setSaveError('');
-                              setEditItem(item);
-                            }}
+                            title="Thao tác"
+                            onClick={() => setOpenRowActionId((current) => (current === item._id ? null : item._id))}
                           >
-                            <Pencil size={15} />
+                            <MoreHorizontal size={17} />
                           </button>
-                          <button className="icon-button danger" type="button" title="Xóa" onClick={() => setDeleteItem(item)}>
-                            <Trash2 size={15} />
-                          </button>
+                          {openRowActionId === item._id ? (
+                            <div className="products-row-action-menu">
+                              <button type="button" onClick={() => { setDetailItem(item); setOpenRowActionId(null); }}>
+                                <Eye size={15} />
+                                Chi tiết
+                              </button>
+                              <button type="button" onClick={() => { setSaveError(''); setEditItem(item); setOpenRowActionId(null); }}>
+                                <Pencil size={15} />
+                                Sửa
+                              </button>
+                              <button className="danger" type="button" onClick={() => { setDeleteItem(item); setOpenRowActionId(null); }}>
+                                <Trash2 size={15} />
+                                Xóa
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -2149,14 +2556,6 @@ export function ProductList({
         </div>
 
         <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
-      </section>
-
-      <section className="products-note-card">
-        <strong>Ghi nhớ chức năng cũ</strong>
-        <p>
-          Các nút thêm, sửa, xóa, import, xuất Excel và liên kết sang lịch sử đều đang được giữ nguyên luồng API. Chỉ phần bố
-          cục và trình bày được làm lại.
-        </p>
       </section>
 
       {detailItem ? <DetailModal product={detailItem} onClose={() => setDetailItem(null)} /> : null}

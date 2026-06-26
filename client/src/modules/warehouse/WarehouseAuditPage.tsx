@@ -163,10 +163,41 @@ type ConfirmState =
 
 const PAGE_LIMIT = 20;
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function defaultDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - 14);
+  return { createdFrom: formatDateInput(start), createdTo: formatDateInput(end) };
+}
+const defaultAuditFilters = (): AuditFilters => ({
+  warehouseId: '',
+  ...defaultDateRange(),
+  keyword: '',
+  auditType: '',
+  reconciliationStatus: '',
+  note: '',
+  reconciledFrom: '',
+  reconciledTo: '',
+});
+
+const defaultItemFilters = (): ItemFilters => ({
+  warehouseId: '',
+  ...defaultDateRange(),
+  auditId: '',
+  productKeyword: '',
+  varianceType: '',
+});
+
 const emptyAuditFilters: AuditFilters = {
   warehouseId: '',
-  createdFrom: '',
-  createdTo: '',
+  ...defaultDateRange(),
   keyword: '',
   auditType: '',
   reconciliationStatus: '',
@@ -177,8 +208,7 @@ const emptyAuditFilters: AuditFilters = {
 
 const emptyItemFilters: ItemFilters = {
   warehouseId: '',
-  createdFrom: '',
-  createdTo: '',
+  ...defaultDateRange(),
   auditId: '',
   productKeyword: '',
   varianceType: '',
@@ -255,10 +285,10 @@ export function WarehouseAuditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [auditFilters, setAuditFilters] = useState<AuditFilters>(emptyAuditFilters);
-  const [appliedAuditFilters, setAppliedAuditFilters] = useState<AuditFilters>(emptyAuditFilters);
-  const [itemFilters, setItemFilters] = useState<ItemFilters>(emptyItemFilters);
-  const [appliedItemFilters, setAppliedItemFilters] = useState<ItemFilters>(emptyItemFilters);
+  const [auditFilters, setAuditFilters] = useState<AuditFilters>(() => defaultAuditFilters());
+  const [appliedAuditFilters, setAppliedAuditFilters] = useState<AuditFilters>(() => defaultAuditFilters());
+  const [itemFilters, setItemFilters] = useState<ItemFilters>(() => defaultItemFilters());
+  const [appliedItemFilters, setAppliedItemFilters] = useState<ItemFilters>(() => defaultItemFilters());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
@@ -388,11 +418,13 @@ export function WarehouseAuditPage() {
   const resetCurrentFilters = () => {
     setPage(1);
     if (activeTab === 'audits') {
-      setAuditFilters(emptyAuditFilters);
-      setAppliedAuditFilters(emptyAuditFilters);
+      const nextFilters = defaultAuditFilters();
+      setAuditFilters(nextFilters);
+      setAppliedAuditFilters(nextFilters);
     } else {
-      setItemFilters(emptyItemFilters);
-      setAppliedItemFilters(emptyItemFilters);
+      const nextFilters = defaultItemFilters();
+      setItemFilters(nextFilters);
+      setAppliedItemFilters(nextFilters);
     }
   };
 
@@ -823,8 +855,6 @@ export function WarehouseAuditPage() {
                 <Search size={14} />
                 <input value={auditFilters.note} onChange={(event) => setAuditFilters({ ...auditFilters, note: event.target.value })} placeholder="Ghi chú" />
               </label>
-              <input className="wr-filter audit-date" type="date" value={auditFilters.reconciledFrom} onChange={(event) => setAuditFilters({ ...auditFilters, reconciledFrom: event.target.value })} />
-              <input className="wr-filter audit-date" type="date" value={auditFilters.reconciledTo} onChange={(event) => setAuditFilters({ ...auditFilters, reconciledTo: event.target.value })} />
             </>
           ) : (
             <>

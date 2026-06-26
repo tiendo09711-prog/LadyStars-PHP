@@ -1,9 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { Wallet } from '../../core/system/system.models.js';
-import { AccountingType, ExpensePayment, Receipt } from '../accounting/accounting.models.js';
 import { Customer } from '../customer/customer.models.js';
-import { Order } from '../orders/orders.models.js';
 import { Product, ProductBranchStock, ProductRefund, SalePayment } from '../product/product.models.js';
 import { Project, Task } from '../task/task.models.js';
 import { Vendor, VendorPurchase } from '../vendor/vendor.models.js';
@@ -116,28 +114,16 @@ function buildRefundChartAgg(dateFilter: { $gte: Date; $lt: Date }, branchIds: m
   ];
 }
 
-function iconForChannel(name: string) {
-  const lower = name.toLowerCase();
-  if (lower.includes('facebook')) return 'facebook';
-  if (lower.includes('instagram')) return 'instagram';
-  if (lower.includes('zalo')) return 'zalo';
-  if (lower.includes('api')) return 'api';
-  if (lower.includes('web')) return 'website';
-  if (lower.includes('shopee')) return 'shopee';
-  if (lower.includes('tiktok')) return 'tiktok';
-  return 'admin';
-}
 
 router.get('/', async (req, res) => {
   try {
-    const { stores, date, chartRange, topRange, topLimit, orderRange } = req.query;
+    const { stores, date, chartRange, topRange, topLimit } = req.query;
     const overviewCacheKey = cacheKey('dashboard:overview', {
       stores: stores || '',
       date: date || 'Hôm nay',
       chartRange: chartRange || '7 ngày',
       topRange: topRange || '7 ngày',
       topLimit: topLimit || '10',
-      orderRange: orderRange || '2 ngày',
     });
     if (!req.query.refresh) {
       const cached = await getCachedJson<Record<string, unknown>>(overviewCacheKey);
@@ -149,7 +135,6 @@ router.get('/', async (req, res) => {
     const { filter: dateFilter } = makeDateRange(date);
     const { filter: chartFilter, startDate: chartStart, endDate: chartEnd } = makeDateRange(chartRange || '7 ngày');
     const { filter: topDateFilter } = makeDateRange(topRange || '7 ngày');
-    const { filter: orderDateFilter } = makeDateRange(orderRange || '2 ngày');
     const parsedTopLimit = Math.min(Math.max(Number(String(topLimit || '10').replace(/\D/g, '')) || 10, 1), 50);
 
     const allBranches = await mongoose.connection.db!
@@ -169,7 +154,6 @@ router.get('/', async (req, res) => {
       : [];
     const branchIds = selectedBranches.map((branch) => branch._id);
     const branchMatch = branchIds.length ? { branchId: { $in: branchIds } } : {};
-    const orderStoreMatch = storeNames.length ? { warehouse: { $in: storeNames } } : {};
 
     const [
       products,
@@ -177,11 +161,8 @@ router.get('/', async (req, res) => {
       customers,
       vendors,
       purchases,
-      receipts,
-      expenses,
       projects,
       tasks,
-      accountingTypes,
       retailAgg,
       refundAgg,
       saleChannelAgg,
@@ -190,7 +171,6 @@ router.get('/', async (req, res) => {
       topReturnsAgg,
       totalInventory,
       fetchedWallets,
-      orderStatusAgg,
       recentSalesDocs,
       currentChartData,
       currentRefundChartData,
@@ -202,17 +182,8 @@ router.get('/', async (req, res) => {
       Customer.countDocuments(),
       Vendor.countDocuments(),
       VendorPurchase.countDocuments({ createdAt: dateFilter }),
-      Receipt.aggregate([
-        { $match: { createdAt: dateFilter, ...branchMatch } },
-        { $group: { _id: null, total: { $sum: '$value' } } },
-      ]).catch(() => []),
-      ExpensePayment.aggregate([
-        { $match: { createdAt: dateFilter, ...branchMatch } },
-        { $group: { _id: null, total: { $sum: '$value' } } },
-      ]).catch(() => []),
       Project.countDocuments(),
       Task.countDocuments(),
-      AccountingType.countDocuments(),
       SalePayment.aggregate([
         { $addFields: { activityAt: activityDateExpression() } },
         { $match: { activityAt: dateFilter, status: 'completed', ...branchMatch } },
@@ -363,21 +334,6 @@ router.get('/', async (req, res) => {
         },
       ]).catch(() => []),
       Wallet.find().lean(),
-      Order.aggregate([
-        { $match: { createdAt: orderDateFilter, ...orderStoreMatch } },
-        {
-          $group: {
-            _id: '$source',
-            total: { $sum: 1 },
-            pending: { $sum: { $cond: [{ $in: ['$status', ['Cần xử lý', 'Chờ xử lý', 'Mới', 'Đang xử lý']] }, 1, 0] } },
-            packing: { $sum: { $cond: [{ $in: ['$status', ['Đang đóng gói', 'In và đóng gói']] }, 1, 0] } },
-            shipping: { $sum: { $cond: [{ $in: ['$status', ['Đang chuyển', 'Đã bàn giao', 'Đang giao']] }, 1, 0] } },
-            cancelled: { $sum: { $cond: [{ $in: ['$status', ['Khách hủy', 'HVC hủy', 'Đã hủy']] }, 1, 0] } },
-            returned: { $sum: { $cond: [{ $in: ['$status', ['Đã hoàn', 'Xác nhận hoàn', 'Hoàn hàng']] }, 1, 0] } },
-          },
-        },
-        { $sort: { total: -1 } },
-      ]).catch(() => []),
       SalePayment.find({ status: 'completed', ...branchMatch })
         .sort({ completedAt: -1, createdAt: -1 })
         .limit(10)
@@ -391,8 +347,8 @@ router.get('/', async (req, res) => {
       ProductRefund.aggregate(buildRefundChartAgg(makePreviousFilter(chartStart, chartEnd), branchIds)).catch(() => []),
     ]);
 
-    const receiptRevenue = receipts[0]?.total ?? 0;
-    const expense = expenses[0]?.total ?? 0;
+    const receiptRevenue = 0;
+    const expense = 0;
     const inventoryData = totalInventory[0] ?? { totalQty: 0, totalCostValue: 0, totalSaleValue: 0 };
     const retailRevenue = (retailAgg[0]?.revenue ?? 0) - (refundAgg[0]?.refundValue ?? 0);
     const retailOrders = retailAgg[0]?.orders ?? 0;
@@ -438,19 +394,6 @@ router.get('/', async (req, res) => {
         };
       }),
     ];
-
-    const orderChannels = orderStatusAgg.map((row: any) => {
-      const label = row._id || 'Admin';
-      return {
-        label,
-        icon: iconForChannel(label),
-        newOrders: row.pending ?? 0,
-        packing: row.packing ?? 0,
-        shipping: row.shipping ?? 0,
-        cancelled: row.cancelled ?? 0,
-        returned: row.returned ?? 0,
-      };
-    });
 
     const topProductsList = topProductsAgg.map((product: any, index: number) => ({
       rank: index + 1,
@@ -530,10 +473,8 @@ router.get('/', async (req, res) => {
         profit: totalRevenueBase - totalCost - expense,
         projects,
         tasks,
-        accountingTypes,
       },
       salesChannels,
-      orderChannels,
       inventory: {
         totalQty: inventoryData.totalQty,
         totalCostValue: inventoryData.totalCostValue,

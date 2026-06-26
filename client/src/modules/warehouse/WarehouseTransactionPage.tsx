@@ -100,13 +100,34 @@ type ColumnDefinition = {
 
 const LIMIT = 20;
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function defaultDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - 14);
+  return { fromDate: formatDateInput(start), toDate: formatDateInput(end) };
+}
+const defaultTransactionFilters = (): FilterState => ({
+  warehouseId: '',
+  billId: '',
+  type: '',
+  kind: '',
+  ...defaultDateRange(),
+  productKeyword: '',
+});
+
 const emptyFilters: FilterState = {
   warehouseId: '',
   billId: '',
   type: '',
   kind: '',
-  fromDate: '',
-  toDate: '',
+  ...defaultDateRange(),
   productKeyword: '',
 };
 
@@ -176,12 +197,12 @@ export function WarehouseTransactionPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [draftFilters, setDraftFilters] = useState<Record<TabKey, FilterState>>({
-    bills: { ...emptyFilters },
-    items: { ...emptyFilters },
+    bills: defaultTransactionFilters(),
+    items: defaultTransactionFilters(),
   });
   const [appliedFilters, setAppliedFilters] = useState<Record<TabKey, FilterState>>({
-    bills: { ...emptyFilters },
-    items: { ...emptyFilters },
+    bills: defaultTransactionFilters(),
+    items: defaultTransactionFilters(),
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -272,8 +293,9 @@ export function WarehouseTransactionPage() {
 
   const resetFilters = () => {
     setPage(1);
-    setDraftFilters((current) => ({ ...current, [activeTab]: { ...emptyFilters } }));
-    setAppliedFilters((current) => ({ ...current, [activeTab]: { ...emptyFilters } }));
+    const nextFilters = defaultTransactionFilters();
+    setDraftFilters((current) => ({ ...current, [activeTab]: nextFilters }));
+    setAppliedFilters((current) => ({ ...current, [activeTab]: nextFilters }));
   };
 
   const changeTab = (tab: TabKey) => {

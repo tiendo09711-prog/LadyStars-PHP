@@ -1,4 +1,4 @@
-﻿import { type FormEvent, useEffect, useMemo, useState } from 'react';
+﻿import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -16,6 +16,7 @@ import {
   Warehouse,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 
 type SaleLine = {
   productId: string;
@@ -69,10 +70,12 @@ export function RetailInvoiceCreatePage() {
   const [dbStaffs, setDbStaffs] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
   const [loadedSale, setLoadedSale] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [products, setProducts] = useState<SaleLine[]>([]);
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([]);
   const [tenderedValue, setTenderedValue] = useState(0);
   const [productSearch, setProductSearch] = useState('');
+  const productSearchRef = useRef<HTMLInputElement>(null);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -116,6 +119,7 @@ export function RetailInvoiceCreatePage() {
 
         if (cancelled) return;
 
+        setCurrentUser(meRes.data?.user || meRes.data || null);
         const sale = editRes?.data;
         setLoadedSale(sale || null);
         setBranchOptions((branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false));
@@ -293,6 +297,15 @@ export function RetailInvoiceCreatePage() {
 
   const addProduct = (product: any) => {
     const stock = getAvailableStock(product);
+    if (!Number.isFinite(stock)) {
+      setErrorMessage('Không kiểm tra được tồn kho sản phẩm.');
+      return;
+    }
+    if (stock <= 0) {
+      const isAdmin = ['admin', 'owner', 'root'].includes(String(currentUser?.role || '').toLowerCase());
+      setErrorMessage(isAdmin ? `Sản phẩm "${product.name || product.code}" đã hết hàng.` : `Sản phẩm "${product.name || product.code}" đã hết hàng tại kho/cửa hàng "${branch?.name || 'đang phụ trách'}".`);
+      return;
+    }
     setProducts((current) => {
       const index = current.findIndex((line) => line.productId === product._id);
       if (index < 0) {
@@ -315,6 +328,26 @@ export function RetailInvoiceCreatePage() {
     setProductSearch('');
     setShowProductDropdown(false);
   };
+
+  const handleProductScan = (rawBarcode: string) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    const lower = query.toLocaleLowerCase('vi-VN');
+    const barcodeMatches = dbProducts.filter((product) => String(product.barcode || '').trim().toLocaleLowerCase('vi-VN') === lower);
+    const codeMatches = barcodeMatches.length ? [] : dbProducts.filter((product) => String(product.code || '').trim().toLocaleLowerCase('vi-VN') === lower);
+    const exactMatches = barcodeMatches.length ? barcodeMatches : codeMatches;
+    if (exactMatches.length === 1) {
+      addProduct(exactMatches[0]);
+      setProductSearch('');
+      setShowProductDropdown(false);
+      window.setTimeout(() => productSearchRef.current?.focus(), 0);
+      return;
+    }
+    setProductSearch(query);
+    setShowProductDropdown(true);
+  };
+
+  useProductScanTarget(productSearchRef, handleProductScan);
 
   const updateProduct = (index: number, field: 'quantity' | 'price', value: number) => {
     setProducts((current) => current.map((line, lineIndex) => {
@@ -615,8 +648,9 @@ export function RetailInvoiceCreatePage() {
               <Search size={16} />
               <input
                 id="retail-product-search"
+                ref={productSearchRef}
                 value={productSearch}
-                placeholder="Tìm theo mã, barcode hoặc tên sản phẩm..."
+                data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm theo mã, barcode hoặc tên sản phẩm..."
                 onFocus={() => setShowProductDropdown(true)}
                 onBlur={() => window.setTimeout(() => setShowProductDropdown(false), 150)}
                 onChange={(event) => {

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -155,11 +156,13 @@ export function RefundInvoiceCreatePage() {
   
   // Search state for refund products
   const [searchQuery, setSearchQuery] = useState('');
+  const productSearchRef = useRef<HTMLInputElement>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [productTypeTab, setProductTypeTab] = useState<'normal' | 'imei'>('normal');
 
   // Search state for new purchased products
   const [newSearchQuery, setNewSearchQuery] = useState('');
+  const newProductSearchRef = useRef<HTMLInputElement>(null);
   const [showNewSearchResults, setShowNewSearchResults] = useState(false);
   const [newProductTypeTab, setNewProductTypeTab] = useState<'normal' | 'imei'>('normal');
 
@@ -404,6 +407,38 @@ export function RefundInvoiceCreatePage() {
   };
 
   // Add Product Helpers (Refund Products)
+  const findExactProduct = (rawBarcode: string) => {
+    const lower = rawBarcode.trim().toLowerCase();
+    const barcodeMatches = dbProducts.filter((p) => String(p.barcode || '').trim().toLowerCase() === lower);
+    const codeMatches = barcodeMatches.length ? [] : dbProducts.filter((p) => String(p.code || '').trim().toLowerCase() === lower);
+    return barcodeMatches.length ? barcodeMatches : codeMatches;
+  };
+
+  const handleProductScan = (rawBarcode: string) => {
+    const exactMatches = findExactProduct(rawBarcode);
+    if (exactMatches.length === 1) {
+      addProduct(exactMatches[0]);
+      window.setTimeout(() => productSearchRef.current?.focus(), 0);
+      return;
+    }
+    setSearchQuery(rawBarcode.trim());
+    setShowSearchResults(true);
+  };
+
+  const handleNewProductScan = (rawBarcode: string) => {
+    const exactMatches = findExactProduct(rawBarcode);
+    if (exactMatches.length === 1) {
+      addProduct(exactMatches[0]);
+      window.setTimeout(() => newProductSearchRef.current?.focus(), 0);
+      return;
+    }
+    setNewSearchQuery(rawBarcode.trim());
+    setShowNewSearchResults(true);
+  };
+
+  useProductScanTarget(productSearchRef, handleProductScan);
+  useProductScanTarget(newProductSearchRef, handleNewProductScan);
+
   const addProduct = (prod: any) => {
     const existing = products.find(p => p.code === prod.code);
     if (existing) {
@@ -869,7 +904,8 @@ export function RefundInvoiceCreatePage() {
                   <input
                     type="text"
                     id="product-search-input"
-                    placeholder="(F3) Tìm sản phẩm trả..."
+                    ref={productSearchRef}
+                    data-product-search-scan="true" data-product-search-primary="true" placeholder="(F3) Tìm sản phẩm trả..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -1115,7 +1151,8 @@ export function RefundInvoiceCreatePage() {
                   <input
                     type="text"
                     id="new-product-search-input"
-                    placeholder="Tìm sản phẩm mua mới..."
+                    ref={newProductSearchRef}
+                    data-product-search-scan="true" placeholder="Tìm sản phẩm mua mới..."
                     value={newSearchQuery}
                     onChange={(e) => {
                       setNewSearchQuery(e.target.value);

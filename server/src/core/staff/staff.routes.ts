@@ -8,7 +8,6 @@ import { writeAuditLog } from '../audit/audit.service.js';
 import { AuditLog } from '../audit/audit.model.js';
 import { Branch } from '../org/branch.model.js';
 import { SalePayment, ProductRefund } from '../../modules/product/product.models.js';
-import { ExpensePayment, Receipt } from '../../modules/accounting/accounting.models.js';
 
 const router = Router();
 
@@ -290,11 +289,9 @@ router.get('/:id/stats', async (req, res) => {
     $or: [{ userId }, { authorId: userId }, { userCreatedId: userId }, { createdBy: userId }],
   };
 
-  const [sales, refunds, receipts, expenses] = await Promise.all([
+  const [sales, refunds] = await Promise.all([
     SalePayment.find(userFilter),
     ProductRefund.find(userFilter),
-    Receipt.find(userFilter),
-    ExpensePayment.find(userFilter),
   ]);
 
   const revenue = sales.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
@@ -310,8 +307,6 @@ router.get('/:id/stats', async (req, res) => {
       paid,
       debt: revenue - paid,
       refundValue,
-      receiptsValue: receipts.reduce((sum, item) => sum + Number(item.value ?? 0), 0),
-      expensesValue: expenses.reduce((sum, item) => sum + Number(item.value ?? 0), 0),
     },
     recentSales: sales.slice(0, 20),
     recentRefunds: refunds.slice(0, 20),

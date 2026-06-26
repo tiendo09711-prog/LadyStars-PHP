@@ -1,83 +1,150 @@
 # AGENTS.md
 
-## Mục tiêu workflow
+## Chế độ mặc định: FAST MODE
 
-Với task thông thường, agent phải tự làm trọn chu trình:
+Áp dụng cho các task chỉnh sửa nhỏ về giao diện, trải nghiệm người dùng, validation cục bộ hoặc logic nhỏ.
 
-1. Đọc yêu cầu và xác định phạm vi.
-2. Chạy `git status --short` và `git diff --check`.
-3. Khảo sát source, API, state và test liên quan trực tiếp.
-4. Chỉ sửa các file cần thiết để hoàn thành đúng yêu cầu.
-5. Chạy `npm.cmd run verify:static`.
-6. Khi verify fail, tự điều tra và sửa tối đa 2 vòng.
-7. Chỉ báo COMPLETE khi các kiểm tra bắt buộc đã pass.
+Mục tiêu: hoàn thành đúng phạm vi, ít tốn token, ít lệnh không cần thiết, báo cáo ngắn.
+
+Agent không cần trình bày plan dài hoặc cập nhật tiến độ. Chỉ trả lời khi cần hard gate hoặc khi hoàn thành.
+
+## Workflow bắt buộc
+
+1. Đọc yêu cầu, xác định đúng phạm vi và các file liên quan trực tiếp.
+2. Chạy:
+
+   ```bash
+   git status --short
+   git diff --check
+   ```
+
+3. Khảo sát gọn source, API, state và luồng liên quan trực tiếp. Không đọc lan man các module không thuộc task.
+4. Chỉ sửa các file thực sự cần thiết.
+5. Chạy đúng **một lần duy nhất** một lệnh kiểm tra tối thiểu phù hợp:
+   - Mặc định:
+
+     ```bash
+     npm.cmd run verify:static
+     ```
+
+   - Chỉ dùng build, typecheck hoặc test cụ thể khi task yêu cầu rõ hoặc thay đổi có rủi ro kỹ thuật cao.
+   - Không tự chạy toàn bộ E2E, toàn bộ test suite, build nhiều lần, hoặc kiểm tra lặp lại nếu user không yêu cầu.
+
+6. Nếu lần kiểm tra duy nhất bị lỗi:
+   - Đọc lỗi, sửa trực tiếp tối đa một vòng.
+   - Không chạy lại automated test/verify lần thứ hai, trừ khi user yêu cầu rõ.
+   - Báo cáo rõ phần đã sửa nhưng chưa được kiểm tra lại.
+
+7. Báo cáo kết quả ngay sau đó, ngắn gọn.
 
 ## Giới hạn phạm vi
 
 - Không sửa ngoài yêu cầu của user.
-- Không tự thêm nghiệp vụ, UI, API, endpoint hoặc dependency mới.
-- Không hardcode dữ liệu mẫu.
+- Không tự thêm nghiệp vụ, UI, API, endpoint, dependency hoặc dữ liệu mẫu ngoài phạm vi được yêu cầu.
+- Không hardcode dữ liệu mẫu hoặc dữ liệu nghiệp vụ.
 - Không đổi auth, role, permission, inventory, invoice hoặc database schema nếu task không yêu cầu rõ.
 - Không thay đổi file không liên quan chỉ để “dọn đẹp” code.
+- Ưu tiên sửa ít file nhất có thể.
 
 ## Được tự chạy
 
-- đọc source;
-- tạo, sửa, xóa file trong repository khi thuộc scope task;
-- chạy git status, git diff, git diff --check;
-- chạy npm.cmd, npx.cmd, node;
-- chạy typecheck, build, static audit và test local an toàn;
-- tự sửa tối đa 2 vòng khi test fail.
+- Đọc source trong repository.
+- Tạo, sửa, xóa file khi thuộc phạm vi task.
+- Chạy `git status`, `git diff`, `git diff --check`.
+- Chạy `npm.cmd`, `npx.cmd`, `node`.
+- Chạy đúng một lệnh verify/test tối thiểu theo workflow trên.
+- Tự sửa một vòng sau khi verify/test duy nhất báo lỗi.
 
 ## Hard gate: phải dừng và báo user
 
 Không tiếp tục tự động khi cần:
 
-- migration, backup, restore hoặc apply database thật;
-- đọc/ghi database thật;
-- deploy;
-- sửa auth, permission hoặc role;
-- xóa dữ liệu thật;
-- sửa quá 25 file;
-- thay đổi nghiệp vụ chưa được user quyết định;
-- verify vẫn fail sau 2 vòng sửa.
+- Migration, backup, restore hoặc apply database thật.
+- Đọc/ghi database thật.
+- Deploy.
+- Sửa auth, permission hoặc role.
+- Xóa dữ liệu thật.
+- Sửa quá 25 file.
+- Thay đổi nghiệp vụ chưa được user quyết định.
+- Cần chạy lại test/verify sau khi đã dùng lần kiểm tra duy nhất.
+- Phát hiện rủi ro có thể ảnh hưởng tồn kho, hóa đơn, phân quyền hoặc dữ liệu thật.
 
 ## Tuyệt đối không chạy
 
-- git reset --hard
-- git clean -fd
-- git checkout .
-- git restore .
-- git add
-- git commit
-- git push
-- migration/apply/restore MongoDB thật
-- deploy
+```bash
+git reset --hard
+git clean -fd
+git checkout .
+git restore .
+git add
+git commit
+git push
+```
+
+Ngoài ra, tuyệt đối không:
+
+- migration/apply/restore MongoDB thật;
+- deploy;
+- `deleteMany({})`;
+- `dropDatabase()`;
+- xóa dữ liệu không giới hạn theo ID/fixture thuộc task;
+- tự ý sửa Store Settings global;
+- tự ý upsert hoặc sửa admin/root owner.
+
+## Quy tắc test
+
+- Mỗi task chỉ có **01 lần chạy kiểm tra tự động**.
+- Không chạy E2E mặc định.
+- Không chạy live DB test mặc định.
+- Không chạy nhiều lệnh kiểm tra liên tiếp chỉ để “cho chắc”.
+- Với chỉnh UI thuần túy, ưu tiên `npm.cmd run verify:static`.
+- Với logic/API nhỏ, vẫn ưu tiên `npm.cmd run verify:static`, trừ khi user yêu cầu test cụ thể.
+- Sau khi test lỗi và đã sửa một vòng, không test lại. Verdict phải là `COMPLETE_WITH_LIMITATION`.
 
 ## Báo cáo cuối
 
-Báo cáo bằng tiếng Việt:
+Báo cáo bằng tiếng Việt, tối đa khoảng 10 dòng, theo mẫu:
 
-1. Mục tiêu đã hoàn thành.
-2. File đã sửa/tạo/xóa.
-3. Các lệnh đã chạy và PASS/FAIL.
-4. Rủi ro hoặc phần chưa xác minh.
-5. `git status --short`.
-6. Verdict: COMPLETE / COMPLETE_WITH_LIMITATION / BLOCKED.
+```text
+KẾT QUẢ
+- Hoàn thành: ...
+- File sửa: ...
+- Kiểm tra đã chạy: <lệnh> — PASS/FAIL
+- Nếu FAIL: đã sửa lỗi ..., chưa chạy lại theo FAST MODE.
+- Rủi ro/chưa xác minh: ...
+- Git status: ...
+- Verdict: COMPLETE / COMPLETE_WITH_LIMITATION / BLOCKED
+```
+
+Không liệt kê dài dòng quá trình suy nghĩ, source đã đọc hoặc các phương án không chọn.
 
 ## Live Database Test Mode
 
-Ch? ?? test ghi tr?c ti?p v?o MongoDB ch?nh (live-guarded).
+Chỉ dùng khi prompt của user ghi rõ: `cho phép live DB test`.
 
-- Ch? ???c d?ng khi prompt c?a user ghi r? "cho ph?p live DB test".
-- Ch? ???c ch?y qua: `npm.cmd run live:test -- --spec e2e/live/<spec>.spec.ts`.
-- Kh?ng ???c ch?y legacy suite trong `e2e/tests/` tr?c ti?p tr?n Mongo th?t.
-- Live mode ch? ch?y khi c? ??: `.env.live-test.local`, `LIVE_TEST_MODE=true`, `LIVE_TEST_ACK=I_ACCEPT_LIVE_DATABASE_WRITES`, backup th?nh c?ng, m?t spec thu?c `e2e/live/`, v? `E2E_RUN_ID` duy nh?t.
-- Backup tr??c test l? b?t bu?c. Kh?ng backup th? kh?ng test.
-- Backend test ch?y port 4100, frontend 5174; kh?ng d?ng 4000/5173 c?a dev server.
-- T?i ?a 2 v?ng test/s?a.
-- Kh?ng c? backup/report th? kh?ng ???c verdict COMPLETE.
-- Runner kh?ng bao gi? t? restore database khi test fail.
-- N?u m?t task kh?ng th? test theo c?c ?i?u ki?n c? l?p (ch? cleanup theo `_id` ?? t?o, kh?ng `deleteMany({})`, kh?ng `dropDatabase()`, kh?ng s?a Store Settings global, kh?ng upsert admin/root owner, kh?ng g?i API c?ng 4000), verdict ph?i l? `BLOCKED_LIVE_TEST_NOT_ISOLATABLE`.
+- Chỉ được chạy qua:
 
-B?o c?o cu?i c?a live mode b?t bu?c n?u: runId, backup path, collection thay ??i (count tr??c/sau), fixture IDs ?? t?o/d?n, test pass/fail v? limitation.
+  ```bash
+  npm.cmd run live:test -- --spec e2e/live/<spec>.spec.ts
+  ```
+
+- Không chạy legacy suite trong `e2e/tests/` trực tiếp trên MongoDB thật.
+- Chỉ chạy khi có đủ:
+  - `.env.live-test.local`
+  - `LIVE_TEST_MODE=true`
+  - `LIVE_TEST_ACK=I_ACCEPT_LIVE_DATABASE_WRITES`
+  - backup thành công
+  - một spec thuộc `e2e/live/`
+  - `E2E_RUN_ID` duy nhất
+
+- Backup trước test là bắt buộc. Không backup thì không test.
+- Backend test chạy port `4100`, frontend `5174`; không dùng `4000/5173` của dev server.
+- Live test cũng chỉ được chạy một lần theo FAST MODE.
+- Runner không bao giờ tự restore database khi test fail.
+- Nếu task không thể test cô lập bằng dữ liệu có ID/fixture riêng, verdict phải là:
+
+  ```text
+  BLOCKED_LIVE_TEST_NOT_ISOLATABLE
+  ```
+
+Báo cáo live mode bắt buộc có: `runId`, backup path, collection thay đổi, fixture IDs tạo/dọn, test PASS/FAIL và limitation.

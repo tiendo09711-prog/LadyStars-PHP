@@ -12,8 +12,24 @@ type UserCell = { name?: string; email?: string } | string;
 type TransferRow = { _id: string; id?: string; code?: string; date?: string; createdAt?: string; sourceWarehouseId?: string; destinationWarehouseId?: string; sourceWarehouseName?: string; destinationWarehouseName?: string; spCount?: number; qty?: number; creator?: string; createdById?: UserCell; sourceConfirmedBy?: UserCell; sourceConfirmedAt?: string; dispatchConfirmedById?: UserCell; dispatchConfirmedAt?: string; status?: string; statusLabel?: string; statusTone?: string; note?: string; canEdit?: boolean; canCancel?: boolean; canConfirmSource?: boolean; canConfirmDestination?: boolean; canPrint?: boolean };
 
 const LIMIT = 20;
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function defaultDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - 14);
+  return { fromDate: formatDateInput(start), toDate: formatDateInput(end) };
+}
+const defaultTransferFilters = () => ({ id: '', sourceWarehouseId: '', destinationWarehouseId: '', status: '', ...defaultDateRange() });
+
 const tabs: Array<{ key: TabKey; label: string }> = [{ key: 'all', label: 'Tất cả' }, { key: 'draft', label: 'Đơn cần duyệt' }, { key: 'outgoing', label: 'Đang chuyển đi' }, { key: 'incoming', label: 'Sắp chuyển đến' }];
-const emptyFilters = { id: '', sourceWarehouseId: '', destinationWarehouseId: '', status: '', fromDate: '', toDate: '' };
+const emptyFilters = defaultTransferFilters();
 
 function displayDate(value?: string) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN'); }
 function displayDateTime(value?: string) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString('vi-VN'); }
@@ -48,7 +64,7 @@ export function WarehouseTransferPage() {
   useEffect(() => { if (!notice) return; const timer = window.setTimeout(() => setNotice(''), 3500); return () => window.clearTimeout(timer); }, [notice]);
 
   const applyFilters = (event: FormEvent) => { event.preventDefault(); setPage(1); setAppliedFilters(filters); };
-  const resetFilters = () => { setPage(1); setFilters(emptyFilters); setAppliedFilters(emptyFilters); };
+  const resetFilters = () => { const nextFilters = defaultTransferFilters(); setPage(1); setFilters(nextFilters); setAppliedFilters(nextFilters); };
   const changeTab = (tab: TabKey) => { setActiveTab(tab); setPage(1); setOpenMenu(null); };
   const ask = (row: TransferRow, action: 'confirm-source' | 'confirm-destination' | 'delete') => { setOpenMenu(null); if (action === 'confirm-source') setConfirm({ row, action, title: 'Xác nhận đã xuất hàng?', message: 'Tồn kho nguồn sẽ được giảm ngay sau thao tác này.' }); if (action === 'confirm-destination') setConfirm({ row, action, title: 'Xác nhận đã nhận đủ hàng?', message: 'Tồn kho đích sẽ được tăng ngay sau thao tác này.' }); if (action === 'delete') setConfirm({ row, action, title: 'Xóa đơn chuyển này?', message: 'Đơn sẽ được chuyển sang trạng thái Đã hủy và không thể xác nhận xuất.' }); };
   const runAction = async () => { if (!confirm) return; setActionLoading(true); setError(''); try { if (confirm.action === 'delete') await http.delete(`/warehouse/transfers/${confirm.row._id}`); else await http.post(`/warehouse/transfers/${confirm.row._id}/${confirm.action}`); const next = confirm; setNotice(next.action === 'confirm-source' ? 'Đã xác nhận xuất, tồn kho nguồn đã giảm.' : next.action === 'confirm-destination' ? 'Đã xác nhận nhận, tồn kho đích đã tăng.' : 'Đã xóa mềm đơn chuyển kho.'); setConfirm(null); await load(); if (next.action === 'confirm-destination') navigate(`/warehouse/transfers/${next.row._id}`); } catch (err: any) { setError(err.response?.data?.message || 'Không thực hiện được thao tác.'); } finally { setActionLoading(false); } };

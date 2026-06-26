@@ -22,18 +22,16 @@ import {
   ShoppingBag,
   ShoppingCart,
   Shuffle,
-  CreditCard,
   HeartHandshake,
   UserCog,
   Users,
   WalletCards,
   X,
-  Truck,
-  AlertTriangle,
   List,
 } from 'lucide-react';
 import { http } from '../api/http';
 import { canAccessPath, isAdminRole, normalizeRole, roleLabel } from '../auth/access';
+import { useProductScannerBridge } from '../hooks/productScanner';
 
 type MenuLeaf = {
   to: string;
@@ -92,56 +90,11 @@ const baseMenuGroups: MenuGroup[] = [
     ],
   },
   {
-    id: 'orders',
-    label: 'Đơn hàng',
-    items: [
-      { to: '/orders/manage', label: 'Đơn hàng', icon: ShoppingCart },
-      { to: '/orders/packing', label: 'Đóng gói', icon: Package },
-      { to: '/orders/handover', label: 'Biên bản bàn giao', icon: FileText },
-      { to: '/orders/shipping-pending', label: 'Chờ gửi vận chuyển', icon: Truck },
-      { to: '/orders/disputes', label: 'Khiếu nại', icon: AlertTriangle },
-      { to: '/orders/cod-control', label: 'Đối soát COD', icon: ClipboardCheck },
-      { to: '/orders/sources', label: 'Nguồn đơn hàng', icon: List },
-      { to: '/orders/history', label: 'Lịch sử sửa xóa', icon: History },
-    ],
-  },
-  {
     id: 'customer',
     label: 'Khách hàng',
     items: [
       { to: '/customers/list', label: 'Danh sách khách hàng', icon: List },
       { to: '/customers/care', label: 'Chăm sóc khách hàng', icon: HeartHandshake },
-    ],
-  },
-  {
-    id: 'accounting',
-    label: 'Kế toán',
-    items: [
-      { to: '/accounting/cash', label: 'Thu chi tiền mặt', icon: WalletCards },
-      { to: '/accounting/bank', label: 'Thu chi ngân hàng', icon: Building2 },
-      { to: '/accounting/summary', label: 'Tổng hợp thu chi', icon: ClipboardList },
-      { 
-        label: 'Công nợ', 
-        icon: Users,
-        subItems: [
-          { to: '/accounting/debt/customers', label: 'Khách hàng', icon: Users },
-          { to: '/accounting/debt/staff', label: 'Nhân viên bán hàng', icon: Users },
-          { to: '/accounting/debt/vendors', label: 'Nhà cung cấp', icon: Users },
-          { to: '/accounting/debt/initial', label: 'Nhập công nợ đầu kì', icon: Users },
-        ]
-      },
-      { 
-        label: 'Bút toán', 
-        icon: FileEdit,
-        subItems: [
-          { to: '/accounting/entries', label: 'Bút toán', icon: List },
-          { to: '/accounting/journal', label: 'Nhật ký chung', icon: List },
-          { to: '/accounting/installment-collection', label: 'Thu hộ trả góp', icon: List },
-          { to: '/accounting/history', label: 'Lịch sử', icon: History },
-        ]
-      },
-      { to: '/accounting/accounts', label: 'Tài khoản kế toán', icon: FileText },
-      { to: '/accounting/installment', label: 'Dịch vụ trả góp', icon: CreditCard },
     ],
   },
   {
@@ -171,25 +124,6 @@ const baseMenuGroups: MenuGroup[] = [
           { to: '/reports/revenue/vendor', label: 'Theo nhà cung cấp', icon: List },
           { to: '/reports/revenue/customer', label: 'Theo khách hàng', icon: List },
           { to: '/reports/revenue/inventory-ratio', label: 'Tỷ suất doanh thu / tồn kho', icon: List }
-        ]
-      },
-      {
-        label: 'Đơn hàng',
-        icon: ShoppingCart,
-        subItems: [
-          { to: '/reports/orders/channel', label: 'Theo kênh bán', icon: List },
-          { to: '/reports/orders/created', label: 'Đơn tạo', icon: List },
-          { to: '/reports/orders/success', label: 'Đơn thành công', icon: List },
-          { to: '/reports/orders/value', label: 'Theo giá trị đơn hàng', icon: List },
-          { to: '/reports/orders/category', label: 'Theo danh mục sản phẩm', icon: List },
-          { to: '/reports/orders/product', label: 'Theo sản phẩm', icon: List },
-          { to: '/reports/orders/status', label: 'Theo trạng thái', icon: List },
-          { to: '/reports/orders/address', label: 'Theo địa chỉ', icon: List },
-          { to: '/reports/orders/reason', label: 'Lý do xử lý đơn hàng', icon: List },
-          { to: '/reports/orders/staff', label: 'Nhân viên xử lý', icon: List },
-          { to: '/reports/orders/ads', label: 'Theo quảng cáo', icon: List },
-          { to: '/reports/orders/cod-reconciliation', label: 'Tiền đối soát', icon: List },
-          { to: '/reports/orders/carrier', label: 'Theo hãng vận chuyển', icon: List }
         ]
       },
       {
@@ -248,29 +182,6 @@ const baseMenuGroups: MenuGroup[] = [
         ]
       },
       {
-        label: 'Kế toán',
-        icon: WalletCards,
-        subItems: [
-          { to: '/reports/accounting/summary-store', label: 'Tổng hợp thu chi theo cửa hàng', icon: List },
-          { to: '/reports/accounting/summary-account', label: 'Tổng hợp theo tài khoản', icon: List },
-          { to: '/reports/accounting/retail-daily-store', label: 'Tổng hợp tiền bán lẻ hàng ngày theo cửa hàng', icon: List },
-          { to: '/reports/accounting/summary-date', label: 'Tổng hợp thu chi theo ngày', icon: List },
-          { to: '/reports/accounting/business-results', label: 'Tổng hợp kết quả kinh doanh', icon: List },
-          { to: '/reports/accounting/balance-sheet', label: 'Bảng cân đối kế toán', icon: List }
-        ]
-      },
-      {
-        label: 'Sổ kế toán',
-        icon: ClipboardList,
-        subItems: [
-          { to: '/reports/ledger/s1a-hkd', label: 'Mẫu số S1a-HKD (Doanh thu từ 1 tỷ trở xuống)', icon: List },
-          { to: '/reports/ledger/s2a-hkd', label: 'Mẫu số S2a-HKD (Doanh thu trên 1 tỷ đến 3 tỷ)', icon: List },
-          { to: '/reports/ledger/s2b-hkd', label: 'Mẫu số S2b-HKD (Doanh thu trên 3 tỷ)', icon: List },
-          { to: '/reports/ledger/s2c-hkd', label: 'Mẫu số S2c-HKD (Sổ chi tiết doanh thu, chi phí)', icon: List },
-          { to: '/reports/ledger/s2d-hkd', label: 'Mẫu số S2d-HKD (Sổ chi tiết vật liệu, dụng cụ, sản phẩm, hàng hóa)', icon: List }
-        ]
-      },
-      {
         label: 'Khách hàng',
         icon: Users,
         subItems: [
@@ -308,6 +219,7 @@ type StoreSettings = {
 };
 
 export function AppLayout() {
+  useProductScannerBridge();
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -351,7 +263,7 @@ export function AppLayout() {
         ],
       },
     ]
-    : baseMenuGroups.filter((group) => !['accounting', 'operations', 'report'].includes(group.id)), [isAdmin]);
+    : baseMenuGroups.filter((group) => !['operations', 'report'].includes(group.id)), [isAdmin]);
   const visibleMenuGroups = useMemo<MenuGroup[]>(() => menuGroups.map((group) => {
     if (group.id !== 'warehouse' || !isAdmin) return group;
     return {
@@ -423,7 +335,11 @@ export function AppLayout() {
     }));
   };
 
-  const routeMatches = (to: string) => to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+  const exactMenuPaths = new Set(['/products']);
+  const routeMatches = (to: string) => {
+    if (to === '/' || exactMenuPaths.has(to)) return location.pathname === to;
+    return location.pathname === to || location.pathname.startsWith(`${to}/`);
+  };
   const itemActive = (item: MenuItem) => 'to' in item ? routeMatches(item.to) : item.subItems.some((subItem) => routeMatches(subItem.to));
   const groupActive = (group: MenuGroup) => group.items.some(itemActive);
   const closeSidebar = () => {
@@ -448,7 +364,7 @@ export function AppLayout() {
   const renderMenuLink = (item: MenuLeaf) => {
     const Icon = item.icon;
     return (
-      <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={closeSidebar}>
+      <NavLink key={item.to} to={item.to} end={item.to === '/' || exactMenuPaths.has(item.to)} onClick={closeSidebar}>
         <Icon size={16} className="menu-icon" />
         <span>{item.label}</span>
       </NavLink>
@@ -560,7 +476,7 @@ export function AppLayout() {
 
             return (
               <div
-                className={`menu-group ${isActive ? 'active' : ''}`}
+                className={`menu-group menu-group-${group.id} ${isActive ? 'active' : ''}`}
                 key={group.id}
                 onMouseEnter={() => openDesktopMenuGroup(group.id)}
               >
