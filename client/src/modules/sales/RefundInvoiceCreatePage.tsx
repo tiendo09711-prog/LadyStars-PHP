@@ -153,6 +153,11 @@ export function RefundInvoiceCreatePage() {
   
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [returnableProducts, setReturnableProducts] = useState<RefundProduct[]>([]);
+  const [newProductSearchLoading, setNewProductSearchLoading] = useState(false);
+  const [productSearchError, setProductSearchError] = useState('');
+  const [newProductSearchError, setNewProductSearchError] = useState('');
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<string, number>>({});
   
   // Search state for refund products
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,7 +244,7 @@ export function RefundInvoiceCreatePage() {
           }));
           
           if (sale.items && Array.isArray(sale.items)) {
-            setProducts(sale.items.map((item: any) => ({
+            const sourceItems = sale.items.map((item: any) => ({
               _id: item.productId?._id,
               code: item.productId?.code || '',
               name: item.productId?.name || '',
@@ -250,28 +255,57 @@ export function RefundInvoiceCreatePage() {
               price: item.value,
               cost: item.productId?.cost || 0,
               unit: item.productId?.unit || 'Cái',
+              barcode: item.productId?.barcode || '',
               vat: 0,
               refundFee: 0,
               extendedWarrantyFee: 0,
               giftCost: 0,
               total: item.total || (item.value * item.amount)
-            })));
+            })).filter((item: RefundProduct) => Number(item.maxQty || 0) > 0);
+            setReturnableProducts(sourceItems);
+            setProducts(sourceItems);
           }
         })
         .catch(err => console.error("Lỗi lấy thông tin hóa đơn:", err));
     }
   }, [branch, branchId, saleId]);
 
-  // Load products list for local fast auto-suggest
   useEffect(() => {
-    http.get('/products/inventories', { params: { branchId: resolvedBranchId || '', limit: 150 } })
-      .then((res) => {
-        setDbProducts(res.data.items ?? []);
+    const query = newSearchQuery.trim();
+    if (!query || !resolvedBranchId) {
+      setDbProducts([]);
+      setNewProductSearchError('');
+      setNewProductSearchLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setNewProductSearchLoading(true);
+      setNewProductSearchError('');
+      http.get('/products/inventories', {
+        params: { branchId: resolvedBranchId, q: query, limit: 20 },
+        signal: controller.signal,
       })
-      .catch((err) => {
-        console.error("Lỗi lấy danh sách sản phẩm:", err);
-      });
-  }, [resolvedBranchId]);
+        .then((res) => {
+          const items = Array.isArray(res.data?.items) ? res.data.items : [];
+          setDbProducts(items.filter((item: any) => Number(item.selectedStock ?? item.stockByBranchId?.[resolvedBranchId] ?? 0) > 0));
+        })
+        .catch((err) => {
+          if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+          setDbProducts([]);
+          setNewProductSearchError(err?.response?.data?.message || 'Không tải được danh sách sản phẩm.');
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setNewProductSearchLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [newSearchQuery, resolvedBranchId]);
 
   useEffect(() => {
     http.get('/products/payment-methods', { params: { limit: 5000 } })
@@ -373,6 +407,13 @@ export function RefundInvoiceCreatePage() {
   ]);
 
   const handleChange = (field: string, value: any) => {
+    const readOnlyFields = new Set([
+      'type', 'returnFromInvoice', 'returnFromOrder', 'receiver', 'salesperson', 'salesAccount',
+      'customerName', 'cardId', 'email', 'gender', 'facebook', 'birthday', 'source', 'customerLevel',
+      'labels', 'note', 'province', 'district', 'ward', 'address', 'companyName', 'companyAddress', 'taxId',
+      'coupon', 'autoDiscount', 'autoPoint',
+    ]);
+    if (readOnlyFields.has(field)) return;
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -407,91 +448,84 @@ export function RefundInvoiceCreatePage() {
   };
 
   // Add Product Helpers (Refund Products)
-  const findExactProduct = (rawBarcode: string) => {
-    const lower = rawBarcode.trim().toLowerCase();
-    const barcodeMatches = dbProducts.filter((p) => String(p.barcode || '').trim().toLowerCase() === lower);
-    const codeMatches = barcodeMatches.length ? [] : dbProducts.filter((p) => String(p.code || '').trim().toLowerCase() === lower);
-    return barcodeMatches.length ? barcodeMatches : codeMatches;
+  const normalizeSearchValue = (value: string) => value.trim().toLowerCase();
+
+  const getBranchStock = (prod: any) => Number(prod.selectedStock ?? prod.stockByBranchId?.[resolvedBranchId] ?? 0);
+
+  const findExactReturnProduct = (rawBarcode: string) => {
+    const lower = normalizeSearchValue(rawBarcode);
+    return returnableProducts.filter((p) =>
+      String(p.barcode || '').trim().toLowerCase() === lower
+      || String(p.code || '').trim().toLowerCase() === lower
+    );
+  };
+
+  const findExactNewProduct = async (rawBarcode: string) => {
+    const query = rawBarcode.trim();
+    if (!query || !resolvedBranchId) return [];
+    const res = await http.get('/products/inventories', { params: { branchId: resolvedBranchId, q: query, limit: 20 } });
+    const lower = normalizeSearchValue(query);
+    const items = Array.isArray(res.data?.items) ? res.data.items : [];
+    return items.filter((item: any) => (
+      String(item.barcode || '').trim().toLowerCase() === lower
+      || String(item.code || '').trim().toLowerCase() === lower
+    ) && getBranchStock(item) > 0);
   };
 
   const handleProductScan = (rawBarcode: string) => {
-    const exactMatches = findExactProduct(rawBarcode);
+    const exactMatches = findExactReturnProduct(rawBarcode);
     if (exactMatches.length === 1) {
       addProduct(exactMatches[0]);
       window.setTimeout(() => productSearchRef.current?.focus(), 0);
       return;
     }
     setSearchQuery(rawBarcode.trim());
+    setProductSearchError(exactMatches.length === 0 ? 'Sản phẩm quét không thuộc hóa đơn gốc hoặc đã hết số lượng có thể trả.' : 'Có nhiều sản phẩm khớp barcode, vui lòng chọn trong danh sách.');
     setShowSearchResults(true);
   };
 
-  const handleNewProductScan = (rawBarcode: string) => {
-    const exactMatches = findExactProduct(rawBarcode);
-    if (exactMatches.length === 1) {
-      addProduct(exactMatches[0]);
-      window.setTimeout(() => newProductSearchRef.current?.focus(), 0);
-      return;
+  const handleNewProductScan = async (rawBarcode: string) => {
+    setNewProductSearchLoading(true);
+    setNewProductSearchError('');
+    try {
+      const exactMatches = await findExactNewProduct(rawBarcode);
+      if (exactMatches.length === 1) {
+        addNewProduct(exactMatches[0]);
+        window.setTimeout(() => newProductSearchRef.current?.focus(), 0);
+        return;
+      }
+      setNewSearchQuery(rawBarcode.trim());
+      setNewProductSearchError(exactMatches.length === 0 ? 'Không tìm thấy sản phẩm còn tồn tại kho của hóa đơn gốc.' : 'Có nhiều sản phẩm khớp barcode, vui lòng chọn trong danh sách.');
+      setShowNewSearchResults(true);
+    } catch (err: any) {
+      setNewProductSearchError(err?.response?.data?.message || 'Không tìm được barcode sản phẩm.');
+      setNewSearchQuery(rawBarcode.trim());
+      setShowNewSearchResults(true);
+    } finally {
+      setNewProductSearchLoading(false);
     }
-    setNewSearchQuery(rawBarcode.trim());
-    setShowNewSearchResults(true);
   };
 
   useProductScanTarget(productSearchRef, handleProductScan);
   useProductScanTarget(newProductSearchRef, handleNewProductScan);
 
-  const addProduct = (prod: any) => {
-    const existing = products.find(p => p.code === prod.code);
-    if (existing) {
-      setProducts(products.map(p => p.code === prod.code ? { ...p, qty: p.qty + 1 } : p));
-    } else {
-      setProducts([
-        ...products,
-        {
-          _id: prod._id,
-          code: prod.code,
-          name: prod.name,
-          stock: prod.qty ?? 0,
-          qty: 1,
-          price: prod.price ?? 0,
-          cost: prod.cost ?? 0,
-          unit: prod.unit ?? 'Cái',
-          barcode: prod.barcode ?? '',
-          imei: '',
-          batch: '',
-          brand: prod.brand ?? '',
-          vat: 0,
-          refundFee: 0,
-          extendedWarrantyFee: 0,
-          giftCost: 0,
-          total: prod.price ?? 0,
-        }
-      ]);
+  const addProduct = (prod: RefundProduct) => {
+    const maxQty = Number(prod.maxQty || 0);
+    if (!prod._id || maxQty <= 0) {
+      setProductSearchError('Sản phẩm không còn số lượng có thể trả.');
+      return;
     }
-    setSearchQuery('');
-    setShowSearchResults(false);
-  };
-
-  const addCustomProduct = () => {
-    setProducts([
-      ...products,
-      {
-        code: 'SPM-' + Math.floor(1000 + Math.random() * 9000),
-        name: searchQuery.trim() || 'Sản phẩm ngoài danh mục',
-        stock: 0,
-        qty: 1,
-        price: 0,
-        cost: 0,
-        unit: 'Cái',
-        imei: '',
-        batch: '',
-        brand: '',
-        vat: 0,
-        refundFee: 0,
-        extendedWarrantyFee: 0,
-        giftCost: 0,
-        total: 0,
+    const existing = products.find(p => p._id === prod._id || p.code === prod.code);
+    if (existing) {
+      if (Number(existing.qty || 0) >= Number(existing.maxQty || maxQty)) {
+        setProductSearchError('Số lượng trả không được vượt số lượng còn có thể trả.');
+        return;
       }
-    ]);
+      setProducts(products.map(p => (p._id === prod._id || p.code === prod.code) ? { ...p, qty: Math.min(Number(p.qty || 0) + 1, Number(p.maxQty || maxQty)) } : p));
+    } else {
+      setProducts([...products, { ...prod, qty: 1, maxQty, total: prod.price ?? 0 }]);
+    }
+    setProductSearchError('');
     setSearchQuery('');
     setShowSearchResults(false);
   };
@@ -511,9 +545,18 @@ export function RefundInvoiceCreatePage() {
 
   // Add Product Helpers (New Purchase Products)
   const addNewProduct = (prod: any) => {
-    const existing = newProducts.find(p => p.code === prod.code);
+    const branchStock = getBranchStock(prod);
+    if (!prod._id || branchStock <= 0) {
+      setNewProductSearchError('Sản phẩm không có tồn tại kho của hóa đơn gốc.');
+      return;
+    }
+    const existing = newProducts.find(p => p._id === prod._id || p.code === prod.code);
     if (existing) {
-      setNewProducts(newProducts.map(p => p.code === prod.code ? { ...p, qty: p.qty + 1 } : p));
+      if (Number(existing.qty || 0) >= Number(existing.stock || branchStock)) {
+        setNewProductSearchError('Số lượng mua mới không được vượt tồn kho thực tế.');
+        return;
+      }
+      setNewProducts(newProducts.map(p => (p._id === prod._id || p.code === prod.code) ? { ...p, qty: Math.min(Number(p.qty || 0) + 1, Number(p.stock || branchStock)) } : p));
     } else {
       setNewProducts([
         ...newProducts,
@@ -521,7 +564,7 @@ export function RefundInvoiceCreatePage() {
           _id: prod._id,
           code: prod.code,
           name: prod.name,
-          stock: prod.qty ?? 0,
+          stock: branchStock,
           qty: 1,
           price: prod.price ?? 0,
           cost: prod.cost ?? 0,
@@ -538,38 +581,17 @@ export function RefundInvoiceCreatePage() {
         }
       ]);
     }
-    setNewSearchQuery('');
-    setShowNewSearchResults(false);
-  };
-
-  const addCustomNewProduct = () => {
-    setNewProducts([
-      ...newProducts,
-      {
-        code: 'SPM-' + Math.floor(1000 + Math.random() * 9000),
-        name: newSearchQuery.trim() || 'Sản phẩm mua mới ngoài danh mục',
-        stock: 0,
-        qty: 1,
-        price: 0,
-        cost: 0,
-        unit: 'Cái',
-        imei: '',
-        batch: '',
-        brand: '',
-        vat: 0,
-        refundFee: 0,
-        extendedWarrantyFee: 0,
-        giftCost: 0,
-        total: 0,
-      }
-    ]);
+    setNewProductSearchError('');
     setNewSearchQuery('');
     setShowNewSearchResults(false);
   };
 
   const handleNewProductChange = (index: number, key: keyof RefundProduct, val: any) => {
     const updated = [...newProducts];
-    updated[index] = { ...updated[index], [key]: val };
+    const nextValue = key === 'qty'
+      ? Math.max(1, Math.min(Number(val) || 1, Number(updated[index].stock || 1)))
+      : val;
+    updated[index] = { ...updated[index], [key]: nextValue };
     setNewProducts(updated);
   };
 
@@ -630,26 +652,14 @@ export function RefundInvoiceCreatePage() {
           discountType: 'number',
         }));
 
-      const resolveMethodId = (...keywords: string[]) => {
-        const normalizedKeywords = keywords.map((keyword) => keyword.toLowerCase());
-        const match = paymentMethods.find((method: any) => {
-          const code = String(method.code || '').toLowerCase();
-          const name = String(method.name || '').toLowerCase();
-          return normalizedKeywords.some((keyword) => code.includes(keyword) || name.includes(keyword));
-        });
-        return match?._id || '';
-      };
-
-      const paymentEntries = [
-        { amount: Math.max(0, Number(form.cash) || 0), methodId: resolveMethodId('cash', 'tien mat', 'tiền mặt'), label: 'Tien mat' },
-        { amount: Math.max(0, Number(form.transfer) || 0), methodId: resolveMethodId('transfer', 'chuyen khoan', 'chuyển khoản', 'bank'), label: 'Chuyen khoan' },
-        { amount: Math.max(0, Number(form.card) || 0), methodId: resolveMethodId('card', 'the', 'thẻ', 'pos'), label: 'The' },
-      ].filter((entry) => entry.amount > 0);
+      const paymentEntries = Object.entries(paymentAmounts)
+        .map(([methodId, amount]) => ({ methodId, amount: Math.max(0, Number(amount) || 0), label: methodId }))
+        .filter((entry) => entry.amount > 0);
       const missingEntry = paymentEntries.find((entry) => !entry.methodId);
       if (missingEntry) {
         throw new Error(`Khong tim thay phuong thuc thanh toan hop le cho ${missingEntry.label}.`);
       }
-      const paymentLines = paymentEntries.map((entry) => ({ methodId: entry.methodId, amount: entry.amount }));
+      const paymentPayloadLines = paymentEntries.map((entry) => ({ methodId: entry.methodId, amount: entry.amount }));
       const amountDelta = Number(form.totalAmount) || 0;
       if (!resolvedBranchId) {
         throw new Error('Vui lòng chọn Kho thực hiện trước khi lưu phiếu đổi trả.');
@@ -661,8 +671,8 @@ export function RefundInvoiceCreatePage() {
         note: [form.description, form.newDescription].filter(Boolean).join('\n'),
         returnedItems,
         replacementItems,
-        refundPayments: amountDelta >= 0 ? paymentLines : [],
-        salePayments: amountDelta < 0 ? paymentLines : [],
+        refundPayments: amountDelta >= 0 ? paymentPayloadLines : [],
+        salePayments: amountDelta < 0 ? paymentPayloadLines : [],
       });
 
       setSuccessMessage('Hoa don doi tra hang da duoc tao va luu thanh cong!');
@@ -715,15 +725,13 @@ export function RefundInvoiceCreatePage() {
     }
   };
 
-  const autocompleteList = searchQuery.trim() === '' ? [] : dbProducts.filter(p => 
+  const autocompleteList = searchQuery.trim() === '' ? [] : returnableProducts.filter(p =>
     p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.code?.toLowerCase().includes(searchQuery.toLowerCase())
+    p.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.barcode?.toLowerCase().includes(searchQuery.toLowerCase())
   ).slice(0, 10);
 
-  const newAutocompleteList = newSearchQuery.trim() === '' ? [] : dbProducts.filter(p => 
-    p.name?.toLowerCase().includes(newSearchQuery.toLowerCase()) ||
-    p.code?.toLowerCase().includes(newSearchQuery.toLowerCase())
-  ).slice(0, 10);
+  const newAutocompleteList = dbProducts.slice(0, 10);
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -879,14 +887,15 @@ export function RefundInvoiceCreatePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProductTypeTab('imei')}
+                  disabled
+                  title="Lu?ng IMEI ch?a c? schema/validation cho phi?u ??i tr?"
                   style={{
                     padding: '6px 14px',
                     borderRadius: '6px',
                     border: 'none',
                     fontSize: '13px',
                     fontWeight: '600',
-                    cursor: 'pointer',
+                    cursor: 'not-allowed',
                     background: productTypeTab === 'imei' ? '#ffffff' : 'transparent',
                     color: productTypeTab === 'imei' ? '#e11d48' : '#64748b',
                     boxShadow: productTypeTab === 'imei' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
@@ -936,10 +945,7 @@ export function RefundInvoiceCreatePage() {
                       ))
                     ) : (
                       <div style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
-                        <span>Không tìm thấy sản phẩm. </span>
-                        <button type="button" onClick={addCustomProduct} style={{ border: 'none', background: 'none', color: '#e11d48', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
-                          Thêm sản phẩm mới
-                        </button>
+                        <span>{productSearchError || 'Không tìm thấy sản phẩm thuộc hóa đơn gốc còn số lượng có thể trả.'}</span>
                       </div>
                     )}
                   </div>
@@ -1126,14 +1132,15 @@ export function RefundInvoiceCreatePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setNewProductTypeTab('imei')}
+                  disabled
+                  title="Lu?ng IMEI ch?a c? schema/validation cho phi?u ??i tr?"
                   style={{
                     padding: '6px 14px',
                     borderRadius: '6px',
                     border: 'none',
                     fontSize: '13px',
                     fontWeight: '600',
-                    cursor: 'pointer',
+                    cursor: 'not-allowed',
                     background: newProductTypeTab === 'imei' ? '#ffffff' : 'transparent',
                     color: newProductTypeTab === 'imei' ? '#e11d48' : '#64748b',
                     boxShadow: newProductTypeTab === 'imei' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
@@ -1183,10 +1190,7 @@ export function RefundInvoiceCreatePage() {
                       ))
                     ) : (
                       <div style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
-                        <span>Không tìm thấy sản phẩm. </span>
-                        <button type="button" onClick={addCustomNewProduct} style={{ border: 'none', background: 'none', color: '#e11d48', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
-                          Thêm sản phẩm mới
-                        </button>
+                        <span>{newProductSearchLoading ? 'Đang tìm sản phẩm...' : (newProductSearchError || 'Không tìm thấy sản phẩm còn tồn tại kho của hóa đơn gốc.')}</span>
                       </div>
                     )}
                   </div>
@@ -1807,45 +1811,27 @@ export function RefundInvoiceCreatePage() {
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', color: '#475569' }}>Tiền mặt:</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.cash || ''}
-                    onChange={(e) => handleChange('cash', Number(e.target.value) || 0)}
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', width: '130px', textAlign: 'right', outline: 'none' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', color: '#475569' }}>Chuyển khoản:</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.transfer || ''}
-                    onChange={(e) => handleChange('transfer', Number(e.target.value) || 0)}
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', width: '130px', textAlign: 'right', outline: 'none' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', color: '#475569' }}>Quẹt thẻ:</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.card || ''}
-                    onChange={(e) => handleChange('card', Number(e.target.value) || 0)}
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', width: '130px', textAlign: 'right', outline: 'none' }}
-                  />
-                </div>
+                {paymentMethods.length === 0 ? (
+                  <div style={{ fontSize: '13px', color: '#ef4444' }}>Chưa tải được phương thức thanh toán từ Mongo/API.</div>
+                ) : paymentMethods.map((method: any) => (
+                  <div key={method._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#475569' }}>{method.name || method.code || method._id}:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={paymentAmounts[method._id] || ''}
+                      onChange={(e) => setPaymentAmounts(prev => ({ ...prev, [method._id]: Number(e.target.value) || 0 }))}
+                      style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', width: '130px', textAlign: 'right', outline: 'none' }}
+                    />
+                  </div>
+                ))}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
                     {form.totalAmount >= 0 ? 'Còn nợ khách:' : 'Khách còn nợ:'}
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
-                    {Math.max(0, Math.abs(form.totalAmount) - (form.cash + form.transfer + form.card)).toLocaleString('vi-VN')} đ
+                    {Math.max(0, Math.abs(form.totalAmount) - Object.values(paymentAmounts).reduce((sum, amount) => sum + (Number(amount) || 0), 0)).toLocaleString('vi-VN')} đ
                   </span>
                 </div>
               </div>

@@ -714,6 +714,20 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       <section className="retail-table-card" aria-label="Danh sách hóa đơn bán lẻ">
         <div className="retail-table-scroll">
           <table>
+            <colgroup>
+              <col className="col-check" />
+              <col className="col-creator" />
+              <col className="col-id" />
+              <col className="col-customer" />
+              <col className="col-product" />
+              <col className="col-gross" />
+              <col className="col-qty" />
+              <col className="col-discount" />
+              <col className="col-total" />
+              <col className="col-payment" />
+              <col className="col-status" />
+              <col className="col-action" />
+            </colgroup>
             <thead>
               <tr>
                 <th className="check"><input type="checkbox" checked={selectedAll} onChange={(event) => toggleAll(event.target.checked)} aria-label="Chọn tất cả" /></th>
@@ -772,18 +786,18 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                     </td>
                     <td>
                       <div className="retail-stack">
-                        <strong>{creator || '—'}</strong>
+                        <strong title={`${creator || '—'} · ${safeDate(invoice.createdAt)}`}>{creator || '—'}</strong>
                         <span>{safeDate(invoice.createdAt)}</span>
                       </div>
                     </td>
                     <td>
-                      <button className="retail-invoice-link" type="button" onClick={() => void openDetail(invoice)}>
+                      <button className="retail-invoice-link" type="button" title={invoice.code || '—'} onClick={() => void openDetail(invoice)}>
                         {invoice.code || '—'}
                       </button>
                     </td>
                     <td>
                       <div className="retail-stack">
-                        <strong>{customer?.name || 'Khách lẻ'}</strong>
+                        <strong title={`${customer?.name || 'Khách lẻ'} · ${customer?.phone || '—'}`}>{customer?.name || 'Khách lẻ'}</strong>
                         <span>{customer?.phone || '—'}</span>
                       </div>
                     </td>
@@ -796,15 +810,18 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                         </div>
                       ) : '—'}
                     </td>
-                    <td className="number">{items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}</td>
-                    <td className="number">{items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}</td>
-                    <td className="number discount">{Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</td>
-                    <td className="number total">{safeMoney(invoice.value)}</td>
-                    <td>
+                    <td className="number" title={items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}>{items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}</td>
+                    <td className="number" title={items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}>{items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}</td>
+                    <td className="number discount" title={Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}>{Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</td>
+                    <td className="number total" title={safeMoney(invoice.value)}>{safeMoney(invoice.value)}</td>
+                    <td className="retail-payment-column">
                       {payments.length > 0 ? (
                         <div className="retail-payments">
                           {payments.map((payment, index) => (
-                            <span key={`${payment.label}-${index}`}><small>{payment.label}</small>{safeMoney(payment.amount)}</span>
+                            <span className="retail-payment-item" key={`${payment.label}-${index}`}>
+                              <strong className="retail-payment-amount" title={safeMoney(payment.amount)}>{safeMoney(payment.amount)}</strong>
+                              <small className="retail-payment-method" title={payment.label}>{payment.label}</small>
+                            </span>
                           ))}
                         </div>
                       ) : '—'}
@@ -1073,30 +1090,49 @@ const retailStyles = `
 /* ---------- Table ---------- */
 .retail-table-card{min-width:0;overflow:hidden;animation:ri-rise 360ms ease both}
 .retail-table-scroll{overflow:auto}
-.retail-table-card table{width:100%;min-width:1460px;border-collapse:separate;border-spacing:0;font-size:12px}
-.retail-table-card th{position:sticky;top:0;z-index:1;padding:10px 12px;background:linear-gradient(180deg,#f1f5f9,#eef2f7);border-bottom:1px solid rgba(148,163,184,.4);border-right:1px solid rgba(148,163,184,.18);color:#334155;font-size:11px;font-weight:750;text-align:left;white-space:nowrap;letter-spacing:.02em}
-.retail-table-card td{padding:10px 12px;border-bottom:1px solid #eef2f7;border-right:1px solid #f1f5f9;vertical-align:top;background:#fff;transition:background .14s ease}
+.retail-table-card table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:12px}
+.retail-table-card colgroup col{width:auto}
+.retail-table-card .col-check{width:3.5%}
+.retail-table-card .col-creator{width:9.5%}
+.retail-table-card .col-id{width:8%}
+.retail-table-card .col-customer{width:13%}
+.retail-table-card .col-product{width:17%}
+.retail-table-card .col-gross{width:8.5%}
+.retail-table-card .col-qty{width:4%}
+.retail-table-card .col-discount{width:7%}
+.retail-table-card .col-total{width:8.5%}
+.retail-table-card .col-payment{width:7%}
+.retail-table-card .col-status{width:8%}
+.retail-table-card .col-action{width:6%}
+.retail-table-card th:last-child,.retail-table-card td:last-child{border-right:0}
+.retail-table-card th{position:sticky;top:0;z-index:1;padding:9px 10px;background:linear-gradient(180deg,#f1f5f9,#eef2f7);border-bottom:1px solid rgba(148,163,184,.4);border-right:1px solid rgba(148,163,184,.18);color:#334155;font-size:11px;font-weight:750;text-align:left;white-space:normal;letter-spacing:.02em}
+.retail-table-card td{padding:9px 10px;border-bottom:1px solid #eef2f7;border-right:1px solid #f1f5f9;vertical-align:top;background:#fff;transition:background .14s ease}
 .retail-table-card tbody tr{transition:transform .14s ease}
 .retail-table-card tbody tr:hover td{background:linear-gradient(90deg,rgba(var(--ri-accent-rgb),.05),rgba(var(--ri-accent-rgb),.015))}
-.retail-table-card .check{width:40px;text-align:center}
-.retail-table-card .number{text-align:right;white-space:nowrap}
-.retail-table-card .action{width:62px;text-align:center}
+.retail-table-card .check,.retail-table-card .action{text-align:center}
+.retail-table-card .number{text-align:right}
+.retail-table-card td.number{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .retail-stack,.retail-product-cell,.retail-payments{display:flex;flex-direction:column;gap:3px}
 .retail-stack strong,.retail-product-cell strong{font-weight:700;color:#0f172a}
 .retail-stack span,.retail-product-cell span{color:#64748b;font-size:11px}
-.retail-product-cell{max-width:240px}
-.retail-product-cell strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.retail-stack strong,.retail-stack span{min-width:0;word-break:break-word}
+.retail-product-cell{min-width:0;max-width:100%}
+.retail-product-cell strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .retail-product-cell em{color:var(--ri-accent);font-size:11px;font-style:normal;font-weight:700}
-.retail-invoice-link{padding:0;border:0;background:transparent;color:var(--ri-accent);font-weight:700;cursor:pointer;transition:color .14s ease}
+.retail-invoice-link{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;padding:0;border:0;background:transparent;color:var(--ri-accent);font-weight:700;cursor:pointer;transition:color .14s ease}
 .retail-invoice-link:hover{color:var(--ri-accent-2);text-decoration:underline}
 .retail-table-card td.discount{color:#ea580c}
 .retail-table-card td.total{color:#16a34a;font-weight:800}
-.retail-payments span{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}
-.retail-payments small{color:#64748b}
+.retail-payment-column{min-width:0;max-width:100%}
+.retail-payments{min-width:0;max-width:180px;gap:8px}
+.retail-payment-item{display:flex;min-width:0;max-width:100%;flex-direction:column;align-items:flex-end;gap:3px}
+.retail-payment-amount{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-weight:700;white-space:nowrap;color:#0f172a}
+.retail-payment-method{display:block;min-width:0;max-width:100%;overflow:hidden;color:#64748b;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
 .retail-status{display:inline-flex;padding:3px 9px;border-radius:999px;background:#eef1f4;color:#5d6874;font-size:11px;font-style:normal;font-weight:700;white-space:nowrap}
 .retail-status.success{background:rgba(22,163,74,.12);color:#15803d}
 .retail-status.warning{background:rgba(180,83,9,.12);color:#b45309}
 .retail-status.danger{background:rgba(220,38,38,.12);color:#b91c1c}
+.retail-table-card .retail-status{white-space:normal;line-height:1.3}
 .retail-row-menu{position:relative;display:inline-flex}
 .retail-menu{position:absolute;z-index:40;top:38px;right:0;width:220px;padding:6px;background:#fff;border:1px solid var(--ri-border);border-radius:12px;box-shadow:0 18px 40px rgba(15,23,42,.16);text-align:left;animation:ri-popover-in 160ms ease both}
 .retail-menu button{width:100%;display:flex;align-items:center;gap:8px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#334155;font-size:12px;cursor:pointer;transition:background .14s ease,color .14s ease}
@@ -1169,5 +1205,6 @@ const retailStyles = `
 /* ---------- Responsive ---------- */
 @media(max-width:1180px){.retail-filterbar{grid-template-columns:repeat(3,minmax(180px,1fr))}.retail-filter-actions{grid-column:auto}}
 @media(max-width:760px){.retail-hero{flex-direction:column;align-items:stretch;gap:14px}.retail-filterbar{grid-template-columns:1fr}.retail-date-range{width:100%}.retail-actionbar{align-items:flex-start;flex-direction:column}.retail-actionbar-right{width:100%;flex-wrap:wrap}.retail-detail-grid{grid-template-columns:1fr}.retail-info-grid{grid-template-columns:1fr}.retail-pagination{align-items:flex-start;flex-direction:column;gap:8px}}
+@media(max-width:900px){.retail-table-card table{table-layout:auto;min-width:980px}.retail-table-card th{white-space:nowrap}.retail-table-card colgroup col{width:auto}}
 `;
 

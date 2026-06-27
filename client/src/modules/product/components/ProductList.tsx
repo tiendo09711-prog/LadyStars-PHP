@@ -1687,29 +1687,37 @@ function BarcodePrintWorkspace({
     const query = rawBarcode.trim();
     if (!query) return;
     const lower = query.toLocaleLowerCase('vi-VN');
+    const requestId = barcodeSearchRequestRef.current + 1;
+    barcodeSearchRequestRef.current = requestId;
+    setBarcodeSearchLoading(true);
+    setBarcodeSearchError('');
     try {
       const productsFound = await fetchProductsForBarcodeSearch(query);
-      const exactMatch = productsFound.find((product) =>
+      if (barcodeSearchRequestRef.current !== requestId) return;
+      const exactMatches = productsFound.filter((product) =>
         [product.barcode, product.code].some((value) => String(value || '').trim().toLocaleLowerCase('vi-VN') === lower),
       );
-      if (exactMatch) {
-        addProductToPrint(exactMatch);
+      if (exactMatches.length === 1) {
+        addProductToPrint(exactMatches[0]);
         window.setTimeout(() => barcodeSearchRef.current?.focus(), 0);
         return;
       }
-      if (productsFound.length > 0) {
-        setBarcodeSearch(query);
-        setBarcodeSearchResults(productsFound);
-        setBarcodeSearchOpen(true);
-        return;
-      }
       setBarcodeSearch(query);
+      setBarcodeSearchResults(productsFound);
       setBarcodeSearchOpen(true);
+      if (exactMatches.length > 1) {
+        setBarcodeSearchError('Có nhiều sản phẩm khớp mã vạch, vui lòng chọn thủ công.');
+      } else if (productsFound.length === 0) {
+        setBarcodeSearchError('Không tìm thấy sản phẩm theo mã vạch.');
+      }
     } catch (error) {
+      if (barcodeSearchRequestRef.current !== requestId) return;
       console.error('Lỗi quét mã vạch vào danh sách in:', error);
       setBarcodeSearch(query);
       setBarcodeSearchError('Không thể tìm sản phẩm từ mã vừa quét.');
       setBarcodeSearchOpen(true);
+    } finally {
+      if (barcodeSearchRequestRef.current === requestId) setBarcodeSearchLoading(false);
     }
   };
 

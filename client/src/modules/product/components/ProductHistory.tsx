@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useRef } from 'react';
 import { Clock3, FileDown, Filter, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { createPortal } from 'react-dom';
 import { productApi } from '../../../core/api/product.api';
 import { Pagination } from '../../../core/components/Pagination';
+import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import type { IProductHistory } from '../../../types/product.type';
 import { ExportExcelModal, type ColumnOption } from './ExportExcelModal';
 
@@ -120,6 +122,15 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
       search: draftFilters.search.trim(),
     });
   };
+
+  const searchRef = useRef<HTMLInputElement>(null);
+  useProductScanTarget(searchRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setDraftFilters((current) => ({ ...current, search: query }));
+    setAppliedFilters((current) => ({ ...current, search: query }));
+    setPage(1);
+  });
 
   const handleReset = () => {
     const emptyFilters = defaultHistoryFilters();
@@ -252,6 +263,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
                 <input
                   value={draftFilters.search}
                   onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))}
+                  ref={searchRef}
                   data-product-search-scan="true" data-product-search-primary="true" placeholder="Mã hoặc tên sản phẩm..."
                 />
               </div>

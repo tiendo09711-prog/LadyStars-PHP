@@ -141,6 +141,20 @@ async function load() {
     sortOrder: 1,
     isActive: true,
   });
+  await upsert(PaymentMethod, { code: 'bank_transfer' }, {
+    name: 'Chuyển khoản',
+    code: 'bank_transfer',
+    targetPaymentStatus: 'paid',
+    sortOrder: 2,
+    isActive: true,
+  });
+  await upsert(PaymentMethod, { code: 'installment' }, {
+    name: 'Trả góp',
+    code: 'installment',
+    targetPaymentStatus: 'paid',
+    sortOrder: 3,
+    isActive: true,
+  });
 
   const saleChannel = await upsert(SaleChannel, { name: 'Bán tại cửa hàng' }, {
     name: 'Bán tại cửa hàng',

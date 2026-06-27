@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
@@ -29,13 +30,15 @@ export function InventoryList() {
     }).catch(() => {});
   }, []);
 
-  const load = async () => {
+  const load = async (overrides?: { search?: string; page?: number }) => {
+    const nextSearch = overrides?.search ?? search;
+    const nextPage = overrides?.page ?? page;
     setLoading(true);
     try {
       const res = await productApi.getInventories({
-        page,
+        page: nextPage,
         limit,
-        q: search || undefined,
+        q: nextSearch || undefined,
         branchId: filterWarehouse || undefined,
         sort: sortField,
         order: sortOrder,
@@ -158,6 +161,15 @@ export function InventoryList() {
     load();
   };
 
+  const searchRef = useRef<HTMLInputElement>(null);
+  useProductScanTarget(searchRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setSearch(query);
+    setPage(1);
+    void load({ search: query, page: 1 });
+  });
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortOrder((current) => (current === 'asc' ? 'desc' : 'asc'));
@@ -207,7 +219,7 @@ export function InventoryList() {
             <label className="inventory-filter-label">Tìm kiếm sản phẩm</label>
             <div className="search-box inventory-search-box">
               <Search size={16} />
-              <input data-product-search-scan="true" data-product-search-primary="true" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên SP, mã SP..." />
+              <input ref={searchRef} data-product-search-scan="true" data-product-search-primary="true" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên SP, mã SP..." />
             </div>
           </div>
 
@@ -233,7 +245,7 @@ export function InventoryList() {
               <span className="inventory-btn-glow" />
               <span>Lọc</span>
             </button>
-            <button className="btn inventory-btn inventory-btn-secondary" type="button" onClick={load} title="Làm mới">
+            <button className="btn inventory-btn inventory-btn-secondary" type="button" onClick={() => load()} title="Làm mới">
               <RefreshCw size={16} />
               <span>Làm mới</span>
             </button>

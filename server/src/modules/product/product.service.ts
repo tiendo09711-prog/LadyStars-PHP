@@ -2,6 +2,31 @@ import mongoose, { type ClientSession } from 'mongoose';
 import { PaymentMethod, Product, ProductBranchStock, ProductLog, ProductRefund, SalePayment, StockAdjustment } from './product.models.js';
 import { recomputeCustomerMetricsByIds } from '../customer/customer.metrics.js';
 
+export const STANDARD_PAYMENT_METHODS = [
+  { code: 'cash', name: 'Tiền mặt', sortOrder: 1 },
+  { code: 'bank_transfer', name: 'Chuyển khoản', sortOrder: 2 },
+  { code: 'installment', name: 'Trả góp', sortOrder: 3 },
+] as const;
+
+const STANDARD_PAYMENT_METHOD_CODES = STANDARD_PAYMENT_METHODS.map((method) => method.code);
+
+export async function listStandardPaymentMethods(session?: ClientSession) {
+  const query = PaymentMethod.find({
+    code: { $in: STANDARD_PAYMENT_METHOD_CODES },
+    isActive: { $ne: false },
+  }).lean();
+  const methods = await applySession(query, session);
+  const sortOrder = new Map(STANDARD_PAYMENT_METHODS.map((method) => [method.code, method.sortOrder]));
+  const labels = new Map(STANDARD_PAYMENT_METHODS.map((method) => [method.code, method.name]));
+  return methods
+    .map((method: any) => ({
+      ...method,
+      name: labels.get(method.code) || method.name,
+      sortOrder: sortOrder.get(method.code) || method.sortOrder || 0,
+    }))
+    .sort((a: any, b: any) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+}
+
 class ProductFlowError extends Error {
   status: number;
 
@@ -97,6 +122,7 @@ async function normalizePaymentLines(rawLines: unknown, session?: ClientSession)
 
   const countQuery = PaymentMethod.countDocuments({
     _id: { $in: lines.map((line) => line.methodId) },
+    code: { $in: STANDARD_PAYMENT_METHOD_CODES },
     isActive: { $ne: false },
   });
   const activeMethodCount = await applySession(countQuery, session);

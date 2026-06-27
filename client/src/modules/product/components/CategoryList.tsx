@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import {
   Boxes,
   ChevronDown,
@@ -997,6 +998,14 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
     void load(1, search);
   };
 
+  const modalSearchRef = useRef<HTMLInputElement>(null);
+  useProductScanTarget(modalSearchRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setSearch(query);
+    setPage(1);
+  });
+
   const formatMoney = (val?: number) => `${Number(val || 0).toLocaleString('vi-VN')} đ`;
 
   return (
@@ -1024,6 +1033,7 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
                     setSearch(e.target.value);
                     setPage(1);
                   }}
+                  ref={modalSearchRef}
                   data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm sản phẩm trong danh mục..."
                 />
               </div>

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { 
   Boxes, 
   Calendar, 
@@ -149,6 +150,19 @@ export function StorageDurationPage() {
       setPage(1);
     }
   };
+
+  const searchRef = useRef<HTMLInputElement>(null);
+  useProductScanTarget(searchRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setTempSearch(query);
+    setSearch(query);
+    if (page === 1) {
+      setFetchTrigger(prev => prev + 1);
+    } else {
+      setPage(1);
+    }
+  });
 
   const handleClearFilters = () => {
     setTempSearch('');
@@ -431,6 +445,7 @@ export function StorageDurationPage() {
               <input 
                 value={tempSearch} 
                 onChange={(e) => setTempSearch(e.target.value)} 
+                ref={searchRef}
                 data-product-search-scan="true" data-product-search-primary="true" placeholder="Tên SP, mã SP..."
               />
             </div>

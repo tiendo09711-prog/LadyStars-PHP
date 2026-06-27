@@ -396,6 +396,11 @@ export function WholesaleInvoiceCreatePage() {
   useProductScanTarget(productSearchRef, handleProductScan);
 
   const addProduct = (prod: any) => {
+    const stock = getStockForWarehouse(prod);
+    if (!Number.isFinite(stock) || stock <= 0) {
+      setErrorMessage(`Sản phẩm "${prod.name || prod.code}" đã hết tồn tại kho "${form.warehouse || 'đang chọn'}".`);
+      return;
+    }
     const existing = products.find(p => p.code === prod.code);
     if (existing) {
       setProducts(products.map(p => p.code === prod.code ? { ...p, qty: p.qty + 1 } : p));

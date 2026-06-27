@@ -36,6 +36,29 @@ type PaymentMethodOption = {
   isActive?: boolean;
 };
 
+const ALLOWED_PAYMENT_METHOD_CODES = ['cash', 'bank_transfer', 'installment'];
+const ALLOWED_PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: 'Tiền mặt',
+  bank_transfer: 'Chuyển khoản',
+  installment: 'Trả góp',
+};
+const DEFAULT_PAYMENT_METHOD_CODE = 'cash';
+
+function normalizePaymentMethods(items: PaymentMethodOption[]): PaymentMethodOption[] {
+  const allowed = new Set(ALLOWED_PAYMENT_METHOD_CODES);
+  const labels = ALLOWED_PAYMENT_METHOD_LABELS;
+  return items
+    .filter((method) => allowed.has(method.code) && method.isActive !== false)
+    .map((method) => ({ ...method, name: labels[method.code] || method.name }))
+    .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+}
+
+function resolveDefaultPaymentMethodId(methods: PaymentMethodOption[]): string {
+  const fallback = methods.find((method) => method.code === DEFAULT_PAYMENT_METHOD_CODE);
+  if (fallback) return fallback._id;
+  return methods[0]?._id || '';
+}
+
 type PaymentLine = {
   key: string;
   methodId: string;
@@ -113,7 +136,7 @@ export function RetailInvoiceCreatePage() {
         const [meRes, staffRes, methodRes, branchListRes, editRes] = await Promise.all([
           http.get('/auth/me'),
           http.get('/staff').catch(() => null),
-          http.get('/products/payment-methods', { params: { limit: 5000 } }),
+          http.get('/products/payment-methods/standard', { params: { limit: 500 } }),
           http.get('/system/branches').catch(() => null),
           editId ? http.get(`/products/sales/${editId}`) : Promise.resolve(null),
         ]);
@@ -127,15 +150,13 @@ export function RetailInvoiceCreatePage() {
         const saleBranchId = sale?.branchId?._id || sale?.branchId || '';
         const targetBranchId = requestedBranchId || saleBranchId;
         if (!targetBranchId) {
-          const methods = (methodRes.data?.items || [])
-            .filter((method: PaymentMethodOption) => method.isActive !== false)
-            .sort((a: PaymentMethodOption, b: PaymentMethodOption) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+          const methods = normalizePaymentMethods(methodRes.data?.items || []);
           setActiveBranchId('');
           setBranch(null);
           setDbProducts([]);
           setDbStaffs(staffRes?.data?.items || []);
           setPaymentMethods(methods);
-          setPaymentLines([createPaymentLine(methods[0]?._id || '', 0)]);
+          setPaymentLines([createPaymentLine(resolveDefaultPaymentMethodId(methods), 0)]);
           setTenderedValue(0);
           setForm((current) => ({ ...current, salesperson: meRes.data?.name || '' }));
           return;
@@ -148,9 +169,7 @@ export function RetailInvoiceCreatePage() {
 
         if (cancelled) return;
 
-        const methods = (methodRes.data?.items || [])
-          .filter((method: PaymentMethodOption) => method.isActive !== false)
-          .sort((a: PaymentMethodOption, b: PaymentMethodOption) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+        const methods = normalizePaymentMethods(methodRes.data?.items || []);
         const inventoryProducts = productRes.data?.items || [];
 
         setActiveBranchId(targetBranchId);
@@ -207,14 +226,20 @@ export function RetailInvoiceCreatePage() {
               amount: Number(line.amount) || 0,
             }))
             .filter((line: PaymentLine) => line.methodId);
+          const allowedMethodIds = new Set(methods.map((method) => method._id));
+          const defaultMethodId = resolveDefaultPaymentMethodId(methods);
+          const normalizedPayments = existingPayments.map((line: PaymentLine) => ({
+            ...line,
+            methodId: allowedMethodIds.has(line.methodId) ? line.methodId : defaultMethodId,
+          }));
           setPaymentLines(
-            existingPayments.length > 0
-              ? existingPayments
-              : [createPaymentLine(methods[0]?._id || '', Number(sale.valuePayment || sale.value) || 0)],
+            normalizedPayments.length > 0
+              ? normalizedPayments
+              : [createPaymentLine(defaultMethodId, Number(sale.valuePayment || sale.value) || 0)],
           );
           setTenderedValue(Number(sale.tenderedValue ?? sale.valuePayment ?? sale.value) || 0);
         } else {
-          setPaymentLines([createPaymentLine(methods[0]?._id || '', 0)]);
+          setPaymentLines([createPaymentLine(resolveDefaultPaymentMethodId(methods), 0)]);
           setTenderedValue(0);
         }
       } catch (err: any) {

@@ -20,6 +20,8 @@ await StoreSetting.findOneAndUpdate(
 const category = await Category.findOneAndUpdate({ name: 'Hàng hóa' }, { name: 'Hàng hóa', userId: admin._id }, { upsert: true, new: true });
 await Product.findOneAndUpdate({ code: 'SP001' }, { name: 'Sản phẩm mẫu', code: 'SP001', categoryId: category._id, cost: 50000, price: 90000, qty: 100, unit: 'cái', userId: admin._id }, { upsert: true });
 await PaymentMethod.findOneAndUpdate({ code: 'cash' }, { name: 'Tiền mặt', code: 'cash', isActive: true }, { upsert: true });
+await PaymentMethod.findOneAndUpdate({ code: 'bank_transfer' }, { name: 'Chuyển khoản', code: 'bank_transfer', isActive: true, sortOrder: 2 }, { upsert: true });
+await PaymentMethod.findOneAndUpdate({ code: 'installment' }, { name: 'Trả góp', code: 'installment', isActive: true, sortOrder: 3 }, { upsert: true });
 await SaleChannel.findOneAndUpdate({ name: 'Bán tại cửa hàng' }, { name: 'Bán tại cửa hàng', isDefault: true, isActive: true }, { upsert: true });
 console.log('Seeded admin@myerp.local / 123456789');
 process.exit(0);

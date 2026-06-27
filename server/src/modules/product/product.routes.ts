@@ -11,6 +11,7 @@ import {
   completeStockAdjustment,
   createReturnExchange,
   moveProductQty,
+  listStandardPaymentMethods,
   reviseCompletedSalePayment,
 } from './product.service.js';
 import { Branch } from '../../core/org/branch.model.js';
@@ -988,6 +989,11 @@ router.use('/products', crudRoutes(Product));
 router.use('/branch-stocks', crudRoutes(ProductBranchStock));
 router.use('/sale-channels', crudRoutes(SaleChannel));
 router.use('/delivery-partners', crudRoutes(DeliveryPartner));
+router.get('/payment-methods/standard', async (req, res) => {
+  const items = await listStandardPaymentMethods();
+  res.json({ items, total: items.length, page: 1, limit: items.length });
+});
+
 router.use('/payment-methods', crudRoutes(PaymentMethod));
 router.use('/stock-adjustments', crudRoutes(StockAdjustment));
 router.use('/logs', crudRoutes(ProductLog));
