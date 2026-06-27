@@ -599,6 +599,7 @@ export async function reviseCompletedSalePayment(paymentId: string, payload: any
       payment.totalCost = nextPayload.totalCost;
       payment.value = nextPayload.value;
       payment.valuePayment = nextPayload.valuePayment;
+      payment.tenderedValue = nextPayload.tenderedValue;
       payment.typePayment = nextPayload.typePayment;
       payment.items = nextPayload.items;
       payment.settlementValue = 0;
@@ -690,6 +691,9 @@ export async function createReturnExchange(saleId: string, payload: any) {
       if (!documentBranchId) {
         throw new ProductFlowError('Vui lòng chọn kho thực hiện cho phiếu đổi trả.', 400);
       }
+      if (sale.branchId && explicitBranchId && String(sale.branchId) !== explicitBranchId) {
+        throw new ProductFlowError('Kho thực hiện phải trùng với kho của hóa đơn gốc.', 400);
+      }
 
       const completedRefunds = await completedRefundsForSale(sale._id, session);
       const refundedByProduct = new Map<string, number>();
@@ -748,7 +752,6 @@ export async function createReturnExchange(saleId: string, payload: any) {
       let settlementValue = 0;
       let replacementPayload: any = null;
       if (Array.isArray(payload.replacementItems) && payload.replacementItems.length > 0) {
-        const returnedAllowanceByProduct = groupQuantitiesByProduct(returnedItems as any[]);
         replacementPayload = await buildSalePaymentPayload({
           branchId: documentBranchId,
           customerId: sale.customerId,
@@ -764,10 +767,7 @@ export async function createReturnExchange(saleId: string, payload: any) {
           items: payload.replacementItems,
           userId: payload.userId || sale.userId,
           authorId: payload.userId || sale.authorId || sale.userId,
-        }, {
-          session,
-          stockAllowanceByProduct: returnedAllowanceByProduct,
-        });
+        }, { session });
 
         settlementValue = Math.min(returnedValue, replacementPayload.value);
         const saleCashDue = Math.max(replacementPayload.value - settlementValue, 0);

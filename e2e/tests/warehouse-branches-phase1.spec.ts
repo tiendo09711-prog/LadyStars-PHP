@@ -71,17 +71,17 @@ async function selectBranch(page: Page, branch: BranchFixture) {
 
 function formLocators(page: Page) {
   return {
-    name: page.locator('input[aria-label="TÃªn kho"]'),
-    address: page.locator('textarea[aria-label="Äá»‹a chá»‰"]'),
+    name: page.locator('input[aria-label="Tên kho"]'),
+    address: page.locator('textarea[aria-label="Địa chỉ"]'),
     phone: page.locator('input[aria-label="Hotline"]'),
-    displayName: page.locator('input[aria-label="TÃªn thÆ°Æ¡ng hiá»‡u"]'),
+    displayName: page.locator('input[aria-label="Tên thương hiệu"]'),
   };
 }
 
 async function ensureInvoiceSettingsOpen(page: Page) {
   const displayName = formLocators(page).displayName;
   if (await displayName.isVisible()) return;
-  await page.locator('button').filter({ hasText: 'Cáº¥u hÃ¬nh in hÃ³a Ä‘Æ¡n' }).click();
+  await page.locator('button').filter({ hasText: 'Cấu hình in hóa đơn' }).click();
   await expect(displayName).toBeVisible();
 }
 
@@ -257,7 +257,7 @@ test.describe('Warehouse branches Phase 1 regression', () => {
         await route.continue();
       });
       await clickSave(page, password);
-      await expect(page.locator('[role="alert"]')).toContainText('Hotline khÃ´ng há»£p lá»‡');
+      await expect(page.locator('[role="alert"]')).toContainText('Hotline không hợp lệ');
       await delay(250);
       expect(patchCount).toBe(0);
       const branchB = await branchByCode(pair.branchB.code);

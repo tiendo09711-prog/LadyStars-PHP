@@ -552,7 +552,7 @@ router.get('/daily-products', async (req, res) => {
     {
       $group: {
         _id: '$items.productId',
-        name: { $first: { $ifNull: ['$productInfo.name', 'KhÃ´ng rÃµ'] } },
+        name: { $first: { $ifNull: ['$productInfo.name', 'Không rõ'] } },
         code: { $first: { $ifNull: ['$productInfo.code', ''] } },
         qtyReturned: { $sum: { $ifNull: ['$items.amount', 0] } },
         refundValue: { $sum: { $ifNull: ['$items.value', 0] } },

@@ -188,6 +188,11 @@ test.describe('Warehouse Transactions - Automation', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000); // Wait for product list to load from API
 
+    await expect(page.getByText('Kho thực hiện *')).toBeVisible();
+    await expect(page.locator('select').first()).toContainText('Chọn kho thực hiện');
+    await expect(page.getByPlaceholder('Gõ mã/tên hàng và nhấn Enter (F3)')).toBeVisible();
+    await expect(page.locator('body')).not.toContainText(/S\u00e1\u00ba|Kho th\?c hi\?n|Ch\?n kho|\u00e1\u00ba|\u00c3\u00b4|\u00c6|\uFFFD/);
+
     // Chọn kho active đang được API trả về
     await page.locator('select').first().selectOption({ label: `${branchCN001Name} (${branchCode})` });
 
@@ -211,6 +216,7 @@ test.describe('Warehouse Transactions - Automation', () => {
 
     const row = page.locator('table.data-table tbody tr').last();
     await row.locator('select').first().selectOption(String(testProductId));
+    await expect(row).toContainText('Sản phẩm Test Kho Nhập Xuất');
     
     // Đổi số lượng nhập thành 5
     const qtyInput = row.locator('input[type="number"]').first();

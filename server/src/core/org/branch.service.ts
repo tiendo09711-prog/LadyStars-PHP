@@ -831,7 +831,7 @@ export async function deleteBranchRecord(req: any, branchId: string) {
 
   const usage = await getBranchUsageSummary(branchId);
   if (usage.totalLinked > 0) {
-    const error: any = new Error('Kh?ng th? x?a kho c?n d? li?u li?n k?t.');
+    const error: any = new Error('Không thể xóa kho còn dữ liệu liên kết.');
     error.status = 409;
     error.usage = usage;
     await writeBranchAudit('branch.delete_blocked', {

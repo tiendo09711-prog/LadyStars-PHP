@@ -407,11 +407,11 @@ export function VoucherImportPage() {
 
           <div className="form-grid">
             <label className="form-field">
-              <span>Kho th?c hi?n *</span>
+              <span>Kho thực hiện *</span>
               <select value={branchId} onChange={(e) => setBranchId(e.target.value)} disabled={loadingBranches || !sysBranches.length}>
                 {loadingBranches && <option value="">Đang tải kho hàng...</option>}
                 {!loadingBranches && !sysBranches.length && <option value="">Không có kho hàng</option>}
-                {!loadingBranches && sysBranches.length > 0 && <option value="">-- Ch?n kho th?c hi?n --</option>}
+                {!loadingBranches && sysBranches.length > 0 && <option value="">-- Chọn kho thực hiện --</option>}
                 {sysBranches.map(branch => (
                   <option key={branch._id} value={branch._id}>
                     {branch.name}{branch.code ? ` (${branch.code})` : ''}

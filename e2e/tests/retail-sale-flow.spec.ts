@@ -35,6 +35,10 @@ test.describe('Retail sale flow', () => {
 
     await page.goto(`/sales-channels/admin/retail/create?branchId=${fixture.branch._id}`);
     await expect(page.locator('input[placeholder="Nhập họ tên hoặc số điện thoại"]')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText('Khu vực')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sản phẩm (0)' })).toBeVisible();
+    await expect(page.getByPlaceholder('Tìm theo mã, barcode hoặc tên sản phẩm...')).toBeVisible();
+    await expect(page.locator('body')).not.toContainText(/S\u00e1\u00ba|Khu v\u00e1|Ti\u00e1|T\u00e1\u00bb|\u00e2\u20ac\u201d|\uFFFD/);
 
     const salesResponse = await page.request.get(`${API_BASE}/products/sales?limit=10&invoiceCode=${sale.code}`, { headers });
     expect(salesResponse.ok()).toBeTruthy();

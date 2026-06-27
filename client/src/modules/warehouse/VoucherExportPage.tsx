@@ -385,7 +385,7 @@ export function VoucherExportPage() {
 
           <div className="form-grid">
             <label className="form-field">
-              <span>Kho th?c hi?n *</span>
+              <span>Kho thực hiện *</span>
               <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
                 <option value="">-- Chọn kho xuất --</option>
                 {sysBranches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}{branch.code ? ` (${branch.code})` : ''}</option>)}

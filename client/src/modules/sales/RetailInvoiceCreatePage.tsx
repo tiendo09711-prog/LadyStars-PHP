@@ -71,6 +71,7 @@ export function RetailInvoiceCreatePage() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
   const [loadedSale, setLoadedSale] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [products, setProducts] = useState<SaleLine[]>([]);
   const [paymentLines, setPaymentLines] = useState<PaymentLine[]>([]);
   const [tenderedValue, setTenderedValue] = useState(0);
@@ -163,6 +164,9 @@ export function RetailInvoiceCreatePage() {
         }));
 
         if (sale) {
+          const saleCustomer = sale.customerId || null;
+          const saleCustomerId = saleCustomer?._id || saleCustomer || '';
+          setSelectedCustomerId(saleCustomerId);
           setForm((current) => ({
             ...current,
             invoiceCode: sale.code || '',
@@ -170,7 +174,12 @@ export function RetailInvoiceCreatePage() {
             customerName: sale.customerId?.name || '',
             phone: sale.customerId?.phone || '',
             email: sale.customerId?.email || '',
+            facebook: sale.customerId?.facebook || '',
+            dob: sale.customerId?.birthday ? new Date(sale.customerId.birthday).toISOString().split('T')[0] : '',
+            addressLocation: sale.customerId?.addressLocation || '',
             address: sale.customerId?.address || '',
+            cardId: sale.customerId?.cardId || '',
+            customerLevel: sale.customerId?.customerLevel || '',
             note: sale.note || '',
             discount: Number(sale.discountValue) || 0,
             discountType: sale.discountType === 'percent' ? 'percentage' : 'fixed',
@@ -183,7 +192,7 @@ export function RetailInvoiceCreatePage() {
             return {
               productId,
               code: item.productId?.code || inventory?.code || '',
-              name: item.productId?.name || inventory?.name || 'Sáº£n pháº©m',
+              name: item.productId?.name || inventory?.name || 'Sản phẩm',
               quantity: originalQuantity,
               price: Number(item.value) || 0,
               stock: getAvailableStock(inventory),
@@ -386,6 +395,7 @@ export function RetailInvoiceCreatePage() {
   };
 
   const selectCustomer = (customer: any) => {
+    setSelectedCustomerId(customer._id || '');
     setForm((current) => ({
       ...current,
       customerName: customer.name || '',
@@ -460,34 +470,46 @@ export function RetailInvoiceCreatePage() {
 
     setIsSaving(true);
     try {
-      let customerId: string | null = null;
+      let customerId: string | null = selectedCustomerId || null;
       const normalizedPhone = form.phone.trim();
-      const existingCustomerResponse = await http.get('/customers/customers', {
-        params: normalizedPhone
-          ? { phone: normalizedPhone, limit: 5 }
-          : { name: form.customerName.trim(), limit: 5 },
-      }).catch(() => ({ data: { items: [] } }));
-      const existingCustomer = (existingCustomerResponse.data?.items || []).find((customer: any) => (
-        normalizedPhone
-          ? customer.phone === normalizedPhone
-          : customer.name?.trim().toLowerCase() === form.customerName.trim().toLowerCase()
-      ));
+      const customerPayload = {
+        name: form.customerName.trim(),
+        phone: normalizedPhone,
+        email: form.email,
+        facebook: form.facebook,
+        dob: form.dob,
+        cardId: form.cardId,
+        customerLevel: form.customerLevel,
+        addressLocation: form.addressLocation,
+        address: form.address,
+        branchId: activeBranchId,
+      };
 
-      if (existingCustomer) {
-        customerId = existingCustomer._id;
+      if (!customerId) {
+        const existingCustomerResponse = await http.get('/customers/customers', {
+          params: normalizedPhone
+            ? { phone: normalizedPhone, limit: 5 }
+            : { name: form.customerName.trim(), limit: 5 },
+        }).catch(() => ({ data: { items: [] } }));
+        const existingCustomer = (existingCustomerResponse.data?.items || []).find((customer: any) => (
+          normalizedPhone
+            ? customer.phone === normalizedPhone
+            : customer.name?.trim().toLowerCase() === form.customerName.trim().toLowerCase()
+        ));
+        customerId = existingCustomer?._id || null;
+      }
+
+      if (customerId) {
+        const customerResponse = await http.patch(`/customers/customers/${customerId}`, customerPayload);
+        setDbCustomers((current) => [customerResponse.data, ...current.filter((item) => item._id !== customerResponse.data._id)]);
+        setCustomerSuggestions((current) => [customerResponse.data, ...current.filter((item) => item._id !== customerResponse.data._id)]);
+        setSelectedCustomerId(customerResponse.data._id);
       } else {
         const customerResponse = await http.post('/customers/customers', {
-          name: form.customerName.trim(),
-          phone: normalizedPhone,
-          email: form.email,
-          facebook: form.facebook,
-          dob: form.dob,
-          cardId: form.cardId,
-          customerLevel: form.customerLevel,
-          addressLocation: form.addressLocation,
-          address: form.address,
+          ...customerPayload,
         });
         customerId = customerResponse.data._id;
+        setSelectedCustomerId(customerId || '');
         setDbCustomers((current) => [customerResponse.data, ...current]);
         setCustomerSuggestions((current) => [customerResponse.data, ...current.filter((item) => item._id !== customerResponse.data._id)]);
       }
@@ -499,8 +521,8 @@ export function RetailInvoiceCreatePage() {
         note: form.note,
         salesperson: form.salesperson,
         orderSource: form.orderSource,
-        discountValue: discountAmount,
-        discountType: 'number',
+        discountValue: Math.max(0, Number(form.discount) || 0),
+        discountType: form.discountType === 'percentage' ? 'percent' : 'number',
         valuePayment: paidAmount,
         tenderedValue: Math.max(tenderedValue, paidAmount),
         typePayment: paymentLines.map((line) => ({ methodId: line.methodId, amount: line.amount })),
@@ -548,7 +570,7 @@ export function RetailInvoiceCreatePage() {
 
       <header className="retail-create-header">
         <div>
-          <button type="button" onClick={() => navigate(`/sales-channels/${channel}/retail`)} aria-label="Quay láº¡i">
+          <button type="button" onClick={() => navigate(`/sales-channels/${channel}/retail`)} aria-label="Quay lại">
             <ArrowLeft size={18} />
           </button>
           <div>
@@ -583,7 +605,7 @@ export function RetailInvoiceCreatePage() {
               </label>
               <label>
                 <span>Nhân viên bán hàng</span>
-                <select value={form.salesperson} onChange={(event) => setForm((current) => ({ ...current, salesperson: event.target.value }))}>
+                <select value={form.salesperson} onChange={(event) => setForm((current) => ({ ...current, salesperson: event.target.value }))} disabled={Boolean(editId)}>
                   <option value="">— Chọn nhân viên —</option>
                   {dbStaffs.map((staff) => <option key={staff._id} value={staff.name}>{staff.name}</option>)}
                   {form.salesperson && !dbStaffs.some((staff) => staff.name === form.salesperson) && (
@@ -593,11 +615,11 @@ export function RetailInvoiceCreatePage() {
               </label>
               <label>
                 <span>Nguồn đơn hàng</span>
-                <input value={form.orderSource} onChange={(event) => setForm((current) => ({ ...current, orderSource: event.target.value }))} />
+                <input value={form.orderSource} onChange={(event) => setForm((current) => ({ ...current, orderSource: event.target.value }))} readOnly={Boolean(editId)} />
               </label>
               <label>
                 <span>Mã coupon</span>
-                <input value={form.coupon} onChange={(event) => setForm((current) => ({ ...current, coupon: event.target.value }))} />
+                <input value={form.coupon} onChange={(event) => setForm((current) => ({ ...current, coupon: event.target.value }))} readOnly={Boolean(editId)} />
               </label>
             </div>
           </section>
@@ -614,6 +636,7 @@ export function RetailInvoiceCreatePage() {
                   onFocus={() => setShowCustomerDropdown(true)}
                   onBlur={() => window.setTimeout(() => setShowCustomerDropdown(false), 150)}
                   onChange={(event) => {
+                    setSelectedCustomerId('');
                     setForm((current) => ({ ...current, customerName: event.target.value }));
                     setShowCustomerDropdown(true);
                   }}
@@ -622,7 +645,7 @@ export function RetailInvoiceCreatePage() {
                   <div className="create-dropdown">
                     {customerSuggestions.map((customer) => (
                       <button type="button" key={customer._id} onMouseDown={(event) => event.preventDefault()} onClick={() => selectCustomer(customer)}>
-                        <strong>{customer.name}</strong><span>{customer.phone || 'â€”'}</span>
+                        <strong>{customer.name}</strong><span>{customer.phone || '—'}</span>
                       </button>
                     ))}
                   </div>
@@ -634,14 +657,14 @@ export function RetailInvoiceCreatePage() {
               <label><span>Ngày sinh</span><input type="date" value={form.dob} onChange={(event) => setForm((current) => ({ ...current, dob: event.target.value }))} /></label>
               <label><span>Mã thẻ</span><input value={form.cardId} onChange={(event) => setForm((current) => ({ ...current, cardId: event.target.value }))} /></label>
               <label><span>Cấp độ thành viên</span><input value={form.customerLevel} onChange={(event) => setForm((current) => ({ ...current, customerLevel: event.target.value }))} /></label>
-              <label><span>Khu vá»±c</span><input value={form.addressLocation} onChange={(event) => setForm((current) => ({ ...current, addressLocation: event.target.value }))} /></label>
+              <label><span>Khu vực</span><input value={form.addressLocation} onChange={(event) => setForm((current) => ({ ...current, addressLocation: event.target.value }))} /></label>
               <label className="wide"><span>Địa chỉ</span><input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></label>
             </div>
           </section>
 
           <section className="create-card product-card">
             <div className="create-card-heading">
-              <h2><Package size={17} /> Sáº£n pháº©m ({products.length})</h2>
+              <h2><Package size={17} /> Sản phẩm ({products.length})</h2>
               <span>Tổng số lượng: {products.reduce((sum, line) => sum + line.quantity, 0)}</span>
             </div>
             <div className="product-search">
@@ -663,7 +686,7 @@ export function RetailInvoiceCreatePage() {
                   {filteredProducts.map((product) => (
                     <button type="button" key={product._id} onMouseDown={(event) => event.preventDefault()} onClick={() => addProduct(product)}>
                       <span><strong>{product.name}</strong><small>{product.code} · {formatMoney(product.price)} đ</small></span>
-                      <em>Tá»“n: {getAvailableStock(product)}</em>
+                      <em>Tồn: {getAvailableStock(product)}</em>
                     </button>
                   ))}
                 </div>
@@ -783,7 +806,7 @@ export function RetailInvoiceCreatePage() {
             </div>
             {changeAmount > 0 ? (
               <div className="payment-balance balanced">
-                <span>Tiá»n tráº£ láº¡i</span>
+                <span>Tiền trả lại</span>
                 <strong>{formatMoney(changeAmount)} đ</strong>
               </div>
             ) : null}

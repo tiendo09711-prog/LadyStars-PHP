@@ -305,7 +305,7 @@ async function populateSale(query: any) {
   return query
     .populate('items.productId', 'code name price cost qty unit type allowsSale')
     .populate('saleChannelId', 'name')
-    .populate('customerId', 'name code phone')
+    .populate('customerId', 'name code phone email facebook birthday cardId customerLevel addressLocation address')
     .populate('branchId', 'name code address phone')
     .populate('userId', 'name email')
     .populate('authorId', 'name email')
@@ -469,7 +469,7 @@ router.post('/categories', async (req, res) => {
     });
     res.status(201).json(item);
   } catch (err: any) {
-    if (err?.code === 11000) return res.status(409).json({ message: 'M� danh m?c ho?c t�n danh m?c d� t?n t?i.' });
+    if (err?.code === 11000) return res.status(409).json({ message: 'Mã danh mục hoặc tên danh mục đã tồn tại.' });
     throw err;
   }
 });

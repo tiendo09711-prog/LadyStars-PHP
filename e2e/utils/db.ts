@@ -231,7 +231,7 @@ export async function createRetailFixture(prefix: string, productCount = 3) {
     invoiceProfile: {
       displayName: '',
       templateId: 'retail-a4-classic',
-      footerText: 'Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ mua hÃ ng!',
+      footerText: 'Cảm ơn quý khách đã mua hàng!',
       showBranchName: false,
       showCashier: true,
       showProductCode: false,
@@ -359,7 +359,7 @@ export async function createEmptyBranch(prefix: string, overrides: Partial<Recor
     invoiceProfile: {
       displayName: String(overrides.displayName || ''),
       templateId: 'retail-a4-classic',
-      footerText: 'Cáº£m Æ¡n quÃ½ khÃ¡ch Ä‘Ã£ mua hÃ ng!',
+      footerText: 'Cảm ơn quý khách đã mua hàng!',
       showBranchName: false,
       showCashier: true,
       showProductCode: false,

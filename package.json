@@ -19,7 +19,7 @@
   "devDependencies": {
     "concurrently": "^9.1.2"
   },
-  "description": "Báº£n starter nÃ y chuyá»ƒn hÃ³a kiáº¿n trÃºc Polirium ERP Laravel/Livewire sang MERN stack theo hÆ°á»›ng module hÃ³a, khÃ´ng copy nguyÃªn code PHP. Má»¥c tiÃªu lÃ  giá»¯ cáº¥u trÃºc nghiá»‡p vá»¥: product, sale/payment, stock, customer, vendor, accounting, task, print-forms.",
+  "description": "Bản starter này chuyển hóa kiến trúc Polirium ERP Laravel/Livewire sang MERN stack theo hướng module hóa, không copy nguyên code PHP. Mục tiêu là giữ cấu trúc nghiệp vụ: product, sale/payment, stock, customer, vendor, accounting, task, print-forms.",
   "main": "index.js",
   "directories": {
     "doc": "docs"
