@@ -71,7 +71,29 @@ interface BranchOption {
   isActive?: boolean;
 }
 
-type BarcodeType = 'EAN13' | 'C128' | 'C39' | 'C128A' | 'QRCODE';
+type BarcodeType = 'AUTO' | 'EAN13' | 'C128' | 'C39' | 'C128A' | 'QRCODE';
+type ResolvedBarcodeType = 'EAN13' | 'C128' | 'C39' | 'C128A' | 'QRCODE';
+
+const BARCODE_RENDER_SCALE = 3;
+const BARCODE_QUIET_PADDING = 10;
+const BARCODE_1D_HEIGHT = 10.7;
+
+const BARCODE_TYPE_LABELS: Record<ResolvedBarcodeType, string> = {
+  EAN13: 'EAN-13',
+  C128: 'Code 128',
+  C128A: 'Code 128A',
+  C39: 'Code 39',
+  QRCODE: 'QR Code',
+};
+
+function barcodeTypeLabel(type: ResolvedBarcodeType) {
+  return BARCODE_TYPE_LABELS[type] ?? type;
+}
+
+function resolveBarcodeType(value: string, requestedType: BarcodeType): ResolvedBarcodeType {
+  if (requestedType !== 'AUTO') return requestedType;
+  return isValidEan13(value.trim()) ? 'EAN13' : 'C128';
+}
 
 interface PaperTemplate {
   id: string;
@@ -95,6 +117,7 @@ const DEFAULT_BARCODE_PAPER_ID = 'a4-65';
 const PAPER_TEMPLATES: PaperTemplate[] = [
   { id: 'roll-105x22-3', title: 'Mẫu giấy cuộn 3 nhãn', size: 'Mỗi nhãn 35x22mm, 3 nhãn ngang.', pageWidthMm: 105, pageHeightMm: 22, labelWidthMm: 35, labelHeightMm: 22, columns: 3, previewClass: 'roll' },
   { id: 'roll-70x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 35x22mm, 2 nhãn ngang.', pageWidthMm: 70, pageHeightMm: 22, labelWidthMm: 35, labelHeightMm: 22, columns: 2, previewClass: 'roll' },
+  { id: 'roll-70x22-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 70x22mm.', pageWidthMm: 70, pageHeightMm: 22, labelWidthMm: 70, labelHeightMm: 22, columns: 1, previewClass: 'roll' },
   { id: 'a4-65', title: 'Mẫu giấy 65 nhãn', size: 'Khổ A4, Tomy 145 - tem 38.1x21.2mm.', pageWidthMm: 210, pageHeightMm: 297, labelWidthMm: 38.1, labelHeightMm: 21.2, columns: 5, rows: 13, gapXmm: 2.55, gapYmm: 0, previewClass: 'sheet' },
   { id: 'roll-77x22-2', title: 'Mẫu giấy cuộn 2 nhãn', size: 'Mỗi nhãn 38.5x22mm, 2 nhãn ngang.', pageWidthMm: 77, pageHeightMm: 22, labelWidthMm: 38.5, labelHeightMm: 22, columns: 2, previewClass: 'roll' },
   { id: 'roll-40x25-1', title: 'Mẫu giấy cuộn 1 nhãn', size: 'Mỗi nhãn 40x25mm.', pageWidthMm: 40, pageHeightMm: 25, labelWidthMm: 40, labelHeightMm: 25, columns: 1, previewClass: 'roll' },
@@ -129,51 +152,68 @@ function isValidCode39(value: string) {
 type BarcodeBuildResult = {
   svg: string;
   requestedType: BarcodeType;
-  actualType: BarcodeType;
+  actualType: ResolvedBarcodeType;
   standard: string;
   encodedValue: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  aspectRatio: number;
   warning?: string;
   error?: string;
 };
+
+function readSvgViewBox(svg: string): { width: number; height: number } {
+  const match = svg.match(/viewBox=["']0 0 ([\d.]+) ([\d.]+)["']/);
+  if (!match) return { width: 0, height: 0 };
+  return { width: Number(match[1]) || 0, height: Number(match[2]) || 0 };
+}
 
 function decorateBarcodeSvg(svg: string, result: Omit<BarcodeBuildResult, 'svg'>) {
   const classes = result.actualType === 'QRCODE' ? 'barcode-svg qr' : 'barcode-svg';
   return svg.replace(
     '<svg ',
-    `<svg class="${classes}" data-barcode-type="${result.actualType}" data-barcode-requested-type="${result.requestedType}" data-barcode-standard="${result.standard}" data-barcode-value="${escapeHtml(result.encodedValue)}" role="img" aria-label="${escapeHtml(`${result.actualType}: ${result.encodedValue}`)}" `,
+    `<svg class="${classes}" preserveAspectRatio="xMidYMid meet" data-barcode-type="${result.actualType}" data-barcode-requested-type="${result.requestedType}" data-barcode-standard="${result.standard}" data-barcode-value="${escapeHtml(result.encodedValue)}" data-barcode-natural-width="${result.naturalWidth}" data-barcode-natural-height="${result.naturalHeight}" role="img" aria-label="${escapeHtml(`${barcodeTypeLabel(result.actualType)}: ${result.encodedValue}`)}" `,
   );
 }
 
 function buildBarcodeResult(value: string, requestedType: BarcodeType): BarcodeBuildResult {
   const text = value.trim() || '0';
-  const renderWithMeta = (actualType: BarcodeType, standard: string, render: () => string, warning?: string): BarcodeBuildResult => {
-    const meta = { requestedType, actualType, standard, encodedValue: text, warning };
-    return { ...meta, svg: decorateBarcodeSvg(render(), meta) };
+  const resolved = resolveBarcodeType(text, requestedType);
+  const empty = (actualType: ResolvedBarcodeType, standard: string, error: string): BarcodeBuildResult => ({
+    requestedType, actualType, standard, encodedValue: text, naturalWidth: 0, naturalHeight: 0, aspectRatio: 0, error, svg: `<span class="barcode-svg-error">${escapeHtml(error)}</span>`,
+  });
+  const build = (actualType: ResolvedBarcodeType, standard: string, render: () => string, warning?: string): BarcodeBuildResult => {
+    const rawSvg = render();
+    const { width, height } = readSvgViewBox(rawSvg);
+    const aspectRatio = height > 0 ? width / height : 0;
+    const meta = { requestedType, actualType, standard, encodedValue: text, naturalWidth: width, naturalHeight: height, aspectRatio, warning };
+    return { ...meta, svg: decorateBarcodeSvg(rawSvg, meta) };
   };
 
   try {
-    if (requestedType === 'QRCODE') {
-      return renderWithMeta('QRCODE', 'qrcode', () => renderQrCode({ bcid: 'qrcode', text, scale: 3, paddingwidth: 4, paddingheight: 4 }, drawingSVG()));
+    if (resolved === 'QRCODE') {
+      return build('QRCODE', 'qrcode', () => renderQrCode({ bcid: 'qrcode', text, scale: BARCODE_RENDER_SCALE, paddingwidth: 4, paddingheight: 4 }, drawingSVG()));
     }
-    if (requestedType === 'EAN13') {
-      if (isValidEan13(text)) {
-        return renderWithMeta('EAN13', 'ean13', () => renderEan13({ bcid: 'ean13', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()));
+    if (resolved === 'EAN13') {
+      if (!isValidEan13(text)) {
+        return empty('EAN13', 'ean13', 'Mã không hợp lệ EAN-13. Hãy chọn "Tự động (khuyến nghị)" hoặc "Code 128" để in nguyên mã gốc.');
       }
-      return renderWithMeta('C128', 'code128', () => renderCode128({ bcid: 'code128', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()), 'Mã không hợp lệ EAN13 nên hệ thống in Code128 để giữ nguyên dữ liệu gốc.');
+      return build('EAN13', 'ean13', () => renderEan13({ bcid: 'ean13', text, scale: BARCODE_RENDER_SCALE, height: BARCODE_1D_HEIGHT, includetext: false, paddingwidth: BARCODE_QUIET_PADDING, paddingheight: 2 }, drawingSVG()));
     }
-    if (requestedType === 'C39') {
+    if (resolved === 'C39') {
       const code39Text = text.toUpperCase();
       if (!isValidCode39(code39Text)) {
-        const message = 'Mã có ký tự không hỗ trợ Code39. Chọn Code128 để in nguyên mã gốc.';
-        return { requestedType, actualType: 'C39', standard: 'code39', encodedValue: text, error: message, svg: `<span class="barcode-svg-error">${escapeHtml(message)}</span>` };
+        return empty('C39', 'code39', 'Mã có ký tự không hỗ trợ Code 39. Chọn "Tự động (khuyến nghị)" hoặc "Code 128" để in nguyên mã gốc.');
       }
-      const meta = { requestedType, actualType: 'C39' as BarcodeType, standard: 'code39', encodedValue: code39Text };
-      return { ...meta, svg: decorateBarcodeSvg(renderCode39({ bcid: 'code39', text: code39Text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()), meta) };
+      return build('C39', 'code39', () => renderCode39({ bcid: 'code39', text: code39Text, scale: BARCODE_RENDER_SCALE, height: BARCODE_1D_HEIGHT, includetext: false, paddingwidth: BARCODE_QUIET_PADDING, paddingheight: 2 }, drawingSVG()));
     }
-    return renderWithMeta('C128', requestedType === 'C128A' ? 'code128a' : 'code128', () => renderCode128({ bcid: 'code128', text, scale: 3, height: 16, includetext: false, paddingwidth: 10, paddingheight: 2 }, drawingSVG()));
+    if (resolved === 'C128A') {
+      return build('C128A', 'code128a', () => renderCode128({ bcid: 'code128a', text, scale: BARCODE_RENDER_SCALE, height: BARCODE_1D_HEIGHT, includetext: false, paddingwidth: BARCODE_QUIET_PADDING, paddingheight: 2 }, drawingSVG()));
+    }
+    return build('C128', 'code128', () => renderCode128({ bcid: 'code128', text, scale: BARCODE_RENDER_SCALE, height: BARCODE_1D_HEIGHT, includetext: false, paddingwidth: BARCODE_QUIET_PADDING, paddingheight: 2 }, drawingSVG()));
   } catch (error) {
     console.error(`Không thể tạo mã ${requestedType}:`, error);
-    return { requestedType, actualType: requestedType, standard: requestedType.toLowerCase(), encodedValue: text, error: 'Không thể tạo mã vạch cho dữ liệu này.', svg: '<span class="barcode-svg-error">Không tạo được mã vạch</span>' };
+    return empty(resolved, resolved.toLowerCase(), 'Không thể tạo mã vạch cho dữ liệu này.');
   }
 }
 
@@ -184,6 +224,86 @@ function buildBarcodeSvg(value: string, type: BarcodeType) {
 function BarcodeSvg({ value, type }: { value: string; type: BarcodeType }) {
   return <span className="barcode-art" dangerouslySetInnerHTML={{ __html: buildBarcodeSvg(value, type) }} />;
 }
+
+const PX_TO_MM = 25.4 / 96;
+
+type BarcodePrintFlags = {
+  showStore: boolean;
+  showCode: boolean;
+  showName: boolean;
+  showThreeLineName: boolean;
+  showPrice: boolean;
+  showOldPrice: boolean;
+};
+
+function getLabelLayoutMetrics({ paper, showStore, showCode, showName, showThreeLineName, showPrice, showOldPrice }: BarcodePrintFlags & { paper: PaperTemplate }) {
+  const labelPaddingYmm = Math.max(0.5, Math.min(1.4, paper.labelHeightMm * 0.055));
+  const labelPaddingXmm = Math.max(0.7, Math.min(2, paper.labelWidthMm * 0.045));
+  const storeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.38));
+  const codeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.34));
+  const nameFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.36));
+  const priceFontPx = Math.max(8, Math.min(13, paper.labelHeightMm * 0.48));
+  const rowGapMm = 0.25;
+  let textHeightMm = 0;
+  let rowCount = 0;
+  const addTextRow = (heightMm: number) => { textHeightMm += heightMm; rowCount += 1; };
+  const compactText = paper.labelHeightMm < 22;
+  if (showStore) addTextRow(storeFontPx * (compactText ? 0.82 : 1.2) * PX_TO_MM);
+  if (showCode) addTextRow(codeFontPx * (compactText ? 0.78 : 1.1) * PX_TO_MM);
+  if (showName) addTextRow(nameFontPx * (compactText ? (showThreeLineName ? 1.65 : 0.8) : (showThreeLineName ? 3.1 : 1.35)) * PX_TO_MM);
+  if (showPrice) addTextRow(priceFontPx * (compactText ? 0.82 : 1.1) * PX_TO_MM);
+  if (showOldPrice) addTextRow(Math.max(7, priceFontPx - 2) * (compactText ? 0.75 : 1.05) * PX_TO_MM);
+  if (rowCount > 0) textHeightMm += rowCount * rowGapMm;
+  return {
+    labelPaddingYmm,
+    labelPaddingXmm,
+    storeFontPx,
+    codeFontPx,
+    nameFontPx,
+    priceFontPx,
+    rowGapMm,
+    availableBarcodeWidthMm: Math.max(0, paper.labelWidthMm - labelPaddingXmm * 2),
+    availableBarcodeHeightMm: Math.max(0, paper.labelHeightMm - labelPaddingYmm * 2 - textHeightMm),
+  };
+}
+
+function getBarcodePhysicalSize(result: BarcodeBuildResult, paper: PaperTemplate, flags: BarcodePrintFlags) {
+  const metrics = getLabelLayoutMetrics({ paper, ...flags });
+  if (result.error || result.naturalWidth <= 0 || result.naturalHeight <= 0 || metrics.availableBarcodeWidthMm <= 0 || metrics.availableBarcodeHeightMm <= 0) {
+    return { ...metrics, widthMm: 0, heightMm: 0, moduleWidthMm: 0, quietZoneMm: 0 };
+  }
+  const aspectRatio = result.aspectRatio || result.naturalWidth / result.naturalHeight;
+  let widthMm = metrics.availableBarcodeWidthMm;
+  let heightMm = widthMm / aspectRatio;
+  if (heightMm > metrics.availableBarcodeHeightMm) {
+    heightMm = metrics.availableBarcodeHeightMm;
+    widthMm = heightMm * aspectRatio;
+  }
+  const moduleWidthMm = result.actualType === 'QRCODE' ? widthMm / Math.max(1, result.naturalWidth) : (BARCODE_RENDER_SCALE * widthMm) / result.naturalWidth;
+  const quietZoneMm = result.actualType === 'QRCODE' ? moduleWidthMm * 4 : (BARCODE_QUIET_PADDING * BARCODE_RENDER_SCALE * widthMm) / result.naturalWidth;
+  return { ...metrics, widthMm, heightMm, moduleWidthMm, quietZoneMm };
+}
+
+function getBarcodeDensityIssues(product: IProduct, result: BarcodeBuildResult, paper: PaperTemplate, flags: BarcodePrintFlags) {
+  if (result.error) return [];
+  const size = getBarcodePhysicalSize(result, paper, flags);
+  const label = barcodeTypeLabel(result.actualType);
+  const code = product.code || result.encodedValue;
+  const issues: string[] = [];
+  if (size.widthMm <= 0 || size.heightMm <= 0) {
+    issues.push(`${code}: Không thể in an toàn: ${label} trên khổ ${paper.labelWidthMm}×${paper.labelHeightMm}mm không còn đủ vùng trống cho barcode sau khi hiển thị nội dung tem. Hãy chọn khổ lớn hơn hoặc ẩn bớt thông tin trên tem.`);
+    return issues;
+  }
+  if (result.actualType !== 'QRCODE') {
+    const minModuleMm = result.actualType === 'EAN13' ? 0.264 : result.actualType === 'C39' ? 0.23 : 0.21;
+    const minHeightMm = result.actualType === 'EAN13' ? 4.6 : 4;
+    if (size.moduleWidthMm < minModuleMm) issues.push(`${code}: Không thể in an toàn: ${label} trên khổ ${paper.labelWidthMm}×${paper.labelHeightMm}mm chỉ còn chiều rộng vạch ${size.moduleWidthMm.toFixed(3)}mm (cần tối thiểu ${minModuleMm.toFixed(3)}mm). Hãy chọn khổ lớn hơn, ẩn bớt thông tin trên tem hoặc dùng template phù hợp.`);
+    if (size.heightMm < minHeightMm) issues.push(`${code}: Không thể in an toàn: ${label} chỉ còn cao ${size.heightMm.toFixed(1)}mm sau khi hiển thị nội dung chữ. Hãy chọn khổ cao hơn hoặc ẩn bớt tên/giá/shop.`);
+    if (size.quietZoneMm < 1.5) issues.push(`${code}: Không thể in an toàn: quiet zone hai bên chỉ còn ${size.quietZoneMm.toFixed(1)}mm. Hãy chọn khổ lớn hơn hoặc giảm nội dung trên tem.`);
+  }
+  return issues;
+}
+
 
 function DeleteConfirm({
   product,
@@ -308,7 +428,7 @@ function DetailModal({ product, onClose }: { product: IProduct; onClose: () => v
   );
 }
 
-﻿interface ProductFormProps {
+interface ProductFormProps {
   product?: IProduct | null;
   onSave: (data: ProductSavePayload) => void;
   onClose: () => void;
@@ -1261,52 +1381,58 @@ function buildPrintDocument({
   rows: Array<{ product: IProduct; qty: number }>; barcodeType: BarcodeType; paper: PaperTemplate; marginLeft: number; marginTop: number; showStore: boolean; storeName: string; showCode: boolean; showName: boolean; showThreeLineName: boolean; showPrice: boolean; showOldPrice: boolean; currencySuffix: string;
 }) {
   const labels = rows.flatMap((row) => Array.from({ length: Math.max(1, row.qty) }, () => row.product));
-  const safeMarginLeft = Math.min(Math.max(0, marginLeft), Math.max(0, paper.pageWidthMm - paper.labelWidthMm));
-  const safeMarginTop = Math.min(Math.max(0, marginTop), Math.max(0, paper.pageHeightMm - paper.labelHeightMm));
   const gapXmm = paper.gapXmm ?? 0;
   const gapYmm = paper.gapYmm ?? 0;
-  const labelPaddingYmm = Math.max(0.5, Math.min(1.4, paper.labelHeightMm * 0.055));
-  const labelPaddingXmm = Math.max(0.7, Math.min(2, paper.labelWidthMm * 0.045));
-  const maxBarcodeHeightMm = Math.max(4, paper.labelHeightMm - 5);
-  const barcodeHeightMm = Math.min(Math.max(7, paper.labelHeightMm * 0.58), maxBarcodeHeightMm);
-  const storeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.38));
-  const codeFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.34));
-  const nameFontPx = Math.max(7, Math.min(10, paper.labelHeightMm * 0.36));
-  const priceFontPx = Math.max(8, Math.min(13, paper.labelHeightMm * 0.48));
-  const labelHtml = labels.map((product) => {
+  const gridWidthMm = paper.columns * paper.labelWidthMm + Math.max(0, paper.columns - 1) * gapXmm;
+  const gridHeightMm = (paper.rows ?? 1) * paper.labelHeightMm + Math.max(0, (paper.rows ?? 1) - 1) * gapYmm;
+  const safeMarginLeft = Math.min(Math.max(0, marginLeft), Math.max(0, paper.pageWidthMm - gridWidthMm));
+  const safeMarginTop = Math.min(Math.max(0, marginTop), Math.max(0, paper.pageHeightMm - gridHeightMm));
+  const metrics = getLabelLayoutMetrics({ paper, showStore, showCode, showName, showThreeLineName, showPrice, showOldPrice });
+  const safeCurrencySuffix = escapeHtml(currencySuffix);
+  const labelsPerPage = Math.max(1, paper.columns * (paper.rows ?? 1));
+  const pageChunks: IProduct[][] = [];
+  for (let index = 0; index < labels.length; index += labelsPerPage) pageChunks.push(labels.slice(index, index + labelsPerPage));
+  const flags = { showStore, showCode, showName, showThreeLineName, showPrice, showOldPrice };
+  const renderLabel = (product: IProduct) => {
     const value = normalizeBarcodeValue(product);
     const barcode = buildBarcodeResult(value, barcodeType);
-    const safeCurrencySuffix = escapeHtml(currencySuffix);
-    return `<article class="print-label" data-label-width-mm="${paper.labelWidthMm}" data-label-height-mm="${paper.labelHeightMm}">
+    const size = getBarcodePhysicalSize(barcode, paper, flags);
+    return `<article class="print-label" data-label-width-mm="${paper.labelWidthMm}" data-label-height-mm="${paper.labelHeightMm}" data-barcode-actual-type="${barcode.actualType}" data-barcode-width-mm="${size.widthMm.toFixed(2)}" data-barcode-height-mm="${size.heightMm.toFixed(2)}" data-module-width-mm="${size.moduleWidthMm.toFixed(3)}">
       ${showStore && storeName.trim() ? `<div class="print-store">${escapeHtml(storeName)}</div>` : ''}
-      <div class="print-barcode">${barcode.svg}</div>
+      <div class="print-barcode" style="--barcode-width-mm:${size.widthMm.toFixed(2)}mm;--barcode-height-mm:${size.heightMm.toFixed(2)}mm">${barcode.svg}</div>
       ${showCode ? `<div class="print-code">${escapeHtml(barcode.encodedValue)}</div>` : ''}
       ${showName ? `<div class="print-name${showThreeLineName ? ' three' : ''}">${escapeHtml(product.name)}</div>` : ''}
       ${showPrice ? `<div class="print-price">${Number(product.price || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
       ${showOldPrice && product.oldPrice ? `<div class="print-old-price">${Number(product.oldPrice || 0).toLocaleString('vi-VN')} ${safeCurrencySuffix}</div>` : ''}
     </article>`;
-  }).join('');
+  };
+  const pagesHtml = pageChunks.map((chunk, pageIndex) => `<main class="print-page" data-page-index="${pageIndex + 1}" data-page-width-mm="${paper.pageWidthMm}" data-page-height-mm="${paper.pageHeightMm}"><section class="sheet">${chunk.map(renderLabel).join('')}</section></main>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>In mã vạch sản phẩm</title>
     <style>
       @page { size: ${paper.pageWidthMm}mm ${paper.pageHeightMm}mm; margin: 0; }
       * { box-sizing: border-box; }
-      body { margin: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
-      .print-page { width: ${paper.pageWidthMm}mm; min-height: ${paper.pageHeightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; }
+      html, body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-page { width: ${paper.pageWidthMm}mm; height: ${paper.pageHeightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; break-after: page; page-break-after: always; background: #fff; }
+      .print-page:last-child { break-after: auto; page-break-after: auto; }
       .sheet { display: grid; grid-template-columns: repeat(${paper.columns}, ${paper.labelWidthMm}mm); grid-auto-rows: ${paper.labelHeightMm}mm; column-gap: ${gapXmm}mm; row-gap: ${gapYmm}mm; align-content: start; justify-content: start; }
-      .print-label { width: ${paper.labelWidthMm}mm; height: ${paper.labelHeightMm}mm; padding: ${labelPaddingYmm}mm ${labelPaddingXmm}mm; overflow: hidden; text-align: center; break-inside: avoid; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; row-gap: 0.25mm; align-items: center; }
-      .print-store { min-height: 1.2em; font-size: ${storeFontPx}px; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .print-barcode { min-height: 0; height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-      .barcode-svg { width: 100%; height: 100%; max-height: ${barcodeHeightMm}mm; display: block; fill: #000; }
-      .barcode-svg.qr { width: ${barcodeHeightMm}mm; margin: 0 auto; }
-      .barcode-svg-error { display: block; color: #b91c1c; font-size: 8px; line-height: 1.1; }
-      .print-code { font-size: ${codeFontPx}px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .print-name { font-size: ${nameFontPx}px; line-height: 1.05; max-height: ${showThreeLineName ? Math.max(9, paper.labelHeightMm * 0.28) : Math.max(6, paper.labelHeightMm * 0.18)}mm; overflow: hidden; }
-      .print-name.three { max-height: ${Math.max(10, paper.labelHeightMm * 0.34)}mm; }
-      .print-price { font-size: ${priceFontPx}px; font-weight: 900; line-height: 1.05; white-space: nowrap; }
-      .print-old-price { font-size: ${Math.max(7, priceFontPx - 2)}px; text-decoration: line-through; color: #6b7280; line-height: 1; }
-    </style></head><body><main class="print-page" data-page-width-mm="${paper.pageWidthMm}" data-page-height-mm="${paper.pageHeightMm}"><section class="sheet">${labelHtml}</section></main></body></html>`;
+      .print-label { width: ${paper.labelWidthMm}mm; height: ${paper.labelHeightMm}mm; padding: ${metrics.labelPaddingYmm}mm ${metrics.labelPaddingXmm}mm; overflow: hidden; text-align: center; break-inside: avoid; page-break-inside: avoid; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto auto; row-gap: ${metrics.rowGapMm}mm; align-items: center; background: #fff; }
+      .print-store { min-height: 1.2em; font-size: ${metrics.storeFontPx}px; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .print-barcode { min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: visible; background: #fff; }
+      .print-barcode .barcode-svg { width: var(--barcode-width-mm); height: var(--barcode-height-mm); max-width: 100%; max-height: 100%; display: block; fill: #000; background: #fff; }
+      .print-barcode .barcode-svg path { stroke: #000; }
+      .print-barcode .barcode-svg-error { display: block; color: #b91c1c; font-size: 8px; line-height: 1.1; }
+      .print-code { font-size: ${metrics.codeFontPx}px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .print-name { font-size: ${metrics.nameFontPx}px; line-height: 1.05; max-height: ${showThreeLineName ? Math.max(9, paper.labelHeightMm * 0.28) : Math.max(5, paper.labelHeightMm * 0.16)}mm; overflow: hidden; }
+      .print-name.three { max-height: ${Math.max(9, paper.labelHeightMm * 0.32)}mm; }
+      .print-price { font-size: ${metrics.priceFontPx}px; font-weight: 900; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .print-old-price { font-size: ${Math.max(7, metrics.priceFontPx - 2)}px; text-decoration: line-through; color: #6b7280; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      @media print { html, body { width: ${paper.pageWidthMm}mm; } .print-page { margin: 0; } }
+    </style></head><body>${pagesHtml}</body></html>`;
 }
+
 type BarcodePrintSettings = {
+  settingsVersion: 2;
   barcodeType: BarcodeType;
   paperId: string;
   showStore: boolean;
@@ -1326,12 +1452,41 @@ const BARCODE_SETTINGS_KEY = 'barcodePrintSettings';
 const BARCODE_RECENT_PAPER_LIMIT = 3;
 const BARCODE_RECENT_PAPER_HISTORY = 8;
 
+function normalizeBarcodePrintSettings(parsed: unknown): Partial<BarcodePrintSettings> {
+  if (!parsed || typeof parsed !== 'object') return {};
+  const source = parsed as Record<string, unknown>;
+  const validTypes: BarcodeType[] = ['AUTO', 'EAN13', 'C128', 'C39', 'C128A', 'QRCODE'];
+  const legacyMigration = source.settingsVersion !== 2;
+  const rawType = typeof source.barcodeType === 'string' && validTypes.includes(source.barcodeType as BarcodeType)
+    ? source.barcodeType as BarcodeType
+    : 'AUTO';
+  const barcodeType = legacyMigration && rawType === 'C39' ? 'AUTO' : rawType;
+  const recentPaperIds = Array.isArray(source.recentPaperIds)
+    ? source.recentPaperIds.filter((id): id is string => typeof id === 'string' && PAPER_TEMPLATES.some((paper) => paper.id === id))
+    : undefined;
+  return {
+    settingsVersion: 2,
+    barcodeType,
+    paperId: typeof source.paperId === 'string' && PAPER_TEMPLATES.some((paper) => paper.id === source.paperId) ? source.paperId : undefined,
+    showStore: typeof source.showStore === 'boolean' ? source.showStore : undefined,
+    storeName: typeof source.storeName === 'string' ? source.storeName : undefined,
+    showCode: typeof source.showCode === 'boolean' ? source.showCode : undefined,
+    showName: typeof source.showName === 'boolean' ? source.showName : undefined,
+    showThreeLineName: typeof source.showThreeLineName === 'boolean' ? source.showThreeLineName : undefined,
+    showPrice: typeof source.showPrice === 'boolean' ? source.showPrice : undefined,
+    showOldPrice: typeof source.showOldPrice === 'boolean' ? source.showOldPrice : undefined,
+    currencySuffix: typeof source.currencySuffix === 'string' ? source.currencySuffix : undefined,
+    marginLeft: typeof source.marginLeft === 'number' && Number.isFinite(source.marginLeft) ? source.marginLeft : undefined,
+    marginTop: typeof source.marginTop === 'number' && Number.isFinite(source.marginTop) ? source.marginTop : undefined,
+    recentPaperIds,
+  };
+}
+
 function loadBarcodePrintSettings(): Partial<BarcodePrintSettings> {
   try {
     const raw = window.localStorage.getItem(BARCODE_SETTINGS_KEY);
     if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? (parsed as Partial<BarcodePrintSettings>) : {};
+    return normalizeBarcodePrintSettings(JSON.parse(raw));
   } catch {
     return {};
   }
@@ -1352,7 +1507,7 @@ function BarcodePrintWorkspace({
 }) {
   const savedSettings = useMemo(() => loadBarcodePrintSettings(), []);
   const [rows, setRows] = useState(() => products.map((product) => ({ product, qty: 1 })));
-  const [barcodeType, setBarcodeType] = useState<BarcodeType>(savedSettings.barcodeType ?? 'EAN13');
+  const [barcodeType, setBarcodeType] = useState<BarcodeType>(savedSettings.barcodeType ?? 'AUTO');
   const [paperId, setPaperId] = useState<string>(() => {
     const id = savedSettings.paperId;
     return id && PAPER_TEMPLATES.some((paper) => paper.id === id) ? id : DEFAULT_BARCODE_PAPER_ID;
@@ -1409,6 +1564,8 @@ function BarcodePrintWorkspace({
   const previewProduct = rows[0]?.product || products[0];
   const previewBarcodeValue = previewProduct ? normalizeBarcodeValue(previewProduct) : '';
   const previewBarcodeResult = buildBarcodeResult(previewBarcodeValue, barcodeType);
+  const printFlags = { showStore, showCode, showName, showThreeLineName, showPrice, showOldPrice };
+  const previewDensityIssues: string[] = [];
   const rowIds = useMemo(() => new Set(rows.map((row) => row.product._id)), [rows]);
 
   const selectPaper = (id: string) => {
@@ -1418,6 +1575,7 @@ function BarcodePrintWorkspace({
 
   useEffect(() => {
     const next: BarcodePrintSettings = {
+      settingsVersion: 2,
       barcodeType,
       paperId,
       showStore,
@@ -1623,7 +1781,7 @@ function BarcodePrintWorkspace({
 
     const printIssues = getBarcodePrintIssues(rows, barcodeType);
     if (printIssues.length) {
-      alert(`Không thể in vì chuẩn mã vạch không tương thích:\n${printIssues.slice(0, 5).join('\n')}`);
+      alert(`Không thể in an toàn:\n${printIssues.slice(0, 5).join('\n')}`);
       return;
     }
 
@@ -1832,22 +1990,25 @@ function BarcodePrintWorkspace({
             <div className="barcode-preview-label">
               {showStore && storeName.trim() ? <div className="barcode-preview-store">{storeName}</div> : null}
               <BarcodeSvg value={previewBarcodeValue} type={barcodeType} />
-              <div className={previewBarcodeResult.error ? 'barcode-standard-note danger' : previewBarcodeResult.warning ? 'barcode-standard-note warning' : 'barcode-standard-note'}>Đang dùng: {previewBarcodeResult.actualType}{previewBarcodeResult.warning ? ` · ${previewBarcodeResult.warning}` : ''}{previewBarcodeResult.error ? ` · ${previewBarcodeResult.error}` : ''}</div>
               {showCode ? <div className="barcode-preview-code">{previewBarcodeValue}</div> : null}
               {showName ? <div className={`barcode-preview-name ${showThreeLineName ? 'three' : ''}`}>{previewProduct?.name || 'Tên sản phẩm'}</div> : null}
               {showPrice ? <div className="barcode-preview-price">{Number(previewProduct?.price || 0).toLocaleString('vi-VN')} {currencySuffix}</div> : null}
               {showOldPrice && previewProduct?.oldPrice ? <div className="barcode-preview-old-price">{Number(previewProduct.oldPrice).toLocaleString('vi-VN')} {currencySuffix}</div> : null}
+            </div>
+            <div className={previewBarcodeResult.error || previewDensityIssues.length ? 'barcode-standard-note danger' : previewBarcodeResult.warning ? 'barcode-standard-note warning' : 'barcode-standard-note'}>
+              Chuẩn in thực tế: {barcodeTypeLabel(previewBarcodeResult.actualType)}{previewBarcodeResult.warning ? ` · ${previewBarcodeResult.warning}` : ''}{previewBarcodeResult.error ? ` · ${previewBarcodeResult.error}` : ''}{previewDensityIssues[0] ? ` · ${previewDensityIssues[0]}` : ''}
             </div>
 
             <div className="barcode-settings">
             <label className="barcode-config-row">
               <span>Loại mã</span>
               <select value={barcodeType} onChange={(event) => setBarcodeType(event.target.value as BarcodeType)}>
-                <option value="EAN13">EAN13</option>
-                <option value="C128">C128</option>
-                <option value="C39">C39</option>
-                <option value="C128A">C128A</option>
-                <option value="QRCODE">QRCODE</option>
+                <option value="AUTO">Tự động (khuyến nghị)</option>
+                <option value="EAN13">EAN-13</option>
+                <option value="C128">Code 128</option>
+                <option value="C128A">Code 128A</option>
+                <option value="C39">Code 39 (nâng cao)</option>
+                <option value="QRCODE">QR Code</option>
               </select>
             </label>
             <label className="barcode-switch-row"><input type="checkbox" checked={showStore} onChange={(event) => setShowStore(event.target.checked)} /> Hiện tên shop</label>
@@ -1863,12 +2024,13 @@ function BarcodePrintWorkspace({
 
           <section className="barcode-card">
             <div className="barcode-card-title"><Tag size={18} /> <strong>Chọn khổ giấy và in</strong></div>
+            <p className="barcode-print-guide">Để quét chính xác: chọn đúng khổ giấy trong driver máy in, Margins = None, Scale = 100% / Actual size và tắt Fit to page.</p>
             <div className="barcode-margin-row">
               <label>Trái: <input type="number" value={marginLeft} onChange={(event) => setMarginLeft(Number(event.target.value))} /></label>
               <label>Trên: <input type="number" value={marginTop} onChange={(event) => setMarginTop(Number(event.target.value))} /></label>
             </div>
             <button className="barcode-show-all" type="button" onClick={() => setShowAllPapers((current) => !current)}>
-              {showAllPapers ? 'Ẩn bớt khổ giấy' : 'Hiển thị thêm khổ giấy in'}
+              {showAllPapers ? 'Ẩn bớt khổ giấy' : 'Hiển thị tất cả 14 khổ giấy'}
             </button>
             <div className="barcode-paper-list">
               {visiblePapers.map((paper) => (
