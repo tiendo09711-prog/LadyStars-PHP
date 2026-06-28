@@ -4,11 +4,13 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
+  Boxes,
   Check,
   ChevronDown,
   Eye,
   FileDown,
   FileSpreadsheet,
+  FileText,
   Filter,
   MoreHorizontal,
   Plus,
@@ -22,9 +24,15 @@ import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../core/api/http';
 import { Pagination } from '../../core/components/Pagination';
+import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import './warehouseRecords.css';
 
 type TabKey = 'bills' | 'items';
+
+const TRANSACTION_TABS: { key: TabKey; label: string; icon: typeof FileText }[] = [
+  { key: 'bills', label: 'Phiếu xuất nhập kho', icon: FileText },
+  { key: 'items', label: 'Sản phẩm xuất nhập kho', icon: Boxes },
+];
 
 type SelectOption = {
   value: string;
@@ -184,6 +192,35 @@ function detailTitle(detail: TransactionDetail) {
   return `Chi tiết phiếu: ${getBillCode(detail)}`;
 }
 
+function buildTransactionExportColumns(tab: TabKey): ColumnOption[] {
+  if (tab === 'bills') {
+    return [
+      { label: 'ID phiếu', key: 'code', getValue: (row: TransactionRow) => getBillCode(row) },
+      { label: 'Ngày', key: 'date', getValue: (row: TransactionRow) => formatDate(row.date) },
+      { label: 'Kho hàng', key: 'warehouse', getValue: (row: TransactionRow) => warehouseDisplay(row) },
+      { label: 'Số sản phẩm', key: 'totalProductLines', getValue: (row: TransactionRow) => row.totalProductLines || 0 },
+      { label: 'Số lượng', key: 'totalQuantity', getValue: (row: TransactionRow) => row.totalQuantity || 0 },
+      { label: 'Tổng tiền', key: 'totalAmount', getValue: (row: TransactionRow) => row.totalAmount || 0 },
+      { label: 'Loại giao dịch', key: 'kindLabel', getValue: (row: TransactionRow) => row.kindLabel },
+      { label: 'Người tạo', key: 'createdByName', getValue: (row: TransactionRow) => row.createdByName || '' },
+      { label: 'Ghi chú', key: 'note', getValue: (row: TransactionRow) => row.note || '' },
+    ];
+  }
+  return [
+    { label: 'ID phiếu', key: 'code', getValue: (row: TransactionRow) => getBillCode(row) },
+    { label: 'Ngày', key: 'date', getValue: (row: TransactionRow) => formatDate(row.date) },
+    { label: 'Kho hàng', key: 'warehouse', getValue: (row: TransactionRow) => warehouseDisplay(row) },
+    { label: 'Mã sản phẩm', key: 'productCode', getValue: (row: TransactionRow) => row.productCode || '' },
+    { label: 'Sản phẩm', key: 'productName', getValue: (row: TransactionRow) => row.productName || '' },
+    { label: 'Mã vạch', key: 'barcode', getValue: (row: TransactionRow) => row.barcode || '' },
+    { label: 'Số lượng', key: 'quantity', getValue: (row: TransactionRow) => row.quantity || 0 },
+    { label: 'Giá', key: 'unitPrice', getValue: (row: TransactionRow) => row.unitPrice || 0 },
+    { label: 'Tổng tiền', key: 'totalAmount', getValue: (row: TransactionRow) => row.totalAmount || 0 },
+    { label: 'Loại giao dịch', key: 'kindLabel', getValue: (row: TransactionRow) => row.kindLabel },
+    { label: 'Ghi chú', key: 'note', getValue: (row: TransactionRow) => row.note || '' },
+  ];
+}
+
 export function WarehouseTransactionPage() {
   const navigate = useNavigate();
   const menuRootRef = useRef<HTMLDivElement>(null);
@@ -203,7 +240,6 @@ export function WarehouseTransactionPage() {
     bills: defaultTransactionFilters(),
     items: defaultTransactionFilters(),
   });
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -219,11 +255,13 @@ export function WarehouseTransactionPage() {
     return saved ? { ...defaultVisibility(itemColumns), ...JSON.parse(saved) } : defaultVisibility(itemColumns);
   });
   const [columnDraft, setColumnDraft] = useState<Record<string, boolean>>({});
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const columns = activeTab === 'bills' ? billColumns : itemColumns;
   const visibility = activeTab === 'bills' ? billVisibility : itemVisibility;
   const currentFilters = draftFilters[activeTab];
-  const selectedRows = useMemo(() => rows.filter((row) => selectedIds.has(row.rowKey)), [rows, selectedIds]);
+  const exportColumns = useMemo(() => buildTransactionExportColumns(activeTab), [activeTab]);
   const visibleColumnCount = columns.filter((column) => visibility[column.key]).length;
 
   const load = async (signal?: AbortSignal) => {
@@ -238,7 +276,6 @@ export function WarehouseTransactionPage() {
       const response = await http.get(`/warehouse/transactions/${activeTab}`, { params, signal });
       setRows(response.data.items || []);
       setTotal(Number(response.data.total || 0));
-      setSelectedIds(new Set());
     } catch (err: any) {
       if (err.code === 'ERR_CANCELED') return;
       setError(err.response?.data?.message || 'Không tải được dữ liệu xuất nhập kho.');
@@ -301,7 +338,6 @@ export function WarehouseTransactionPage() {
     setActiveTab(tab);
     setPage(1);
     setOpenMenu(null);
-    setSelectedIds(new Set());
   };
 
   const openDetail = async (row: TransactionRow) => {
@@ -355,6 +391,66 @@ export function WarehouseTransactionPage() {
     setOpenMenu(null);
   };
 
+  const handleExcelExport = async (
+    exportType: 'current' | 'all',
+    filename: string,
+    sheetName: string,
+    selectedColumns: { key: string; customLabel: string }[],
+  ) => {
+    setExportLoading(true);
+    setError('');
+    try {
+      let dataToExport: TransactionRow[] = [];
+      if (exportType === 'current') {
+        dataToExport = rows;
+      } else {
+        const pageSize = 200;
+        const filters = appliedFilters[activeTab];
+        const firstResponse = await http.get(`/warehouse/transactions/${activeTab}`, {
+          params: { ...filters, page: 1, limit: pageSize },
+        });
+        let allItems: TransactionRow[] = [...(firstResponse.data.items || [])];
+        const totalRows = Number(firstResponse.data.total || 0);
+        const pagesToFetch = Math.ceil(totalRows / pageSize);
+        if (pagesToFetch > 1) {
+          const responses = await Promise.all(
+            Array.from({ length: pagesToFetch - 1 }, (_, index) =>
+              http.get(`/warehouse/transactions/${activeTab}`, {
+                params: { ...filters, page: index + 2, limit: pageSize },
+              }),
+            ),
+          );
+          responses.forEach((response) => {
+            allItems = allItems.concat(response.data.items || []);
+          });
+        }
+        dataToExport = allItems;
+      }
+      if (!dataToExport.length) {
+        setNotice('Không có dữ liệu để xuất.');
+        setShowExportModal(false);
+        return;
+      }
+      const mappedRows = dataToExport.map((row) => {
+        const record: Record<string, unknown> = {};
+        selectedColumns.forEach((column) => {
+          const exportColumn = exportColumns.find((item) => item.key === column.key);
+          record[column.customLabel] = exportColumn ? exportColumn.getValue(row) : '';
+        });
+        return record;
+      });
+      const worksheet = XLSX.utils.json_to_sheet(mappedRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName || 'Trang tính 1');
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      setShowExportModal(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Xuất Excel thất bại.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const requestDelete = (targets: TransactionRow[]) => {
     if (!targets.length) {
       setNotice('Vui lòng chọn ít nhất một phiếu.');
@@ -390,19 +486,6 @@ export function WarehouseTransactionPage() {
     } finally {
       setDeleteLoading(false);
     }
-  };
-
-  const toggleAll = (checked: boolean) => {
-    setSelectedIds(checked ? new Set(rows.map((row) => row.rowKey)) : new Set());
-  };
-
-  const toggleRow = (rowKey: string, checked: boolean) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (checked) next.add(rowKey);
-      else next.delete(rowKey);
-      return next;
-    });
   };
 
   const openColumnModal = () => {
@@ -441,13 +524,24 @@ export function WarehouseTransactionPage() {
   return (
     <div className="workspace-page warehouse-records" ref={menuRootRef}>
       <section className="wr-card">
-        <div className="workspace-tabs wr-tabs" role="tablist" aria-label="Xuất nhập kho">
-          <button type="button" className={activeTab === 'bills' ? 'active' : ''} onClick={() => changeTab('bills')}>
-            Phiếu xuất nhập kho
-          </button>
-          <button type="button" className={activeTab === 'items' ? 'active' : ''} onClick={() => changeTab('items')}>
-            Sản phẩm xuất nhập kho
-          </button>
+        <div className="wr-transfer-tabbar" role="tablist" aria-label="Xuất nhập kho">
+          {TRANSACTION_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={'wr-transfer-tab ' + (isActive ? 'is-active' : '')}
+                onClick={() => changeTab(tab.key)}
+              >
+                <Icon size={17} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <form className="wr-filters" onSubmit={applyFilters}>
@@ -505,35 +599,14 @@ export function WarehouseTransactionPage() {
               )}
             </div>
 
-            <div className="wr-menu">
-              <button className="btn btn-light" type="button" onClick={() => setOpenMenu(openMenu === 'actions' ? null : 'actions')}>
-                Thao tác <ChevronDown size={14} />
-              </button>
-              {openMenu === 'actions' && (
-                <div className="wr-menu-panel wr-action-menu">
-                  <button type="button" onClick={() => exportRows(selectedRows.length ? selectedRows : rows, `xuat-nhap-kho-${activeTab}`)}>
-                    <FileDown size={15} /> Xuất dữ liệu {selectedRows.length ? 'đã chọn' : 'trang này'}
-                  </button>
-                  {activeTab === 'bills' && (
-                    <button
-                      className="danger"
-                      type="button"
-                      disabled={!selectedRows.length || selectedRows.some((row) => !row.canDelete)}
-                      title={!selectedRows.length ? 'Vui lòng chọn phiếu' : selectedRows.some((row) => !row.canDelete) ? 'Có phiếu phải hủy tại module gốc' : ''}
-                      onClick={() => requestDelete(selectedRows)}
-                    >
-                      <Trash2 size={15} /> Xóa các phiếu đã chọn
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            <button className="btn btn-light" type="button" onClick={() => setShowExportModal(true)}>
+              <FileDown size={15} /> Xuất Excel
+            </button>
           </div>
 
           <div className="wr-action-right">
             <span className="wr-count">
               {total ? `${(page - 1) * LIMIT + 1} - ${Math.min(page * LIMIT, total)} / ${total}` : '0 bản ghi'}
-              {selectedIds.size > 0 ? ` · ${selectedIds.size} đã chọn` : ''}
             </span>
             <button className="wr-icon-button" type="button" title="Làm mới" aria-label="Làm mới" onClick={() => void load()}>
               <RefreshCw size={15} />
@@ -557,9 +630,6 @@ export function WarehouseTransactionPage() {
           <table className="wr-table">
             <thead>
               <tr>
-                <th className="wr-checkbox-cell">
-                  <input type="checkbox" aria-label="Chọn tất cả" checked={rows.length > 0 && selectedIds.size === rows.length} onChange={(event) => toggleAll(event.target.checked)} />
-                </th>
                 {columns.map((column) => visibility[column.key] && <th key={column.key}>{column.label}</th>)}
                 <th className="wr-action-cell"><Settings2 size={14} /></th>
               </tr>
@@ -567,19 +637,16 @@ export function WarehouseTransactionPage() {
             <tbody>
               {loading && Array.from({ length: 6 }).map((_, index) => (
                 <tr className="wr-skeleton" key={`loading-${index}`}>
-                  <td colSpan={visibleColumnCount + 2}><span /></td>
+                  <td colSpan={visibleColumnCount + 1}><span /></td>
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td className="wr-empty" colSpan={visibleColumnCount + 2}>Chưa có dữ liệu phù hợp với bộ lọc.</td>
+                  <td className="wr-empty" colSpan={visibleColumnCount + 1}>Chưa có dữ liệu phù hợp với bộ lọc.</td>
                 </tr>
               )}
               {!loading && rows.map((row) => (
                 <tr key={row.rowKey}>
-                  <td className="wr-checkbox-cell">
-                    <input type="checkbox" aria-label={`Chọn ${getBillCode(row)}`} checked={selectedIds.has(row.rowKey)} onChange={(event) => toggleRow(row.rowKey, event.target.checked)} />
-                  </td>
                   {visibility.identity && (
                     <td className="wr-identity-cell">
                       <button type="button" className="wr-link" onClick={() => void openDetail(row)}>{getBillCode(row)}</button>
@@ -737,6 +804,18 @@ export function WarehouseTransactionPage() {
             </footer>
           </section>
         </div>
+      )}
+
+      {showExportModal && (
+        <ExportExcelModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          title={'Xuất Excel - ' + (activeTab === 'bills' ? 'Phiếu xuất nhập kho' : 'Sản phẩm xuất nhập kho')}
+          defaultFilename={'xuat-nhap-kho-' + activeTab + '-' + new Date().toISOString().slice(0, 10)}
+          columns={exportColumns}
+          onExport={handleExcelExport}
+          loading={exportLoading}
+        />
       )}
     </div>
   );

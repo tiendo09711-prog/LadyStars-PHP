@@ -5,7 +5,6 @@ import { AppLayout } from './core/layout/AppLayout';
 import { LoginPage } from './modules/auth/LoginPage';
 import { DashboardPage } from './modules/dashboard/DashboardPage';
 import { ProductsPage } from './modules/product/ProductsPage';
-import { BatchPage } from './modules/product/BatchPage';
 import { StorageDurationPage } from './modules/product/StorageDurationPage';
 import { InventoryPage } from './modules/product/InventoryPage';
 import { CategoriesPage } from './modules/product/CategoriesPage';
@@ -25,8 +24,6 @@ import { WarehouseTransferCreatePage } from './modules/warehouse/WarehouseTransf
 import { WarehouseTransferDetailPage } from './modules/warehouse/WarehouseTransferDetailPage';
 import { WarehouseAuditPage } from './modules/warehouse/WarehouseAuditPage';
 import { WarehouseAuditCreatePage } from './modules/warehouse/WarehouseAuditCreatePage';
-import { WarehouseDraftPage } from './modules/warehouse/WarehouseDraftPage';
-import { WarehouseHistoryPage } from './modules/warehouse/WarehouseHistoryPage';
 import { WarehouseBranchesPage } from './modules/warehouse/WarehouseBranchesPage';
 import { VoucherImportPage } from './modules/warehouse/VoucherImportPage';
 import { VoucherExportPage } from './modules/warehouse/VoucherExportPage';
@@ -83,7 +80,6 @@ const router = createBrowserRouter([
 
       // ── Sản phẩm ───────────────────────────────────────────────
       { path: 'products', element: <ProductsPage /> },
-      { path: 'products/batches', element: <BatchPage /> },
       { path: 'products/storage-duration', element: <StorageDurationPage /> },
       { path: 'products/inventory', element: <InventoryPage /> },
       { path: 'products/categories', element: <CategoriesPage /> },
@@ -103,8 +99,6 @@ const router = createBrowserRouter([
       { path: 'warehouse/audit/create', element: <WarehouseAuditCreatePage /> },
       { path: 'warehouse/audit/:id', element: <WarehouseAuditCreatePage /> },
       { path: 'warehouse/branches', element: <WarehouseBranchesPage /> },
-      { path: 'warehouse/drafts', element: <WarehouseDraftPage /> },
-      { path: 'warehouse/history', element: <WarehouseHistoryPage /> },
 
       // ── Bán hàng & Đối tác ─────────────────────────────────────
       { path: 'sales', element: <SalesPage /> },

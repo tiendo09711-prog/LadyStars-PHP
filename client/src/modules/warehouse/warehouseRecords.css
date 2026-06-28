@@ -1341,6 +1341,59 @@
   box-shadow: 0 14px 28px rgba(22, 163, 74, 0.24);
 }
 
+
+/* Transfer list tabbar - compact segmented control, aligned with Products tabs. */
+.warehouse-records:not(.wr-transfer-create) .wr-transfer-tabbar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 14px;
+  padding: 4px;
+  border: 1px solid #dbe6f3;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+
+.warehouse-records:not(.wr-transfer-create) .wr-transfer-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.warehouse-records:not(.wr-transfer-create) .wr-transfer-tab > span {
+  line-height: 1;
+}
+
+.warehouse-records:not(.wr-transfer-create) .wr-transfer-tab:hover {
+  background: #ecfdf5;
+  color: #16a34a;
+  border-color: transparent;
+}
+
+.warehouse-records:not(.wr-transfer-create) .wr-transfer-tab.is-active {
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.22);
+  border-color: transparent;
+}
+
+.warehouse-records:not(.wr-transfer-create) .wr-transfer-tab:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
 .warehouse-records:not(.wr-transfer-create) .wr-filters {
   display: grid;
   grid-template-columns: minmax(180px, 1.3fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(140px, 0.9fr) minmax(132px, 0.75fr) minmax(132px, 0.75fr) auto auto;
@@ -1589,6 +1642,14 @@
   .warehouse-records:not(.wr-transfer-create) .wr-tabs,
   .warehouse-records:not(.wr-transfer-create) .wr-filters {
     grid-template-columns: 1fr;
+  }
+
+  .warehouse-records:not(.wr-transfer-create) .wr-transfer-tabbar {
+    display: flex;
+  }
+
+  .warehouse-records:not(.wr-transfer-create) .wr-transfer-tab {
+    flex: 1 1 0;
   }
 
   .warehouse-records:not(.wr-transfer-create) .wr-actions {

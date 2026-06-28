@@ -1,5 +1,5 @@
 import { http } from './http';
-import type { ICategory, IProduct, IInventory, IProductHistory, IProductHistoryMeta, IBatch, ITrademark, IStorageDuration } from '../../types/product.type';
+import type { ICategory, IProduct, IInventory, IProductHistory, IProductHistoryMeta, ITrademark, IStorageDuration } from '../../types/product.type';
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -90,42 +90,6 @@ export const productApi = {
 
   getProductLogs: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IProductHistory> & { meta?: IProductHistoryMeta }>('/products/edit-logs', { params });
-    return response.data;
-  },
-
-  getBatches: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
-    const response = await http.get<PaginatedResponse<IBatch>>('/products/batches', { params });
-    return response.data;
-  },
-
-  getBatch: async (id: string) => {
-    const response = await http.get<IBatch>(`/products/batches/${id}`);
-    return response.data;
-  },
-
-  createBatch: async (data: Partial<IBatch>) => {
-    const response = await http.post<IBatch>('/products/batches', data);
-    return response.data;
-  },
-
-  updateBatch: async (id: string, data: Partial<IBatch>) => {
-    const response = await http.patch<IBatch>(`/products/batches/${id}`, data);
-    return response.data;
-  },
-
-  deleteBatch: async (id: string) => {
-    const response = await http.delete<{ message: string }>(`/products/batches/${id}`);
-    return response.data;
-  },
-
-  importBatches: async (file: File, mode: 'create' | 'upsert' = 'upsert') => {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('mode', mode);
-    const response = await http.post<{
-      success: boolean;
-      summary: { created: number; updated: number; skipped: number; errors: string[] };
-    }>('/products/batches/import', form);
     return response.data;
   },
 

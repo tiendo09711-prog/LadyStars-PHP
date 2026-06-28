@@ -4,7 +4,6 @@ import {
   AlertCircle,
   CalendarDays,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -595,50 +594,41 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         <div className="retail-hero-icon"><ShoppingCart size={26} /></div>
       </header>
 
-      <div className="retail-tabbar" role="tablist" aria-label="Hóa đơn bán lẻ">
-        <button className="active" type="button" role="tab" aria-selected="true">Tất cả</button>
-      </div>
-
       <form className="retail-filterbar" onSubmit={applyFilters}>
-        <label>
-          <span>ID hóa đơn</span>
-          <div className="retail-input">
-            <Search size={15} />
-            <input
-              value={draftFilters.invoiceCode}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, invoiceCode: event.target.value }))}
-              placeholder="Nhập mã hóa đơn"
-            />
-          </div>
+        <label className="retail-filter-field">
+          <Search size={14} />
+          <input
+            value={draftFilters.invoiceCode}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, invoiceCode: event.target.value }))}
+            placeholder="Nhập mã hóa đơn"
+            aria-label="ID hóa đơn"
+          />
         </label>
 
-        <label>
-          <span>Cửa hàng</span>
-          <div className="retail-select">
-            <Store size={15} />
-            <select
-              value={draftFilters.storeId}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, storeId: event.target.value }))}
-              aria-label="Cửa hàng"
-            >
-              <option value="">Tất cả cửa hàng</option>
-              {branches.map((branch) => (
-                <option key={branch._id} value={branch._id}>{branch.name || branch.code || branch._id}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} />
-          </div>
-        </label>
+        <select
+          className="retail-filter-select"
+          value={draftFilters.storeId}
+          onChange={(event) => setDraftFilters((current) => ({ ...current, storeId: event.target.value }))}
+          aria-label="Cửa hàng"
+        >
+          <option value="">Tất cả cửa hàng</option>
+          {branches.map((branch) => (
+            <option key={branch._id} value={branch._id}>{branch.name || branch.code || branch._id}</option>
+          ))}
+        </select>
 
-        <fieldset className="retail-date-range">
-          <legend><CalendarDays size={14} /> Thời gian</legend>
+        <label className="retail-filter-field retail-date-field">
+          <span>Từ</span>
           <input
             type="date"
             value={draftFilters.dateFrom}
             onChange={(event) => setDraftFilters((current) => ({ ...current, dateFrom: event.target.value }))}
             aria-label="Từ ngày"
           />
-          <span>—</span>
+        </label>
+
+        <label className="retail-filter-field retail-date-field">
+          <span>Đến</span>
           <input
             type="date"
             value={draftFilters.dateTo}
@@ -646,36 +636,30 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             onChange={(event) => setDraftFilters((current) => ({ ...current, dateTo: event.target.value }))}
             aria-label="Đến ngày"
           />
-        </fieldset>
-
-        <label>
-          <span>Khách hàng</span>
-          <div className="retail-input">
-            <UserRound size={15} />
-            <input
-              value={draftFilters.customerKeyword}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, customerKeyword: event.target.value }))}
-              placeholder="Tên hoặc số điện thoại"
-            />
-          </div>
         </label>
 
-        <label>
-          <span>Sản phẩm</span>
-          <div className="retail-input">
-            <Package size={15} />
-            <input
-              value={draftFilters.productKeyword}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
-              placeholder="Mã hoặc tên sản phẩm"
-            />
-          </div>
+        <label className="retail-filter-field">
+          <UserRound size={14} />
+          <input
+            value={draftFilters.customerKeyword}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, customerKeyword: event.target.value }))}
+            placeholder="Tên hoặc số điện thoại"
+            aria-label="Khách hàng"
+          />
         </label>
 
-        <div className="retail-filter-actions">
-          <button className="retail-btn primary" type="submit"><Search size={15} /> Lọc</button>
-          <button className="retail-btn ghost" type="button" onClick={resetFilters}>Đặt lại</button>
-        </div>
+        <label className="retail-filter-field">
+          <Package size={14} />
+          <input
+            value={draftFilters.productKeyword}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
+            placeholder="Mã hoặc tên sản phẩm"
+            aria-label="Sản phẩm"
+          />
+        </label>
+
+        <button className="retail-filter-button" type="submit"><Search size={15} /> Lọc</button>
+        <button className="retail-reset-button" type="button" onClick={resetFilters}>Đặt lại</button>
       </form>
 
       <div className="retail-actionbar">
@@ -1046,25 +1030,21 @@ const retailStyles = `
 .retail-hero p{margin:0;max-width:680px;color:#64748b;font-size:13px;line-height:1.55}
 .retail-hero-icon{width:56px;height:56px;border-radius:18px;display:inline-grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--ri-accent),var(--ri-accent-2));box-shadow:0 14px 30px rgba(var(--ri-accent-rgb),.32);flex-shrink:0}
 
-/* ---------- Surfaces (tabbar / filterbar / actionbar / table) ---------- */
-.retail-tabbar{display:flex;min-height:44px;padding:0 14px;gap:4px;border:1px solid var(--ri-border);border-radius:var(--ri-radius);background:var(--ri-surface);box-shadow:var(--ri-shadow-sm);backdrop-filter:blur(8px);animation:ri-rise 320ms ease both}
-.retail-tabbar button{padding:0 16px;border:0;border-bottom:2px solid transparent;background:transparent;color:#64748b;font-weight:700;cursor:pointer;transition:color .16s ease,border-color .16s ease}
-.retail-tabbar button:hover{color:var(--ri-accent)}
-.retail-tabbar button.active{color:var(--ri-accent);border-bottom-color:var(--ri-accent)}
-
-.retail-filterbar,.retail-actionbar,.retail-table-card,.retail-alert{border:1px solid var(--ri-border);border-radius:var(--ri-radius);background:var(--ri-surface);box-shadow:var(--ri-shadow-sm);backdrop-filter:blur(8px)}
-.retail-filterbar{display:grid;grid-template-columns:minmax(140px,.8fr) minmax(160px,1fr) minmax(275px,1.35fr) minmax(180px,1fr) minmax(180px,1fr) auto;gap:12px;align-items:end;padding:16px;animation:ri-rise 340ms ease both}
-.retail-filterbar label{display:flex;flex-direction:column;gap:5px;min-width:0}
-.retail-filterbar label>span{font-size:11px;font-weight:700;color:#64748b}
-.retail-input,.retail-select{height:38px;display:flex;align-items:center;gap:7px;padding:0 11px;background:#fff;border:1px solid #cfd7df;border-radius:10px;color:#7a8794;transition:border-color .16s ease,box-shadow .16s ease}
-.retail-input:focus-within,.retail-select:focus-within,.retail-date-range:focus-within{border-color:var(--ri-accent);box-shadow:0 0 0 3px rgba(var(--ri-accent-rgb),.14)}
-.retail-input input,.retail-select select{min-width:0;width:100%;border:0;outline:0;background:transparent;color:#0f172a;font:inherit;font-size:13px}
-.retail-select select{appearance:none}
-.retail-select svg:last-child{margin-left:auto}
-.retail-date-range{height:38px;display:flex;align-items:center;gap:5px;margin:0;padding:0 10px;background:#fff;border:1px solid #cfd7df;border-radius:10px;min-width:0;transition:border-color .16s ease,box-shadow .16s ease}
-.retail-date-range legend{display:flex;align-items:center;gap:4px;padding:0 4px;color:#64748b;font-size:10px;font-weight:700}
-.retail-date-range input{min-width:0;width:50%;border:0;outline:0;background:transparent;color:#0f172a;font:inherit;font-size:12px}
-.retail-filter-actions{display:flex;gap:8px}
+/* ---------- Surfaces (filterbar / actionbar / table) ---------- */
+.retail-actionbar,.retail-table-card,.retail-alert{border:1px solid var(--ri-border);border-radius:var(--ri-radius);background:var(--ri-surface);box-shadow:var(--ri-shadow-sm);backdrop-filter:blur(8px)}
+.retail-filterbar{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(150px,1fr) minmax(170px,1.1fr) minmax(132px,.8fr) minmax(132px,.8fr) auto auto;gap:10px;align-items:center;padding:16px;border:1px solid var(--ri-border);border-radius:var(--ri-radius);background:linear-gradient(180deg,#fbfdff,#f8fafc);box-shadow:var(--ri-shadow-sm);animation:ri-rise 340ms ease both}
+.retail-filter-field{min-height:40px;display:inline-flex;align-items:center;gap:8px;min-width:0;background:#fff;border:1px solid #d7e0ec;border-radius:13px;padding:0 11px;color:#64748b;box-shadow:0 8px 20px rgba(15,23,42,.04);transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.retail-filter-field:focus-within{border-color:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.12)}
+.retail-filter-field input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:#0f172a;font:inherit;font-size:13px;font-weight:600}
+.retail-date-field span{white-space:nowrap;font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b}
+.retail-filter-select{min-height:40px;width:100%;min-width:0;border:1px solid #d7e0ec;border-radius:13px;background:#fff;padding:0 11px;color:#0f172a;font-size:13px;font-weight:600;box-shadow:0 8px 20px rgba(15,23,42,.04);transition:border-color .15s ease,box-shadow .15s ease}
+.retail-filter-select:focus{outline:0;border-color:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.12)}
+.retail-filter-button,.retail-reset-button{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 16px;border-radius:13px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;transition:box-shadow .15s ease,transform .15s ease,background .15s ease,border-color .15s ease,color .15s ease}
+.retail-filter-button{border:0;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 12px 24px rgba(22,163,74,.2)}
+.retail-filter-button:hover{background:linear-gradient(135deg,#15803d,#166534);box-shadow:0 16px 30px rgba(22,163,74,.28);transform:translateY(-1px)}
+.retail-reset-button{border:1px solid #d7e0ec;background:#fff;color:#334155;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+.retail-reset-button:hover{border-color:#16a34a;color:#16a34a}
+.retail-filter-button:active,.retail-reset-button:active{transform:translateY(0);filter:brightness(.98)}
 .retail-btn{height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid transparent;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:box-shadow .16s ease,transform .16s ease,filter .16s ease,border-color .16s ease,color .16s ease}
 .retail-btn:disabled{opacity:.55;cursor:not-allowed}
 .retail-btn.primary{background:linear-gradient(135deg,var(--ri-accent),var(--ri-accent-2));color:#fff;box-shadow:0 8px 18px rgba(var(--ri-accent-rgb),.22)}
@@ -1203,8 +1183,8 @@ const retailStyles = `
 @keyframes ri-popover-in{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 /* ---------- Responsive ---------- */
-@media(max-width:1180px){.retail-filterbar{grid-template-columns:repeat(3,minmax(180px,1fr))}.retail-filter-actions{grid-column:auto}}
-@media(max-width:760px){.retail-hero{flex-direction:column;align-items:stretch;gap:14px}.retail-filterbar{grid-template-columns:1fr}.retail-date-range{width:100%}.retail-actionbar{align-items:flex-start;flex-direction:column}.retail-actionbar-right{width:100%;flex-wrap:wrap}.retail-detail-grid{grid-template-columns:1fr}.retail-info-grid{grid-template-columns:1fr}.retail-pagination{align-items:flex-start;flex-direction:column;gap:8px}}
+@media(max-width:1180px){.retail-filterbar{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.retail-hero{flex-direction:column;align-items:stretch;gap:14px}.retail-filterbar{grid-template-columns:1fr}.retail-actionbar{align-items:flex-start;flex-direction:column}.retail-actionbar-right{width:100%;flex-wrap:wrap}.retail-detail-grid{grid-template-columns:1fr}.retail-info-grid{grid-template-columns:1fr}.retail-pagination{align-items:flex-start;flex-direction:column;gap:8px}}
 @media(max-width:900px){.retail-table-card table{table-layout:auto;min-width:980px}.retail-table-card th{white-space:nowrap}.retail-table-card colgroup col{width:auto}}
 `;
 

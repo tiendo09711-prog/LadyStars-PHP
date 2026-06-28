@@ -338,6 +338,10 @@
   grid-template-columns: repeat(6, minmax(140px, 1fr)) auto auto;
 }
 
+.products-filter-grid.products-grid-storage {
+  grid-template-columns: minmax(180px, 1.4fr) minmax(160px, 1fr) minmax(160px, 1fr) minmax(130px, 0.8fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) auto;
+}
+
 .products-inline-field {
   display: flex;
   flex-direction: column;

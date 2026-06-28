@@ -353,6 +353,27 @@ function DeleteConfirm({
 }
 
 function DetailModal({ product, onClose }: { product: IProduct; onClose: () => void }) {
+  const [stocks, setStocks] = useState<ProductWarehouseStock[]>([]);
+  const [loadingStocks, setLoadingStocks] = useState(true);
+  const [stockDropdownOpen, setStockDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoadingStocks(true);
+    productApi
+      .getProductStocks(product._id)
+      .then((response) => {
+        if (mounted) setStocks(response.items || []);
+      })
+      .catch((err) => {
+        console.error('Lỗi tải tồn kho sản phẩm:', err);
+      })
+      .finally(() => {
+        if (mounted) setLoadingStocks(false);
+      });
+    return () => { mounted = false; };
+  }, [product._id]);
+
   const rows: Array<[string, string]> = [
     ['Mã sản phẩm', product.code],
     ['Barcode', product.barcode || '—'],
@@ -369,7 +390,7 @@ function DetailModal({ product, onClose }: { product: IProduct; onClose: () => v
     ['VAT (%)', String(product.vat ?? '—')],
     ['Tổng tồn', String(product.qty ?? 0)],
     ['Có thể bán', String(product.availableStock ?? 0)],
-    ['Bảo hành (tháng)', String(product.warrantyMonths ?? '—')],
+    ['Bảo hãnh (tháng)', String(product.warrantyMonths ?? '—')],
     ['Màu sắc', product.color || '—'],
     ['Kích cỡ', product.size || '—'],
     ['Xuất xứ', product.origin || '—'],
@@ -415,6 +436,62 @@ function DetailModal({ product, onClose }: { product: IProduct; onClose: () => v
                 </div>
               </div>
             ))}
+          </div>
+
+          <div style={{ marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            <button
+              className="btn btn-light"
+              type="button"
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              onClick={() => setStockDropdownOpen((prev) => !prev)}
+              aria-expanded={stockDropdownOpen}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <PackageCheck size={15} />
+                Chi tiết tồn kho
+              </span>
+              <ChevronDown
+                size={15}
+                style={{
+                  transition: 'transform 0.2s',
+                  transform: stockDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                }}
+              />
+            </button>
+
+            {stockDropdownOpen && (
+              <div
+                style={{
+                  marginTop: 8,
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                }}
+              >
+                {loadingStocks ? (
+                  <div style={{ padding: 14, color: 'var(--text-muted)', textAlign: 'center' }}>Đang tải...</div>
+                ) : stocks.length === 0 ? (
+                  <div style={{ padding: 14, color: 'var(--text-muted)', textAlign: 'center' }}>Chưa có dữ liệu tồn kho.</div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9' }}>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Kho</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 13 }}>Số lượng tồn</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stocks.map((stock) => (
+                        <tr key={stock.warehouseId} style={{ borderTop: '1px solid var(--border)' }}>
+                          <td style={{ padding: '8px 12px', fontSize: 14 }}>{stock.warehouseName}</td>
+                          <td style={{ padding: '8px 12px', fontSize: 14, textAlign: 'right', fontWeight: 600 }}>{stock.quantity.toLocaleString('vi-VN')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -2225,6 +2302,16 @@ export function ProductList({
     setAppliedStatus(draftStatus);
   };
 
+  const resetFiltersAndLoad = () => {
+    setDraftSearch('');
+    setDraftStatus('');
+    setAppliedSearch('');
+    setAppliedStatus('');
+    setSortField('createdAt');
+    setSortOrder('desc');
+    setPage(1);
+  };
+
   const handleProductListScan = (barcode: string) => {
     const query = barcode.trim();
     if (!query) return;
@@ -2534,7 +2621,7 @@ export function ProductList({
                 </div>
 
                 <div className="products-secondary-actions">
-                  <button className="btn btn-light" type="button" onClick={() => void load()} title="Làm mới dữ liệu">
+                  <button className="btn btn-light" type="button" onClick={resetFiltersAndLoad} title="Đặt lại bộ lọc và làm mới dữ liệu">
                     <RefreshCw size={15} />
                     Làm mới
                   </button>

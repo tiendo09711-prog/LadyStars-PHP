@@ -237,7 +237,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
         {actionSlot?.current
           ? createPortal(
               <div className="products-action-row">
-                <button className="btn btn-light" type="button" onClick={() => void load()}>
+                <button className="btn btn-light" type="button" onClick={handleReset}>
                   <RefreshCw size={15} />
                   Làm mới
                 </button>

@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { 
-  Boxes, 
-  Calendar, 
-  Clock, 
-  DollarSign, 
   FileDown, 
   Filter, 
   Percent, 
@@ -172,6 +168,7 @@ export function StorageDurationPage() {
     setMinSoldDays('');
     setMinStock('');
     setSelectedBranch('');
+    setActiveTab('all');
     setPage(1);
   };
 
@@ -355,7 +352,7 @@ export function StorageDurationPage() {
   };
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page storage-duration-page">
       {/* Toast Notification Banner */}
       {toast && (
         <div style={{
@@ -379,365 +376,266 @@ export function StorageDurationPage() {
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="page-heading">
-        <div className="page-title-block">
-          <div className="page-icon"><Clock size={22} /></div>
-          <div>
-            <h1>Thời gian lưu kho</h1>
-            <p>Theo dõi thời gian tồn kho lâu ngày để kịp thời khuyến mãi xả hàng hoặc trả lại nhà cung cấp.</p>
-          </div>
-        </div>
-      </div>
 
-      {/* KPI Cards Row */}
-      <div className="metric-row">
-        <div className="metric-card">
-          <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Tổng sản phẩm lưu kho
-            <Boxes size={18} style={{ color: 'var(--primary)' }} />
-          </span>
-          <strong>{kpis.totalProducts.toLocaleString('vi-VN')}</strong>
-          <span style={{ fontSize: '11px', marginTop: '4px' }}>Hàng hóa đang còn tồn kho</span>
-        </div>
+      {/* Filter form + Tabs + Table */}
+      <section className="storage-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-        <div className="metric-card danger">
-          <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Nhập lâu - Chưa bán
-            <Clock size={18} style={{ color: 'var(--danger)' }} />
-          </span>
-          <strong>{kpis.unsoldLong.toLocaleString('vi-VN')}</strong>
-          <span style={{ fontSize: '11px', marginTop: '4px' }}>Tồn kho ≥ 30 ngày & chưa bán</span>
-        </div>
-
-        <div className="metric-card warning">
-          <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Sản phẩm bán chậm
-            <Calendar size={18} style={{ color: 'var(--warning)' }} />
-          </span>
-          <strong>{kpis.slowSelling.toLocaleString('vi-VN')}</strong>
-          <span style={{ fontSize: '11px', marginTop: '4px' }}>Ít nhất 30 ngày chưa bán được thêm</span>
-        </div>
-
-        <div className="metric-card success">
-          <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Tổng giá trị tồn kho
-            <DollarSign size={18} style={{ color: 'var(--success)' }} />
-          </span>
-          <strong>{formatMoney(kpis.totalValue)}</strong>
-          <span style={{ fontSize: '11px', marginTop: '4px' }}>Tính theo giá trị vốn hàng hóa</span>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="module-grid">
-        {/* Sidebar Filters */}
-        <aside className="filter-panel">
-          <div className="panel-title">
-            <Filter size={18} />
-            <span>Bộ lọc báo cáo</span>
-          </div>
-          
-          <form onSubmit={handleSearchSubmit}>
-            <label className="field-label">Tìm kiếm</label>
-            <div className="search-box">
-              <Search size={16} style={{ color: 'var(--muted)' }} />
-              <input 
-                value={tempSearch} 
-                onChange={(e) => setTempSearch(e.target.value)} 
-                ref={searchRef}
-                data-product-search-scan="true" data-product-search-primary="true" placeholder="Tên SP, mã SP..."
-              />
-            </div>
-
-            <label className="field-label" style={{ marginTop: '16px' }}>Chi nhánh</label>
-            <select 
-              style={{
-                width: '100%',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '9px 11px',
-                outline: '0',
-                background: '#fff'
-              }}
-              value={selectedBranch} 
-              onChange={(e) => { setSelectedBranch(e.target.value); setPage(1); }}
-            >
-              <option value="">Tất cả chi nhánh</option>
-              {branches.map((b) => (
-                <option key={b._id} value={b._id}>{b.name} ({b.code})</option>
-              ))}
-            </select>
-
-            <label className="field-label" style={{ marginTop: '16px' }}>Nhóm sản phẩm</label>
-            <select 
-              style={{
-                width: '100%',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '9px 11px',
-                outline: '0',
-                background: '#fff'
-              }}
-              value={selectedCategory} 
-              onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
-            >
-              <option value="">Tất cả danh mục</option>
-              {categories.map((c) => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
-            </select>
-
-            <div style={{ borderTop: '1px solid var(--border-soft)', margin: '20px 0 10px' }} />
-
-            <h4 style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 800 }}>Lọc nâng cao</h4>
-
-            <label className="field-label">Số ngày nhập đầu (≥)</label>
-            <input 
-              type="number" 
-              min="0"
-              style={{
-                width: '100%',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                outline: '0',
-                background: '#fff'
-              }}
-              value={minStartDays}
-              onChange={(e) => { setMinStartDays(e.target.value); setPage(1); }}
-              placeholder="Ví dụ: 30"
-            />
-
-            <label className="field-label" style={{ marginTop: '12px' }}>Ngày không bán được (≥)</label>
-            <input 
-              type="number" 
-              min="0"
-              style={{
-                width: '100%',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                outline: '0',
-                background: '#fff'
-              }}
-              value={minSoldDays}
-              onChange={(e) => { setMinSoldDays(e.target.value); setPage(1); }}
-              placeholder="Ví dụ: 30"
-            />
-
-            <label className="field-label" style={{ marginTop: '12px' }}>Tồn kho lớn hơn (≥)</label>
-            <input 
-              type="number" 
-              min="1"
-              style={{
-                width: '100%',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                outline: '0',
-                background: '#fff'
-              }}
-              value={minStock}
-              onChange={(e) => { setMinStock(e.target.value); setPage(1); }}
-              placeholder="Ví dụ: 1"
-            />
-
-            <div style={{ marginTop: '20px', display: 'flex', gap: '8px' }}>
-              <button 
-                type="button" 
-                className="btn btn-light full" 
-                onClick={handleClearFilters}
-              >
-                Xóa lọc
-              </button>
-              <button 
-                type="submit" 
-                className="btn btn-primary full"
-              >
-                Lọc
-              </button>
-            </div>
-          </form>
-        </aside>
-
-        {/* Data List Panel */}
-        <section className="data-card">
-          {/* Table Header and Tabs */}
-          <div className="data-card-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '14px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2>Chi tiết lưu kho hàng hóa</h2>
-                <span className="record-badge">{total} sản phẩm thỏa mãn</span>
+        <form className="products-filter-form" onSubmit={handleSearchSubmit} style={{ padding: '18px 22px', borderBottom: '1px solid #eef3f8' }}>
+          <div className="products-filter-grid products-grid-storage">
+            <label className="products-inline-field">
+              <span>Tên, mã SP</span>
+              <div className="products-inline-control">
+                <Search size={16} />
+                <input
+                  value={tempSearch}
+                  onChange={(e) => setTempSearch(e.target.value)}
+                  ref={searchRef}
+                  data-product-search-scan="true" data-product-search-primary="true"
+                  placeholder="Tìm theo tên, mã SP..."
+                />
               </div>
-              <div className="page-actions" style={{ gap: '8px', display: 'flex' }}>
-                <button className="btn btn-light" type="button" onClick={loadData} title="Làm mới">
-                  <RefreshCw size={16} /> Làm mới
-                </button>
-                <button className="btn btn-success" type="button" onClick={handleExportCSV}>
-                  <FileDown size={16} /> Xuất CSV
-                </button>
+            </label>
+
+            <label className="products-inline-field">
+              <span>Chi nhánh</span>
+              <div className="products-inline-control">
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => { setSelectedBranch(e.target.value); setPage(1); }}
+                >
+                  <option value="">Tất cả chi nhánh</option>
+                  {branches.map((b) => (
+                    <option key={b._id} value={b._id}>{b.name} ({b.code})</option>
+                  ))}
+                </select>
               </div>
-            </div>
-            
-            {/* Tab switchers */}
-            <div className="workspace-tabs" role="tablist" aria-label="Storage tabs" style={{ borderBottom: 'none', paddingBottom: 0, marginTop: '8px' }}>
-              <button 
-                className={activeTab === 'all' ? 'active' : ''} 
+            </label>
+
+            <label className="products-inline-field">
+              <span>Nhóm sản phẩm</span>
+              <div className="products-inline-control">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
+                >
+                  <option value="">Tất cả danh mục</option>
+                  {categories.map((c) => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </label>
+
+            <label className="products-inline-field">
+              <span>Ngày nhập đầu (≥)</span>
+              <div className="products-inline-control">
+                <input
+                  type="number"
+                  min="0"
+                  value={minStartDays}
+                  onChange={(e) => { setMinStartDays(e.target.value); setPage(1); }}
+                  placeholder="30"
+                />
+              </div>
+            </label>
+
+            <label className="products-inline-field">
+              <span>Chưa bán được (≥)</span>
+              <div className="products-inline-control">
+                <input
+                  type="number"
+                  min="0"
+                  value={minSoldDays}
+                  onChange={(e) => { setMinSoldDays(e.target.value); setPage(1); }}
+                  placeholder="30"
+                />
+              </div>
+            </label>
+
+            <label className="products-inline-field">
+              <span>Tồn kho (≥)</span>
+              <div className="products-inline-control">
+                <input
+                  type="number"
+                  min="1"
+                  value={minStock}
+                  onChange={(e) => { setMinStock(e.target.value); setPage(1); }}
+                  placeholder="1"
+                />
+              </div>
+            </label>
+
+            <button className="btn btn-primary products-filter-submit" type="submit">
+              <Filter size={15} />
+              Lọc
+            </button>
+          </div>
+        </form>
+
+        <div className="products-table-topbar" style={{ flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <strong>Chi tiết lưu kho hàng hóa</strong>
+            <span className="record-badge">{total} sản phẩm thỏa mãn</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="workspace-tabs" role="tablist" aria-label="Storage tabs" style={{ borderBottom: 'none', padding: 0, margin: 0 }}>
+              <button
+                className={activeTab === 'all' ? 'active' : ''}
                 onClick={() => { setActiveTab('all'); setPage(1); }}
               >
                 Tất cả ({kpis.totalProducts})
               </button>
-              <button 
-                className={activeTab === 'unsold_long' ? 'active' : ''} 
+              <button
+                className={activeTab === 'unsold_long' ? 'active' : ''}
                 onClick={() => { setActiveTab('unsold_long'); setPage(1); }}
               >
                 Nhập lâu - Chưa bán ({kpis.unsoldLong})
               </button>
-              <button 
-                className={activeTab === 'slow_selling' ? 'active' : ''} 
+              <button
+                className={activeTab === 'slow_selling' ? 'active' : ''}
                 onClick={() => { setActiveTab('slow_selling'); setPage(1); }}
               >
                 Bán chậm ({kpis.slowSelling})
               </button>
             </div>
           </div>
-          
-          {/* Table Area */}
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Ảnh</th>
-                  <th>Mã SP</th>
-                  <th>Tên sản phẩm</th>
-                  <th>Nhóm / NCC</th>
-                  <th>Giá nhập | Giá bán</th>
-                  <th>Tồn kho</th>
-                  <th>XNK Đầu / Cuối</th>
-                  <th>Bán cuối</th>
-                  <th>Lưu từ đầu</th>
-                  <th>Lưu từ XNK cuối</th>
-                  <th>Chưa bán ra</th>
-                  <th className="action-cell">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && <tr><td colSpan={12} className="empty-cell">Đang tải dữ liệu...</td></tr>}
-                {!loading && items.length === 0 && <tr><td colSpan={12} className="empty-cell">Không tìm thấy sản phẩm lưu kho phù hợp.</td></tr>}
-                {!loading && items.map((item) => (
-                  <tr key={item._id}>
-                    <td>
-                      {/* Beautiful placeholder image */}
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '6px',
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-                      }}>
-                        {item.name ? item.name.slice(0, 2).toUpperCase() : 'SP'}
-                      </div>
-                    </td>
-                    <td><strong>{item.code}</strong></td>
-                    <td style={{ maxWidth: '240px' }}>
-                      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }} title={item.name}>
-                        {item.name}
-                      </div>
-                    </td>
-                    <td>
-                      <span>{item.categoryName || 'Chưa phân loại'}</span>
-                      <small style={{ color: 'var(--muted)', display: 'block', fontSize: '11px' }}>
-                        NCC: {item.supplierName || 'Mặc định'}
-                      </small>
-                    </td>
-                    <td>
-                      <span style={{ color: 'var(--muted)', fontSize: '13px' }}>{formatMoney(item.cost)}</span>
-                      <span style={{ margin: '0 6px', color: '#cbd5e1' }}>|</span>
-                      <strong style={{ color: '#0f172a' }}>{formatMoney(item.price)}</strong>
-                    </td>
-                    <td>
-                      <strong style={{ color: '#1e293b' }}>{Number(item.qty || 0).toLocaleString('vi-VN')}</strong>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '12px', display: 'block' }}>{formatDate(item.firstTransactionDate)}</span>
-                      <small style={{ color: 'var(--muted)', fontSize: '11px', display: 'block' }}>
-                        Cuối: {formatDate(item.lastTransactionDate)}
-                      </small>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '12px' }}>{formatDate(item.lastSoldDate)}</span>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${getDaysStartBadgeClass(item.daysFromStart)}`}>
-                        {item.daysFromStart} ngày
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '13px', color: '#475569' }}>
-                        {item.daysFromLast} ngày
-                      </span>
-                    </td>
-                    <td>
-                      {item.daysFromLastSold === null ? (
-                        <span style={{ color: 'var(--muted)', fontStyle: 'italic', fontSize: '12px' }}>Chưa bán lần nào</span>
-                      ) : (
-                        <span style={{ 
-                          fontWeight: 600, 
-                          color: item.daysFromLastSold >= 30 ? 'var(--danger)' : '#475569',
-                          fontSize: '13px'
-                        }}>
-                          {item.daysFromLastSold} ngày
-                        </span>
-                      )}
-                    </td>
-                    <td className="action-cell storage-action-cell">
-                      <div className="storage-action-menu">
-                        <button
-                          className="storage-action-trigger"
-                          type="button"
-                          aria-label={`Mở thao tác cho ${item.code}`}
-                          aria-expanded={openActionMenu === item._id}
-                          onClick={() => setOpenActionMenu((current) => (current === item._id ? null : item._id))}
-                        >
-                          <MoreHorizontal size={18} />
-                        </button>
-                        {openActionMenu === item._id ? (
-                          <div className="storage-action-dropdown">
-                            <button
-                              className="storage-action-option storage-action-option-primary"
-                              type="button"
-                              onClick={() => handleOpenDiscount(item)}
-                            >
-                              <Percent size={12} />
-                              <span>Xả hàng</span>
-                            </button>
-                            <button
-                              className="storage-action-option"
-                              type="button"
-                              onClick={() => handleOpenReturn(item)}
-                            >
-                              Trả hàng
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="products-table-hint" style={{ marginLeft: 'auto' }}>
+            <button className="btn btn-light" type="button" onClick={handleClearFilters} title="Đặt lại bộ lọc và làm mới">
+              <RefreshCw size={15} /> Làm mới
+            </button>
+            <button className="btn btn-success" type="button" onClick={handleExportCSV} style={{ marginLeft: 4 }}>
+              <FileDown size={15} /> Xuất CSV
+            </button>
           </div>
-          
-          <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
-        </section>
-      </div>
+        </div>
+
+        <div className="products-table-wrap">
+          <table className="data-table products-data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+            <colgroup>
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '4%' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Mã SP</th>
+                <th>Tên sản phẩm</th>
+                <th>Nhóm / NCC</th>
+                <th>Giá nhập | Giá bán</th>
+                <th>Tồn kho</th>
+                <th>XNK Đầu / Cuối</th>
+                <th>Bán cuối</th>
+                <th>Lưu từ đầu</th>
+                <th>Lưu từ XNK cuối</th>
+                <th>Chưa bán ra</th>
+                <th className="action-cell">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && <tr><td colSpan={11} className="empty-cell">Đang tải dữ liệu...</td></tr>}
+              {!loading && items.length === 0 && <tr><td colSpan={11} className="empty-cell">Không tìm thấy sản phẩm lưu kho phù hợp.</td></tr>}
+              {!loading && items.map((item) => (
+                <tr key={item._id}>
+                  <td><strong>{item.code}</strong></td>
+                  <td style={{ overflow: 'hidden' }}>
+                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }} title={item.name}>
+                      {item.name}
+                    </div>
+                  </td>
+                  <td>
+                    <span>{item.categoryName || 'Chưa phân loại'}</span>
+                    <small style={{ color: 'var(--muted)', display: 'block', fontSize: '11px' }}>
+                      NCC: {item.supplierName || 'Mặc định'}
+                    </small>
+                  </td>
+                  <td>
+                    <span style={{ color: 'var(--muted)', fontSize: '13px' }}>{formatMoney(item.cost)}</span>
+                    <span style={{ margin: '0 6px', color: '#cbd5e1' }}>|</span>
+                    <strong style={{ color: '#0f172a' }}>{formatMoney(item.price)}</strong>
+                  </td>
+                  <td>
+                    <strong style={{ color: '#1e293b' }}>{Number(item.qty || 0).toLocaleString('vi-VN')}</strong>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '12px', display: 'block' }}>{formatDate(item.firstTransactionDate)}</span>
+                    <small style={{ color: 'var(--muted)', fontSize: '11px', display: 'block' }}>
+                      Cuối: {formatDate(item.lastTransactionDate)}
+                    </small>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '12px' }}>{formatDate(item.lastSoldDate)}</span>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${getDaysStartBadgeClass(item.daysFromStart)}`}>
+                      {item.daysFromStart} ngày
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '13px', color: '#475569' }}>
+                      {item.daysFromLast} ngày
+                    </span>
+                  </td>
+                  <td>
+                    {item.daysFromLastSold === null ? (
+                      <span style={{ color: 'var(--muted)', fontStyle: 'italic', fontSize: '12px' }}>Chưa bán lần nào</span>
+                    ) : (
+                      <span style={{
+                        fontWeight: 600,
+                        color: item.daysFromLastSold >= 30 ? 'var(--danger)' : '#475569',
+                        fontSize: '13px'
+                      }}>
+                        {item.daysFromLastSold} ngày
+                      </span>
+                    )}
+                  </td>
+                  <td className="action-cell storage-action-cell">
+                    <div className="storage-action-menu">
+                      <button
+                        className="storage-action-trigger"
+                        type="button"
+                        aria-label={`Mở thao tác cho ${item.code}`}
+                        aria-expanded={openActionMenu === item._id}
+                        onClick={() => setOpenActionMenu((current) => (current === item._id ? null : item._id))}
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                      {openActionMenu === item._id ? (
+                        <div className="storage-action-dropdown">
+                          <button
+                            className="storage-action-option storage-action-option-primary"
+                            type="button"
+                            onClick={() => handleOpenDiscount(item)}
+                          >
+                            <Percent size={12} />
+                            <span>Xả hàng</span>
+                          </button>
+                          <button
+                            className="storage-action-option"
+                            type="button"
+                            onClick={() => handleOpenReturn(item)}
+                          >
+                            Trả hàng
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
+      </section>
 
       {/* MODAL 1: Discount (Khuyến mãi xả hàng) */}
       {discountProduct && (

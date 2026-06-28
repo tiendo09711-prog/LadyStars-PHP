@@ -9,7 +9,6 @@
     "load": "tsx src/scripts/load-csv.ts",
     "import-real": "tsx src/scripts/import-real-data.ts",
     "import-phase12": "tsx src/scripts/import-phase12-data.ts",
-    "import-warehouse-drafts": "tsx src/scripts/import-warehouse-drafts-history.ts",
     "import-warehouse-transactions": "tsx src/scripts/import-warehouse-transactions-transfers.ts",
     "import-store-sales": "tsx src/scripts/import-store-sales.ts",
     "load-edit-logs": "tsx src/scripts/load-edit-logs.ts",

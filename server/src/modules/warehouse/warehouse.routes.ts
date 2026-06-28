@@ -8,10 +8,6 @@ import {
   WarehouseTransfer,
   InventoryCheck,
   InventoryCheckProduct,
-  WarehouseDraftVoucher,
-  WarehouseDraftProduct,
-  WarehouseVoucherLog,
-  WarehouseProductLog,
   TransferAuditLog
 } from './warehouse.models.js';
 import { Branch } from '../../core/org/branch.model.js';
@@ -1291,79 +1287,6 @@ async function createImportVoucher(req: any, payload: any) {
 
   return { voucher, items: savedItems };
 }
-
-router.get('/draft-vouchers', async (req, res) => {
-  const filter: any = {};
-  if (textQuery(req.query.warehouse)) filter.warehouse = textQuery(req.query.warehouse);
-  if (textQuery(req.query.fromWarehouse)) filter.fromWarehouse = textQuery(req.query.fromWarehouse);
-  if (textQuery(req.query.toWarehouse)) filter.toWarehouse = textQuery(req.query.toWarehouse);
-  if (textQuery(req.query.id)) filter.externalId = textQuery(req.query.id);
-  const range = dateRangeQuery(req.query.fromDate, req.query.toDate);
-  if (range) filter.timeCreatedObj = range;
-
-  const [data, meta] = await Promise.all([
-    listRecords(WarehouseDraftVoucher, filter, req, 'timeCreatedObj'),
-    distinctValues(WarehouseDraftVoucher, ['warehouse', 'fromWarehouse', 'toWarehouse', 'type', 'creator']),
-  ]);
-  res.json({ ...data, meta });
-});
-
-router.get('/draft-products', async (req, res) => {
-  const filter: any = {};
-  if (textQuery(req.query.warehouse)) filter.warehouse = textQuery(req.query.warehouse);
-  if (textQuery(req.query.fromWarehouse)) filter.fromWarehouse = textQuery(req.query.fromWarehouse);
-  if (textQuery(req.query.toWarehouse)) filter.toWarehouse = textQuery(req.query.toWarehouse);
-  if (textQuery(req.query.id)) filter.externalId = textQuery(req.query.id);
-  if (textQuery(req.query.voucherId)) filter.requestId = textQuery(req.query.voucherId);
-  if (textQuery(req.query.product)) {
-    const q = textQuery(req.query.product);
-    filter.$or = [{ productName: q }, { productCode: q }, { barcode: q }];
-  }
-  const range = dateRangeQuery(req.query.fromDate, req.query.toDate);
-  if (range) filter.dateObj = range;
-
-  const [data, meta] = await Promise.all([
-    listRecords(WarehouseDraftProduct, filter, req, 'dateObj'),
-    distinctValues(WarehouseDraftProduct, ['warehouse', 'fromWarehouse', 'toWarehouse', 'type', 'creator']),
-  ]);
-  res.json({ ...data, meta });
-});
-
-router.get('/history-vouchers', async (req, res) => {
-  const filter: any = {};
-  if (textQuery(req.query.warehouse)) filter.xnkType = textQuery(req.query.warehouse);
-  if (textQuery(req.query.voucherId)) filter.draftVoucherId = textQuery(req.query.voucherId);
-  if (textQuery(req.query.logType)) filter.logType = textQuery(req.query.logType);
-  if (textQuery(req.query.xnkCategory)) filter.xnkCategory = textQuery(req.query.xnkCategory);
-  if (textQuery(req.query.xnkType)) filter.xnkType = textQuery(req.query.xnkType);
-  const range = dateRangeQuery(req.query.fromDate, req.query.toDate);
-  if (range) filter.createdAtObj = range;
-
-  const [data, meta] = await Promise.all([
-    listRecords(WarehouseVoucherLog, filter, req, 'createdAtObj'),
-    distinctValues(WarehouseVoucherLog, ['logType', 'xnkCategory', 'xnkType', 'actor']),
-  ]);
-  res.json({ ...data, meta });
-});
-
-router.get('/history-products', async (req, res) => {
-  const filter: any = {};
-  if (textQuery(req.query.warehouse)) filter.xnkType = textQuery(req.query.warehouse);
-  if (textQuery(req.query.productId)) filter.inventoryProductId = textQuery(req.query.productId);
-  if (textQuery(req.query.voucherId)) filter.voucherId = textQuery(req.query.voucherId);
-  if (textQuery(req.query.logType)) filter.logType = textQuery(req.query.logType);
-  if (textQuery(req.query.xnkCategory)) filter.xnkCategory = textQuery(req.query.xnkCategory);
-  if (textQuery(req.query.xnkType)) filter.xnkType = textQuery(req.query.xnkType);
-  if (textQuery(req.query.product)) filter.productName = textQuery(req.query.product);
-  const range = dateRangeQuery(req.query.fromDate, req.query.toDate);
-  if (range) filter.createdAtObj = range;
-
-  const [data, meta] = await Promise.all([
-    listRecords(WarehouseProductLog, filter, req, 'createdAtObj'),
-    distinctValues(WarehouseProductLog, ['logType', 'xnkCategory', 'xnkType', 'actor']),
-  ]);
-  res.json({ ...data, meta });
-});
 
 // Endpoint giao dịch nhập kho đồng bộ
 router.post('/vouchers/import', async (req, res) => {

@@ -8,11 +8,8 @@ import {
   ClipboardCheck,
   ClipboardList,
   Clock,
-  FileEdit,
   FileText,
-  History,
   LayoutDashboard,
-  Layers,
   LogOut,
   Package,
   RotateCcw,
@@ -61,7 +58,6 @@ const baseMenuGroups: MenuGroup[] = [
     label: 'Sản phẩm',
     items: [
       { to: '/products', label: 'Sản phẩm', icon: Boxes },
-      { to: '/products/batches', label: 'Lô sản phẩm', icon: Layers },
       { to: '/products/storage-duration', label: 'Thời gian lưu kho', icon: Clock },
       { to: '/products/inventory', label: 'Tồn kho', icon: Package },
       { to: '/products/categories', label: 'Danh mục', icon: ClipboardList },
@@ -74,8 +70,6 @@ const baseMenuGroups: MenuGroup[] = [
       { to: '/warehouse/transactions', label: 'Xuất nhập kho', icon: ArrowLeftRight },
       { to: '/warehouse/transfers', label: 'Chuyển kho', icon: Shuffle },
       { to: '/warehouse/audit', label: 'Kiểm kho', icon: ClipboardCheck },
-      { to: '/warehouse/drafts', label: 'Phiếu nháp', icon: FileEdit },
-      { to: '/warehouse/history', label: 'Lịch sử sửa xóa', icon: History },
     ],
   },
 

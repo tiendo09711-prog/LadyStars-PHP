@@ -90,19 +90,6 @@ export interface IProductHistoryMeta {
   toneByLogType: Record<string, string>;
 }
 
-export interface IBatch {
-  _id: string;
-  batchNumber: string;
-  productId: IProduct | string | null;
-  cost?: number;
-  qty?: number;
-  manufactureDate?: string;
-  expiryDate?: string;
-  status?: string;
-  note?: string;
-  createdAt: string;
-}
-
 export interface ITrademark {
   _id: string;
   name: string;
