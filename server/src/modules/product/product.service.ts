@@ -102,7 +102,8 @@ async function getAvailableStockForSale(product: any, branchId?: unknown, sessio
 
   const stockQuery = ProductBranchStock.findOne({ productId: product._id, branchId }).lean();
   const stock = await applySession(stockQuery, session);
-  return toNumber(stock?.qty);
+  // available = qty - lockedQuantity (locked cho luồng chuyển kho đã xác nhận xuất nhưng chưa nhận / đang chờ nhận lại hàng trả).
+  return Math.max(toNumber(stock?.qty) - toNumber(stock?.lockedQuantity), 0);
 }
 
 async function normalizePaymentLines(rawLines: unknown, session?: ClientSession) {

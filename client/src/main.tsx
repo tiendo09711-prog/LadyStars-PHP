@@ -17,8 +17,6 @@ import { CustomerLevelPage } from './modules/customer/CustomerLevelPage';
 import { CustomerGroupPage } from './modules/customer/CustomerGroupPage';
 import { CustomerCareTypePage } from './modules/customer/CustomerCareTypePage';
 import { CustomerCareReasonPage } from './modules/customer/CustomerCareReasonPage';
-import { TaskPage } from './modules/task/TaskPage';
-import { PrintFormsPage } from './modules/printForms/PrintFormsPage';
 import { StaffPage } from './modules/staff/StaffPage';
 import { SettingsPage } from './modules/settings/SettingsPage';
 import { WarehouseTransactionPage } from './modules/warehouse/WarehouseTransactionPage';
@@ -71,6 +69,7 @@ import { SalesChannelSubPage } from './modules/sales/SalesChannelSubPage';
 import { RetailInvoiceCreatePage } from './modules/sales/RetailInvoiceCreatePage';
 import { WholesaleInvoiceCreatePage } from './modules/sales/WholesaleInvoiceCreatePage';
 import { RefundInvoiceCreatePage } from './modules/sales/RefundInvoiceCreatePage';
+import { RefundInvoiceDetailPage } from './modules/sales/RefundInvoiceDetailPage';
 import './styles/app.css';
 import './styles/phase-rescue.css';
 
@@ -122,12 +121,10 @@ const router = createBrowserRouter([
       { path: 'sales-channels/:channel/retail/create', element: <RetailInvoiceCreatePage /> },
       { path: 'sales-channels/:channel/wholesale/create', element: <WholesaleInvoiceCreatePage /> },
       { path: 'sales-channels/:channel/refund/create', element: <RefundInvoiceCreatePage /> },
+      { path: 'sales-channels/:channel/refund/:id', element: <RefundInvoiceDetailPage /> },
       { path: 'sales-channels/:channel/find', element: <Navigate to="/sales-channels/store" replace /> },
       { path: 'sales-channels/:channel/:action', element: <SalesChannelSubPage /> },
 
-      // ── Vận hành ────────────────────────────────────────────
-      { path: 'tasks', element: <TaskPage /> },
-      { path: 'print-forms', element: <PrintFormsPage /> },
 
       // ── Đơn hàng ────────────────────────────────────────────
 

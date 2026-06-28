@@ -399,7 +399,16 @@ async function decorateSales(input: any) {
 }
 
 async function populateRefund(query: any) {
-  return query.populate('paymentId', 'code value status').populate('items.productId', 'code name price qty unit type');
+  return query
+    .populate({
+      path: 'paymentId',
+      select: 'code value status customerId branchId',
+      populate: [
+        { path: 'customerId', select: 'name phone' },
+        { path: 'branchId', select: 'name code' },
+      ],
+    })
+    .populate('items.productId', 'code name price qty unit type');
 }
 
 async function generateCategoryCode() {
@@ -1257,14 +1266,26 @@ router.post('/sales/:id/return-exchange', async (req, res) => {
 router.get('/refunds', async (req, res) => {
   const page = Math.max(Number(req.query.page ?? 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
-  const filter: any = {};
-  if (req.query.code) filter.code = new RegExp(String(req.query.code).trim(), 'i');
-  if (req.query.status) filter.status = String(req.query.status).trim();
+  const and: any[] = [];
+  if (req.query.code) and.push({ code: new RegExp(String(req.query.code).trim(), 'i') });
+  if (req.query.status) and.push({ status: String(req.query.status).trim() });
   const branchIds = scopeObjectIds(req as any);
   if (branchIds) {
     const paymentIds = await SalePayment.find({ branchId: { $in: branchIds } }).distinct('_id');
-    filter.paymentId = { $in: paymentIds };
+    and.push({ paymentId: { $in: paymentIds } });
   }
+  const q = String(req.query.q ?? '').trim();
+  if (q) {
+    const qRegex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const customerIds = await Customer.find({ $or: [{ name: qRegex }, { phone: qRegex }] }).distinct('_id');
+    const saleMatch: any[] = [{ code: qRegex }];
+    if (customerIds.length) saleMatch.push({ customerId: { $in: customerIds } });
+    const saleIds = await SalePayment.find({ $or: saleMatch }).distinct('_id');
+    const qOr: any[] = [{ code: qRegex }];
+    if (saleIds.length) qOr.push({ paymentId: { $in: saleIds } });
+    and.push({ $or: qOr });
+  }
+  const filter = and.length ? { $and: and } : {};
   const [items, total] = await Promise.all([
     populateRefund(ProductRefund.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)),
     ProductRefund.countDocuments(filter),
@@ -1704,9 +1725,14 @@ router.get('/inventories', async (req, res) => {
       const stockCN = stocks.find(s => String(s.branchId) === String(branchCN?._id))?.qty || 0;
       const stockHanoi = stocks.find(s => String(s.branchId) === String(branchHN?._id))?.qty || 0;
       const stockHCM = stocks.find(s => String(s.branchId) === String(branchHCM?._id))?.qty || 0;
-      const selectedStock = selectedBranchId
-        ? stocks.find(s => String(s.branchId) === selectedBranchId)?.qty || 0
+      const selectedStockRecord = selectedBranchId
+        ? stocks.find(s => String(s.branchId) === selectedBranchId)
         : undefined;
+      const selectedStock = selectedBranchId
+        ? selectedStockRecord?.qty || 0
+        : undefined;
+      const lockedQuantity = selectedBranchId ? Number(selectedStockRecord?.lockedQuantity || 0) : 0;
+      const availableStock = selectedBranchId ? Math.max(Number(selectedStock || 0) - lockedQuantity, 0) : undefined;
       const totalStocks = selectedBranchId ? stocks.filter(s => String(s.branchId) === selectedBranchId) : stocks;
       const scopedTotalStock = totalStocks.reduce((sum, stock) => sum + Number(stock.qty || 0), 0);
       const stockByBranchId: Record<string, number> = {};
@@ -1737,6 +1763,8 @@ router.get('/inventories', async (req, res) => {
         stockHanoi,
         stockHCM,
         selectedStock,
+        lockedQuantity,
+        availableStock,
         stockByBranchId,
         stockByBranchCode,
         unit: pAny.unit || '',

@@ -1,3 +1,4 @@
+import { buildInvoiceProfile } from '../../core/api/branch.api';
 export type TemplateTypography = {
   titleAlign?: 'left' | 'center' | 'right';
   bodyFontSize?: 'small' | 'normal';
@@ -254,4 +255,53 @@ export function writeAndPrintPopup(popup: Window, html: string) {
   popup.document.close();
   popup.focus();
   popup.print();
+}
+
+function refundCustomerText(refund: Record<string, any>): string {
+  const customer = refund?.paymentId?.customerId;
+  if (customer && typeof customer === 'object') {
+    const name = customer.name || '';
+    const phone = customer.phone || '';
+    return [name, phone ? `(${phone})` : ''].filter(Boolean).join(' ') || 'Khách lẻ';
+  }
+  return 'Khách lẻ';
+}
+
+function refundOriginalCode(refund: Record<string, any>): string {
+  const payment = refund?.paymentId;
+  return (payment && typeof payment === 'object' ? payment.code : payment) || '';
+}
+
+export function buildRefundReceiptHtml(refund: Record<string, any>) {
+  const branch = refund?.paymentId?.branchId;
+  const profile = buildInvoiceProfile(branch && typeof branch === 'object' ? branch : undefined);
+  const items = Array.isArray(refund?.items) ? refund.items : [];
+  const originalCode = refundOriginalCode(refund);
+  const customerText = refundCustomerText(refund);
+  const date = refund?.createdAt || refund?.completedAt;
+  return buildReceiptHtml({
+    profile,
+    title: profile.templateConfig?.title || 'HÓA ĐƠN TRẢ HÀNG',
+    code: refund?.code || '',
+    date: date ? new Date(String(date)).toLocaleString('vi-VN') : '',
+    customer: customerText,
+    sections: [
+      {
+        title: originalCode ? `Sản phẩm trả (HĐ gốc: ${originalCode})` : 'Sản phẩm trả',
+        lines: items.map((item: any) => ({
+          name: item?.productId?.name || item?.productId?.code || 'Sản phẩm',
+          code: item?.productId?.code || '',
+          quantity: Number(item?.amount) || 0,
+          price: receiptMoney(item?.price),
+          total: receiptMoney(item?.value),
+        })),
+      },
+    ],
+    summary: [
+      { label: 'Tổng số lượng', value: String(items.reduce((sum: number, item: any) => sum + (Number(item?.amount) || 0), 0)) },
+      { label: 'Giá trị trả', value: receiptMoney(refund?.value) },
+      { label: 'Tiền trả khách', value: receiptMoney(refund?.totalPayableAmount), strong: true },
+      ...(refund?.note ? [{ label: 'Lý do', value: String(refund.note) }] : []),
+    ],
+  });
 }

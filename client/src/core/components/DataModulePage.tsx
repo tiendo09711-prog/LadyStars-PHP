@@ -79,8 +79,9 @@ export type DataModulePageProps = {
   bulkActionGroups?: BulkActionGroup[];
   extraHeaderButtons?: ReactNode;
   hideImport?: boolean;
-  hideCreate?: boolean;
-  hideEdit?: boolean;
+ hideCreate?: boolean;
+ hideEdit?: boolean;
+ hideDelete?: boolean;
 };
 
 function getValue(item: Record<string, any>, key: string) {
@@ -125,9 +126,10 @@ export function DataModulePage({
   bulkActionGroups,
   extraHeaderButtons,
   hideImport,
-  hideCreate,
-  hideEdit,
-  customActions,
+ hideCreate,
+ hideEdit,
+ hideDelete,
+ customActions,
 }: DataModulePageProps) {
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [page, setPage] = useState(1);
@@ -599,14 +601,16 @@ export function DataModulePage({
                               </button>
                             ))}
                             {hasRowActionMenu && (actions.length > 0 || customActions?.length) && <div className="dropdown-separator" />}
-                            {!hideEdit && (
-                              <button className="dropdown-item" type="button" onClick={() => openEdit(item)}>
-                                <Pencil size={16} /> Sửa
-                              </button>
-                            )}
-                            <button className="dropdown-item danger" type="button" onClick={() => remove(item._id)}>
-                              <Trash2 size={16} /> Xóa
-                            </button>
+                           {!hideEdit && (
+                             <button className="dropdown-item" type="button" onClick={() => openEdit(item)}>
+                               <Pencil size={16} /> Sửa
+                             </button>
+                           )}
+                           {!hideDelete && (
+                             <button className="dropdown-item danger" type="button" onClick={() => remove(item._id)}>
+                               <Trash2 size={16} /> Xóa
+                             </button>
+                           )}
                           </div>
                         )}
                       </div>

@@ -97,10 +97,10 @@ export function RefundInvoiceCreatePage() {
     date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }),
     paymentId: '',
     returnOrderId: '',
-    receiver: 'Lê Sỹ Bách',
+    receiver: '',
     salesAccount: '',
     salesperson: '',
-    cashier: 'Lê Sỹ Bách',
+    cashier: '',
     type: 'Trả lại bán lẻ [L]',
     warehouse: '',
     description: '', // Ghi chú hóa đơn trả

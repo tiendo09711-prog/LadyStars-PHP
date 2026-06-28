@@ -23,8 +23,6 @@ import {
   StockAdjustment,
   Trademark,
 } from './modules/product/product.models.js';
-import { PrintForm } from './modules/printForms/printForms.models.js';
-import { Project, Task } from './modules/task/task.models.js';
 import { Vendor, VendorGroup, VendorPurchase, VendorRefund, VendorTransfer } from './modules/vendor/vendor.models.js';
 
 function detectSeparator(filePath: string) {
@@ -187,7 +185,6 @@ async function load() {
   const permissionKeys = [
     'products.index', 'products.stock.index', 'products.price-setting', 'products.sale-channel', 'products.delivery-partner',
     'sales.payment.index', 'sales.payment.refund', 'sales.print', 'customers.index', 'customers.groups',
-    'projects.index', 'projects.create', 'tasks.index', 'tasks.create', 'print-forms.forms.index',
   ];
 
   for (const key of permissionKeys) {
@@ -206,8 +203,6 @@ async function load() {
     ['Hàng hóa', '/products', 'product'],
     ['Bán hàng', '/sales', 'sale'],
     ['Khách hàng', '/customers', 'customer'],
-    ['Công việc', '/tasks', 'task'],
-    ['Mẫu in', '/print-forms', 'print-forms'],
   ];
   for (const [label, path, module] of menuItems) {
     await upsert(MenuItem, { path }, { label, path, module, permission: `${module}.index`, isActive: true });

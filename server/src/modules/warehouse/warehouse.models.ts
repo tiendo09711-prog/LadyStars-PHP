@@ -78,6 +78,7 @@ const WarehouseTransferItemSchema = new Schema({
   approvedQuantity: { type: Number, default: 0 },
   dispatchedQuantity: { type: Number, default: 0 },
   receivedQuantity: { type: Number, default: 0 },
+  lockedQuantity: { type: Number, default: 0, min: 0 },
   unitCostSnapshot: { type: Number, default: 0 },
   unit: String,
   batchCode: String,
@@ -97,27 +98,31 @@ const WarehouseTransferSchema = new Schema({
   destinationWarehouseId: { type: Schema.Types.ObjectId, ref: 'Branch' },
   fromWarehouse: { type: Schema.Types.ObjectId, ref: 'Branch' },
   toWarehouse: { type: Schema.Types.ObjectId, ref: 'Branch' },
-  sourceWarehouseName: String,
-  destinationWarehouseName: String,
-  label: String,
-  status: {
-    type: String,
-    enum: [
-      'DRAFT',
-      'PENDING_REQUEST_APPROVAL',
-      'APPROVED_TO_DISPATCH',
-      'PENDING_DISPATCH_APPROVAL',
-      'IN_TRANSIT',
-      'PENDING_RECEIPT_APPROVAL',
-      'PENDING_RETURN_APPROVAL',
-      'COMPLETED',
-      'RETURNED',
-      'REJECTED',
-      'CANCELLED',
-    ],
-    default: 'DRAFT',
-  },
-  qty: { type: Number, default: 0 },
+ sourceWarehouseName: String,
+ destinationWarehouseName: String,
+ label: String,
+ status: {
+   type: String,
+   enum: [
+     'DRAFT',
+     'PENDING_REQUEST_APPROVAL',
+     'APPROVED_TO_DISPATCH',
+     'PENDING_DISPATCH_APPROVAL',
+     'IN_TRANSIT',
+     'PENDING_RECEIPT_APPROVAL',
+     'PENDING_RETURN_APPROVAL',
+     'COMPLETED',
+     'RETURN_IN_PROGRESS',
+     'RETURNED',
+     'REJECTED',
+     'CANCELLED',
+   ],
+   default: 'DRAFT',
+ },
+  kind: { type: String, enum: ['NORMAL_TRANSFER', 'RETURN_OF_TRANSFER'], default: 'NORMAL_TRANSFER' },
+  originTransferId: { type: Schema.Types.ObjectId, ref: 'WarehouseTransfer' },
+  returnTransferId: { type: Schema.Types.ObjectId, ref: 'WarehouseTransfer' },
+ qty: { type: Number, default: 0 },
   spCount: { type: Number, default: 0 },
   totalAmount: { type: Number, default: 0 },
   creator: String,
@@ -160,6 +165,7 @@ WarehouseTransferSchema.index({ status: 1, sourceWarehouseId: 1, destinationWare
 WarehouseTransferSchema.index({ sourceExportBillId: 1 }, { sparse: true });
 WarehouseTransferSchema.index({ destinationImportBillId: 1 }, { sparse: true });
 WarehouseTransferSchema.index({ returnBillId: 1 }, { sparse: true });
+WarehouseTransferSchema.index({ originTransferId: 1 }, { sparse: true });
 WarehouseTransferSchema.index({ importBatchId: 1, externalImportCode: 1 }, { unique: true, sparse: true });
 export const WarehouseTransfer = model('WarehouseTransfer', WarehouseTransferSchema);
 

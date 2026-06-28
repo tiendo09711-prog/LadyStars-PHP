@@ -15,7 +15,6 @@ import {
   Layers,
   LogOut,
   Package,
-  Printer,
   RotateCcw,
   Search,
   Settings,
@@ -95,14 +94,6 @@ const baseMenuGroups: MenuGroup[] = [
     items: [
       { to: '/customers/list', label: 'Danh sách khách hàng', icon: List },
       { to: '/customers/care', label: 'Chăm sóc khách hàng', icon: HeartHandshake },
-    ],
-  },
-  {
-    id: 'operations',
-    label: 'Vận hành',
-    items: [
-      { to: '/tasks', label: 'Dự án - công việc', icon: ClipboardList },
-      { to: '/print-forms', label: 'Mẫu in', icon: Printer },
     ],
   },
   {
@@ -263,7 +254,7 @@ export function AppLayout() {
         ],
       },
     ]
-    : baseMenuGroups.filter((group) => !['operations', 'report'].includes(group.id)), [isAdmin]);
+    : baseMenuGroups.filter((group) => group.id !== 'report'), [isAdmin]);
   const visibleMenuGroups = useMemo<MenuGroup[]>(() => menuGroups.map((group) => {
     if (group.id !== 'warehouse' || !isAdmin) return group;
     return {

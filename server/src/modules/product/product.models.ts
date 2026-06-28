@@ -82,6 +82,8 @@ const ProductBranchStockSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
   qty: { type: Number, default: 0 },
+
+  lockedQuantity: { type: Number, default: 0, min: 0 },
   minQuantity: { type: Number, default: 0 },
   maxQuantity: { type: Number, default: 999999999 },
 }, { timestamps: true });

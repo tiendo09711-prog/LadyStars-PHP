@@ -12,7 +12,6 @@ import {
   Filter,
   MoreHorizontal,
   Plus,
-  Printer,
   RefreshCw,
   Search,
   Settings2,
@@ -305,16 +304,13 @@ export function WarehouseTransactionPage() {
     setSelectedIds(new Set());
   };
 
-  const openDetail = async (row: TransactionRow, shouldPrint = false) => {
+  const openDetail = async (row: TransactionRow) => {
     setOpenMenu(null);
     setDetailLoading(true);
     setError('');
     try {
       const response = await http.get(`/warehouse/transactions/bills/${row.source}/${row.sourceId}`);
       setDetail(response.data);
-      if (shouldPrint) {
-        window.setTimeout(() => window.print(), 250);
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Không tải được chi tiết phiếu.');
     } finally {
@@ -617,7 +613,6 @@ export function WarehouseTransactionPage() {
                       {openMenu === row.rowKey && (
                         <div className="wr-menu-panel wr-row-menu">
                           <button type="button" onClick={() => void openDetail(row)}><Eye size={15} /> Xem chi tiết phiếu</button>
-                          <button type="button" onClick={() => void openDetail(row, true)}><Printer size={15} /> In phiếu</button>
                           <button type="button" onClick={() => exportRows([row], `phieu-${getBillCode(row)}`)}><FileDown size={15} /> Xuất Excel</button>
                           {row.canDelete && activeTab === 'bills' && (
                             <button className="danger" type="button" onClick={() => requestDelete([row])}><Trash2 size={15} /> Xóa phiếu</button>
@@ -649,7 +644,6 @@ export function WarehouseTransactionPage() {
                     <h2>{detailTitle(detail)}</h2>
                   </div>
                   <div className="wr-detail-actions">
-                    <button className="btn btn-light" type="button" onClick={() => window.print()}><Printer size={15} /> In phiếu</button>
                     <button className="wr-icon-button" type="button" aria-label="Đóng chi tiết" onClick={() => setDetail(null)}><X size={17} /></button>
                   </div>
                 </header>

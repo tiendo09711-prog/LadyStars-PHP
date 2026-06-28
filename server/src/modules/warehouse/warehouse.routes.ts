@@ -40,16 +40,17 @@ const TRANSFER_STATUSES = [
   'PENDING_DISPATCH_APPROVAL',
   'IN_TRANSIT',
   'PENDING_RECEIPT_APPROVAL',
-  'PENDING_RETURN_APPROVAL',
-  'COMPLETED',
-  'RETURNED',
-  'REJECTED',
-  'CANCELLED',
+ 'PENDING_RETURN_APPROVAL',
+ 'COMPLETED',
+ 'RETURN_IN_PROGRESS',
+ 'RETURNED',
+ 'REJECTED',
+ 'CANCELLED',
 ] as const;
 
-const PUBLIC_TRANSFER_STATUSES = ['DRAFT', 'IN_TRANSIT', 'COMPLETED', 'RETURNED', 'CANCELLED'] as const;
-const OUTGOING_STATUSES = ['IN_TRANSIT'];
-const INCOMING_STATUSES = ['IN_TRANSIT'];
+const PUBLIC_TRANSFER_STATUSES = ['DRAFT', 'IN_TRANSIT', 'RETURN_IN_PROGRESS', 'COMPLETED', 'RETURNED', 'CANCELLED'] as const;
+const OUTGOING_STATUSES = ['IN_TRANSIT', 'RETURN_IN_PROGRESS'];
+const INCOMING_STATUSES = ['IN_TRANSIT', 'RETURN_IN_PROGRESS'];
 const LEGACY_APPROVAL_ACTIONS = ['submit', 'approve-request', 'reject-request', 'confirm-dispatch', 'approve-dispatch', 'confirm-receipt', 'reject-receipt', 'approve-receipt', 'approve-return'];
 const IMPORT_SESSION_TTL_MS = 30 * 60 * 1000;
 const transferImportSessions = new Map<string, { expiresAt: number; createdBy: string; fileName: string; fileHash: string; groups: any[]; summary: any }>();
@@ -108,13 +109,14 @@ function transferPublicStatus(status: string) {
     DRAFT: 'Chờ xác nhận xuất',
     PENDING_REQUEST_APPROVAL: 'Chờ xác nhận xuất',
     APPROVED_TO_DISPATCH: 'Chờ xác nhận xuất',
-    PENDING_DISPATCH_APPROVAL: 'Đang chuyển',
-    IN_TRANSIT: 'Đang chuyển',
-    PENDING_RECEIPT_APPROVAL: 'Đang chuyển',
-    PENDING_RETURN_APPROVAL: 'Đơn hoàn',
-    COMPLETED: 'Hoàn thành',
-    RETURNED: 'Đơn hoàn',
-    REJECTED: 'Đã hủy',
+   PENDING_DISPATCH_APPROVAL: 'Đang chuyển',
+   IN_TRANSIT: 'Đang chuyển',
+   PENDING_RECEIPT_APPROVAL: 'Đang chuyển',
+   PENDING_RETURN_APPROVAL: 'Đang chuyển',
+   COMPLETED: 'Hoàn thành',
+   RETURN_IN_PROGRESS: 'Đang chờ nhận lại hàng trả',
+   RETURNED: 'Đã trả hàng / Đã mở khóa',
+   REJECTED: 'Đã hủy',
     CANCELLED: 'Đã hủy',
   };
   return labels[status] || status;
@@ -123,8 +125,9 @@ function transferPublicStatus(status: string) {
 function statusTone(status: string) {
   if (['COMPLETED', 'RETURNED'].includes(status)) return 'success';
   if (['REJECTED', 'CANCELLED'].includes(status)) return 'danger';
-  if (['IN_TRANSIT', 'PENDING_RECEIPT_APPROVAL', 'PENDING_RETURN_APPROVAL'].includes(status)) return 'transfer';
-  return 'adjustment';
+ if (['IN_TRANSIT', 'PENDING_RECEIPT_APPROVAL', 'PENDING_RETURN_APPROVAL'].includes(status)) return 'transfer';
+ if (status === 'RETURN_IN_PROGRESS') return 'transfer';
+ return 'adjustment';
 }
 
 function canCancelTransfer(transfer: any) {
@@ -147,9 +150,9 @@ function availableTransferActions(transfer: any, user: any) {
   const actions: Array<{ action: string; label: string; needsReason?: boolean; danger?: boolean }> = [];
 
   if (status === 'DRAFT' && canSource) actions.push({ action: 'confirm-source', label: 'Xác nhận xuất' });
-  if (status === 'IN_TRANSIT' && canDestination) {
-    actions.push({ action: 'confirm-destination', label: 'Xác nhận nhận hàng' });
-    actions.push({ action: 'return', label: 'Báo không nhận / Hoàn chuyển', needsReason: true, danger: true });
+  if (status === 'IN_TRANSIT' && canDestination) actions.push({ action: 'confirm-destination', label: 'Xác nhận nhận hàng' });
+  if (status === 'IN_TRANSIT' && canDestination && String(transfer.kind || 'NORMAL_TRANSFER') === 'NORMAL_TRANSFER' && !transfer.returnTransferId) {
+    actions.push({ action: 'return', label: 'Báo trả hàng / Không nhận', needsReason: true, danger: true });
   }
 
   return actions;
@@ -289,8 +292,10 @@ async function assertEnoughSourceStock(transfer: any, session?: any) {
     const qty = Number(line.approvedQuantity || line.requestedQuantity || 0);
     const stock = await ProductBranchStock.findOne({ productId: line.productId, branchId: transfer.sourceWarehouseId || transfer.fromWarehouse }).session(session || null);
     const currentQty = Number(stock?.qty || 0);
-    if (currentQty < qty) {
-      const error: any = new Error(`Sản phẩm ${line.productCode || line.productName} không đủ tồn kho tại kho nguồn. Tồn hiện tại: ${currentQty}, yêu cầu: ${qty}.`);
+    const locked = Number(stock?.lockedQuantity || 0);
+    const available = currentQty - locked;
+    if (available < qty) {
+      const error: any = new Error(`Sản phẩm ${line.productCode || line.productName} không đủ tồn khả dụng tại kho nguồn. Tồn hiện tại: ${currentQty}, đang khóa: ${locked}, khả dụng: ${available}, yêu cầu: ${qty}.`);
       error.status = 409;
       throw error;
     }
@@ -339,6 +344,82 @@ async function moveStockStrict({ productId, branchId, amount, sourceType, source
     amountBefore: before,
     amountAfter: product.qty,
   }], { session });
+}
+
+// Tăng/giảm khóa (lockedQuantity) tại kho nguồn mà KHÔNG đụng qty.
+// amount > 0: khóa thêm — yêu cầu available = qty - lockedQuantity >= amount (atomic), fail => 409.
+// amount < 0: giải phóng khóa — yêu cầu lockedQuantity >= |amount| (atomic), fail => 500 (lock không đồng bộ).
+async function reserveSourceStock({ productId, branchId, amount, session }: any) {
+  if (!Number.isFinite(amount) || amount === 0) return;
+  const product = await Product.findById(productId).session(session);
+  if (!product || product.type === 'service') return;
+  if (amount > 0) {
+    const updated = await ProductBranchStock.findOneAndUpdate(
+      { productId: product._id, branchId, $expr: { $gte: [{ $subtract: ['$qty', '$lockedQuantity'] }, amount] } },
+      { $inc: { lockedQuantity: amount }, $setOnInsert: { qty: 0, minQuantity: product.minQuantity, maxQuantity: product.maxQuantity } },
+      { upsert: true, new: true, setDefaultsOnInsert: true, session },
+    );
+    if (!updated) {
+      const stock = await ProductBranchStock.findOne({ productId: product._id, branchId }).session(session).lean();
+      const currentQty = Number(stock?.qty || 0);
+      const locked = Number(stock?.lockedQuantity || 0);
+      const available = currentQty - locked;
+      const error: any = new Error(`Sản phẩm ${product.code || product.name} không đủ tồn khả dụng tại kho nguồn. Tồn hiện tại: ${currentQty}, đang khóa: ${locked}, khả dụng: ${available}, yêu cầu: ${amount}.`);
+      error.status = 409;
+      throw error;
+    }
+  } else {
+    const release = Math.abs(amount);
+    const updated = await ProductBranchStock.findOneAndUpdate(
+      { productId: product._id, branchId, lockedQuantity: { $gte: release } },
+      { $inc: { lockedQuantity: amount } },
+      { new: true, session },
+    );
+    if (!updated) {
+      const error: any = new Error(`Lock không đồng bộ cho sản phẩm ${product.code || product.name} tại kho nguồn.`);
+      error.status = 500;
+      throw error;
+    }
+  }
+}
+
+// Dùng ở confirm-destination NORMAL: trừ qty + giảm lock cùng lượng (atomic), rồi cộng kho đích bằng moveStockStrict.
+async function consumeReservedStock({ productId, branchId, amount, sourceType, sourceId, valueAfter, session }: any) {
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  const product = await Product.findById(productId).session(session);
+  if (!product || product.type === 'service') return;
+  const consumed = await ProductBranchStock.findOneAndUpdate(
+    { productId: product._id, branchId, qty: { $gte: amount }, lockedQuantity: { $gte: amount } },
+    { $inc: { qty: -amount, lockedQuantity: -amount }, $setOnInsert: { minQuantity: product.minQuantity, maxQuantity: product.maxQuantity } },
+    { upsert: false, new: true, session },
+  );
+  if (!consumed) {
+    const stock = await ProductBranchStock.findOne({ productId: product._id, branchId }).session(session).lean();
+    const currentQty = Number(stock?.qty || 0);
+    const locked = Number(stock?.lockedQuantity || 0);
+    const available = currentQty - locked;
+    const error: any = new Error(`Sản phẩm ${product.code || product.name} không đủ tồn khả dụng để trừ tại kho nguồn. Tồn hiện tại: ${currentQty}, đang khóa: ${locked}, khả dụng: ${available}, yêu cầu: ${amount}.`);
+    error.status = 409;
+    throw error;
+  }
+  const before = Number(product.qty || 0);
+  product.qty = before - amount;
+  await product.save({ session });
+  await ProductLog.create([{
+    productId: product._id,
+    sourceType,
+    sourceId,
+    amount: -amount,
+    valueBefore: product.price,
+    valueAfter: valueAfter ?? product.price,
+    amountBefore: before,
+    amountAfter: product.qty,
+  }], { session });
+}
+
+// Dùng ở confirm-destination RETURN_OF_TRANSFER: chỉ giải phóng lock của đơn gốc, KHÔNG đụng qty.
+async function releaseReservation({ productId, branchId, amount, session }: any) {
+  return reserveSourceStock({ productId, branchId, amount, session });
 }
 
 async function createTransferVoucher(transfer: any, req: any, kind: 'EXPORT_TRANSFER' | 'IMPORT_TRANSFER' | 'RETURN_TRANSFER', warehouseId: any, warehouseName: string, lines: any[], session: any) {
@@ -1511,6 +1592,19 @@ function serializeTransfer(row: any, user?: any) {
   const destination = row.destinationWarehouseId || row.toWarehouse;
   const lines = Array.isArray(row.lines) ? row.lines : [];
   const totalRequested = lines.reduce((sum: number, line: any) => sum + Number(line.requestedQuantity || line.quantity || 0), 0);
+  const status = String(row.status || 'DRAFT');
+  const kind = String(row.kind || 'NORMAL_TRANSFER');
+  const lockedQuantityTotal = lines.reduce((sum: number, line: any) => sum + Number(line.lockedQuantity || 0), 0);
+  const hasSourceExportBill = Boolean(row.sourceExportBillId);
+  const canEditDraft = user ? actorCanEditDraft(user, row) : false;
+  const canSource = user ? actorCanConfirmSource(user, row) : false;
+  const canDestination = user ? actorCanConfirmDestination(user, row) : false;
+  const canEdit =
+    user
+      ? (canEditDraft) || (status === 'IN_TRANSIT' && kind === 'NORMAL_TRANSFER' && !row.returnTransferId && !row.destinationImportBillId && canSource)
+      : false;
+  const canPrint = status === 'COMPLETED' || (status === 'IN_TRANSIT' && (hasSourceExportBill || Boolean(row.dispatchConfirmedAt))) || status === 'RETURN_IN_PROGRESS';
+  const canReturn = status === 'IN_TRANSIT' && kind === 'NORMAL_TRANSFER' && canDestination && !row.returnTransferId;
   return {
     ...row,
     sourceWarehouseId: String(source?._id || source || ''),
@@ -1522,11 +1616,15 @@ function serializeTransfer(row: any, user?: any) {
     totalRequestedQuantity: Number(row.qty || totalRequested),
     totalProductLines: Number(row.spCount || lines.length),
     canCancel: canCancelTransfer(row),
-    canEdit: user ? actorCanEditDraft(user, row) : false,
-    canConfirmSource: user ? (String(row.status || 'DRAFT') === 'DRAFT' && actorCanConfirmSource(user, row)) : false,
-    canConfirmDestination: user ? (String(row.status || 'DRAFT') === 'IN_TRANSIT' && actorCanConfirmDestination(user, row)) : false,
-    canReturn: user ? (String(row.status || 'DRAFT') === 'IN_TRANSIT' && actorCanConfirmDestination(user, row)) : false,
-    canPrint: String(row.status || 'DRAFT') === 'COMPLETED',
+    kind,
+    originTransferId: row.originTransferId ? String(row.originTransferId._id || row.originTransferId) : '',
+    returnTransferId: row.returnTransferId ? String(row.returnTransferId._id || row.returnTransferId) : '',
+    lockedQuantity: lockedQuantityTotal,
+    canEdit,
+    canConfirmSource: user ? (status === 'DRAFT' && canSource) : false,
+    canConfirmDestination: user ? (status === 'IN_TRANSIT' && canDestination) : false,
+    canReturn,
+    canPrint,
     sourceConfirmedBy: row.dispatchConfirmedById,
     sourceConfirmedAt: row.dispatchConfirmedAt,
     destinationConfirmedBy: row.receiptConfirmedById,
@@ -2061,36 +2159,85 @@ router.use('/checks', crudRoutes(InventoryCheck));
 router.use('/check-products', crudRoutes(InventoryCheckProduct));
 
 router.patch('/transfers/:id', async (req, res) => {
-  try {
-    const baseTransfer = await readTransferOr404(req.params.id);
-    if (!actorCanAccessTransfer((req as any).user, baseTransfer)) return res.status(403).json({ message: 'Bạn không có quyền xem phiếu chuyển kho này.' });
-    if (String(baseTransfer.status || 'DRAFT') !== 'DRAFT') return res.status(409).json({ message: 'Chỉ được sửa phiếu ở trạng thái Chờ xác nhận xuất.' });
-    if (!actorCanEditDraft((req as any).user, baseTransfer)) return res.status(403).json({ message: 'Chỉ quản lý kho nguồn hoặc Admin được sửa phiếu nháp.' });
-    const sourceBranch = await activeBranchOrError(req.body.sourceWarehouseId || req.body.fromWarehouse || baseTransfer.sourceWarehouseId, 'Kho nguồn');
-    const destinationBranch = await activeBranchOrError(req.body.destinationWarehouseId || req.body.toWarehouse || baseTransfer.destinationWarehouseId, 'Kho đích');
-    if (String(sourceBranch._id) === String(destinationBranch._id)) return res.status(400).json({ message: 'Kho nguồn và kho đích không được trùng nhau.' });
-    if (String(sourceBranch._id) !== String(baseTransfer.sourceWarehouseId || baseTransfer.fromWarehouse || '')) {
-      if (!actorCanCreateFrom((req as any).user, sourceBranch._id)) return res.status(403).json({ message: 'Bạn không có quyền chuyển sang kho nguồn này.' });
-    }
-    const lines = await buildTransferLines(req.body.lines || baseTransfer.lines);
-    const totals = transferTotals(lines);
-    const transfer = await WarehouseTransfer.findById(baseTransfer._id);
-    if (!transfer) return res.status(404).json({ message: 'Không tìm thấy phiếu chuyển kho.' });
-    if (String(transfer.status || 'DRAFT') !== 'DRAFT') return res.status(409).json({ message: 'Phiếu đã thay đổi trạng thái, không thể sửa.' });
-    transfer.sourceWarehouseId = sourceBranch._id as any; transfer.destinationWarehouseId = destinationBranch._id as any;
-    transfer.fromWarehouse = sourceBranch._id as any; transfer.toWarehouse = destinationBranch._id as any;
-    transfer.sourceWarehouseName = sourceBranch.name; transfer.destinationWarehouseName = destinationBranch.name;
-    transfer.warehouse = `${sourceBranch.name} -> ${destinationBranch.name}`;
-    transfer.label = String(req.body.label ?? transfer.label ?? '');
-    transfer.note = String(req.body.note ?? transfer.note ?? '');
-    transfer.lines = lines as any; transfer.qty = totals.qty; transfer.spCount = totals.spCount; transfer.totalAmount = totals.totalAmount;
-    transfer.version = Number(transfer.version || 0) + 1;
-    await transfer.save();
-    await addTransferAudit(transfer, req, 'TRANSFER_UPDATED', 'DRAFT', 'DRAFT', '');
-    res.json(serializeTransfer(transfer.toObject(), (req as any).user));
-  } catch (err: any) {
-    res.status(err.status || 500).json({ message: err.message || 'Lỗi server khi sửa phiếu chuyển kho.' });
-  }
+ const session = await mongoose.startSession();
+ try {
+   let result: any;
+   await session.withTransaction(async () => {
+     const baseTransfer = await readTransferOr404(req.params.id);
+     if (!actorCanAccessTransfer((req as any).user, baseTransfer)) { const error: any = new Error('Bạn không có quyền xem phiếu chuyển kho này.'); error.status = 403; throw error; }
+     const status = String(baseTransfer.status || 'DRAFT');
+     const editableStatuses = ['DRAFT', 'IN_TRANSIT'];
+     if (!editableStatuses.includes(status)) { const error: any = new Error('Chỉ được sửa phiếu ở trạng thái Chờ xác nhận xuất hoặc Đang chuyển.'); error.status = 409; throw error; }
+     const transfer = await WarehouseTransfer.findById(baseTransfer._id).session(session);
+     if (!transfer) { const error: any = new Error('Không tìm thấy phiếu chuyển kho.'); error.status = 404; throw error; }
+     const currentStatus = String(transfer.status || 'DRAFT');
+     if (!editableStatuses.includes(currentStatus)) { const error: any = new Error('Phiếu đã thay đổi trạng thái, không thể sửa.'); error.status = 409; throw error; }
+     const previous = currentStatus;
+     if (currentStatus === 'DRAFT') {
+       if (!actorCanEditDraft((req as any).user, transfer)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được sửa phiếu nháp.'); error.status = 403; throw error; }
+       const sourceBranch = await activeBranchOrError(req.body.sourceWarehouseId || req.body.fromWarehouse || baseTransfer.sourceWarehouseId, 'Kho nguồn');
+       const destinationBranch = await activeBranchOrError(req.body.destinationWarehouseId || req.body.toWarehouse || baseTransfer.destinationWarehouseId, 'Kho đích');
+       if (String(sourceBranch._id) === String(destinationBranch._id)) { const error: any = new Error('Kho nguồn và kho đích không được trùng nhau.'); error.status = 400; throw error; }
+       if (String(sourceBranch._id) !== String(baseTransfer.sourceWarehouseId || baseTransfer.fromWarehouse || '')) {
+         if (!actorCanCreateFrom((req as any).user, sourceBranch._id)) { const error: any = new Error('Bạn không có quyền chuyển sang kho nguồn này.'); error.status = 403; throw error; }
+       }
+       const lines = await buildTransferLines(req.body.lines || baseTransfer.lines);
+       const totals = transferTotals(lines);
+       transfer.sourceWarehouseId = sourceBranch._id as any; transfer.destinationWarehouseId = destinationBranch._id as any;
+       transfer.fromWarehouse = sourceBranch._id as any; transfer.toWarehouse = destinationBranch._id as any;
+       transfer.sourceWarehouseName = sourceBranch.name; transfer.destinationWarehouseName = destinationBranch.name;
+       transfer.warehouse = `${sourceBranch.name} -> ${destinationBranch.name}`;
+       transfer.label = String(req.body.label ?? transfer.label ?? '');
+       transfer.note = String(req.body.note ?? transfer.note ?? '');
+       transfer.lines = lines as any; transfer.qty = totals.qty; transfer.spCount = totals.spCount; transfer.totalAmount = totals.totalAmount;
+       transfer.version = Number(transfer.version || 0) + 1;
+       await transfer.save({ session });
+       await addTransferAudit(transfer, req, 'TRANSFER_UPDATED', previous, 'DRAFT', '', {}, session);
+       result = transfer.toObject();
+       return;
+     }
+     // IN_TRANSIT: chỉ cho sửa khi NORMAL_TRANSFER, chưa nhận, chưa báo trả, có quyền kho nguồn.
+     if (String(transfer.kind || 'NORMAL_TRANSFER') !== 'NORMAL_TRANSFER') { const error: any = new Error('Đơn trả hàng không được phép sửa số lượng.'); error.status = 409; throw error; }
+     if (transfer.destinationImportBillId) { const error: any = new Error('Phiếu đã được xác nhận nhận, không thể sửa.'); error.status = 409; throw error; }
+     if (transfer.returnTransferId) { const error: any = new Error('Phiếu đã được báo trả hàng, không thể sửa.'); error.status = 409; throw error; }
+     if (!actorCanConfirmSource((req as any).user, transfer)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được sửa đơn đang chuyển.'); error.status = 403; throw error; }
+     const incomingLines = await buildTransferLines(req.body.lines || baseTransfer.lines);
+     const incomingByProduct = new Map(incomingLines.map((line: any) => [String(line.productId), line]));
+      const currentProductIds = new Set((transfer.lines || []).map((line: any) => String(line.productId)));
+      if (incomingByProduct.size !== currentProductIds.size || [...incomingByProduct.keys()].some((productId) => !currentProductIds.has(productId))) {
+        const error: any = new Error('Đơn đang chuyển chỉ được sửa số lượng các sản phẩm đã khóa, không được thêm hoặc xóa dòng sản phẩm.');
+        error.status = 409;
+        throw error;
+      }
+     const beforeLockByProduct: Record<string, number> = {};
+     for (const line of transfer.lines || []) {
+       const oldLocked = Number(line.lockedQuantity || 0);
+       beforeLockByProduct[String(line.productId)] = oldLocked;
+       const incoming = incomingByProduct.get(String(line.productId));
+       const newQty = Number(incoming?.requestedQuantity || 0);
+       const delta = newQty - oldLocked;
+       if (delta > 0) await reserveSourceStock({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: delta, session });
+       if (delta < 0) await reserveSourceStock({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: delta, session });
+       line.requestedQuantity = newQty;
+       line.approvedQuantity = newQty;
+       line.lockedQuantity = newQty;
+       line.dispatchedQuantity = newQty;
+     }
+     const totals = transferTotals(incomingLines);
+     transfer.label = String(req.body.label ?? transfer.label ?? '');
+     transfer.note = String(req.body.note ?? transfer.note ?? '');
+     transfer.qty = totals.qty; transfer.spCount = totals.spCount; transfer.totalAmount = totals.totalAmount;
+     transfer.version = Number(transfer.version || 0) + 1;
+     await transfer.save({ session });
+     await addTransferAudit(transfer, req, 'TRANSFER_UPDATED_IN_TRANSIT', previous, 'IN_TRANSIT', '', { beforeLockByProduct }, session);
+     result = transfer.toObject();
+   });
+   res.json(serializeTransfer(result, (req as any).user));
+ } catch (err: any) {
+   res.status(err.status || 500).json({ message: err.message || 'Lỗi server khi sửa phiếu chuyển kho.' });
+ } finally {
+   await session.endSession();
+ }
 });
 
 router.delete('/transfers/:id', async (req, res) => {
@@ -2126,21 +2273,36 @@ async function runConfirmSource(req: any, res: any, session: any) {
   if (String(transfer.status || 'DRAFT') !== 'DRAFT') { const error: any = new Error('Chỉ xác nhận xuất được phiếu ở trạng thái Chờ xác nhận xuất.'); error.status = 409; throw error; }
   if (!actorCanConfirmSource(req.user, transfer)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được xác nhận xuất.'); error.status = 403; throw error; }
   if (transfer.sourceExportBillId) { const error: any = new Error('Phiếu đã được xác nhận xuất.'); error.status = 409; throw error; }
-  const previous = String(transfer.status || 'DRAFT');
-  await assertEnoughSourceStock(transfer, session);
-  const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.requestedQuantity || line.quantity || 0), price: Number(line.unitCostSnapshot || 0) }));
-  const voucher = await createTransferVoucher(transfer, req, 'EXPORT_TRANSFER', transfer.sourceWarehouseId, transfer.sourceWarehouseName || String(transfer.sourceWarehouseId || ''), voucherLines, session);
-  for (const line of voucherLines) {
-    await moveStockStrict({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: -Number(line.quantity || 0), sourceType: 'WarehouseTransfer:EXPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session });
-    const transferLine: any = (transfer.lines || []).find((item: any) => String(item.productId) === String(line.productId));
-    if (transferLine) transferLine.dispatchedQuantity = Number(line.quantity || 0);
-  }
-  const now = new Date();
-  transfer.sourceExportBillId = voucher._id; transfer.dispatchConfirmedById = actorId(req); transfer.dispatchConfirmedAt = now; transfer.status = 'IN_TRANSIT';
-  transfer.version = Number(transfer.version || 0) + 1;
-  await transfer.save({ session });
-  await addTransferAudit(transfer, req, 'SOURCE_CONFIRMED', previous, 'IN_TRANSIT', '', {}, session);
-  return transfer.toObject();
+ const previous = String(transfer.status || 'DRAFT');
+ await assertEnoughSourceStock(transfer, session);
+ const kind = String(transfer.kind || 'NORMAL_TRANSFER');
+ const now = new Date();
+ if (kind === 'RETURN_OF_TRANSFER') {
+   // Đơn trả: chỉ chuyển trạng thái, KHÔNG lock thêm, KHÔNG trừ tồn, KHÔNG tạo voucher di chuyển tồn.
+   for (const line of transfer.lines || []) {
+     line.dispatchedQuantity = Number(line.requestedQuantity || line.dispatchedQuantity || 0);
+     line.lockedQuantity = 0;
+   }
+   transfer.dispatchConfirmedById = actorId(req); transfer.dispatchConfirmedAt = now; transfer.status = 'IN_TRANSIT';
+   transfer.version = Number(transfer.version || 0) + 1;
+   await transfer.save({ session });
+   await addTransferAudit(transfer, req, 'SOURCE_CONFIRMED', previous, 'IN_TRANSIT', '', { kind }, session);
+   return transfer.toObject();
+ }
+ // NORMAL_TRANSFER: khóa (lock) tồn tại kho nguồn, KHÔNG trừ qty ngay. Vẫn tạo voucher EXPORT_TRANSFER để in phiếu.
+ const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.requestedQuantity || line.quantity || 0), price: Number(line.unitCostSnapshot || 0) }));
+ const voucher = await createTransferVoucher(transfer, req, 'EXPORT_TRANSFER', transfer.sourceWarehouseId, transfer.sourceWarehouseName || String(transfer.sourceWarehouseId || ''), voucherLines, session);
+ for (const line of transfer.lines || []) {
+   const qty = Number(line.requestedQuantity || 0);
+   await reserveSourceStock({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: qty, session });
+   line.lockedQuantity = qty;
+   line.dispatchedQuantity = qty;
+ }
+ transfer.sourceExportBillId = voucher._id; transfer.dispatchConfirmedById = actorId(req); transfer.dispatchConfirmedAt = now; transfer.status = 'IN_TRANSIT';
+ transfer.version = Number(transfer.version || 0) + 1;
+ await transfer.save({ session });
+ await addTransferAudit(transfer, req, 'SOURCE_LOCKED', previous, 'IN_TRANSIT', '', { kind }, session);
+ return transfer.toObject();
 }
 
 router.post('/transfers/:id/confirm-source', async (req, res) => {
@@ -2163,20 +2325,46 @@ async function runConfirmDestination(req: any, _res: any, session: any) {
   if (String(transfer.status || 'DRAFT') !== 'IN_TRANSIT') { const error: any = new Error('Chỉ xác nhận nhận được phiếu đang chuyển.'); error.status = 409; throw error; }
   if (!actorCanConfirmDestination(req.user, transfer)) { const error: any = new Error('Chỉ quản lý kho đích hoặc Admin được xác nhận nhận.'); error.status = 403; throw error; }
   if (transfer.destinationImportBillId) { const error: any = new Error('Phiếu đã được xác nhận nhận.'); error.status = 409; throw error; }
-  const previous = String(transfer.status || 'DRAFT');
-  const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.dispatchedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
-  const voucher = await createTransferVoucher(transfer, req, 'IMPORT_TRANSFER', transfer.destinationWarehouseId, transfer.destinationWarehouseName || String(transfer.destinationWarehouseId || ''), voucherLines, session);
-  for (const line of voucherLines) {
-    await moveStockStrict({ productId: line.productId, branchId: transfer.destinationWarehouseId, amount: Number(line.quantity || 0), sourceType: 'WarehouseTransfer:IMPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session });
-    const transferLine: any = (transfer.lines || []).find((item: any) => String(item.productId) === String(line.productId));
-    if (transferLine) transferLine.receivedQuantity = Number(line.quantity || 0);
-  }
-  const now = new Date();
-  transfer.destinationImportBillId = voucher._id; transfer.receiptConfirmedById = actorId(req); transfer.receiptConfirmedAt = now; transfer.status = 'COMPLETED';
-  transfer.version = Number(transfer.version || 0) + 1;
-  await transfer.save({ session });
-  await addTransferAudit(transfer, req, 'DESTINATION_CONFIRMED', previous, 'COMPLETED', '', {}, session);
-  return transfer.toObject();
+ const previous = String(transfer.status || 'DRAFT');
+ const kind = String(transfer.kind || 'NORMAL_TRANSFER');
+ const now = new Date();
+ if (kind === 'RETURN_OF_TRANSFER') {
+   if (!transfer.originTransferId) { const error: any = new Error('Đơn trả hàng không có đơn gốc liên kết.'); error.status = 409; throw error; }
+   const origin = await WarehouseTransfer.findById(transfer.originTransferId).session(session);
+   if (!origin) { const error: any = new Error('Không tìm thấy đơn gốc của đơn trả hàng.'); error.status = 409; throw error; }
+   if (String(origin.status || '') !== 'RETURN_IN_PROGRESS') { const error: any = new Error('Đơn gốc không ở trạng thái đang chờ nhận lại hàng trả.'); error.status = 409; throw error; }
+   for (const originLine of origin.lines || []) {
+     const qty = Number(originLine.lockedQuantity || originLine.dispatchedQuantity || originLine.requestedQuantity || 0);
+     await releaseReservation({ productId: originLine.productId, branchId: origin.sourceWarehouseId, amount: -qty, session });
+     originLine.lockedQuantity = 0;
+   }
+   const originPrevious = String(origin.status || 'DRAFT');
+   origin.status = 'RETURNED'; origin.returnedById = actorId(req); origin.returnedAt = now;
+   origin.version = Number(origin.version || 0) + 1;
+   await origin.save({ session });
+   await addTransferAudit(origin, req, 'RETURNED', originPrevious, 'RETURNED', '', { returnTransferId: transfer._id }, session);
+   for (const line of transfer.lines || []) { line.receivedQuantity = Number(line.requestedQuantity || line.dispatchedQuantity || 0); line.lockedQuantity = 0; }
+   transfer.receiptConfirmedById = actorId(req); transfer.receiptConfirmedAt = now; transfer.status = 'COMPLETED';
+   transfer.version = Number(transfer.version || 0) + 1;
+   await transfer.save({ session });
+   await addTransferAudit(transfer, req, 'RETURN_DESTINATION_CONFIRMED', previous, 'COMPLETED', '', { originTransferId: origin._id }, session);
+   return transfer.toObject();
+ }
+ // NORMAL_TRANSFER: trừ qty + giảm lock (consume) tại kho nguồn, cộng qty kho đích, tạo IMPORT_TRANSFER.
+ const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.dispatchedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
+ const voucher = await createTransferVoucher(transfer, req, 'IMPORT_TRANSFER', transfer.destinationWarehouseId, transfer.destinationWarehouseName || String(transfer.destinationWarehouseId || ''), voucherLines, session);
+ for (const line of transfer.lines || []) {
+   const qty = Number(line.dispatchedQuantity || line.requestedQuantity || 0);
+   await consumeReservedStock({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: qty, sourceType: 'WarehouseTransfer:IMPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.unitCostSnapshot, session });
+   await moveStockStrict({ productId: line.productId, branchId: transfer.destinationWarehouseId, amount: qty, sourceType: 'WarehouseTransfer:IMPORT_TRANSFER', sourceId: voucher._id, valueAfter: line.unitCostSnapshot, session });
+   line.receivedQuantity = qty;
+   line.lockedQuantity = 0;
+ }
+ transfer.destinationImportBillId = voucher._id; transfer.receiptConfirmedById = actorId(req); transfer.receiptConfirmedAt = now; transfer.status = 'COMPLETED';
+ transfer.version = Number(transfer.version || 0) + 1;
+ await transfer.save({ session });
+ await addTransferAudit(transfer, req, 'DESTINATION_CONFIRMED', previous, 'COMPLETED', '', { kind }, session);
+ return transfer.toObject();
 }
 
 router.post('/transfers/:id/confirm-destination', async (req, res) => {
@@ -2200,28 +2388,57 @@ async function runReturn(req: any, _res: any, session: any) {
   if (!actorCanConfirmDestination(req.user, transfer)) { const error: any = new Error('Chỉ quản lý kho đích hoặc Admin được báo hoàn chuyển.'); error.status = 403; throw error; }
   const reason = String(req.body?.reason || '').trim();
   if (!reason) { const error: any = new Error('Vui lòng nhập lý do hoàn chuyển.'); error.status = 400; throw error; }
-  if (!transfer.sourceExportBillId) { const error: any = new Error('Phiếu chưa có chứng từ xuất, không thể hoàn.'); error.status = 409; throw error; }
-  if (transfer.returnBillId) { const error: any = new Error('Phiếu đã được báo hoàn.'); error.status = 409; throw error; }
-  const previous = String(transfer.status || 'DRAFT');
-  const voucherLines = (transfer.lines || []).map((line: any) => ({ ...(line.toObject?.() || line), quantity: Number(line.dispatchedQuantity || line.requestedQuantity || 0), price: Number(line.unitCostSnapshot || 0) }));
-  const voucher = await createTransferVoucher(transfer, req, 'RETURN_TRANSFER', transfer.sourceWarehouseId, transfer.sourceWarehouseName || String(transfer.sourceWarehouseId || ''), voucherLines, session);
-  for (const line of voucherLines) {
-    await moveStockStrict({ productId: line.productId, branchId: transfer.sourceWarehouseId, amount: Number(line.quantity || 0), sourceType: 'WarehouseTransfer:RETURN_TRANSFER', sourceId: voucher._id, valueAfter: line.price, session });
-  }
-  const now = new Date();
-  transfer.returnBillId = voucher._id; transfer.returnedById = actorId(req); transfer.returnedAt = now; transfer.returnReason = reason; transfer.status = 'RETURNED';
-  transfer.version = Number(transfer.version || 0) + 1;
-  await transfer.save({ session });
-  await addTransferAudit(transfer, req, 'TRANSFER_RETURNED', previous, 'RETURNED', reason, {}, session);
-  return transfer.toObject();
+ if (!transfer.sourceExportBillId) { const error: any = new Error('Phiếu chưa có chứng từ xuất, không thể hoàn.'); error.status = 409; throw error; }
+ if (transfer.returnTransferId) { const error: any = new Error('Phiếu đã được báo trả hàng.'); error.status = 409; throw error; }
+ if (String(transfer.kind || 'NORMAL_TRANSFER') !== 'NORMAL_TRANSFER') { const error: any = new Error('Chỉ đơn chuyển thường mới được báo trả hàng.'); error.status = 409; throw error; }
+ const previous = String(transfer.status || 'DRAFT');
+ // Tự động tạo đơn chuyển ngược B->A (RETURN_OF_TRANSFER). Lock tại kho A vẫn giữ, qty kho A vẫn nguyên.
+ const now = new Date();
+ const returnCode = makeTransferCode();
+ const returnLines = (transfer.lines || []).map((line: any) => ({
+   productId: line.productId,
+   productCode: line.productCode,
+   productName: line.productName,
+   barcode: line.barcode,
+   requestedQuantity: Number(line.dispatchedQuantity || line.requestedQuantity || 0),
+   approvedQuantity: Number(line.dispatchedQuantity || line.requestedQuantity || 0),
+   dispatchedQuantity: 0,
+   receivedQuantity: 0,
+   lockedQuantity: 0,
+   unitCostSnapshot: Number(line.unitCostSnapshot || 0),
+   unit: line.unit || '',
+   batchCode: line.batchCode || '',
+   imei: line.imei || '',
+   note: '',
+ }));
+ const [returnTransfer] = await WarehouseTransfer.create([{
+   id: returnCode, code: returnCode, tabs: ['draft'], date: now.toISOString(), dateObj: now,
+   type: 'Trả hàng chuyển kho', status: 'DRAFT', kind: 'RETURN_OF_TRANSFER', originTransferId: transfer._id,
+   sourceWarehouseId: transfer.destinationWarehouseId, destinationWarehouseId: transfer.sourceWarehouseId,
+   fromWarehouse: transfer.destinationWarehouseId, toWarehouse: transfer.sourceWarehouseId,
+   sourceWarehouseName: transfer.destinationWarehouseName, destinationWarehouseName: transfer.sourceWarehouseName,
+   warehouse: `${transfer.destinationWarehouseName} -> ${transfer.sourceWarehouseName}`,
+   label: '', note: `Trả hàng cho phiếu ${transfer.id}. Lý do: ${reason}`,
+   creator: actorName(req), createdById: actorId(req),
+   qty: Number(transfer.qty || 0), spCount: Number(transfer.spCount || returnLines.length), totalAmount: 0,
+   lines: returnLines,
+ }], { session });
+ transfer.status = 'RETURN_IN_PROGRESS'; transfer.returnReason = reason; transfer.returnTransferId = returnTransfer._id;
+ transfer.returnedById = actorId(req); transfer.returnedAt = now;
+ transfer.version = Number(transfer.version || 0) + 1;
+ await transfer.save({ session });
+ await addTransferAudit(transfer, req, 'RETURN_REQUESTED', previous, 'RETURN_IN_PROGRESS', reason, { returnTransferId: returnTransfer._id }, session);
+ await addTransferAudit(returnTransfer, req, 'RETURN_TRANSFER_CREATED', '', 'DRAFT', reason, { originTransferId: transfer._id }, session);
+ return { origin: transfer.toObject(), returnTransfer: returnTransfer.toObject() };
 }
 
 router.post('/transfers/:id/return', async (req, res) => {
   const session = await mongoose.startSession();
   try {
-    let result: any;
-    await session.withTransaction(async () => { result = await runReturn(req, res, session); });
-    res.json(serializeTransfer(result, (req as any).user));
+   let result: any;
+   await session.withTransaction(async () => { result = await runReturn(req, res, session); });
+   const user = (req as any).user;
+   res.json({ ...serializeTransfer(result.origin, user), returnTransfer: serializeTransfer(result.returnTransfer, user) });
   } catch (err: any) {
     res.status(err.status || 500).json({ message: err.message || 'Không thể báo hoàn chuyển.' });
   } finally {

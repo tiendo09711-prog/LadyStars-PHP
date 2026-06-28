@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import { Wallet } from '../../core/system/system.models.js';
 import { Customer } from '../customer/customer.models.js';
 import { Product, ProductBranchStock, ProductRefund, SalePayment } from '../product/product.models.js';
-import { Project, Task } from '../task/task.models.js';
 import { Vendor, VendorPurchase } from '../vendor/vendor.models.js';
 import { cacheKey, getCachedJson, setCachedJson } from '../../core/cache/cache.js';
 
@@ -161,8 +160,6 @@ router.get('/', async (req, res) => {
       customers,
       vendors,
       purchases,
-      projects,
-      tasks,
       retailAgg,
       refundAgg,
       saleChannelAgg,
@@ -182,8 +179,6 @@ router.get('/', async (req, res) => {
       Customer.countDocuments(),
       Vendor.countDocuments(),
       VendorPurchase.countDocuments({ createdAt: dateFilter }),
-      Project.countDocuments(),
-      Task.countDocuments(),
       SalePayment.aggregate([
         { $addFields: { activityAt: activityDateExpression() } },
         { $match: { activityAt: dateFilter, status: 'completed', ...branchMatch } },
@@ -471,8 +466,6 @@ router.get('/', async (req, res) => {
         revenue: totalRevenueBase,
         expense,
         profit: totalRevenueBase - totalCost - expense,
-        projects,
-        tasks,
       },
       salesChannels,
       inventory: {

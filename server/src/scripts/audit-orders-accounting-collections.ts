@@ -52,7 +52,7 @@ const ACCOUNTING_COLLECTIONS: Entry[] = [
 ];
 
 // Collections still owned by KEPT modules (product, customer, warehouse, vendor,
-// task, printForms, auth, system, reports). If any Orders/Accounting collection
+// auth, system, reports). If any Orders/Accounting collection
 // name collides with one of these it must NOT be dropped.
 const KEPT_COLLECTIONS = new Set([
   'users', 'storesettings', 'branches', 'permissions', 'roles', 'menuitems', 'auditlogs',
@@ -62,7 +62,7 @@ const KEPT_COLLECTIONS = new Set([
   'customers', 'customergroups', 'customercareevents', 'customerlevels', 'customercaretypes', 'customercarereasons',
   'inventoryproducts', 'inventoryvouchers', 'warehousetransfers', 'inventorychecks', 'inventorycheckproducts',
   'vendors', 'vendorgroups', 'vendorpurchases', 'vendorrefunds', 'vendortransfers',
-  'projects', 'tasks', 'printforms', 'revenuetime',
+  'revenuetime',
 ]);
 
 type Verdict = 'SAFE_TO_DELETE' | 'SHARED_DO_NOT_DELETE' | 'NEED_REVIEW';

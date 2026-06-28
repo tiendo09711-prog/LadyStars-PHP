@@ -39,7 +39,6 @@ import {
   VendorRefund,
   VendorTransfer,
 } from '../modules/vendor/vendor.models.js';
-import { Project, Task } from '../modules/task/task.models.js';
 
 type Row = Record<string, any>;
 
@@ -232,8 +231,6 @@ async function resetCollections() {
     WarehouseTransfer.deleteMany({}),
     InventoryCheckProduct.deleteMany({}),
     InventoryCheck.deleteMany({}),
-    Project.deleteMany({}),
-    Task.deleteMany({}),
     Branch.deleteMany({}),
   ]);
 
