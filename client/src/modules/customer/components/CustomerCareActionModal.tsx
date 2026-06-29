@@ -32,6 +32,12 @@ export function CustomerCareActionModal({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedCustomers, setSelectedCustomers] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [creatorName, setCreatorName] = useState('');
+  useEffect(() => {
+    http.get('/auth/me')
+      .then(res => setCreatorName(res.data?.name || ''))
+      .catch(() => setCreatorName(''));
+  }, []);
   
   const showValueField = ['Tặng điểm', 'Trừ điểm', 'Tặng tiền tích lũy', 'Trừ tiền tích lũy'].includes(action);
 
@@ -42,7 +48,7 @@ export function CustomerCareActionModal({
     }
     const timer = setTimeout(() => {
       // Gửi request tìm kiếm
-      http.get(`/customers/customers?search=${encodeURIComponent(searchQuery)}`)
+      http.get('/customers/customers', { params: { q: searchQuery, limit: 20 } })
         .then(res => {
           setSearchResults(res.data.items || []);
         });
@@ -84,9 +90,9 @@ export function CustomerCareActionModal({
            customerPhone: cust.phone,
            details: showValueField ? `${value} (${action})` : action,
            reason: reason,
-           description: note,
-           creator: 'Admin',
-           recordDate: new Date().toISOString()
+          description: note,
+           creator: creatorName || undefined,
+          recordDate: new Date().toISOString()
          });
       }));
       onSuccess();

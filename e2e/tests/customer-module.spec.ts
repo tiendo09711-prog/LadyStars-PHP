@@ -65,9 +65,14 @@ test.describe.serial('Customer module ACT flow', () => {
     await page.getByTestId('customers-preset-filter').selectOption('buyalot');
     await presetResponse;
 
-    await expect(page.getByTestId('customers-filter-chips')).toContainText('Lần mua từ: 4');
-    await expect(page).toHaveURL(/preset=buyalot/);
+   await expect(page.getByTestId('customers-filter-chips')).toContainText('Lần mua từ: 4');
+   await expect(page).toHaveURL(/preset=buyalot/);
 
+    // Preset filters silently without auto-opening the advanced panel.
+    await expect(page.getByTestId('customers-advanced-panel')).toHaveCount(0);
+
+    // The advanced panel opens on demand via the toggle and closes on apply.
+    await page.getByTestId('customers-advanced-toggle').click();
     await expect(page.getByTestId('customers-advanced-panel')).toBeVisible();
   });
 

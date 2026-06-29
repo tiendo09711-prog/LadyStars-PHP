@@ -351,14 +351,32 @@ export function StaffPage() {
   const deleteStaff = async (event: FormEvent) => {
     event.preventDefault();
     if (!deleteTarget || saving) return;
+    if (deleteTarget.status !== 'LOCKED') {
+      setMessage('Phải khóa tài khoản trước khi xóa.');
+      return;
+    }
     setSaving(true);
     try {
       await http.delete(`/staff/${getId(deleteTarget)}`);
-      setMessage('Đã xóa hẳn nhân viên và toàn bộ dữ liệu liên quan.');
+      setMessage('Đã xóa tài khoản nhân viên khỏi hệ thống. Dữ liệu nghiệp vụ được giữ nguyên.');
       setDeleteTarget(null);
       await loadStaff();
     } catch (error) {
       setMessage(apiMessage(error, 'Không thể xóa nhân viên.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const lockForDelete = async () => {
+    if (!deleteTarget || saving) return;
+    setSaving(true);
+    try {
+      await http.patch(`/staff/${getId(deleteTarget)}/lock`);
+      setDeleteTarget((current) => (current ? { ...current, status: 'LOCKED' } : current));
+      await loadStaff();
+    } catch (error) {
+      setMessage(apiMessage(error, 'Không thể khóa tài khoản.'));
     } finally {
       setSaving(false);
     }
@@ -573,11 +591,25 @@ export function StaffPage() {
             <div className="modal-header"><div><h2>Xóa nhân viên</h2><p>{deleteTarget.name} - {deleteTarget.email}</p></div></div>
             <div className="form-grid">
               <div className="form-field wide">
-                <span style={{ color: 'var(--danger)' }}>Cảnh báo xóa dữ liệu</span>
-                <p style={{ margin: 0, color: 'var(--danger)', fontWeight: 700, lineHeight: 1.5 }}>Hành động này không thể hoàn tác. Khi xóa, toàn bộ dữ liệu nhân viên này từng thực hiện (hóa đơn bán lẻ, bán sỉ, hoàn trả hàng, điều chỉnh tồn kho, lô hàng...) sẽ bị xóa sạch vĩnh viễn và tài khoản sẽ bị gỡ bỏ khỏi hệ thống.</p>
+                {deleteTarget.status === 'LOCKED' ? (
+                  <>
+                    <span style={{ color: 'var(--danger)' }}>Cảnh báo xóa tài khoản</span>
+                    <p style={{ margin: 0, color: 'var(--danger)', fontWeight: 700, lineHeight: 1.5 }}>Hành động này sẽ gỡ tài khoản nhân viên khỏi hệ thống và không thể hoàn tác. Dữ liệu nghiệp vụ (sản phẩm, đơn bán lẻ, bán sỉ, hoàn trả hàng...) được GIỮ NGUYÊN để bảo toàn lịch sử.</p>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ color: '#b45309' }}>Chưa khóa tài khoản</span>
+                    <p style={{ margin: 0, color: '#b45309', fontWeight: 700, lineHeight: 1.5 }}>Để xóa, bạn phải khóa tài khoản này trước. Khóa sẽ ngăn nhân viên đăng nhập và gọi API; dữ liệu nghiệp vụ vẫn được giữ lại.</p>
+                  </>
+                )}
               </div>
             </div>
-            <div className="modal-footer"><button className="btn btn-light" type="button" onClick={() => setDeleteTarget(null)}>Hủy</button><button className="btn btn-danger" type="submit" disabled={saving}>{saving ? 'Đang xóa...' : 'Xóa hẳn'}</button></div>
+            <div className="modal-footer">
+              <button className="btn btn-light" type="button" onClick={() => setDeleteTarget(null)}>Hủy</button>
+              {deleteTarget.status === 'LOCKED'
+                ? <button className="btn btn-danger" type="submit" disabled={saving}>{saving ? 'Đang xóa...' : 'Xóa tài khoản'}</button>
+                : <button className="btn btn-primary" type="button" disabled={saving} onClick={() => void lockForDelete()}>{saving ? 'Đang khóa...' : 'Khóa tài khoản'}</button>}
+            </div>
           </form>
         </div>
       )}

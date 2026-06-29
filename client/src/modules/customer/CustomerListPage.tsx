@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowUpDown,
@@ -83,6 +83,7 @@ type CustomerRow = {
   name?: string;
   type?: string;
   phone?: string;
+  phone2?: string;
   email?: string;
   cardId?: string;
   customerLevel?: string;
@@ -395,6 +396,23 @@ function getModalInitialState(currentUserBranchId: string, branches: BranchOptio
   };
 }
 
+const ADVANCED_FILTER_KEYS: Array<keyof CustomerFilters> = [
+  'id', 'code', 'name', 'phone', 'email', 'cardId', 'status',
+  'birthdayFrom', 'birthdayTo',
+  'totalSpentMin', 'totalSpentMax',
+  'pointsMin', 'pointsMax',
+  'purchaseCountMin', 'purchaseCountMax',
+  'purchaseProductQuantityMin', 'purchaseProductQuantityMax',
+  'purchaseCycleDaysMin', 'purchaseCycleDaysMax',
+  'daysSinceLastPurchaseMin', 'daysSinceLastPurchaseMax',
+  'firstPurchaseDateFrom', 'firstPurchaseDateTo',
+  'lastPurchaseDateFrom', 'lastPurchaseDateTo',
+];
+
+function countActiveAdvancedFilters(filters: CustomerFilters) {
+  return ADVANCED_FILTER_KEYS.reduce((count, key) => (filters[key] ? count + 1 : count), 0);
+}
+
 export function CustomerListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [meta, setMeta] = useState<CustomerMetaResponse | null>(null);
@@ -410,6 +428,7 @@ export function CustomerListPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const advancedRef = useRef<HTMLDivElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRow | null>(null);
   const [formState, setFormState] = useState<CustomerFormState>(EMPTY_FORM);
@@ -437,35 +456,24 @@ export function CustomerListPage() {
   }, [filters]);
 
   useEffect(() => {
-    const hasAdvancedFilters = Boolean(
-      filters.id
-      || filters.code
-      || filters.name
-      || filters.phone
-      || filters.email
-      || filters.cardId
-      || filters.status
-      || filters.birthdayFrom
-      || filters.birthdayTo
-      || filters.totalSpentMin
-      || filters.totalSpentMax
-      || filters.pointsMin
-      || filters.pointsMax
-      || filters.purchaseCountMin
-      || filters.purchaseCountMax
-      || filters.purchaseProductQuantityMin
-      || filters.purchaseProductQuantityMax
-      || filters.purchaseCycleDaysMin
-      || filters.purchaseCycleDaysMax
-      || filters.daysSinceLastPurchaseMin
-      || filters.daysSinceLastPurchaseMax
-      || filters.firstPurchaseDateFrom
-      || filters.firstPurchaseDateTo
-      || filters.lastPurchaseDateFrom
-      || filters.lastPurchaseDateTo,
-    );
-    if (hasAdvancedFilters) setAdvancedOpen(true);
-  }, [filters]);
+    if (!advancedOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (advancedRef.current && !advancedRef.current.contains(event.target as Node)) {
+        setAdvancedOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAdvancedOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [advancedOpen]);
+
+  const activeAdvancedCount = useMemo(() => countActiveAdvancedFilters(filters), [filters]);
 
   const filterChips = useMemo(() => buildFilterChips(filters, meta), [filters, meta]);
 
@@ -531,6 +539,11 @@ export function CustomerListPage() {
     applyFilters(draftFilters, 1);
   };
 
+  const handleApplyAdvancedFilters = () => {
+    applyFilters(draftFilters, 1);
+    setAdvancedOpen(false);
+  };
+
   const handleClearFilters = () => {
     setDraftFilters(DEFAULT_FILTERS);
     applyFilters(DEFAULT_FILTERS, 1, 'createdAt', 'desc');
@@ -540,7 +553,6 @@ export function CustomerListPage() {
     const nextFilters = applyPresetToFilters(preset, draftFilters);
     setDraftFilters(nextFilters);
     applyFilters(nextFilters, 1);
-    if (preset !== 'all') setAdvancedOpen(true);
   };
 
   const handleRemoveChip = (key: keyof CustomerFilters) => {
@@ -589,7 +601,7 @@ export function CustomerListPage() {
       name: customer.name || '',
       type: customer.type || 'person',
       phone: customer.phone || '',
-      phone2: '',
+      phone2: customer.phone2 || '',
       email: customer.email || '',
       cardId: customer.cardId || '',
       customerLevel: customer.customerLevel || '',
@@ -859,84 +871,107 @@ export function CustomerListPage() {
               <button className="btn btn-outline" type="button" onClick={handleClearFilters}>
                 <RotateCcw size={16} /> Xóa bộ lọc
               </button>
-              <button className="btn btn-outline" type="button" onClick={() => setAdvancedOpen((current) => !current)} data-testid="customers-advanced-toggle">
-                <SlidersHorizontal size={16} /> Bộ lọc nâng cao
-              </button>
+              <div className="customer-advanced-popover-wrap" ref={advancedRef}>
+                <button
+                  className={`btn btn-outline customer-advanced-toggle${advancedOpen ? ' is-active' : ''}`}
+                  type="button"
+                  onClick={() => setAdvancedOpen((current) => !current)}
+                  data-testid="customers-advanced-toggle"
+                  aria-expanded={advancedOpen}
+                >
+                  <SlidersHorizontal size={16} /> Bộ lọc nâng cao
+                  {activeAdvancedCount > 0 && <span className="customer-advanced-badge">{activeAdvancedCount}</span>}
+                  <ChevronDown size={14} className={`customer-advanced-caret${advancedOpen ? ' is-open' : ''}`} />
+                </button>
+                {advancedOpen && (
+                  <div className="customer-advanced-popover" data-testid="customers-advanced-panel" role="dialog" aria-label="Bộ lọc nâng cao">
+                    <div className="customer-advanced-popover-header">
+                      <span className="customer-advanced-popover-title"><SlidersHorizontal size={16} /> Bộ lọc nâng cao</span>
+                      <button type="button" className="customer-advanced-popover-close" onClick={() => setAdvancedOpen(false)} aria-label="Đóng bộ lọc nâng cao">
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className="customer-advanced-popover-scroll">
+                      <div className="customer-advanced-group">
+                        <h3>Thông tin khách hàng</h3>
+                        <div className="customer-advanced-grid">
+                          <label><span>ID / Mã khách</span><input value={draftFilters.id} onChange={(event) => setDraftFilters((current) => ({ ...current, id: event.target.value }))} /></label>
+                          <label><span>Mã khách</span><input value={draftFilters.code} onChange={(event) => setDraftFilters((current) => ({ ...current, code: event.target.value }))} /></label>
+                          <label><span>Tên</span><input value={draftFilters.name} onChange={(event) => setDraftFilters((current) => ({ ...current, name: event.target.value }))} /></label>
+                          <label><span>Số điện thoại</span><input value={draftFilters.phone} onChange={(event) => setDraftFilters((current) => ({ ...current, phone: event.target.value }))} /></label>
+                          <label><span>Email</span><input value={draftFilters.email} onChange={(event) => setDraftFilters((current) => ({ ...current, email: event.target.value }))} /></label>
+                          <label><span>Mã thẻ</span><input value={draftFilters.cardId} onChange={(event) => setDraftFilters((current) => ({ ...current, cardId: event.target.value }))} /></label>
+                          <label><span>Trạng thái</span>
+                            <div className="customer-select-wrap">
+                              <select value={draftFilters.status} onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}>
+                                <option value="">Tất cả</option>
+                                <option value="active">Đang hoạt động</option>
+                                <option value="inactive">Ngừng hoạt động</option>
+                              </select>
+                              <ChevronDown size={16} />
+                            </div>
+                          </label>
+                          <label><span>Sinh nhật từ (MM-DD)</span><input value={draftFilters.birthdayFrom} placeholder="06-01" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayFrom: event.target.value }))} /></label>
+                          <label><span>Sinh nhật đến (MM-DD)</span><input value={draftFilters.birthdayTo} placeholder="06-30" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayTo: event.target.value }))} /></label>
+                        </div>
+                      </div>
+
+                      <div className="customer-advanced-group">
+                        <h3>Chỉ số mua hàng</h3>
+                        <div className="customer-advanced-grid">
+                          <label><span>Tổng tiền từ</span><input type="number" min="0" value={draftFilters.totalSpentMin} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMin: event.target.value }))} /></label>
+                          <label><span>Tổng tiền đến</span><input type="number" min="0" value={draftFilters.totalSpentMax} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMax: event.target.value }))} /></label>
+                          <label><span>Điểm từ</span><input type="number" min="0" value={draftFilters.pointsMin} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMin: event.target.value }))} /></label>
+                          <label><span>Điểm đến</span><input type="number" min="0" value={draftFilters.pointsMax} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMax: event.target.value }))} /></label>
+                          <label><span>Số lần mua từ</span><input type="number" min="0" value={draftFilters.purchaseCountMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMin: event.target.value }))} /></label>
+                          <label><span>Số lần mua đến</span><input type="number" min="0" value={draftFilters.purchaseCountMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMax: event.target.value }))} /></label>
+                          <label><span>SL sản phẩm từ</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMin: event.target.value }))} /></label>
+                          <label><span>SL sản phẩm đến</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMax: event.target.value }))} /></label>
+                          <label><span>Ngày mua gần nhất từ</span><input type="date" value={draftFilters.lastPurchaseDateFrom} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateFrom: event.target.value }))} /></label>
+                          <label><span>Ngày mua gần nhất đến</span><input type="date" value={draftFilters.lastPurchaseDateTo} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateTo: event.target.value }))} /></label>
+                          <label><span>Chu kỳ mua từ</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMin: event.target.value }))} /></label>
+                          <label><span>Chu kỳ mua đến</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMax: event.target.value }))} /></label>
+                          <label><span>Số ngày chưa mua từ</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMin} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMin: event.target.value }))} /></label>
+                          <label><span>Số ngày chưa mua đến</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMax} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMax: event.target.value }))} /></label>
+                        </div>
+                      </div>
+
+                      <div className="customer-advanced-group">
+                        <h3>Sắp xếp</h3>
+                        <div className="customer-advanced-grid compact">
+                          <label>
+                            <span>Trường sắp xếp</span>
+                            <div className="customer-select-wrap">
+                              <select value={sortField} onChange={(event) => applyFilters(draftFilters, 1, event.target.value as SortField, sortOrder)}>
+                                {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                              <ChevronDown size={16} />
+                            </div>
+                          </label>
+                          <label>
+                            <span>Thứ tự</span>
+                            <div className="customer-select-wrap">
+                              <select value={sortOrder} onChange={(event) => applyFilters(draftFilters, 1, sortField, event.target.value as SortOrder)}>
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                              </select>
+                              <ChevronDown size={16} />
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="customer-advanced-popover-footer">
+                      <button className="btn btn-outline" type="button" onClick={() => setAdvancedOpen(false)}>Đóng</button>
+                      <button className="btn btn-primary" type="button" onClick={handleApplyAdvancedFilters}>
+                        <Check size={16} /> Áp dụng
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-
-          {advancedOpen && (
-            <div className="customer-advanced-filters" data-testid="customers-advanced-panel">
-              <div className="customer-advanced-group">
-                <h3>Thông tin khách hàng</h3>
-                <div className="customer-advanced-grid">
-                  <label><span>ID / Mã khách</span><input value={draftFilters.id} onChange={(event) => setDraftFilters((current) => ({ ...current, id: event.target.value }))} /></label>
-                  <label><span>Mã khách</span><input value={draftFilters.code} onChange={(event) => setDraftFilters((current) => ({ ...current, code: event.target.value }))} /></label>
-                  <label><span>Tên</span><input value={draftFilters.name} onChange={(event) => setDraftFilters((current) => ({ ...current, name: event.target.value }))} /></label>
-                  <label><span>Số điện thoại</span><input value={draftFilters.phone} onChange={(event) => setDraftFilters((current) => ({ ...current, phone: event.target.value }))} /></label>
-                  <label><span>Email</span><input value={draftFilters.email} onChange={(event) => setDraftFilters((current) => ({ ...current, email: event.target.value }))} /></label>
-                  <label><span>Mã thẻ</span><input value={draftFilters.cardId} onChange={(event) => setDraftFilters((current) => ({ ...current, cardId: event.target.value }))} /></label>
-                  <label><span>Trạng thái</span>
-                    <div className="customer-select-wrap">
-                      <select value={draftFilters.status} onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}>
-                        <option value="">Tất cả</option>
-                        <option value="active">Đang hoạt động</option>
-                        <option value="inactive">Ngừng hoạt động</option>
-                      </select>
-                      <ChevronDown size={16} />
-                    </div>
-                  </label>
-                  <label><span>Sinh nhật từ (MM-DD)</span><input value={draftFilters.birthdayFrom} placeholder="06-01" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayFrom: event.target.value }))} /></label>
-                  <label><span>Sinh nhật đến (MM-DD)</span><input value={draftFilters.birthdayTo} placeholder="06-30" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayTo: event.target.value }))} /></label>
-                </div>
-              </div>
-
-              <div className="customer-advanced-group">
-                <h3>Chỉ số mua hàng</h3>
-                <div className="customer-advanced-grid">
-                  <label><span>Tổng tiền từ</span><input type="number" min="0" value={draftFilters.totalSpentMin} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMin: event.target.value }))} /></label>
-                  <label><span>Tổng tiền đến</span><input type="number" min="0" value={draftFilters.totalSpentMax} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMax: event.target.value }))} /></label>
-                  <label><span>Điểm từ</span><input type="number" min="0" value={draftFilters.pointsMin} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMin: event.target.value }))} /></label>
-                  <label><span>Điểm đến</span><input type="number" min="0" value={draftFilters.pointsMax} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMax: event.target.value }))} /></label>
-                  <label><span>Số lần mua từ</span><input type="number" min="0" value={draftFilters.purchaseCountMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMin: event.target.value }))} /></label>
-                  <label><span>Số lần mua đến</span><input type="number" min="0" value={draftFilters.purchaseCountMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMax: event.target.value }))} /></label>
-                  <label><span>SL sản phẩm từ</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMin: event.target.value }))} /></label>
-                  <label><span>SL sản phẩm đến</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMax: event.target.value }))} /></label>
-                  <label><span>Ngày mua gần nhất từ</span><input type="date" value={draftFilters.lastPurchaseDateFrom} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateFrom: event.target.value }))} /></label>
-                  <label><span>Ngày mua gần nhất đến</span><input type="date" value={draftFilters.lastPurchaseDateTo} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateTo: event.target.value }))} /></label>
-                  <label><span>Chu kỳ mua từ</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMin: event.target.value }))} /></label>
-                  <label><span>Chu kỳ mua đến</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMax: event.target.value }))} /></label>
-                  <label><span>Số ngày chưa mua từ</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMin} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMin: event.target.value }))} /></label>
-                  <label><span>Số ngày chưa mua đến</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMax} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMax: event.target.value }))} /></label>
-                </div>
-              </div>
-
-              <div className="customer-advanced-group">
-                <h3>Sắp xếp</h3>
-                <div className="customer-advanced-grid compact">
-                  <label>
-                    <span>Trường sắp xếp</span>
-                    <div className="customer-select-wrap">
-                      <select value={sortField} onChange={(event) => applyFilters(draftFilters, 1, event.target.value as SortField, sortOrder)}>
-                        {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                      </select>
-                      <ChevronDown size={16} />
-                    </div>
-                  </label>
-                  <label>
-                    <span>Thứ tự</span>
-                    <div className="customer-select-wrap">
-                      <select value={sortOrder} onChange={(event) => applyFilters(draftFilters, 1, sortField, event.target.value as SortOrder)}>
-                        <option value="desc">Giảm dần</option>
-                        <option value="asc">Tăng dần</option>
-                      </select>
-                      <ChevronDown size={16} />
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
         </form>
 
         {(filterChips.length > 0 || selectedCount > 0) && (

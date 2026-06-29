@@ -405,6 +405,17 @@ router.use('/customers', customerRouter);
 router.use('/groups', requireOwner, crudRoutes(CustomerGroup));
 
 const careRouter = Router();
+async function getCustomerCareMeta(req: any, res: any) {
+  const scopedFilter = { ...((req as any).customFilter || {}) };
+  const [reasons, creators] = await Promise.all([
+    CustomerCare.distinct('reason', { ...scopedFilter, reason: { $nin: [null, ''] } }),
+    CustomerCare.distinct('creator', { ...scopedFilter, creator: { $nin: [null, ''] } }),
+  ]);
+  res.json({
+    reasons: reasons.map((value) => String(value).trim()).filter(Boolean).sort((left, right) => left.localeCompare(right, 'vi')),
+    creators: creators.map((value) => String(value).trim()).filter(Boolean).sort((left, right) => left.localeCompare(right, 'vi')),
+  });
+}
 careRouter.post('/', async (req, _res, next) => {
   if (req.body.customerCode) {
     const customer = await Customer.findOne({ code: req.body.customerCode });
@@ -415,6 +426,7 @@ careRouter.post('/', async (req, _res, next) => {
   }
   next();
 }, careCrud.create);
+careRouter.get('/meta', getCustomerCareMeta);
 careRouter.get('/', careCrud.list);
 careRouter.get('/:id', careCrud.detail);
 careRouter.patch('/:id', careCrud.update);

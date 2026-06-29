@@ -1453,3 +1453,232 @@ h1 {
     border-radius: 14px !important;
   }
 }
+
+/* ============================================================
+   LOGIN — LadyStars (centered card + animated scene)
+   Loaded last (phase-rescue) so it overrides earlier login rules.
+   ============================================================ */
+.login-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(139, 92, 246, .38), transparent 46%),
+    radial-gradient(circle at 82% 80%, rgba(6, 182, 212, .32), transparent 48%),
+    linear-gradient(150deg, #0f172a 0%, #1e1b4b 46%, #312e81 100%);
+  background-size: 180% 180%;
+  animation: login-bg 22s ease-in-out infinite;
+}
+
+/* ---------- Animated scene background ---------- */
+.login-scene { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: .55;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.login-orb-1 {
+  width: 380px; height: 380px; top: -90px; left: -70px;
+  background: radial-gradient(circle, rgba(167, 139, 250, .9), transparent 70%);
+  animation: login-float 17s ease-in-out infinite;
+}
+.login-orb-2 {
+  width: 340px; height: 340px; bottom: -100px; right: -60px;
+  background: radial-gradient(circle, rgba(34, 211, 238, .8), transparent 70%);
+  animation: login-float 20s ease-in-out infinite reverse;
+}
+.login-orb-3 {
+  width: 260px; height: 260px; top: 44%; left: 58%;
+  background: radial-gradient(circle, rgba(244, 114, 182, .55), transparent 70%);
+  animation: login-float 25s ease-in-out infinite;
+}
+.login-stars { position: absolute; inset: 0; }
+.login-stars span {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, .7);
+  opacity: 0;
+  animation: login-twinkle 5s ease-in-out infinite;
+}
+.login-stars span:nth-child(1) { top: 14%; left: 18%; animation-delay: .1s; }
+.login-stars span:nth-child(2) { top: 26%; left: 82%; width: 4px; height: 4px; animation-delay: 1.3s; }
+.login-stars span:nth-child(3) { top: 38%; left: 12%; width: 2px; height: 2px; animation-delay: 2.4s; }
+.login-stars span:nth-child(4) { top: 52%; left: 88%; animation-delay: .7s; }
+.login-stars span:nth-child(5) { top: 64%; left: 24%; width: 4px; height: 4px; animation-delay: 3.1s; }
+.login-stars span:nth-child(6) { top: 74%; left: 70%; width: 2px; height: 2px; animation-delay: 1.9s; }
+.login-stars span:nth-child(7) { top: 18%; left: 56%; animation-delay: 2.7s; }
+.login-stars span:nth-child(8) { top: 84%; left: 44%; width: 4px; height: 4px; animation-delay: .4s; }
+.login-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
+  mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
+  opacity: .5;
+}
+
+/* ---------- Centered card ---------- */
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 38px 34px 28px;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .6);
+  border-radius: 22px;
+  box-shadow:
+    0 30px 60px -22px rgba(15, 23, 42, .65),
+    0 0 0 1px rgba(255, 255, 255, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .9);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  animation: login-rise .65s cubic-bezier(.21, .6, .35, 1) both;
+}
+.login-card-badge { display: flex; justify-content: center; }
+.login-card-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow:
+    0 12px 26px rgba(109, 93, 252, .35),
+    0 0 0 6px rgba(255, 255, 255, .9),
+    0 0 0 8px rgba(109, 93, 252, .18);
+  animation: login-badge 6s ease-in-out infinite;
+}
+.login-card-head { text-align: center; }
+.login-card .login-card-head h1 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: #0f172a;
+}
+.login-card .login-card-head p {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.login-field { display: flex; flex-direction: column; gap: 7px; }
+.login-field-label { font-size: 13px; font-weight: 700; color: #334155; }
+.login-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fbfdff;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.login-input:focus-within {
+  border-color: rgba(109, 93, 252, .55);
+  box-shadow: 0 0 0 4px rgba(109, 93, 252, .12);
+  background: #fff;
+}
+.login-input-icon { flex: 0 0 auto; margin-left: 13px; color: #94a3b8; }
+.login-input input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 13px 12px;
+  font-size: 15px;
+  color: #0f172a;
+}
+.login-input input::placeholder { color: #94a3b8; }
+.login-input-toggle {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.login-input-toggle:hover { color: var(--primary); background: var(--primary-soft); }
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b91c1c;
+  background: var(--danger-soft);
+  border: 1px solid rgba(220, 38, 38, .18);
+  animation: login-shake .42s ease both;
+}
+.login-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), #0ea5e9);
+  box-shadow: 0 14px 28px rgba(109, 93, 252, .24);
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.login-submit:hover { transform: translateY(-1px); box-shadow: 0 18px 34px rgba(109, 93, 252, .30); filter: brightness(1.03); }
+.login-submit:active { transform: translateY(0); filter: brightness(.98); }
+.login-submit:disabled { cursor: wait; opacity: .85; transform: none; }
+.login-spin { animation: login-spin .8s linear infinite; }
+.login-card .login-card-foot {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes login-bg { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes login-float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 22px); } }
+@keyframes login-twinkle { 0%, 100% { opacity: 0; transform: scale(.5); } 50% { opacity: .9; transform: scale(1); } }
+@keyframes login-rise { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes login-badge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes login-spin { to { transform: rotate(360deg); } }
+@keyframes login-shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .login-page { padding: 20px; }
+  .login-card { padding: 34px 22px 24px; border-radius: 18px; }
+  .login-orb-1, .login-orb-2 { width: 240px; height: 240px; }
+  .login-card .login-card-head h1 { font-size: 21px; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .login-page, .login-orb, .login-stars span, .login-card, .login-card-logo, .login-error { animation: none !important; }
+  .login-submit:hover { transform: none; }
+}
