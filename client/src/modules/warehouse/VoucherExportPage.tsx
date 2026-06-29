@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState , useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, ArrowLeft, Plus, Trash2, Settings2 } from 'lucide-react';
 import { http } from '../../core/api/http';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
@@ -52,6 +52,7 @@ type ExportLine = {
 
 export function VoucherExportPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [sysBranches, setSysBranches] = useState<Branch[]>([]);
@@ -60,11 +61,11 @@ export function VoucherExportPage() {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form states
-  const [branchId, setBranchId] = useState('');
-  const [exportType, setExportType] = useState('Xuất trả hàng');
+  const [branchId, setBranchId] = useState(() => searchParams.get('branchId') || '');
+  const [exportType, setExportType] = useState(() => searchParams.get('type') || 'Xuất trả hàng');
   const [supplierCustomer, setSupplierCustomer] = useState('');
   const [tags, setTags] = useState('');
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(() => searchParams.get('note') || '');
   const [showProductNoteAll, setShowProductNoteAll] = useState(false);
   const [afterSubmitAction, setAfterSubmitAction] = useState<'detail' | 'continue'>('detail');
 
@@ -169,6 +170,17 @@ export function VoucherExportPage() {
     weight: 0,
     note: '',
   });
+
+  useEffect(() => {
+    const productId = searchParams.get('productId') || '';
+    const productCode = searchParams.get('productCode') || '';
+    const quantity = Math.max(1, Number(searchParams.get('quantity') || 1));
+    if (!products.length || (!productId && !productCode)) return;
+    const product = products.find((item) => item._id === productId || item.code === productCode);
+    if (!product) return;
+    setLines([{ ...createLineObj(product), quantity: Math.min(quantity, Math.max(1, getStockForWarehouse(product))), note: 'Đề xuất từ báo cáo hàng tồn lâu / bán chậm' }]);
+    setSearchQuery(`${product.code} ${product.name}`);
+  }, [products, searchParams]);
 
   const addLine = () => {
     if (products.length === 0) return;

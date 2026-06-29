@@ -23,6 +23,9 @@ type Option = {
   value: string;
   label: string;
   code?: string;
+  email?: string;
+  role?: string;
+  status?: string;
 };
 
 type InventoryOption = {
@@ -48,6 +51,14 @@ type AuditLine = {
   systemQuantitySnapshot: number;
   inTransitQuantitySnapshot: number;
   physicalInput: string;
+  physicalInput2: string;
+  assignedToId: string;
+  assignedToName?: string;
+  location: string;
+  varianceReason: string;
+  varianceReasonLabel?: string;
+  countedByName?: string;
+  countedByName2?: string;
   note: string;
   varianceQuantity: number;
 };
@@ -72,6 +83,10 @@ type AuditDetail = {
   cancelReason?: string;
   linkedInventoryBillIds: string[];
   linkedInventoryBillCodes: string[];
+  reversalVoucherIds?: string[];
+  reversalVoucherCodes?: string[];
+  blindMode?: boolean;
+  doubleCount?: boolean;
   summary: {
     itemCount: number;
     countedItemCount: number;
@@ -96,8 +111,16 @@ type AuditDetail = {
     systemQuantitySnapshot: number;
     inTransitQuantitySnapshot: number;
     physicalQuantity: number | null;
+    physicalQuantity2?: number | null;
     varianceQuantity: number;
     note: string;
+    assignedToId?: string | null;
+    assignedToName?: string;
+    location?: string;
+    varianceReason?: string;
+    varianceReasonLabel?: string;
+    countedByName?: string;
+    countedByName2?: string;
   }>;
   logs?: Array<{
     _id: string;
@@ -133,7 +156,17 @@ type VoucherDetail = {
 type ConfirmState =
   | { kind: 'submit' }
   | { kind: 'cancel'; reason: string }
-  | { kind: 'reconcile' };
+  | { kind: 'reconcile' }
+  | { kind: 'reverse'; reason: string };
+
+const VARIANCE_REASON_FALLBACKS: Option[] = [
+  { value: 'BROKEN', label: 'Hỏng/vỡ' },
+  { value: 'EXPIRED', label: 'Hết hạn' },
+  { value: 'LOSS', label: 'Thất thoát' },
+  { value: 'FOUND', label: 'Tìm thấy/thừa thực tế' },
+  { value: 'DATA_ERROR', label: 'Sai dữ liệu trước đó' },
+  { value: 'OTHER', label: 'Khác' },
+];
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -184,6 +217,10 @@ function lineFromInventory(product: InventoryOption): AuditLine {
     systemQuantitySnapshot: stock,
     inTransitQuantitySnapshot: 0,
     physicalInput: '',
+    physicalInput2: '',
+    assignedToId: '',
+    location: '',
+    varianceReason: '',
     note: '',
     varianceQuantity: 0,
   };
@@ -201,6 +238,14 @@ function lineFromAuditItem(item: AuditDetail['items'][number]): AuditLine {
     systemQuantitySnapshot: Number(item.systemQuantitySnapshot || 0),
     inTransitQuantitySnapshot: Number(item.inTransitQuantitySnapshot || 0),
     physicalInput: item.physicalQuantity === null || item.physicalQuantity === undefined ? '' : String(item.physicalQuantity),
+    physicalInput2: item.physicalQuantity2 === null || item.physicalQuantity2 === undefined ? '' : String(item.physicalQuantity2),
+    assignedToId: item.assignedToId || '',
+    assignedToName: item.assignedToName || '',
+    location: item.location || '',
+    varianceReason: item.varianceReason || '',
+    varianceReasonLabel: item.varianceReasonLabel || '',
+    countedByName: item.countedByName || '',
+    countedByName2: item.countedByName2 || '',
     note: item.note || '',
     varianceQuantity: Number(item.varianceQuantity || 0),
   };
@@ -215,6 +260,11 @@ export function WarehouseAuditCreatePage() {
   const [warehouseId, setWarehouseId] = useState('');
   const [auditType, setAuditType] = useState<'BY_PRODUCT' | 'FULL_WAREHOUSE'>('BY_PRODUCT');
   const [note, setNote] = useState('');
+  const [blindMode, setBlindMode] = useState(false);
+  const [doubleCount, setDoubleCount] = useState(false);
+  const [assignableUsers, setAssignableUsers] = useState<Option[]>([]);
+  const [shelves, setShelves] = useState<Option[]>([]);
+  const [varianceReasons, setVarianceReasons] = useState<Option[]>(VARIANCE_REASON_FALLBACKS);
   const [status, setStatus] = useState<'DRAFT' | 'COUNTING' | 'SUBMITTED' | 'RECONCILED' | 'CANCELLED'>('DRAFT');
   const [audit, setAudit] = useState<AuditDetail | null>(null);
   const [lines, setLines] = useState<AuditLine[]>([]);
@@ -244,6 +294,7 @@ export function WarehouseAuditCreatePage() {
     const nextWarehouses = response.data.warehouses || [];
     setRole(response.data.role || 'EMPLOYEE');
     setWarehouses(nextWarehouses);
+    setVarianceReasons(response.data.varianceReasons || VARIANCE_REASON_FALLBACKS);
   };
 
   const loadAudit = async () => {
@@ -255,6 +306,8 @@ export function WarehouseAuditCreatePage() {
     setAuditType(data.auditType as 'BY_PRODUCT' | 'FULL_WAREHOUSE');
     setNote(data.note || '');
     setStatus(data.status as any);
+    setBlindMode(Boolean(data.blindMode));
+    setDoubleCount(Boolean(data.doubleCount));
     setLines((data.items || []).map(lineFromAuditItem));
   };
 
@@ -270,6 +323,25 @@ export function WarehouseAuditCreatePage() {
       setError(err.response?.data?.message || 'Không tải được sản phẩm tồn kho.');
     } finally {
       setInventoryLoading(false);
+    }
+  };
+
+  const loadAssignableUsers = async (selectedWarehouseId: string) => {
+    if (!selectedWarehouseId) return;
+    try {
+      const response = await http.get('/inventory-audits/assignable-users', { params: { warehouseId: selectedWarehouseId } });
+      setAssignableUsers(response.data.items || []);
+    } catch {
+      setAssignableUsers([]);
+    }
+  };
+
+  const loadShelves = async () => {
+    try {
+      const response = await http.get('/inventory-audits/shelves');
+      setShelves(response.data.items || []);
+    } catch {
+      setShelves([]);
     }
   };
 
@@ -292,6 +364,7 @@ export function WarehouseAuditCreatePage() {
       setError('');
       try {
         await loadMeta();
+        await loadShelves();
         if (id) await loadAudit();
       } catch (err: any) {
         setError(err.response?.data?.message || 'Không tải được dữ liệu kiểm kho.');
@@ -305,6 +378,7 @@ export function WarehouseAuditCreatePage() {
   useEffect(() => {
     if (!warehouseId) return;
     void loadInventories(warehouseId);
+    void loadAssignableUsers(warehouseId);
   }, [warehouseId]);
 
   useEffect(() => {
@@ -355,7 +429,7 @@ export function WarehouseAuditCreatePage() {
     });
   }, [lines]);
 
-  const updateLine = (index: number, field: 'physicalInput' | 'note', value: string) => {
+  const updateLine = (index: number, field: 'physicalInput' | 'physicalInput2' | 'note' | 'assignedToId' | 'location' | 'varianceReason', value: string) => {
     setLines((current) => current.map((line, lineIndex) => {
       if (lineIndex !== index) return line;
       const nextLine = { ...line, [field]: value };
@@ -409,6 +483,10 @@ export function WarehouseAuditCreatePage() {
       return {
         productId: line.productId,
         physicalQuantity: physical,
+        physicalQuantity2: parsePhysicalInput(line.physicalInput2),
+        assignedToId: line.assignedToId || undefined,
+        location: line.location.trim(),
+        varianceReason: line.varianceReason,
         note: line.note.trim(),
       };
     });
@@ -416,6 +494,8 @@ export function WarehouseAuditCreatePage() {
       warehouseId,
       auditType,
       note: note.trim(),
+      blindMode,
+      doubleCount,
       status: nextStatus,
       items,
     };
@@ -463,9 +543,12 @@ export function WarehouseAuditCreatePage() {
       } else if (confirm.kind === 'cancel') {
         await http.post(`/inventory-audits/${id}/cancel`, { reason: confirm.reason });
         setNotice('Đã hủy phiếu kiểm kho.');
-      } else {
+      } else if (confirm.kind === 'reconcile') {
         await http.post(`/inventory-audits/${id}/reconcile`);
         setNotice('Bù trừ kiểm kho thành công.');
+      } else {
+        await http.post(`/inventory-audits/${id}/reverse-reconcile`, { reason: confirm.reason });
+        setNotice('Đã đảo bù trừ kiểm kho.');
       }
       setConfirm(null);
       await reloadCurrentAudit();
@@ -474,6 +557,44 @@ export function WarehouseAuditCreatePage() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const resnapshotAudit = async () => {
+    if (!id) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      await http.post(`/inventory-audits/${id}/resnapshot`);
+      setNotice('Đã cập nhật lại snapshot tồn kho.');
+      await reloadCurrentAudit();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Không cập nhật lại snapshot được.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const printBlankCountSheet = () => {
+    const rows = lines.map((line) => `
+      <tr>
+        <td>${line.location || ''}</td>
+        <td>${line.productCodeSnapshot || ''}</td>
+        <td>${line.productNameSnapshot || ''}</td>
+        <td>${line.unitSnapshot || ''}</td>
+        <td>${blindMode ? '' : formatNumber(line.systemQuantitySnapshot)}</td>
+        <td></td>
+        ${doubleCount ? '<td></td>' : ''}
+        <td>${assignableUsers.find((user) => user.value === line.assignedToId)?.label || line.assignedToName || ''}</td>
+        <td></td>
+      </tr>
+    `).join('');
+    const html = `<!doctype html><html><head><title>Phiếu kiểm kho</title><style>body{font-family:Arial,sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:8px;font-size:12px}h1{font-size:20px;margin-bottom:4px}.meta{margin-bottom:16px;color:#555}</style></head><body><h1>Phiếu kiểm kho ${audit?.code || ''}</h1><div class="meta">Kho: ${audit?.warehouseName || warehouses.find((warehouse) => warehouse.value === warehouseId)?.label || ''} · Snapshot: ${formatDate(audit?.snapshotAt)}</div><table><thead><tr><th>Vị trí/kệ</th><th>Mã SP</th><th>Tên sản phẩm</th><th>ĐVT</th><th>Tồn hệ thống</th><th>SL thực tế</th>${doubleCount ? '<th>SL đếm lần 2</th>' : ''}<th>Người đếm</th><th>Ghi chú</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
   };
 
   const openVoucherViewer = async () => {
@@ -582,6 +703,14 @@ export function WarehouseAuditCreatePage() {
             <strong>{auditType === 'FULL_WAREHOUSE' ? 'Toàn kho' : 'Theo sản phẩm'}</strong>
           </div>
           <div>
+            <span>Chế độ đếm</span>
+            <strong>{blindMode ? 'Đếm mù' : 'Hiển thị tồn hệ thống'}</strong>
+          </div>
+          <div>
+            <span>Đếm 2 lần</span>
+            <strong>{doubleCount ? 'Bật' : 'Tắt'}</strong>
+          </div>
+          <div>
             <span>Trạng thái</span>
             <strong>{audit?.statusLabel || (status === 'COUNTING' ? 'Đang kiểm' : status === 'DRAFT' ? 'Nháp' : status)}</strong>
           </div>
@@ -668,6 +797,23 @@ export function WarehouseAuditCreatePage() {
               </label>
             </div>
 
+            <div className="audit-toolbar audit-toolbar-stack">
+              <label className="audit-toggle">
+                <input type="checkbox" checked={blindMode} disabled={!allowStructureEdit} onChange={(event) => setBlindMode(event.target.checked)} />
+                <span>Đếm mù — ẩn tồn hệ thống/chênh lệch khi nhập</span>
+              </label>
+              <label className="audit-toggle">
+                <input type="checkbox" checked={doubleCount} disabled={!allowStructureEdit} onChange={(event) => setDoubleCount(event.target.checked)} />
+                <span>Double-count — yêu cầu 2 lần đếm khớp nhau trước khi submit</span>
+              </label>
+              <div className="audit-toolbar">
+                <button className="btn btn-light" type="button" onClick={printBlankCountSheet} disabled={!lines.length}>In phiếu kiểm rỗng</button>
+                {!isCreateMode && ['DRAFT', 'COUNTING'].includes(status) ? (
+                  <button className="btn btn-light" type="button" onClick={() => void resnapshotAudit()} disabled={actionLoading}>Cập nhật lại snapshot</button>
+                ) : null}
+              </div>
+            </div>
+
             {auditType === 'BY_PRODUCT' && allowStructureEdit ? (
               <div className="audit-search-box">
                 <label className="wr-search-field wide">
@@ -708,10 +854,14 @@ export function WarehouseAuditCreatePage() {
                 <thead>
                   <tr>
                     <th>SP</th>
-                    <th className="right">Tồn hệ thống</th>
+                    <th>Vị trí/kệ</th>
+                    <th>Người đếm</th>
+                    {!blindMode ? <th className="right">Tồn hệ thống</th> : null}
                     <th className="right">Đang chuyển</th>
                     <th className="right">Tồn thực tế</th>
-                    <th className="right">Chênh lệch</th>
+                    {doubleCount ? <th className="right">Tồn đếm lần 2</th> : null}
+                    {!blindMode ? <th className="right">Chênh lệch</th> : null}
+                    <th>Lý do chênh lệch</th>
                     <th>Ghi chú</th>
                     {allowStructureEdit ? <th className="wr-action-cell">Xóa</th> : null}
                   </tr>
@@ -719,7 +869,7 @@ export function WarehouseAuditCreatePage() {
                 <tbody>
                   {!lines.length ? (
                     <tr>
-                      <td className="wr-empty" colSpan={allowStructureEdit ? 7 : 6}>
+                      <td className="wr-empty" colSpan={allowStructureEdit ? (doubleCount ? (blindMode ? 9 : 11) : (blindMode ? 8 : 10)) : (doubleCount ? (blindMode ? 8 : 10) : (blindMode ? 7 : 9))}>
                         Chưa có sản phẩm kiểm kho. {auditType === 'FULL_WAREHOUSE' ? 'Bấm "Nạp sản phẩm từ kho" để xem preview hoặc lưu phiếu để backend snapshot toàn kho.' : 'Hãy thêm sản phẩm từ ô tìm kiếm.'}
                       </td>
                     </tr>
@@ -729,7 +879,20 @@ export function WarehouseAuditCreatePage() {
                         <strong>{line.productNameSnapshot || '—'}</strong>
                         <small>{line.productCodeSnapshot || line.barcodeSnapshot || '—'}</small>
                       </td>
-                      <td className="right">{formatNumber(line.systemQuantitySnapshot)}</td>
+                      <td>
+                        <select className="audit-note-input" value={line.location} onChange={(event) => updateLine(index, 'location', event.target.value)} disabled={!isEditable}>
+                          <option value="">Chọn vị trí/kệ</option>
+                          {shelves.map((shelf) => <option key={shelf.value} value={shelf.label}>{shelf.label}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <select className="audit-note-input" value={line.assignedToId} onChange={(event) => updateLine(index, 'assignedToId', event.target.value)} disabled={!isEditable}>
+                          <option value="">Chưa phân công</option>
+                          {assignableUsers.map((user) => <option key={user.value} value={user.value}>{user.label}</option>)}
+                        </select>
+                        {!isEditable && (line.countedByName || line.countedByName2) ? <small>{line.countedByName || '—'}{doubleCount && line.countedByName2 ? ` / ${line.countedByName2}` : ''}</small> : null}
+                      </td>
+                      {!blindMode ? <td className="right">{formatNumber(line.systemQuantitySnapshot)}</td> : null}
                       <td className="right">{formatNumber(line.inTransitQuantitySnapshot)}</td>
                       <td className="right">
                         <input
@@ -741,14 +904,32 @@ export function WarehouseAuditCreatePage() {
                           placeholder="Nhập số lượng"
                         />
                       </td>
-                      <td className={`right ${varianceClass(line.varianceQuantity)}`}>{signedNumber(line.varianceQuantity)}</td>
+                      {doubleCount ? (
+                        <td className="right">
+                          <input
+                            className="audit-qty-input"
+                            inputMode="numeric"
+                            value={line.physicalInput2}
+                            onChange={(event) => updateLine(index, 'physicalInput2', event.target.value)}
+                            disabled={!isEditable}
+                            placeholder="Nhập SL lần 2"
+                          />
+                        </td>
+                      ) : null}
+                      {!blindMode ? <td className={`right ${varianceClass(line.varianceQuantity)}`}>{signedNumber(line.varianceQuantity)}</td> : null}
+                      <td>
+                        <select className="audit-note-input" value={line.varianceReason} onChange={(event) => updateLine(index, 'varianceReason', event.target.value)} disabled={!isEditable || line.varianceQuantity === 0}>
+                          <option value="">{line.varianceQuantity === 0 ? 'Không cần' : 'Chọn lý do'}</option>
+                          {varianceReasons.map((reason) => <option key={reason.value} value={reason.value}>{reason.label}</option>)}
+                        </select>
+                      </td>
                       <td>
                         <input
                           className="audit-note-input"
                           value={line.note}
                           onChange={(event) => updateLine(index, 'note', event.target.value)}
                           disabled={!isEditable}
-                          placeholder="Lý do chênh lệch"
+                          placeholder="Ghi chú kiểm kho"
                         />
                       </td>
                       {allowStructureEdit ? (
@@ -784,6 +965,12 @@ export function WarehouseAuditCreatePage() {
               {!isCreateMode && status === 'SUBMITTED' && role === 'ADMIN' ? (
                 <button className="btn btn-primary" type="button" disabled={actionLoading} onClick={() => setConfirm({ kind: 'reconcile' })}>
                   <Link2 size={15} /> Bù trừ kiểm kho
+                </button>
+              ) : null}
+
+              {!isCreateMode && status === 'RECONCILED' && role === 'ADMIN' ? (
+                <button className="btn btn-light" type="button" disabled={actionLoading} onClick={() => setConfirm({ kind: 'reverse', reason: '' })}>
+                  <RefreshCw size={15} /> Đảo bù trừ
                 </button>
               ) : null}
 
@@ -826,7 +1013,7 @@ export function WarehouseAuditCreatePage() {
           <section className="wr-confirm-modal audit-small-modal">
             <header>
               <h2>
-                {confirm.kind === 'submit' ? 'Submit phiếu kiểm kho' : confirm.kind === 'cancel' ? 'Hủy phiếu kiểm kho' : 'Xác nhận bù trừ'}
+                {confirm.kind === 'submit' ? 'Submit phiếu kiểm kho' : confirm.kind === 'cancel' ? 'Hủy phiếu kiểm kho' : confirm.kind === 'reconcile' ? 'Xác nhận bù trừ' : 'Đảo bù trừ kiểm kho'}
               </h2>
               <button className="wr-icon-button" type="button" onClick={() => setConfirm(null)}><X size={16} /></button>
             </header>
@@ -857,12 +1044,25 @@ export function WarehouseAuditCreatePage() {
                 <p className="audit-preview-copy">Hệ thống sẽ tạo chứng từ nhập hoặc xuất điều chỉnh thật và sẽ chặn thao tác nếu tồn kho đã biến động sau snapshot.</p>
               </>
             ) : null}
+            {confirm.kind === 'reverse' ? (
+              <>
+                <p>Hệ thống sẽ tạo phiếu đảo nhập/xuất để hoàn tác bù trừ trước đó, sau đó đưa phiếu về trạng thái chờ bù trừ để kiểm lại.</p>
+                <div className="audit-modal-body">
+                  <textarea
+                    className="audit-textarea"
+                    value={confirm.reason}
+                    onChange={(event) => setConfirm({ ...confirm, reason: event.target.value })}
+                    placeholder="Nhập lý do đảo bù trừ..."
+                  />
+                </div>
+              </>
+            ) : null}
             <footer className="audit-modal-footer">
               <button className="btn btn-light" type="button" onClick={() => setConfirm(null)}>Đóng</button>
               <button
                 className="btn btn-primary"
                 type="button"
-                disabled={actionLoading || (confirm.kind === 'cancel' && !confirm.reason.trim())}
+                disabled={actionLoading || ((confirm.kind === 'cancel' || confirm.kind === 'reverse') && !confirm.reason.trim())}
                 onClick={() => void runAction()}
               >
                 {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}

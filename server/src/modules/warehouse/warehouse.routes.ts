@@ -145,7 +145,7 @@ function availableTransferActions(transfer: any, user: any) {
   const canDestination = actorCanConfirmDestination(user, transfer);
   const actions: Array<{ action: string; label: string; needsReason?: boolean; danger?: boolean }> = [];
 
-  if (status === 'DRAFT' && canSource) actions.push({ action: 'confirm-source', label: 'Xác nhận xuất' });
+  if (status === 'DRAFT' && canSource && (transfer.lines || []).length > 0) actions.push({ action: 'confirm-source', label: 'Xác nhận xuất' });
   if (status === 'IN_TRANSIT' && canDestination) actions.push({ action: 'confirm-destination', label: 'Xác nhận nhận hàng' });
   if (status === 'IN_TRANSIT' && canDestination && String(transfer.kind || 'NORMAL_TRANSFER') === 'NORMAL_TRANSFER' && !transfer.returnTransferId) {
     actions.push({ action: 'return', label: 'Báo trả hàng / Không nhận', needsReason: true, danger: true });
@@ -223,6 +223,35 @@ async function activeBranchOrError(id: unknown, label: string) {
     throw error;
   }
   return branch;
+}
+
+function isObjectIdLike(value: unknown): boolean {
+  const raw = String(value || '').trim();
+  return !!raw && /^[a-f\d]{24}$/i.test(raw) && Types.ObjectId.isValid(raw);
+}
+
+async function resolveWarehouseRef(idField: unknown, nameField: unknown, nameStored: unknown, session?: any) {
+  if (isObjectIdLike(idField)) return { id: new Types.ObjectId(String(idField)), name: String(nameStored || '') };
+  if (isObjectIdLike(nameField)) return { id: new Types.ObjectId(String(nameField)), name: String(nameStored || '') };
+  const nameRaw = String(nameField || nameStored || '').trim();
+  if (nameRaw) {
+    const branch = await Branch.findOne({ $or: [{ name: nameRaw }, { code: nameRaw }] }).session(session || null).select('name code').lean();
+    if (branch) return { id: branch._id as any, name: branch.name as string };
+  }
+  return { id: null, name: String(nameStored || nameField || '') };
+}
+
+async function normalizeTransferWarehouseRefs(transfer: any, session?: any) {
+  const raw = await WarehouseTransfer.findById(transfer._id).session(session || null).lean();
+  const source = await resolveWarehouseRef(raw?.sourceWarehouseId, raw?.fromWarehouse, raw?.sourceWarehouseName, session);
+  const destination = await resolveWarehouseRef(raw?.destinationWarehouseId, raw?.toWarehouse, raw?.destinationWarehouseName, session);
+  transfer.sourceWarehouseId = source.id;
+  transfer.fromWarehouse = source.id;
+  if (source.name) transfer.sourceWarehouseName = source.name;
+  transfer.destinationWarehouseId = destination.id;
+  transfer.toWarehouse = destination.id;
+  if (destination.name) transfer.destinationWarehouseName = destination.name;
+  if (source.id && destination.id) transfer.warehouse = `${source.name} -> ${destination.name}`;
 }
 
 async function buildTransferLines(rawLines: any[]) {
@@ -351,9 +380,9 @@ async function reserveSourceStock({ productId, branchId, amount, session }: any)
   if (!product || product.type === 'service') return;
   if (amount > 0) {
     const updated = await ProductBranchStock.findOneAndUpdate(
-      { productId: product._id, branchId, $expr: { $gte: [{ $subtract: ['$qty', '$lockedQuantity'] }, amount] } },
-      { $inc: { lockedQuantity: amount }, $setOnInsert: { qty: 0, minQuantity: product.minQuantity, maxQuantity: product.maxQuantity } },
-      { upsert: true, new: true, setDefaultsOnInsert: true, session },
+      { productId: product._id, branchId, $expr: { $gte: [{ $subtract: [{ $ifNull: ['$qty', 0] }, { $ifNull: ['$lockedQuantity', 0] }] }, amount] } },
+      { $inc: { lockedQuantity: amount } },
+      { new: true, session },
     );
     if (!updated) {
       const stock = await ProductBranchStock.findOne({ productId: product._id, branchId }).session(session).lean();
@@ -1544,7 +1573,7 @@ function serializeTransfer(row: any, user?: any) {
     returnTransferId: row.returnTransferId ? String(row.returnTransferId._id || row.returnTransferId) : '',
     lockedQuantity: lockedQuantityTotal,
     canEdit,
-    canConfirmSource: user ? (status === 'DRAFT' && canSource) : false,
+    canConfirmSource: user ? (status === 'DRAFT' && canSource && lines.length > 0) : false,
     canConfirmDestination: user ? (status === 'IN_TRANSIT' && canDestination) : false,
     canReturn,
     canPrint,
@@ -2173,6 +2202,7 @@ router.delete('/transfers/:id', async (req, res) => {
       if (!transfer) throw new Error('Không tìm thấy phiếu chuyển kho.');
       if (String(transfer.status || 'DRAFT') !== 'DRAFT') { const error: any = new Error('Chỉ hủy được phiếu ở trạng thái Chờ xác nhận xuất.'); error.status = 409; throw error; }
       if (!actorCanEditDraft((req as any).user, transfer)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được hủy phiếu.'); error.status = 403; throw error; }
+      await normalizeTransferWarehouseRefs(transfer, session);
       const reason = String(req.body?.reason || '').trim();
       const previous = String(transfer.status || 'DRAFT');
       transfer.status = 'CANCELLED'; transfer.cancelledById = actorId(req); transfer.cancelledAt = new Date(); transfer.cancelReason = reason;
@@ -2196,6 +2226,7 @@ async function runConfirmSource(req: any, res: any, session: any) {
   if (String(transfer.status || 'DRAFT') !== 'DRAFT') { const error: any = new Error('Chỉ xác nhận xuất được phiếu ở trạng thái Chờ xác nhận xuất.'); error.status = 409; throw error; }
   if (!actorCanConfirmSource(req.user, transfer)) { const error: any = new Error('Chỉ quản lý kho nguồn hoặc Admin được xác nhận xuất.'); error.status = 403; throw error; }
   if (transfer.sourceExportBillId) { const error: any = new Error('Phiếu đã được xác nhận xuất.'); error.status = 409; throw error; }
+ await normalizeTransferWarehouseRefs(transfer, session);
  const previous = String(transfer.status || 'DRAFT');
  await assertEnoughSourceStock(transfer, session);
  const kind = String(transfer.kind || 'NORMAL_TRANSFER');

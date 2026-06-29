@@ -58,7 +58,7 @@ const baseMenuGroups: MenuGroup[] = [
     label: 'Sản phẩm',
     items: [
       { to: '/products', label: 'Sản phẩm', icon: Boxes },
-      { to: '/products/storage-duration', label: 'Thời gian lưu kho', icon: Clock },
+      { to: '/products/storage-duration', label: 'Hàng tồn lâu', icon: Clock },
       { to: '/products/inventory', label: 'Tồn kho', icon: Package },
       { to: '/products/categories', label: 'Danh mục', icon: ClipboardList },
     ],

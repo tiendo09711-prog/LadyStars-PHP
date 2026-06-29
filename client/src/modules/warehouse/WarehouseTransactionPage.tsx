@@ -600,7 +600,7 @@ export function WarehouseTransactionPage() {
             </div>
 
             <button className="btn btn-light" type="button" onClick={() => setShowExportModal(true)}>
-              <FileDown size={15} /> Xuất Excel
+              <FileDown size={15} /> Xuất dữ liệu
             </button>
           </div>
 
@@ -608,7 +608,7 @@ export function WarehouseTransactionPage() {
             <span className="wr-count">
               {total ? `${(page - 1) * LIMIT + 1} - ${Math.min(page * LIMIT, total)} / ${total}` : '0 bản ghi'}
             </span>
-            <button className="wr-icon-button" type="button" title="Làm mới" aria-label="Làm mới" onClick={() => void load()}>
+            <button className="wr-icon-button" type="button" title="Làm mới" aria-label="Làm mới" onClick={resetFilters}>
               <RefreshCw size={15} />
             </button>
             <button className="wr-icon-button" type="button" title="Tùy chỉnh cột" aria-label="Tùy chỉnh cột" onClick={openColumnModal}>
@@ -680,7 +680,7 @@ export function WarehouseTransactionPage() {
                       {openMenu === row.rowKey && (
                         <div className="wr-menu-panel wr-row-menu">
                           <button type="button" onClick={() => void openDetail(row)}><Eye size={15} /> Xem chi tiết phiếu</button>
-                          <button type="button" onClick={() => exportRows([row], `phieu-${getBillCode(row)}`)}><FileDown size={15} /> Xuất Excel</button>
+                          <button type="button" onClick={() => exportRows([row], `phieu-${getBillCode(row)}`)}><FileDown size={15} /> Xuất dữ liệu</button>
                           {row.canDelete && activeTab === 'bills' && (
                             <button className="danger" type="button" onClick={() => requestDelete([row])}><Trash2 size={15} /> Xóa phiếu</button>
                           )}

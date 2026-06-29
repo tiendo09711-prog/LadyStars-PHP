@@ -214,6 +214,12 @@ const InventoryAuditSchema = new Schema({
   sourceAuditIds: [{ type: Schema.Types.ObjectId, ref: 'InventoryAudit' }],
   version: { type: Number, default: 0 },
   reconcileLockToken: String,
+  blindMode: { type: Boolean, default: false },
+  doubleCount: { type: Boolean, default: false },
+  reversedById: { type: Schema.Types.ObjectId, ref: 'User' },
+  reversedAt: Date,
+  reversalVoucherIds: [{ type: Schema.Types.ObjectId, ref: 'InventoryVoucher' }],
+  reversalVoucherCodes: [String],
 }, { timestamps: true, strict: false });
 
 InventoryAuditSchema.index({ code: 'text', note: 'text' });
@@ -238,6 +244,12 @@ const InventoryAuditItemSchema = new Schema({
   note: String,
   countedById: { type: Schema.Types.ObjectId, ref: 'User' },
   countedAt: Date,
+  physicalQuantity2: { type: Number, default: null },
+  countedById2: { type: Schema.Types.ObjectId, ref: 'User' },
+  countedAt2: Date,
+  assignedToId: { type: Schema.Types.ObjectId, ref: 'User' },
+  location: String,
+  varianceReason: String,
 }, { timestamps: true, strict: false });
 
 InventoryAuditItemSchema.index({ inventoryAuditId: 1, productId: 1 }, { unique: true });

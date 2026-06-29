@@ -135,9 +135,11 @@ export function CategoryList() {
     }).catch(() => {});
   }, []);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     void load();
-  }, [page]);
+  }, [page, refreshKey]);
 
   useEffect(() => {
     setSelectedIds((current) => current.filter((id) => items.some((item) => item._id === id)));
@@ -223,6 +225,12 @@ export function CategoryList() {
     } finally {
       setExportLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setSearch('');
+    setPage(1);
+    setRefreshKey((value) => value + 1);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -544,7 +552,7 @@ export function CategoryList() {
                 <Filter size={15} />
                 <span>Lọc</span>
               </button>
-              <button className="btn categories-ghost-button" type="button" onClick={() => void load()} title="Làm mới">
+              <button className="btn categories-ghost-button" type="button" onClick={handleRefresh} title="Làm mới">
                 <RefreshCw size={16} />
                 <span>Làm mới</span>
               </button>

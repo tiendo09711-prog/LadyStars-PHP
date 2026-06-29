@@ -11,6 +11,8 @@ type Product = {
   price: number;
   cost: number;
   qty: number;
+  clearancePrice?: number;
+  clearanceActive?: boolean;
   unit?: string;
   allowsSale?: boolean;
 };
@@ -314,7 +316,7 @@ function SalesOrders() {
             <p>Tạo đơn bán từ hàng hóa đang có trong kho, tự tính tổng tiền và trừ tồn khi hoàn tất.</p>
           </div>
         </div>
-        <div className="page-actions">
+        <div className="page-actions"><button className="btn btn-light" type="button" onClick={() => { window.location.href = '/products/storage-duration?tab=slow_selling'; }}>Hàng tồn lâu nên ưu tiên bán</button>
           <button className="btn btn-light" type="button" onClick={load}><RefreshCw size={16} /> Làm mới</button>
           <button className="btn btn-primary" type="button" onClick={openCreate}><Plus size={16} /> Tạo đơn bán</button>
         </div>
@@ -430,7 +432,14 @@ function SalesOrders() {
                           </td>
                           <td>{product?.type === 'service' ? 'Dịch vụ' : `${Number(product?.qty ?? 0).toLocaleString('vi-VN')} ${product?.unit ?? ''}`}</td>
                           <td><input type="number" min={1} max={product?.type === 'service' ? undefined : Number(product?.qty ?? 0)} value={line.amount} onChange={(event) => updateLine(index, { amount: Number(event.target.value || 0) })} /></td>
-                          <td><input type="number" min={0} value={line.value} onChange={(event) => updateLine(index, { value: Number(event.target.value || 0) })} /></td>
+                          <td>
+                            <input type="number" min={0} value={line.value} onChange={(event) => updateLine(index, { value: Number(event.target.value || 0) })} />
+                            {product?.clearanceActive && product?.clearancePrice ? (
+                              <button type="button" className="mini-action" onClick={() => updateLine(index, { value: Number(product.clearancePrice) })} title="Áp dụng giá xả hàng riêng, không đổi giá bán chính">
+                                Giá xả: {money(product.clearancePrice)}
+                              </button>
+                            ) : null}
+                          </td>
                           <td>{money(Number(line.amount || 0) * Number(line.value || 0))}</td>
                           <td><button className="icon-button danger" type="button" onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))}><Trash2 size={16} /></button></td>
                         </tr>

@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { http } from '../api/http';
 import { Pagination } from './Pagination';
+import * as XLSX from 'xlsx';
+import { ExportExcelModal, type ColumnOption } from '../../modules/product/components/ExportExcelModal';
 
 const DEFAULT_PAGE_SIZE = 15;
 
@@ -138,6 +140,7 @@ export function DataModulePage({
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [quickFilter, setQuickFilter] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>(createDefaults);
@@ -146,6 +149,8 @@ export function DataModulePage({
   const [showPrimaryDropdown, setShowPrimaryDropdown] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [rowActionOpen, setRowActionOpen] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const hasPrimaryActions = !!primaryActions?.length;
   const canCreate = !hideCreate && !!primaryActionLabel;
@@ -204,11 +209,83 @@ export function DataModulePage({
     const controller = new AbortController();
     void load(controller.signal);
     return () => controller.abort();
-  }, [endpoint, page, appliedSearch, quickFilter]);
+  }, [endpoint, page, appliedSearch, quickFilter, refreshKey]);
 
   const filteredItems = useMemo(() => {
     return items;
   }, [items]);
+  const exportColumns: ColumnOption[] = useMemo(
+    () => fields.map((field) => ({
+      label: field.label,
+      key: field.key,
+      getValue: (item: Record<string, any>) => formatValue(getValue(item, field.key), field.type),
+    })),
+    [fields],
+  );
+
+  const handleExcelExport = async (
+    exportType: 'current' | 'all',
+    filename: string,
+    sheetName: string,
+    selectedColumns: { key: string; customLabel: string }[],
+  ) => {
+    setExportLoading(true);
+    try {
+      let dataToExport: Record<string, any>[] = [];
+      if (exportType === 'current') {
+        dataToExport = items;
+      } else {
+        const [path, rawQuery = ''] = endpoint.split('?');
+        const buildParams = (nextPage: number, nextLimit: number) => {
+          const params = new URLSearchParams(rawQuery);
+          params.set('page', String(nextPage));
+          params.set('limit', String(nextLimit));
+          if (appliedSearch) params.set('q', appliedSearch); else params.delete('q');
+          if (quickFilter) params.set('status', quickFilter); else params.delete('status');
+          return params;
+        };
+        const pageSize = 100;
+        const firstResponse = await http.get(`${path}?${buildParams(1, pageSize).toString()}`);
+        const firstItems = Array.isArray(firstResponse.data) ? firstResponse.data : firstResponse.data.items ?? [];
+        let allItems = [...firstItems];
+        const totalItems = Array.isArray(firstResponse.data) ? firstItems.length : Number(firstResponse.data.total ?? firstItems.length);
+        if (totalItems > pageSize) {
+          const pagesToFetch = Math.ceil(totalItems / pageSize);
+          const responses = await Promise.all(
+            Array.from({ length: pagesToFetch - 1 }, (_, index) =>
+              http.get(`${path}?${buildParams(index + 2, pageSize).toString()}`),
+            ),
+          );
+          responses.forEach((response) => {
+            const responseItems = Array.isArray(response.data) ? response.data : response.data.items ?? [];
+            allItems = allItems.concat(responseItems);
+          });
+        }
+        dataToExport = allItems;
+      }
+      if (!dataToExport.length) {
+        setError('Không có dữ liệu để xuất.');
+        return;
+      }
+      const mappedRows = dataToExport.map((item) => {
+        const row: Record<string, unknown> = {};
+        selectedColumns.forEach((col) => {
+          const exportColumn = exportColumns.find((c) => c.key === col.key);
+          row[col.customLabel] = exportColumn ? exportColumn.getValue(item) : '';
+        });
+        return row;
+      });
+      const worksheet = XLSX.utils.json_to_sheet(mappedRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      setShowExportModal(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? 'Xuất Excel thất bại.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   useEffect(() => {
     setSelectedIds((current) => {
@@ -407,11 +484,11 @@ export function DataModulePage({
             </button>
             {showToolsDropdown && (
               <div className="dropdown-menu tools-menu">
-                <button className="dropdown-item" type="button" onClick={() => void load()}>
+                <button className="dropdown-item" type="button" onClick={() => { setSearch(''); setAppliedSearch(''); setQuickFilter(''); setPage(1); setRefreshKey((value) => value + 1); }}>
                   <RefreshCw size={16} /> Làm mới
                 </button>
-                <button className="dropdown-item" type="button" onClick={exportCsv}>
-                  <FileDown size={16} /> Xuất CSV
+                <button className="dropdown-item" type="button" onClick={() => setShowExportModal(true)}>
+                  <FileDown size={16} /> Xuất dữ liệu
                 </button>
                 {!hideImport && (
                   <button
@@ -675,6 +752,17 @@ export function DataModulePage({
           </form>
         </div>
       )}
+      {showExportModal ? (
+        <ExportExcelModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          title={`Xuất Excel - ${title}`}
+          defaultFilename={`${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}`}
+          columns={exportColumns}
+          onExport={handleExcelExport}
+          loading={exportLoading}
+        />
+      ) : null}
     </div>
   );
 }

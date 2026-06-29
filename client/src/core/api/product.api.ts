@@ -1,5 +1,5 @@
 import { http } from './http';
-import type { ICategory, IProduct, IInventory, IProductHistory, IProductHistoryMeta, ITrademark, IStorageDuration } from '../../types/product.type';
+import type { ICategory, IProduct, IInventory, IProductHistory, IProductHistoryMeta, ITrademark, IStorageDuration, IStorageDurationKpis } from '../../types/product.type';
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -94,9 +94,11 @@ export const productApi = {
   },
 
   getStorageDuration: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
-    const response = await http.get<PaginatedResponse<IStorageDuration> & { kpis?: { totalProducts: number; unsoldLong: number; slowSelling: number; totalValue: number } }>('/products/storage-duration', { params });
+    const response = await http.get<PaginatedResponse<IStorageDuration> & { kpis?: IStorageDurationKpis }>('/products/storage-duration', { params });
     return response.data;
   },
+
+
 
   getTrademarks: async (params?: { page?: number; limit?: number; q?: string;[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<ITrademark>>('/products/trademarks', { params });

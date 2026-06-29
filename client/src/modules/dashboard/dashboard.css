@@ -672,3 +672,66 @@
   .dv-chart-meta div,
   .dv-info-metric { padding: 12px 14px; }
 }
+.dv-storage-alert-card {
+  display: grid;
+  gap: 14px;
+}
+
+.dv-storage-metric {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fbff;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.dv-storage-metric:hover {
+  border-color: #86efac;
+  background: #ecfdf5;
+}
+
+.dv-storage-metric small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dv-storage-metric strong {
+  font-size: 22px;
+  font-weight: 850;
+}
+
+.dv-storage-toplist {
+  display: grid;
+  gap: 8px;
+}
+
+.dv-storage-toplist a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  color: #334155;
+  text-decoration: none;
+}
+
+.dv-storage-toplist a:hover {
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.dv-storage-toplist span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dv-storage-toplist strong {
+  flex: 0 0 auto;
+  font-size: 12px;
+}

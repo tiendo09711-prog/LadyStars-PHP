@@ -33,6 +33,10 @@ export interface IProduct {
   profitPercent?: number;
   basePrice?: number;
   wholesalePrice?: number;
+  clearancePrice?: number;
+  clearanceActive?: boolean;
+  clearanceNote?: string;
+  clearanceStartedAt?: string;
   qty?: number;          // Tổng tồn
   pendingImportQty?: number; // Đang chuyển kho
   warehouseQty?: number; // Tồn thực tế
@@ -50,6 +54,13 @@ export interface IProduct {
   color?: string;
   size?: string;
   origin?: string;
+  storageRisk?: {
+    status: 'normal' | 'unsold_long' | 'slow_selling';
+    statusLabel: string;
+    thresholdDays: number;
+    daysFromStart: number;
+    daysFromLastSold: number | null;
+  };
 }
 
 export interface IInventory {
@@ -71,6 +82,7 @@ export interface IInventory {
   stockByBranchId?: Record<string, number>;
   stockByBranchCode?: Record<string, number>;
   totalStock?: number;
+  status?: string;
 }
 
 export interface IProductHistory {
@@ -104,6 +116,9 @@ export interface IStorageDuration {
   categoryName?: string;
   cost?: number;
   price?: number;
+  clearancePrice?: number;
+  clearanceActive?: boolean;
+  clearanceNote?: string;
   qty?: number;
   globalQty?: number;
   firstTransactionDate?: string;
@@ -112,4 +127,21 @@ export interface IStorageDuration {
   daysFromStart: number;
   daysFromLast: number;
   daysFromLastSold: number | null;
+  status?: 'normal' | 'unsold_long' | 'slow_selling';
+  statusLabel?: string;
+  branchName?: string;
+}
+
+export interface IStorageDurationKpis {
+  totalProducts: number;
+  unsoldLong: number;
+  slowSelling: number;
+  totalValue: number;
+  oldStockValue?: number;
+  unsoldLongValue?: number;
+  slowSellingValue?: number;
+  thresholdDays?: number;
+  lastRefreshedAt?: string;
+  topUnsoldLong?: IStorageDuration[];
+  topSlowSelling?: IStorageDuration[];
 }

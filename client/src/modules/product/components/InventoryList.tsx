@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -10,11 +11,13 @@ import type { IInventory } from '../../../types/product.type';
 import { ColumnOption, ExportExcelModal } from './ExportExcelModal';
 
 export function InventoryList() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<IInventory[]>([]);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
+  const [filterStockStatus, setFilterStockStatus] = useState('');
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
@@ -40,6 +43,7 @@ export function InventoryList() {
         limit,
         q: nextSearch || undefined,
         branchId: filterWarehouse || undefined,
+        stockStatus: filterStockStatus || undefined,
         sort: sortField,
         order: sortOrder,
       });
@@ -52,9 +56,11 @@ export function InventoryList() {
     }
   };
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     load();
-  }, [page, filterWarehouse, sortField, sortOrder]);
+  }, [page, filterWarehouse, filterStockStatus, sortField, sortOrder, refreshKey]);
 
   const getBranchStock = (item: IInventory, branch: BranchRecord) => {
     const byId = item.stockByBranchId?.[branch._id];
@@ -87,6 +93,7 @@ export function InventoryList() {
         base.push({ label: 'Kho HCM', key: 'stockHCM', getValue: (item: IInventory) => item.stockHCM ?? 0 });
       }
       base.push({ label: 'Tổng tồn', key: 'totalStock', getValue: (item: IInventory) => item.totalStock ?? 0 });
+      base.push({ label: 'Trạng thái', key: 'status', getValue: (item: IInventory) => item.status || '' });
       return base;
     },
     [branches],
@@ -110,6 +117,7 @@ export function InventoryList() {
             limit: nextLimit,
             q: search || undefined,
             branchId: filterWarehouse || undefined,
+            stockStatus: filterStockStatus || undefined,
             sort: sortField,
             order: sortOrder,
           });
@@ -155,6 +163,16 @@ export function InventoryList() {
     }
   };
 
+  const handleRefresh = () => {
+    setSearch('');
+    setFilterWarehouse('');
+    setFilterStockStatus('');
+    setSortField('createdAt');
+    setSortOrder('desc');
+    setPage(1);
+    setRefreshKey((value) => value + 1);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
@@ -184,6 +202,10 @@ export function InventoryList() {
 
   const warehouseFilterLabel =
     branches.find(b => b._id === filterWarehouse)?.name || (filterWarehouse ? filterWarehouse : 'Tất cả kho');
+  const stockStatusLabel =
+    filterStockStatus === 'in_stock' ? 'Còn tồn' :
+    filterStockStatus === 'sellable' ? 'Còn tồn có thể bán' :
+    'Tất cả';
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <ArrowUpDown size={13} style={{ opacity: 0.32 }} />;
@@ -204,8 +226,12 @@ export function InventoryList() {
           </div>
           <div className="inventory-hero-stats">
             <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">Bộ lọc hiện tại</span>
+              <span className="inventory-hero-stat-label">Kho</span>
               <strong>{warehouseFilterLabel}</strong>
+            </div>
+            <div className="inventory-hero-stat">
+              <span className="inventory-hero-stat-label">Còn tồn</span>
+              <strong>{stockStatusLabel}</strong>
             </div>
             <div className="inventory-hero-stat">
               <span className="inventory-hero-stat-label">Tổng bản ghi</span>
@@ -240,18 +266,34 @@ export function InventoryList() {
             </select>
           </div>
 
+          <div className="inventory-filter-field">
+            <label className="inventory-filter-label">Còn tồn</label>
+            <select
+              className="form-control inventory-select"
+              value={filterStockStatus}
+              onChange={(e) => {
+                setFilterStockStatus(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Tất cả</option>
+              <option value="in_stock">Còn tồn</option>
+              <option value="sellable">Còn tồn có thể bán</option>
+            </select>
+          </div>
+
           <div className="inventory-filter-actions">
             <button className="btn inventory-btn inventory-btn-primary" type="submit">
               <span className="inventory-btn-glow" />
               <span>Lọc</span>
             </button>
-            <button className="btn inventory-btn inventory-btn-secondary" type="button" onClick={() => load()} title="Làm mới">
+            <button className="btn inventory-btn inventory-btn-secondary" type="button" onClick={handleRefresh} title="Làm mới">
               <RefreshCw size={16} />
               <span>Làm mới</span>
             </button>
             <button className="btn inventory-btn inventory-btn-accent" type="button" onClick={() => setShowExportModal(true)}>
               <FileDown size={16} />
-              <span>Xuất Excel</span>
+              <span>Xuất dữ liệu</span>
             </button>
           </div>
         </form>
@@ -285,7 +327,11 @@ export function InventoryList() {
 
           <div className="inventory-quick-summary">
             <span className="inventory-summary-pill">{warehouseFilterLabel}</span>
+            <span className="inventory-summary-pill">{stockStatusLabel}</span>
             <span className="record-badge">{total} bản ghi</span>
+            <button className="btn btn-light" type="button" onClick={() => navigate(`/products/storage-duration${filterWarehouse ? `?branchId=${filterWarehouse}` : ''}`)}>
+              Xem tuổi tồn kho
+            </button>
           </div>
         </div>
       </section>
@@ -366,7 +412,9 @@ export function InventoryList() {
                 items.map((item) => (
                   <tr key={item._id}>
                     <td className="inventory-code-cell">
-                      <strong>{item.code}</strong>
+                      <button className="inventory-link-button" type="button" onClick={() => navigate(`/products/storage-duration?q=${encodeURIComponent(item.code)}${filterWarehouse ? `&branchId=${filterWarehouse}` : ''}`)}>
+                        <strong>{item.code}</strong>
+                      </button>
                     </td>
                     <td className="inventory-product-cell">
                       <div className="inventory-product-name" title={item.name}>

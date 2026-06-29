@@ -34,6 +34,8 @@ import {
 import { http } from '../../core/api/http';
 import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
 import { buildReceiptHtml } from './invoicePrint';
+import * as XLSX from 'xlsx';
+import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 
 type WholesaleInvoicePageProps = {
   channel: string;
@@ -127,6 +129,9 @@ function grossValue(invoice: Invoice) {
     (sum, item) => sum + (Number(item?.value) || 0) * (Number(item?.amount) || 0),
     0,
   );
+}
+function discountMoneyAmount(invoice: Invoice) {
+  return Math.max(0, grossValue(invoice) - (Number(invoice.value) || 0));
 }
 
 function statusMeta(status: unknown, refundStatus?: unknown) {
@@ -263,6 +268,8 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [rowActionOpen, setRowActionOpen] = useState<string | null>(null);
   const [showToolsDropdown, setShowToolsDropdown] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [branchLoading, setBranchLoading] = useState(false);
@@ -399,7 +406,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   const resetFilters = () => {
     setDraftFilters(EMPTY_FILTERS);
     setPage(1);
-    setAppliedFilters(EMPTY_FILTERS);
+    setAppliedFilters({ ...EMPTY_FILTERS });
   };
 
   const openBranchPicker = async () => {
@@ -491,7 +498,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       sections: [{ lines: receiptLines }],
       summary: hideTotals ? [] : [
         { label: 'Tổng cộng', value: safeMoney(grossValue(invoice)) },
-        { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—' },
+        { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—' },
         { label: 'Thành tiền', value: safeMoney(invoice.value), strong: true },
         { label: 'Đã thanh toán', value: safeMoney(invoice.valuePayment) },
         ...(hasDistinctTendered ? [{ label: 'Tiền khách trả', value: safeMoney(tendered) }] : []),
@@ -636,7 +643,8 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       { label: 'Khách hàng', get: (invoice) => String(invoice.customerId?.name || 'Khách lẻ') },
       { label: 'Số lượng SP', get: (invoice) => String(totalQuantity(invoice)) },
       { label: 'Giá trị hàng hóa', get: (invoice) => String(grossValue(invoice)) },
-      { label: 'Giảm giá', get: (invoice) => String(Number(invoice.discountValue) || 0) },
+      { label: 'Giảm giá', get: (invoice) => String(discountMoneyAmount(invoice)) },
+      { label: '% chiết khấu', get: (invoice) => String(invoice.discountType === 'percent' ? Number(invoice.discountValue) || 0 : 0) },
       { label: 'Tổng tiền', get: (invoice) => String(Number(invoice.value) || 0) },
       { label: 'Đã thanh toán', get: (invoice) => String(Number(invoice.valuePayment) || 0) },
       { label: 'Trạng thái', get: (invoice) => statusMeta(invoice.status, invoice.refundStatus).label },
@@ -666,6 +674,92 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       else next.delete(id);
       return next;
     });
+  };
+  const exportColumns: ColumnOption[] = useMemo(
+    () => [
+      { label: 'Ngày tạo', key: 'createdAt', getValue: (invoice: Invoice) => safeDate(invoice.createdAt) },
+      { label: 'Mã hóa đơn', key: 'code', getValue: (invoice: Invoice) => invoice.code || invoice._id },
+      { label: 'Người tạo', key: 'creator', getValue: (invoice: Invoice) => invoice.authorId?.name || invoice.userId?.name || '—' },
+      { label: 'Khách hàng', key: 'customer', getValue: (invoice: Invoice) => invoice.customerId?.name || 'Khách lẻ' },
+      { label: 'SĐT khách', key: 'customerPhone', getValue: (invoice: Invoice) => invoice.customerId?.phone || '—' },
+      { label: 'Sản phẩm', key: 'product', getValue: (invoice: Invoice) => { const items = productLines(invoice); const first = items[0]; return first ? productName(first) : '—'; } },
+      { label: 'Số SP', key: 'lineCount', getValue: (invoice: Invoice) => productLines(invoice).length },
+      { label: 'Giá trị hàng hóa', key: 'gross', getValue: (invoice: Invoice) => grossValue(invoice) },
+      { label: 'Tổng SL', key: 'qty', getValue: (invoice: Invoice) => totalQuantity(invoice) },
+      { label: 'Giảm giá', key: 'discount', getValue: (invoice: Invoice) => discountMoneyAmount(invoice) },
+      { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => invoice.discountType === 'percent' ? Number(invoice.discountValue) || 0 : 0 },
+      { label: 'Tổng tiền', key: 'value', getValue: (invoice: Invoice) => Number(invoice.value) || 0 },
+      { label: 'Phương thức thanh toán', key: 'paymentMethods', getValue: (invoice: Invoice) => paymentRows(invoice).map((p) => p.label).join(', ') || '—' },
+      { label: 'Đã thanh toán', key: 'paid', getValue: (invoice: Invoice) => Number(invoice.valuePayment) || 0 },
+      { label: 'Trạng thái', key: 'status', getValue: (invoice: Invoice) => statusMeta(invoice.status, invoice.refundStatus).label },
+    ],
+    [],
+  );
+
+  const handleExcelExport = async (
+    exportType: 'current' | 'all',
+    filename: string,
+    sheetName: string,
+    selectedColumns: { key: string; customLabel: string }[],
+  ) => {
+    setExportLoading(true);
+    try {
+      let dataToExport: Invoice[] = [];
+      if (exportType === 'current') {
+        dataToExport = visibleInvoices;
+      } else {
+        const fetchPage = (nextPage: number, nextLimit: number) => {
+          const qs = new URLSearchParams();
+          qs.set('code', 'BHS');
+          qs.set('page', String(nextPage));
+          qs.set('limit', String(nextLimit));
+          if (appliedFilters.storeId) qs.set('storeId', appliedFilters.storeId);
+          if (appliedFilters.dateFrom) qs.set('dateFrom', appliedFilters.dateFrom);
+          if (appliedFilters.dateTo) qs.set('dateTo', appliedFilters.dateTo);
+          if (appliedFilters.customerKeyword) qs.set('customerKeyword', appliedFilters.customerKeyword);
+          if (appliedFilters.productKeyword) qs.set('productKeyword', appliedFilters.productKeyword);
+          return http.get(`/products/sales?${qs.toString()}`);
+        };
+        const pageSize = 100;
+        const firstResponse = await fetchPage(1, pageSize);
+        const firstItems = Array.isArray(firstResponse.data) ? firstResponse.data : firstResponse.data.items ?? [];
+        let allItems: Invoice[] = [...firstItems];
+        const totalItems = Array.isArray(firstResponse.data) ? firstItems.length : Number(firstResponse.data.total ?? firstItems.length);
+        if (totalItems > pageSize) {
+          const pagesToFetch = Math.ceil(totalItems / pageSize);
+          const responses = await Promise.all(
+            Array.from({ length: pagesToFetch - 1 }, (_, index) => fetchPage(index + 2, pageSize)),
+          );
+          responses.forEach((response) => {
+            const responseItems = Array.isArray(response.data) ? response.data : response.data.items ?? [];
+            allItems = allItems.concat(responseItems);
+          });
+        }
+        const codeKeyword = appliedFilters.invoiceCode.trim();
+        dataToExport = allItems.filter((inv) => matchesTab(inv, activeTab) && matchesInvoiceCode(inv, codeKeyword));
+      }
+      if (!dataToExport.length) {
+        window.alert('Không có dữ liệu để xuất.');
+        return;
+      }
+      const mappedRows = dataToExport.map((invoice) => {
+        const row: Record<string, unknown> = {};
+        selectedColumns.forEach((col) => {
+          const exportColumn = exportColumns.find((c) => c.key === col.key);
+          row[col.customLabel] = exportColumn ? exportColumn.getValue(invoice) : '';
+        });
+        return row;
+      });
+      const worksheet = XLSX.utils.json_to_sheet(mappedRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      setShowExportModal(false);
+    } catch (err: any) {
+      window.alert(err.response?.data?.message || 'Xuất Excel thất bại.');
+    } finally {
+      setExportLoading(false);
+    }
   };
   return (
     <div className="ws-invoice-page">
@@ -804,7 +898,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                 </button>
                 {showToolsDropdown && (
                   <div className="ws-menu ws-tools-menu" onClick={(event) => event.stopPropagation()}>
-                    <button type="button" onClick={exportCsv}><FileDown size={15} /> Xuất CSV</button>
+                    <button type="button" onClick={() => { setShowToolsDropdown(false); setShowExportModal(true); }}><FileDown size={15} /> Xuất dữ liệu</button>
                   </div>
                 )}
               </div>
@@ -813,7 +907,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                 type="button"
                 title="Làm mới"
                 aria-label="Làm mới"
-                onClick={() => void loadInvoices()}
+                onClick={resetFilters}
               >
                 <RefreshCw size={15} />
               </button>
@@ -941,7 +1035,12 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                         </td>
                         <td className="number" title={items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}>{items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}</td>
                         <td className="number" title={items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}>{items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}</td>
-                        <td className="number discount" title={Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}>{Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</td>
+                        <td className="number discount" title={Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—'}>{Number(invoice.discountValue) > 0 ? (
+                          <span className="ws-discount-cell">
+                            <span className="ws-discount-money">-{safeMoney(discountMoneyAmount(invoice))}</span>
+                            {invoice.discountType === 'percent' ? <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span> : null}
+                          </span>
+                        ) : '—'}</td>
                         <td className="number total" title={safeMoney(invoice.value)}>{safeMoney(invoice.value)}</td>
                         <td className="ws-payment-column">
                           {payments.length > 0 ? (
@@ -1066,6 +1165,17 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
           </div>
         </div>
       )}
+      {showExportModal ? (
+        <ExportExcelModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          title="Xuất Excel - Hóa đơn bán sỉ"
+          defaultFilename={`hoa-don-ban-si-${new Date().toISOString().slice(0, 10)}`}
+          columns={exportColumns}
+          onExport={handleExcelExport}
+          loading={exportLoading}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1119,7 +1229,12 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           <h3>Thanh toán</h3>
           <dl className="ws-money-summary">
             <div><dt>Giá trị hàng hóa</dt><dd>{items.length ? safeMoney(grossValue(invoice)) : '—'}</dd></div>
-            <div><dt>Giảm giá</dt><dd className="discount">{Number(invoice.discountValue) > 0 ? `-${safeMoney(invoice.discountValue)}` : '—'}</dd></div>
+            <div><dt>Giảm giá</dt><dd className="discount">{Number(invoice.discountValue) > 0 ? (
+              <span className="ws-discount-detail">
+                <span>-{safeMoney(discountMoneyAmount(invoice))}</span>
+                {invoice.discountType === 'percent' ? <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span> : null}
+              </span>
+            ) : '—'}</dd></div>
             <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(invoice.value)}</dd></div>
             <div><dt>Đã thanh toán</dt><dd>{safeMoney(invoice.valuePayment)}</dd></div>
           </dl>
@@ -1274,6 +1389,10 @@ const wholesaleStyles = `
 .ws-invoice-link{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;padding:0;border:0;background:transparent;color:var(--ws-accent);font-weight:700;cursor:pointer;transition:color .14s ease}
 .ws-invoice-link:hover{color:var(--ws-accent-2);text-decoration:underline}
 .ws-table-card td.discount{color:#ea580c}
+.ws-discount-cell{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.3}
+.ws-discount-money{white-space:nowrap}
+.ws-discount-rate{color:#b45309;font-size:11px;font-weight:600;white-space:nowrap}
+.ws-discount-detail{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.3}
 .ws-table-card td.total{color:#16a34a;font-weight:800}
 .ws-payment-column{min-width:0;max-width:100%}
 .ws-payments{min-width:0;max-width:180px;gap:8px}

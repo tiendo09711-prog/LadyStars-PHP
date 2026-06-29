@@ -25,6 +25,17 @@ import { getAssignedWarehouseIds, isAdminUser } from '../../core/middleware/auth
 
 const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
+const STORAGE_ALERT_DAYS = 30;
+
+function storageRiskStatus(daysFromStart: number, daysFromLastSold: number | null) {
+  if (daysFromStart >= STORAGE_ALERT_DAYS && daysFromLastSold === null) {
+    return { status: 'unsold_long', statusLabel: 'Nhập lâu - chưa bán' };
+  }
+  if (daysFromLastSold !== null && daysFromLastSold >= STORAGE_ALERT_DAYS) {
+    return { status: 'slow_selling', statusLabel: 'Bán chậm' };
+  }
+  return { status: 'normal', statusLabel: 'Bình thường' };
+}
 
 function nextCode(prefix: string) {
   const stamp = new Date().toISOString().replace(/\D/g, '').slice(2, 14);
@@ -62,15 +73,13 @@ function buildGeneratedBarcode() {
   return `${body}${ean13Checksum(body)}`;
 }
 
-async function generateProductIdentity(session?: mongoose.ClientSession) {
+async function generateUniqueBarcode(session?: mongoose.ClientSession) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    const suffix = `${Date.now().toString(36).toUpperCase()}${randomDigits(4)}`;
-    const code = `SP-${suffix}`;
     const barcode = buildGeneratedBarcode();
-    const existing = await Product.findOne({ $or: [{ code }, { barcode }] }).session(session || null).select('_id');
-    if (!existing) return { code, barcode };
+    const existing = await Product.findOne({ barcode }).session(session || null).select('_id');
+    if (!existing) return barcode;
   }
-  const error: any = new Error('Không thể tự động tạo mã sản phẩm/mã vạch không trùng. Vui lòng thử lại.');
+  const error: any = new Error('Không thể tự động tạo mã vạch không trùng. Vui lòng thử lại.');
   error.status = 409;
   throw error;
 }
@@ -100,6 +109,7 @@ function validateProductFields(payload: any): string[] {
   const cost = payload.cost;
   const wholesalePrice = payload.wholesalePrice;
 
+  require(code.length > 0, 'Vui lòng nhập mã sản phẩm.');
   require(name.length > 0, 'Vui lòng nhập tên sản phẩm.');
   require(barcode.length === 0 || /^\d+$/.test(barcode), 'Mã vạch chỉ được chứa chữ số.');
   require(type.length > 0, 'Vui lòng chọn loại sản phẩm.');
@@ -109,17 +119,19 @@ function validateProductFields(payload: any): string[] {
   const priceValid = price !== undefined && price !== null && price !== '' && Number.isFinite(Number(price)) && Number(price) >= 0;
   require(priceValid, 'Vui lòng nhập giá bán hợp lệ.');
 
-  const weightValid = weight !== undefined && weight !== null && weight !== '' && Number.isFinite(Number(weight)) && Number(weight) >= 0;
-  require(weightValid, 'Khối lượng phải là số không âm.');
+  if (weight !== undefined && weight !== null && weight !== '') {
+    require(Number.isFinite(Number(weight)) && Number(weight) >= 0, 'Khối lượng phải là số không âm.');
+  }
 
   const costValid = cost === undefined || cost === null || cost === '' || (Number.isFinite(Number(cost)) && Number(cost) >= 0);
   require(costValid, 'Giá vốn phải là số không âm.');
 
   const wholesaleValid = wholesalePrice === undefined || wholesalePrice === null || wholesalePrice === '' || (Number.isFinite(Number(wholesalePrice)) && Number(wholesalePrice) >= 0);
   require(wholesaleValid, 'Giá sỉ phải là số không âm.');
+  const clearancePrice = payload.clearancePrice;
+  const clearanceValid = clearancePrice === undefined || clearancePrice === null || clearancePrice === '' || (Number.isFinite(Number(clearancePrice)) && Number(clearancePrice) >= 0);
+  require(clearanceValid, 'Giá xả hàng phải là số không âm.');
 
-  require(size.length > 0, 'Vui lòng nhập kích cỡ.');
-  require(color.length > 0, 'Vui lòng nhập màu sắc.');
   require(categoryId.length > 0, 'Vui lòng chọn danh mục.');
   require(categoryId.length === 0 || mongoose.isValidObjectId(categoryId), 'Danh mục không hợp lệ.');
 
@@ -131,13 +143,13 @@ function applyMoneyDefaults(payload: any) {
   if (payload.wholesalePrice === undefined || payload.wholesalePrice === null || payload.wholesalePrice === '') payload.wholesalePrice = 0; else payload.wholesalePrice = toNumberOrZero(payload.wholesalePrice);
   if (payload.price !== undefined && payload.price !== null && payload.price !== '') payload.price = toNumberOrZero(payload.price);
   if (payload.weight !== undefined && payload.weight !== null && payload.weight !== '') payload.weight = toNumberOrZero(payload.weight);
+  if (payload.clearancePrice !== undefined && payload.clearancePrice !== null && payload.clearancePrice !== '') payload.clearancePrice = toNumberOrZero(payload.clearancePrice);
 }
 
 function sanitizeProductPayload(raw: any) {
   const payload = { ...raw };
   for (const key of [
     '_id',
-    'code',
     'barcode',
     'createdAt',
     'updatedAt',
@@ -558,12 +570,17 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
         type: 'product'
       };
 
-      let product = code ? await Product.findOne({ code }) : null;
+      if (!code) {
+        errors.push(`Dòng ${i + 2}: Thiếu mã sản phẩm`);
+        continue;
+      }
+
+      let product = await Product.findOne({ code });
 
       if (!product) {
         // Mới
-        const identity = await generateProductIdentity();
-        product = await Product.create({ ...metadata, ...identity, qty: 0 });
+        const barcode = await generateUniqueBarcode();
+        product = await Product.create({ ...metadata, code, barcode, qty: 0 });
         created++;
       } else {
         if (importMode === 'Thêm mới') {
@@ -670,9 +687,37 @@ router.get('/products', async (req, res) => {
       Product.find(filter).sort({ [sortField]: sortOrder }).skip((page - 1) * limit).limit(limit).lean(),
       Product.countDocuments(filter),
     ]);
-    const totals = await getStockTotals(items.map((item: any) => item._id), warehouseScope);
+    const itemIds = items.map((item: any) => item._id);
+    const totals = await getStockTotals(itemIds, warehouseScope);
+    const [oldestBatches, latestSales] = itemIds.length ? await Promise.all([
+      Batch.aggregate([
+        { $match: { productId: { $in: itemIds } } },
+        { $group: { _id: '$productId', firstDate: { $min: { $ifNull: ['$manufactureDate', '$createdAt'] } } } },
+      ]),
+      SalePayment.aggregate([
+        { $match: { status: 'completed', 'items.productId': { $in: itemIds }, ...(warehouseScope ? { branchId: { $in: warehouseScope.map((id) => new mongoose.Types.ObjectId(id)) } } : {}) } },
+        { $unwind: '$items' },
+        { $match: { 'items.productId': { $in: itemIds } } },
+        { $group: { _id: '$items.productId', lastSoldDate: { $max: { $ifNull: ['$completedAt', '$createdAt'] } } } },
+      ]),
+    ]) : [[], []];
+    const firstDateByProduct = new Map(oldestBatches.map((row: any) => [String(row._id), row.firstDate]));
+    const lastSoldByProduct = new Map(latestSales.map((row: any) => [String(row._id), row.lastSoldDate]));
+    const nowMs = Date.now();
     res.json({
-      items: items.map((item: any) => publicProductForRole({ ...item, qty: totals.get(String(item._id)) || 0 }, Boolean(warehouseScope))),
+      items: items.map((item: any) => {
+        const firstDate = firstDateByProduct.get(String(item._id)) || item.createdAt;
+        const lastSoldDate = lastSoldByProduct.get(String(item._id)) || null;
+        const daysFromStart = Math.max(0, Math.floor((nowMs - new Date(firstDate).getTime()) / (1000 * 60 * 60 * 24)));
+        const daysFromLastSold = lastSoldDate ? Math.max(0, Math.floor((nowMs - new Date(lastSoldDate).getTime()) / (1000 * 60 * 60 * 24))) : null;
+        const risk = storageRiskStatus(daysFromStart, daysFromLastSold);
+        const qty = totals.get(String(item._id)) || 0;
+        return publicProductForRole({
+          ...item,
+          qty,
+          storageRisk: qty > 0 ? { ...risk, thresholdDays: STORAGE_ALERT_DAYS, daysFromStart, daysFromLastSold } : undefined,
+        }, Boolean(warehouseScope));
+      }),
       total,
       page,
       limit,
@@ -730,6 +775,7 @@ router.post('/products', async (req, res) => {
   const session = await mongoose.startSession();
   try {
     const payload = sanitizeProductPayload(req.body);
+    payload.code = String(payload.code ?? '').trim();
     const initialStocks = normalizeStockLines(req.body.initialStocks);
     const fieldErrors = validateProductFields(payload);
     if (fieldErrors.length) {
@@ -750,9 +796,7 @@ router.post('/products', async (req, res) => {
 
     let created: any;
     await session.withTransaction(async () => {
-      const identity = await generateProductIdentity(session);
-      payload.code = identity.code;
-      payload.barcode = identity.barcode;
+      payload.barcode = await generateUniqueBarcode(session);
       const [item] = await Product.create([{ ...payload, qty: 0 }], { session });
       created = item;
       let runningTotal = 0;
@@ -811,6 +855,7 @@ router.patch('/products/:id', async (req, res) => {
   const session = await mongoose.startSession();
   try {
 ﻿    const productPayload = sanitizeProductPayload(req.body);
+    delete productPayload.code;
     const adjustment = req.body.stockAdjustment;
     let normalizedAdjustment: { warehouseId: string; quantity: number } | undefined;
     const editInitialStocks = normalizeStockLines(req.body.initialStocks);
@@ -1354,8 +1399,8 @@ router.get('/storage-duration', async (req, res) => {
     const productIds = products.map(p => p._id);
     const productCodes = products.map(p => p.code).filter(Boolean);
 
-    // Fetch all related transactions in parallel for O(1) in-memory resolution
-    const [batches, salePayments, stockAdjustments] = await Promise.all([
+      // Fetch all related transactions in parallel for O(1) in-memory resolution
+    const [batches, salePayments, stockAdjustments, inventoryProducts] = await Promise.all([
       Batch.find({ productId: { $in: productIds } }).lean(),
       SalePayment.find(
         targetBranchId
@@ -1366,7 +1411,8 @@ router.get('/storage-duration', async (req, res) => {
         targetBranchId
           ? { status: 'completed', 'items.productId': { $in: productIds }, branchId: targetBranchId }
           : { status: 'completed', 'items.productId': { $in: productIds } }
-      ).lean()
+      ).lean(),
+      InventoryProduct.find({ productCode: { $in: productCodes } }).lean()
     ]);
 
     // Build Maps for O(1) lookup inside loop
@@ -1402,6 +1448,17 @@ router.get('/storage-duration', async (req, res) => {
       }
     }
 
+    const inventoryProductsMap = new Map<string, any>();
+    for (const row of inventoryProducts) {
+      const productCode = String(row.productCode || '');
+      if (!productCode) continue;
+      const existing = inventoryProductsMap.get(productCode);
+      const currentDate = row.date || row.createdAt;
+      if (!existing || new Date(currentDate) > new Date(existing.date || existing.createdAt)) {
+        inventoryProductsMap.set(productCode, row);
+      }
+    }
+
     const resultItems: any[] = [];
     const nowMs = Date.now();
 
@@ -1409,6 +1466,8 @@ router.get('/storage-duration', async (req, res) => {
     let unsoldLong = 0;
     let slowSelling = 0;
     let totalValue = 0;
+    let unsoldLongValue = 0;
+    let slowSellingValue = 0;
 
     for (const product of products) {
       const productQty = targetBranchId ? (branchStockMap.get(String(product._id)) || 0) : (product.qty || 0);
@@ -1457,6 +1516,13 @@ router.get('/storage-duration', async (req, res) => {
           lastTransactionDate = adjDate;
         }
       }
+      const lastInventoryProduct = inventoryProductsMap.get(String(product.code || ''));
+      if (lastInventoryProduct) {
+        const inventoryDate = lastInventoryProduct.date || lastInventoryProduct.createdAt;
+        if (inventoryDate && new Date(inventoryDate) > new Date(lastTransactionDate)) {
+          lastTransactionDate = inventoryDate;
+        }
+      }
 
       // Max Sold Date from all 4 sales channels
       let lastSoldDate: any = null;
@@ -1479,21 +1545,25 @@ router.get('/storage-duration', async (req, res) => {
 
       // Update KPI statistics (for all active products before tab filter)
       totalProducts++;
-      totalValue += (product.cost || 0) * productQty;
-      if (daysFromStart >= 30 && lastSoldDate === null) {
+      const stockValue = (product.cost || 0) * productQty;
+      totalValue += stockValue;
+      const risk = storageRiskStatus(daysFromStart, daysFromLastSold);
+      if (risk.status === 'unsold_long') {
         unsoldLong++;
+        unsoldLongValue += stockValue;
       }
-      if (lastSoldDate !== null && daysFromLastSold !== null && daysFromLastSold >= 30) {
+      if (risk.status === 'slow_selling') {
         slowSelling++;
+        slowSellingValue += stockValue;
       }
 
       // Filter by Tab
       if (tab === 'unsold_long') {
-        if (daysFromStart < 30 || lastSoldDate !== null) {
+        if (risk.status !== 'unsold_long') {
           continue;
         }
       } else if (tab === 'slow_selling') {
-        if (lastSoldDate === null || (daysFromLastSold !== null && daysFromLastSold < 30)) {
+        if (risk.status !== 'slow_selling') {
           continue;
         }
       }
@@ -1516,6 +1586,9 @@ router.get('/storage-duration', async (req, res) => {
         categoryName: product.categoryName || '',
         cost: product.cost || 0,
         price: product.price || 0,
+        clearancePrice: product.clearancePrice || 0,
+        clearanceActive: Boolean(product.clearanceActive),
+        clearanceNote: product.clearanceNote || '',
         qty: productQty,
         globalQty: product.qty || 0,
         firstTransactionDate: firstTransactionDate ? new Date(firstTransactionDate).toISOString() : undefined,
@@ -1523,7 +1596,10 @@ router.get('/storage-duration', async (req, res) => {
         lastSoldDate: lastSoldDate ? new Date(lastSoldDate).toISOString() : undefined,
         daysFromStart,
         daysFromLast,
-        daysFromLastSold
+        daysFromLastSold,
+        status: risk.status,
+        statusLabel: risk.statusLabel,
+        branchName
       });
     }
 
@@ -1537,10 +1613,17 @@ router.get('/storage-duration', async (req, res) => {
       page,
       limit,
       kpis: {
+        thresholdDays: STORAGE_ALERT_DAYS,
         totalProducts,
         unsoldLong,
         slowSelling,
-        totalValue
+        totalValue,
+        oldStockValue: totalValue,
+        unsoldLongValue,
+        slowSellingValue,
+        lastRefreshedAt: new Date().toISOString(),
+        topUnsoldLong: resultItems.filter((item) => item.status === 'unsold_long').slice(0, 5),
+        topSlowSelling: resultItems.filter((item) => item.status === 'slow_selling').slice(0, 5)
       }
     });
   } catch (err: any) {
@@ -1557,6 +1640,10 @@ router.get('/inventories', async (req, res) => {
     const categoryId = req.query.categoryId ? String(req.query.categoryId).trim() : '';
     const sortField = req.query.sort ? String(req.query.sort) : 'createdAt';
     const sortOrder = req.query.order === 'asc' ? 1 : -1;
+    // stockStatus: '' | 'in_stock' | 'sellable'
+    const stockStatusRaw = req.query.stockStatus ? String(req.query.stockStatus).trim() : '';
+    const stockStatus = stockStatusRaw === 'in_stock' || stockStatusRaw === 'sellable' ? stockStatusRaw : '';
+    const SELLABLE_STATUSES = ['Mới', 'Đang bán'];
 
     // Find branches
     const branchCN = await resolveBranchReference({ warehouse: 'Chi nhánh trung tâm', warehouseCode: 'CN001', allowInactive: true });
@@ -1675,12 +1762,23 @@ router.get('/inventories', async (req, res) => {
         stockByBranchId,
         stockByBranchCode,
         unit: pAny.unit || '',
+        status: pAny.status || '',
         createdAt: pAny.createdAt
       });
     }
 
+    // Filter by stock availability (Còn tồn / Còn tồn có thể bán)
+    const filteredItems = stockStatus
+      ? allItems.filter((item: any) => {
+          if (Number(item.totalStock) <= 0) return false;
+          if (stockStatus === 'in_stock') return true;
+          // sellable: totalStock > 0 AND status in sellable statuses (case-insensitive)
+          return SELLABLE_STATUSES.some((st) => (item.status || '').trim().toLowerCase() === st.toLowerCase());
+        })
+      : allItems;
+
     // Sort the list
-    allItems.sort((a: any, b: any) => {
+    filteredItems.sort((a: any, b: any) => {
       if (sortField === 'createdAt') {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -1709,9 +1807,9 @@ router.get('/inventories', async (req, res) => {
       return 0;
     });
 
-    const total = allItems.length;
+    const total = filteredItems.length;
     const startIndex = (page - 1) * limit;
-    const paginatedItems = allItems.slice(startIndex, startIndex + limit);
+    const paginatedItems = filteredItems.slice(startIndex, startIndex + limit);
 
     res.json({
       items: paginatedItems,

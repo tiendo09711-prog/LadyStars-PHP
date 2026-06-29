@@ -1743,3 +1743,97 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.storage-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 22px;
+}
+
+.storage-hero-actions,
+.storage-info-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.storage-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.storage-info-card {
+  padding: 16px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.storage-info-card h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.storage-info-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.products-link-button,
+.products-age-link,
+.inventory-link-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.products-link-button:hover,
+.products-age-link:hover,
+.inventory-link-button:hover {
+  color: #16a34a;
+  text-decoration: underline;
+}
+
+.storage-risk-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.storage-risk-badge.slow_selling {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+@media (max-width: 860px) {
+  .storage-hero,
+  .storage-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .storage-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

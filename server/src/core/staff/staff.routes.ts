@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { z } from 'zod';
 import { User } from '../auth/user.model.js';
 import { ACTIVE_STATUS, EMPLOYEE_ROLE, LOCKED_STATUS, normalizeRole, normalizeStatus } from '../auth/role.utils.js';
 import { writeAuditLog } from '../audit/audit.service.js';
 import { AuditLog } from '../audit/audit.model.js';
 import { Branch } from '../org/branch.model.js';
-import { SalePayment, ProductRefund } from '../../modules/product/product.models.js';
+import { SalePayment, ProductRefund, StockAdjustment, Batch } from '../../modules/product/product.models.js';
 
 const router = Router();
 
@@ -260,13 +260,31 @@ router.patch('/:id/open', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   const employee = await findEmployee(req.params.id);
-  if (normalizeStatus(employee.status) !== LOCKED_STATUS) return res.status(422).json({ message: 'Only locked employee accounts can be deleted' });
   const before = publicUser(employee);
-  employee.deletedAt = new Date();
-  employee.isActive = false;
-  employee.tokenVersion = Number(employee.tokenVersion ?? 0) + 1;
-  await employee.save();
-  await writeAuditLog(req, { action: 'staff.delete_soft', module: 'staff', resource: 'User', resourceId: employee.id, before });
+  const employeeId = new Types.ObjectId(employee.id);
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await SalePayment.deleteMany({ $or: [{ userId: employeeId }, { authorId: employeeId }] }).session(session);
+      await ProductRefund.deleteMany({ $or: [{ userId: employeeId }, { userCreatedId: employeeId }] }).session(session);
+      await StockAdjustment.deleteMany({ $or: [{ userId: employeeId }, { userCreatedId: employeeId }] }).session(session);
+      await Batch.deleteMany({ userId: employeeId }).session(session);
+      await User.updateOne(
+        { _id: employeeId },
+        { $set: { deletedAt: new Date(), isActive: false, tokenVersion: Number(employee.tokenVersion ?? 0) + 1 } },
+      ).session(session);
+    });
+  } finally {
+    await session.endSession();
+  }
+  await writeAuditLog(req, {
+    action: 'staff.delete_purge',
+    module: 'staff',
+    resource: 'User',
+    resourceId: employee.id,
+    before,
+    metadata: { purgedCollections: ['SalePayment', 'ProductRefund', 'StockAdjustment', 'Batch'] },
+  });
   res.status(204).send();
 });
 

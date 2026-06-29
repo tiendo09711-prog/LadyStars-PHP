@@ -33,6 +33,7 @@ import {
 } from '@bwip-js/generic';
 import * as XLSX from 'xlsx';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   productApi,
   type ProductSavePayload,
@@ -664,6 +665,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     const errors: FieldErrors = {};
 
     if (!String(form.name ?? '').trim()) errors.name = 'Vui lòng nhập tên sản phẩm.';
+    if (!isEdit && !String(form.code ?? '').trim()) errors.code = 'Vui lòng nhập mã sản phẩm.';
 
     if (!String(form.type ?? '').trim()) errors.type = 'Vui lòng chọn loại sản phẩm.';
     if (!String(form.unit ?? '').trim()) errors.unit = 'Vui lòng chọn đơn vị.';
@@ -673,11 +675,8 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     else if (!isValidNonNegativeNumber(priceRaw)) errors.price = 'Vui lòng nhập giá bán hợp lệ.';
 
     const weightRaw = String(form.weight ?? '').trim();
-    if (weightRaw === '') errors.weight = 'Khối lượng phải là số không âm.';
-    else if (!isValidNonNegativeNumber(weightRaw)) errors.weight = 'Khối lượng phải là số không âm.';
+    if (weightRaw !== '' && !isValidNonNegativeNumber(weightRaw)) errors.weight = 'Khối lượng phải là số không âm.';
 
-    if (!String(form.size ?? '').trim()) errors.size = 'Vui lòng nhập kích cỡ.';
-    if (!String(form.color ?? '').trim()) errors.color = 'Vui lòng nhập màu sắc.';
     if (!String(form.categoryId ?? '').trim()) errors.categoryId = 'Vui lòng chọn danh mục.';
 
     if (selectedWarehouseIds.size === 0) errors.warehouses = 'Vui lòng chọn ít nhất một kho hàng.';
@@ -698,7 +697,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
   };
 
   const focusFirstError = (errors: FieldErrors) => {
-    const order: (keyof FieldErrors)[] = ['name', 'type', 'unit', 'price', 'weight', 'size', 'color', 'categoryId', 'warehouses', 'cost', 'wholesalePrice'];
+    const order: (keyof FieldErrors)[] = ['code', 'name', 'type', 'unit', 'price', 'weight', 'size', 'color', 'categoryId', 'warehouses', 'cost', 'wholesalePrice'];
     const firstKey = order.find((key) => errors[key]);
     if (firstKey && fieldRefs.current[firstKey]) {
       fieldRefs.current[firstKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -726,20 +725,23 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
     const payload: ProductSavePayload = {
       ...form,
       name: trimmedName,
+      code: String(form.code ?? '').trim(),
       size: trimmedSize,
       color: trimmedColor,
       unit: trimmedUnit,
       cost: form.cost === undefined || form.cost === null || String(form.cost).trim() === '' ? 0 : Number(form.cost),
       wholesalePrice: form.wholesalePrice === undefined || form.wholesalePrice === null || String(form.wholesalePrice).trim() === '' ? 0 : Number(form.wholesalePrice),
       price: Number(form.price),
-      weight: Number(form.weight),
+      weight: form.weight === undefined || form.weight === null || String(form.weight).trim() === '' ? 0 : Number(form.weight),
     };
     delete payload.trademarkName;
     delete payload.supplierName;
     delete payload.qty;
     delete payload.availableStock;
-    delete payload.code;
     delete payload.barcode;
+    if (isEdit) {
+      delete payload.code;
+    }
 
     if (!isEdit) {
       payload.initialStocks = Array.from(selectedWarehouseIds).map((warehouseId) => ({
@@ -807,12 +809,14 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 
         <div className="form-grid" style={{ position: 'relative' }}>
           <div className="form-field" ref={setFieldRef('code')}>
-            <span>Mã sản phẩm</span>
+            <span>Mã sản phẩm{isEdit ? '' : ' *'}</span>
             <input
               type="text"
-              value={isEdit ? String(form.code ?? '') : 'Tự động tạo khi lưu'}
+              value={String(form.code ?? '')}
               className={fieldErrors.code ? 'input-error' : ''}
-              disabled
+              onChange={(event) => updateField('code', event.target.value)}
+              disabled={isEdit}
+              placeholder={isEdit ? '' : 'Nhập mã sản phẩm'}
             />
             {fieldErrors.code ? <span className="field-error-text">{fieldErrors.code}</span> : null}
           </div>
@@ -909,7 +913,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
           </div>
 
           <div className="form-field" ref={setFieldRef('weight')}>
-            <span>Khối lượng (g) *</span>
+            <span>Khối lượng (g)</span>
             <input
               type="number"
               min={0}
@@ -922,7 +926,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
           </div>
 
           <div className="form-field" ref={setFieldRef('size')}>
-            <span>Kích cỡ *</span>
+            <span>Kích cỡ</span>
             <input
               type="text"
               value={String(form.size ?? '')}
@@ -933,7 +937,7 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
           </div>
 
           <div className="form-field" ref={setFieldRef('color')}>
-            <span>Màu sắc *</span>
+            <span>Màu sắc</span>
             <input
               type="text"
               value={String(form.color ?? '')}
@@ -1162,6 +1166,7 @@ function ImportModal({
 
   const downloadSampleCsv = () => {
     const headers = [
+      'Mã sản phẩm',
       'Tên sản phẩm',
       'Đơn vị tính',
       'Giá nhập',
@@ -1176,7 +1181,7 @@ function ImportModal({
       'Trạng thái',
     ];
     const rows = [
-      ['Áo thun nữ basic', 'Cái', '120000', '199000', '180000', '10', 'Áo nữ', 'Lady Stars', 'Nhà cung cấp A', 'Trắng', 'M', 'Mới'],
+      ['SP-0001', 'Áo thun nữ basic', 'Cái', '120000', '199000', '180000', '10', 'Áo nữ', 'Lady Stars', 'Nhà cung cấp A', 'Trắng', 'M', 'Mới'],
     ];
     const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
     const csv = [headers, ...rows].map((row) => row.map(escapeCell).join(';')).join('\r\n');
@@ -1321,7 +1326,7 @@ function ImportModal({
           <div className="products-note-card" style={{ boxShadow: 'none', display: 'grid', gap: 10 }}>
             <strong>File import mẫu</strong>
             <span style={{ color: '#64748b', fontSize: 13 }}>
-              Tải file CSV mẫu, điền dữ liệu sản phẩm theo đúng cột; mã sản phẩm và mã vạch sẽ được tự động tạo khi import.
+              Tải file CSV mẫu, điền dữ liệu sản phẩm theo đúng cột; mã sản phẩm là trường bắt buộc, mã vạch sẽ được tự động tạo khi import.
             </span>
             <button className="btn btn-light" type="button" onClick={downloadSampleCsv} disabled={loading} style={{ justifySelf: 'flex-start' }}>
               <Download size={16} />
@@ -2150,6 +2155,7 @@ export function ProductList({
   onBarcodeWorkspaceChange?: (open: boolean) => void;
   actionSlot?: React.RefObject<HTMLDivElement | null>;
 }) {
+  const navigate = useNavigate();
   const [items, setItems] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftSearch, setDraftSearch] = useState('');
@@ -2291,9 +2297,11 @@ export function ProductList({
     }
   };
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     void load();
-  }, [page, appliedSearch, appliedStatus, sortField, sortOrder]);
+  }, [page, appliedSearch, appliedStatus, sortField, sortOrder, refreshKey]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -2310,6 +2318,7 @@ export function ProductList({
     setSortField('createdAt');
     setSortOrder('desc');
     setPage(1);
+    setRefreshKey((value) => value + 1);
   };
 
   const handleProductListScan = (barcode: string) => {
@@ -2764,15 +2773,51 @@ export function ProductList({
                         />
                       </td>
                       <td>
-                        <span className="products-code">{item.code}</span>
+                        <button
+                          className="products-code products-link-button"
+                          type="button"
+                          onClick={() => navigate(`/products/storage-duration?q=${encodeURIComponent(item.code)}`)}
+                          title="Kiểm tra tuổi tồn kho"
+                        >
+                          {item.code}
+                        </button>
                       </td>
                       <td className="products-name-cell">
                         <div className="products-name-main">{item.name}</div>
                         {item.categoryName ? <div className="products-name-sub">{item.categoryName}</div> : null}
+                        {item.storageRisk && item.storageRisk.status !== 'normal' ? (
+                          <button
+                            className={`storage-risk-badge ${item.storageRisk.status}`}
+                            type="button"
+                            onClick={() => navigate(`/products/storage-duration?q=${encodeURIComponent(item.code)}&tab=${item.storageRisk?.status === 'unsold_long' ? 'unsold_long' : 'slow_selling'}`)}
+                          >
+                            {item.storageRisk.statusLabel} · {item.storageRisk.daysFromLastSold === null ? item.storageRisk.daysFromStart : item.storageRisk.daysFromLastSold} ngày
+                          </button>
+                        ) : (
+                          <button
+                            className="products-name-sub products-age-link"
+                            type="button"
+                            onClick={() => navigate(`/products/storage-duration?q=${encodeURIComponent(item.code)}`)}
+                          >
+                            Kiểm tra tồn lâu
+                          </button>
+                        )}
                       </td>
                       <td className="products-barcode">{item.barcode || '—'}</td>
                       <td className="products-price">{formatMoney(item.cost)}</td>
-                      <td className="products-price products-price-sale">{formatMoney(item.price)}</td>
+                      <td className="products-price products-price-sale">
+                        {formatMoney(item.price)}
+                        {item.clearanceActive && item.clearancePrice ? (
+                          <button
+                            className="storage-risk-badge slow_selling"
+                            type="button"
+                            onClick={() => navigate(`/products/storage-duration?q=${encodeURIComponent(item.code)}`)}
+                            title="Giá xả hàng riêng, không đổi giá bán chính"
+                          >
+                            Đang xả: {formatMoney(item.clearancePrice)}
+                          </button>
+                        ) : null}
+                      </td>
                       <td className="products-stock">{Number(item.qty || 0).toLocaleString('vi-VN')}</td>
                       <td>
                         <span className={`status-badge ${getStatusClass(item.status)}`}>{item.status || 'Mới'}</span>

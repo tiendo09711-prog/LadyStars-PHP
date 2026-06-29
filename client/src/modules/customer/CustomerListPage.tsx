@@ -12,12 +12,15 @@ import {
   SlidersHorizontal,
   Trash2,
   Users,
+  FileDown,
   X,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
 import { Pagination } from '../../core/components/Pagination';
 import './customer-list-page.css';
+import * as XLSX from 'xlsx';
+import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 
 type SortField =
   | 'createdAt'
@@ -403,6 +406,8 @@ export function CustomerListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tableBusy, setTableBusy] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -677,6 +682,84 @@ export function CustomerListPage() {
 
   const selectedCount = selectedIds.size;
 
+  const exportColumns: ColumnOption[] = useMemo(
+    () => [
+      { label: 'Mã khách', key: 'code', getValue: (c: CustomerRow) => c.code || '—' },
+      { label: 'Tên khách hàng', key: 'name', getValue: (c: CustomerRow) => c.name || '—' },
+      { label: 'Loại', key: 'type', getValue: (c: CustomerRow) => (c.type === 'person' ? 'Cá nhân' : c.type === 'company' ? 'Công ty' : (c.type || '—')) },
+      { label: 'SĐT', key: 'phone', getValue: (c: CustomerRow) => c.phone || '—' },
+      { label: 'Email', key: 'email', getValue: (c: CustomerRow) => c.email || '—' },
+      { label: 'Mã thẻ', key: 'cardId', getValue: (c: CustomerRow) => c.cardId || '—' },
+      { label: 'Cấp độ', key: 'customerLevel', getValue: (c: CustomerRow) => c.customerLevel || '—' },
+      { label: 'Nhóm', key: 'groups', getValue: (c: CustomerRow) => (c.groupNames?.join(', ') || c.groups?.map((g) => g.name).join(', ') || '—') },
+      { label: 'Sinh nhật', key: 'birthday', getValue: (c: CustomerRow) => (c.birthday ? formatDate(c.birthday) : '—') },
+      { label: 'Tổng chi', key: 'totalSpent', getValue: (c: CustomerRow) => c.totalSpent ?? 0 },
+      { label: 'Điểm', key: 'points', getValue: (c: CustomerRow) => c.points ?? 0 },
+      { label: 'Số lần mua', key: 'purchaseCount', getValue: (c: CustomerRow) => c.purchaseCount ?? 0 },
+      { label: 'SL sản phẩm đã mua', key: 'purchaseProductQuantity', getValue: (c: CustomerRow) => c.purchaseProductQuantity ?? 0 },
+      { label: 'Ngày mua đầu', key: 'firstPurchaseDate', getValue: (c: CustomerRow) => (c.firstPurchaseDate ? formatDate(c.firstPurchaseDate) : '—') },
+      { label: 'Ngày mua gần nhất', key: 'lastPurchaseDate', getValue: (c: CustomerRow) => (c.lastPurchaseDate ? formatDate(c.lastPurchaseDate) : '—') },
+      { label: 'Chu kỳ mua (ngày)', key: 'purchaseCycleDays', getValue: (c: CustomerRow) => (c.purchaseCycleDays != null ? c.purchaseCycleDays : 'Chưa đủ dữ liệu') },
+      { label: 'Số ngày chưa mua', key: 'daysSinceLastPurchase', getValue: (c: CustomerRow) => (c.daysSinceLastPurchase != null ? c.daysSinceLastPurchase : '—') },
+      { label: 'Trạng thái', key: 'status', getValue: (c: CustomerRow) => c.status || '—' },
+      { label: 'Địa chỉ', key: 'address', getValue: (c: CustomerRow) => [c.address, c.addressLocation].filter(Boolean).join(', ') || '—' },
+      { label: 'Ghi chú', key: 'note', getValue: (c: CustomerRow) => c.note || '—' },
+      { label: 'Ngày tạo', key: 'createdAt', getValue: (c: CustomerRow) => (c.createdAt ? formatDate(c.createdAt) : '—') },
+    ],
+    [],
+  );
+
+  const handleExcelExport = async (
+    exportType: 'current' | 'all',
+    filename: string,
+    sheetName: string,
+    selectedColumns: { key: string; customLabel: string }[],
+  ) => {
+    setExportLoading(true);
+    try {
+      let dataToExport: CustomerRow[] = [];
+      if (exportType === 'current') {
+        dataToExport = items;
+      } else {
+        const fetchPage = (nextPage: number, nextLimit: number) =>
+          http.get('/customers/customers', { params: { ...filters, page: nextPage, limit: nextLimit, sort: sortField, order: sortOrder } });
+        const pageSize = 100;
+        const firstResponse = await fetchPage(1, pageSize);
+        const firstItems = firstResponse.data?.items || [];
+        let allItems: CustomerRow[] = [...firstItems];
+        const totalItems = Number(firstResponse.data?.total || 0);
+        if (totalItems > pageSize) {
+          const pagesToFetch = Math.ceil(totalItems / pageSize);
+          const responses = await Promise.all(
+            Array.from({ length: pagesToFetch - 1 }, (_, index) => fetchPage(index + 2, pageSize)),
+          );
+          responses.forEach((response) => { allItems = allItems.concat(response.data?.items || []); });
+        }
+        dataToExport = allItems;
+      }
+      if (!dataToExport.length) {
+        setError('Không có dữ liệu để xuất.');
+        return;
+      }
+      const mappedRows = dataToExport.map((customer) => {
+        const row: Record<string, unknown> = {};
+        selectedColumns.forEach((col) => {
+          const exportColumn = exportColumns.find((c) => c.key === col.key);
+          row[col.customLabel] = exportColumn ? exportColumn.getValue(customer) : '';
+        });
+        return row;
+      });
+      const worksheet = XLSX.utils.json_to_sheet(mappedRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      setShowExportModal(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Xuất Excel thất bại.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
   return (
     <div className="page-stack customer-list-page" data-testid="customers-list-page">
       <div className="page-heading customer-list-heading">
@@ -882,6 +965,9 @@ export function CustomerListPage() {
             <p>Kết quả đang hiển thị đúng theo điều kiện lọc, sắp xếp và phân trang từ API.</p>
           </div>
           {tableBusy && <span className="record-badge">Đang cập nhật dữ liệu…</span>}
+          <button className="btn btn-outline" type="button" onClick={() => setShowExportModal(true)}>
+            <FileDown size={15} /> Xuất dữ liệu
+          </button>
         </div>
 
         {error && (
@@ -1126,6 +1212,17 @@ export function CustomerListPage() {
           </div>
         </div>
       )}
+      {showExportModal ? (
+        <ExportExcelModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          title="Xuất Excel - Danh sách khách hàng"
+          defaultFilename={`danh-sach-khach-hang-${new Date().toISOString().slice(0, 10)}`}
+          columns={exportColumns}
+          onExport={handleExcelExport}
+          loading={exportLoading}
+        />
+      ) : null}
     </div>
   );
 }

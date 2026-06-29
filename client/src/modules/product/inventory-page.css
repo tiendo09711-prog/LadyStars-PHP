@@ -534,3 +534,16 @@
   border-color: #16a34a !important;
   box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14) !important;
 }
+
+.inventory-link-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.inventory-link-button:hover {
+  color: #16a34a;
+  text-decoration: underline;
+}

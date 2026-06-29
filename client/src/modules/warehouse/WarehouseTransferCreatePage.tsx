@@ -1,6 +1,6 @@
 ﻿import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight, Plus, Search, Shuffle, Trash2 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import './warehouseRecords.css';
@@ -16,6 +16,7 @@ function lockedOf(product?: Product) { return Number(product?.lockedQuantity || 
 export function WarehouseTransferCreatePage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const editMode = Boolean(id);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -47,6 +48,16 @@ export function WarehouseTransferCreatePage() {
       .then((response) => setWarehouses(response.data?.warehouses || []))
       .catch(() => setError('Không tải được danh sách kho.'));
   }, []);
+
+  useEffect(() => {
+    if (editMode) return;
+    const prefillSource = searchParams.get('sourceWarehouseId') || '';
+    const prefillDestination = searchParams.get('destinationWarehouseId') || '';
+    const prefillNote = searchParams.get('note') || '';
+    if (prefillSource) setSourceWarehouseId(prefillSource);
+    if (prefillDestination) setDestinationWarehouseId(prefillDestination);
+    if (prefillNote) setNote(prefillNote);
+  }, [editMode, searchParams]);
 
   useEffect(() => {
     if (!id) return;
@@ -95,6 +106,18 @@ export function WarehouseTransferCreatePage() {
       .finally(() => { if (active) setLoadingProducts(false); });
     return () => { active = false; };
   }, [sourceWarehouseId, destinationWarehouseId, warehousesValid]);
+
+  useEffect(() => {
+    if (editMode || !products.length || !warehousesValid) return;
+    const productId = searchParams.get('productId') || '';
+    const productCode = searchParams.get('productCode') || '';
+    const quantity = Math.max(1, Number(searchParams.get('quantity') || 1));
+    if (!productId && !productCode) return;
+    const product = products.find((item) => item._id === productId || item.code === productCode);
+    if (!product) return;
+    setLines([{ productId: product._id, quantity: Math.min(quantity, Math.max(1, stockOf(product))), unit: product.unit || '', batchCode: '', imei: '', note: 'Đề xuất từ báo cáo hàng tồn lâu / bán chậm' }]);
+    setSearch(`${product.code} ${product.name}`);
+  }, [editMode, products, searchParams, warehousesValid]);
 
   const resetLinesIfNeeded = () => {
     if (!lines.length) return true;

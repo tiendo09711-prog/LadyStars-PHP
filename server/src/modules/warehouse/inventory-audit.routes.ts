@@ -10,7 +10,7 @@ import {
   InventoryVoucher,
   WarehouseTransfer,
 } from './warehouse.models.js';
-import { Product, ProductBranchStock, ProductLog } from '../product/product.models.js';
+import { Product, ProductBranchStock, ProductLog, Shelf } from '../product/product.models.js';
 
 const router = Router();
 const inventoryAuditItemsRouter = Router();
@@ -18,6 +18,19 @@ const inventoryAuditItemsRouter = Router();
 const AUDIT_STATUSES = ['DRAFT', 'COUNTING', 'SUBMITTED', 'RECONCILED', 'CANCELLED'] as const;
 const AUDIT_TYPES = ['BY_PRODUCT', 'FULL_WAREHOUSE'] as const;
 const TRANSFER_PENDING_STATUSES = ['IN_TRANSIT'];
+const VARIANCE_REASONS = ['BROKEN', 'EXPIRED', 'LOSS', 'FOUND', 'DATA_ERROR', 'OTHER'] as const;
+
+function varianceReasonLabel(reason: string) {
+  const labels: Record<string, string> = {
+    BROKEN: 'Hỏng/vỡ',
+    EXPIRED: 'Hết hạn',
+    LOSS: 'Thất thoát',
+    FOUND: 'Tìm thấy/thừa thực tế',
+    DATA_ERROR: 'Sai dữ liệu trước đó',
+    OTHER: 'Khác',
+  };
+  return labels[reason] || reason || '';
+}
 
 function objectId(value: unknown) {
   const raw = String(value || '').trim();
@@ -80,6 +93,20 @@ function toIntegerOrNull(value: unknown) {
   const number = Number(value);
   if (!Number.isInteger(number) || number < 0) return NaN;
   return number;
+}
+
+function normalizeVarianceReason(value: unknown) {
+  const reason = String(value || '').trim().toUpperCase();
+  return VARIANCE_REASONS.includes(reason as any) ? reason : '';
+}
+
+function optionalObjectId(value: unknown) {
+  const raw = String(value || '').trim();
+  return Types.ObjectId.isValid(raw) ? new Types.ObjectId(raw) : undefined;
+}
+
+function booleanInput(value: unknown) {
+  return value === true || value === 'true' || value === 1 || value === '1';
 }
 
 function escapeRegex(value: string) {
@@ -310,8 +337,22 @@ async function buildSnapshotItems(
       physicalQuantity,
       varianceQuantity: deriveVariance(systemQuantitySnapshot, physicalQuantity),
       note: String(input.note ?? preserved?.note ?? '').trim(),
+      physicalQuantity2: (() => {
+        const second = toIntegerOrNull(input.physicalQuantity2 ?? preserved?.physicalQuantity2 ?? null);
+        if (Number.isNaN(second)) {
+          const error: any = new Error(`Số lượng đêm lần 2 của ${product.code || product.name} phải là số nguyên không âm.`);
+          error.status = 400;
+          throw error;
+        }
+        return second === null ? null : Number(second);
+      })(),
       countedById: physicalQuantity === null ? undefined : objectId(input.countedById || preserved?.countedById || ''),
       countedAt: physicalQuantity === null ? undefined : new Date(),
+      countedById2: objectId(input.countedById2 || preserved?.countedById2 || ''),
+      countedAt2: input.physicalQuantity2 === null || input.physicalQuantity2 === undefined || input.physicalQuantity2 === '' ? preserved?.countedAt2 : new Date(),
+      assignedToId: optionalObjectId(input.assignedToId ?? preserved?.assignedToId ?? ''),
+      location: String(input.location ?? preserved?.location ?? '').trim(),
+      varianceReason: normalizeVarianceReason(input.varianceReason ?? preserved?.varianceReason ?? ''),
     };
   });
 }
@@ -351,15 +392,32 @@ async function syncPhysicalCounts(
       error.status = 400;
       throw error;
     }
+    const resolvedPhysical2 = toIntegerOrNull(incoming.physicalQuantity2);
+    if (Number.isNaN(resolvedPhysical2)) {
+      const error: any = new Error(`Số lượng đêm lần 2 của ${item.productCodeSnapshot || item.productNameSnapshot} phải là số nguyên không âm.`);
+      error.status = 400;
+      throw error;
+    }
     item.physicalQuantity = resolvedPhysical === null ? null : Number(resolvedPhysical);
+    item.physicalQuantity2 = resolvedPhysical2 === null ? null : Number(resolvedPhysical2);
     item.varianceQuantity = deriveVariance(Number(item.systemQuantitySnapshot || 0), item.physicalQuantity);
     item.note = String(incoming.note ?? item.note ?? '').trim();
+    item.assignedToId = optionalObjectId(incoming.assignedToId ?? item.assignedToId ?? '');
+    item.location = String(incoming.location ?? item.location ?? '').trim();
+    item.varianceReason = normalizeVarianceReason(incoming.varianceReason ?? item.varianceReason ?? '');
     if (item.physicalQuantity === null) {
       item.countedById = undefined;
       item.countedAt = undefined;
     } else {
       item.countedById = actorId(req) || item.countedById;
       item.countedAt = new Date();
+    }
+    if (item.physicalQuantity2 === null) {
+      item.countedById2 = undefined;
+      item.countedAt2 = undefined;
+    } else {
+      item.countedById2 = optionalObjectId(incoming.countedById2) || item.countedById2 || actorId(req);
+      item.countedAt2 = new Date();
     }
     await item.save({ session });
   }
@@ -437,6 +495,8 @@ async function buildAuditView(audit: any, req: any, options?: { includeItems?: b
     audit.reconciledById,
     audit.cancelledById,
     ...items.map((item: any) => item.countedById).filter(Boolean),
+    ...items.map((item: any) => item.countedById2).filter(Boolean),
+    ...items.map((item: any) => item.assignedToId).filter(Boolean),
     ...logs.map((log: any) => log.actorId).filter(Boolean),
   ].filter(Boolean).map((value) => String(value));
   const users = await userNameMap([...new Set(userIds)]);
@@ -475,6 +535,13 @@ async function buildAuditView(audit: any, req: any, options?: { includeItems?: b
     mergedIntoAuditId: audit.mergedIntoAuditId ? String(audit.mergedIntoAuditId) : null,
     sourceAuditIds: Array.isArray(audit.sourceAuditIds) ? audit.sourceAuditIds.map((value: any) => String(value)) : [],
     version: Number(audit.version || 0),
+    blindMode: Boolean(audit.blindMode),
+    doubleCount: Boolean(audit.doubleCount),
+    reversedById: audit.reversedById ? String(audit.reversedById) : null,
+    reversedByName: userDisplay(users, audit.reversedById),
+    reversedAt: audit.reversedAt,
+    reversalVoucherIds: Array.isArray(audit.reversalVoucherIds) ? audit.reversalVoucherIds.map((value: any) => String(value)) : [],
+    reversalVoucherCodes: Array.isArray(audit.reversalVoucherCodes) ? audit.reversalVoucherCodes : [],
     summary,
     canDelete: String(audit.status) === 'DRAFT' && !audit.linkedInventoryBillId && !(audit.linkedInventoryBillIds || []).length,
     availableActions: availableAuditActions(audit, summary, req.user),
@@ -492,11 +559,20 @@ async function buildAuditView(audit: any, req: any, options?: { includeItems?: b
           systemQuantitySnapshot: Number(item.systemQuantitySnapshot || 0),
           inTransitQuantitySnapshot: Number(item.inTransitQuantitySnapshot || 0),
           physicalQuantity: item.physicalQuantity === null || item.physicalQuantity === undefined ? null : Number(item.physicalQuantity || 0),
+          physicalQuantity2: item.physicalQuantity2 === null || item.physicalQuantity2 === undefined ? null : Number(item.physicalQuantity2 || 0),
           varianceQuantity: Number(item.varianceQuantity || 0),
           note: item.note || '',
+          varianceReason: item.varianceReason || '',
+          varianceReasonLabel: varianceReasonLabel(String(item.varianceReason || '')),
+          location: item.location || '',
+          assignedToId: item.assignedToId ? String(item.assignedToId) : null,
+          assignedToName: userDisplay(users, item.assignedToId),
           countedById: item.countedById ? String(item.countedById) : null,
           countedByName: userDisplay(users, item.countedById),
           countedAt: item.countedAt,
+          countedById2: item.countedById2 ? String(item.countedById2) : null,
+          countedByName2: userDisplay(users, item.countedById2),
+          countedAt2: item.countedAt2,
           createdAt: item.createdAt,
           updatedAt: item.updatedAt,
         }))
@@ -775,6 +851,7 @@ router.get('/meta', async (req, res) => {
       })),
       auditTypes: AUDIT_TYPES.map((value) => ({ value, label: auditTypeLabel(value) })),
       statuses: AUDIT_STATUSES.map((value) => ({ value, label: auditStatusLabel(value) })),
+      varianceReasons: VARIANCE_REASONS.map((value) => ({ value, label: varianceReasonLabel(value) })),
       reconciliationStatuses: [
         { value: 'UNRECONCILED', label: 'Chưa bù trừ' },
         { value: 'RECONCILED', label: 'Đã bù trừ' },
@@ -782,6 +859,159 @@ router.get('/meta', async (req, res) => {
     });
   } catch (err: any) {
     res.status(err.status || 500).json({ message: err.message || 'Không tải được metadata kiểm kho.' });
+  }
+});
+
+router.get('/assignable-users', async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const requestedWarehouseId = String(req.query.warehouseId || '').trim();
+    const assignedWarehouses = actorWarehouseIds(user);
+    const warehouseIds = requestedWarehouseId
+      ? [requestedWarehouseId]
+      : isAdminActor(user)
+        ? []
+        : assignedWarehouses;
+
+    if (requestedWarehouseId) assertWarehouseScope(req, requestedWarehouseId);
+    if (!isAdminActor(user) && !warehouseIds.length) {
+      const error: any = new Error('Bạn chưa được gán kho để xem người đêm.');
+      error.status = 403;
+      throw error;
+    }
+
+    const filter: Record<string, any> = { deletedAt: { $exists: false } };
+    if (warehouseIds.length) {
+      filter.$or = [
+        { defaultWarehouseId: { $in: warehouseIds.map((value) => new Types.ObjectId(value)) } },
+        { assignedWarehouseIds: { $in: warehouseIds.map((value) => new Types.ObjectId(value)) } },
+        { warehouseIds: { $in: warehouseIds.map((value) => new Types.ObjectId(value)) } },
+        { branchIds: { $in: warehouseIds.map((value) => new Types.ObjectId(value)) } },
+      ];
+    }
+
+    const users = await mongoose.connection.collection('users')
+      .find(filter, { projection: { name: 1, email: 1, role: 1, status: 1, defaultWarehouseId: 1, assignedWarehouseIds: 1 } })
+      .sort({ name: 1, email: 1 })
+      .limit(500)
+      .toArray();
+    res.json({
+      items: users.map((item: any) => ({
+        value: String(item._id),
+        label: item.name || item.email || String(item._id),
+        email: item.email || '',
+        role: item.role || '',
+        status: item.status || '',
+      })),
+    });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không tải được danh sách người đêm.' });
+  }
+});
+
+router.get('/shelves', async (_req, res) => {
+  try {
+    const shelves = await Shelf.find({}).sort({ name: 1 }).select('name').limit(500).lean();
+    res.json({ items: shelves.map((shelf: any) => ({ value: String(shelf._id), label: shelf.name || '' })) });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không tải được danh sách kệ.' });
+  }
+});
+
+router.get('/dashboard', async (req, res) => {
+  try {
+    const filter = buildAuditFilter(req);
+    const audits = await InventoryAudit.find(filter).sort({ createdAt: -1 }).limit(1000).lean();
+    const summaryMap = await auditSummaryMap(audits);
+    const byStatus = AUDIT_STATUSES.map((status) => ({
+      status,
+      label: auditStatusLabel(status),
+      count: audits.filter((audit: any) => String(audit.status || '') === status).length,
+    }));
+    let totalVarianceQuantity = 0;
+    let totalIncreaseQuantity = 0;
+    let totalDecreaseQuantity = 0;
+    let countedItemCount = 0;
+    let itemCount = 0;
+    for (const audit of audits) {
+      const summary = summaryMap.get(String(audit._id)) || summarizeItems([]);
+      totalVarianceQuantity += Number(summary.varianceQuantityTotal || 0);
+      totalIncreaseQuantity += Number(summary.totalIncreaseQuantity || 0);
+      totalDecreaseQuantity += Number(summary.totalDecreaseQuantity || 0);
+      countedItemCount += Number(summary.countedItemCount || 0);
+      itemCount += Number(summary.itemCount || 0);
+    }
+    res.json({
+      totalAudits: audits.length,
+      byStatus,
+      itemCount,
+      countedItemCount,
+      totalVarianceQuantity,
+      totalIncreaseQuantity,
+      totalDecreaseQuantity,
+      recentAudits: audits.slice(0, 6).map((audit: any) => ({
+        _id: String(audit._id),
+        code: audit.code,
+        status: audit.status,
+        statusLabel: auditStatusLabel(String(audit.status || '')),
+        createdAt: audit.createdAt,
+        summary: summaryMap.get(String(audit._id)) || summarizeItems([]),
+      })),
+    });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không tải được dashboard kiểm kho.' });
+  }
+});
+
+router.get('/suggestions', async (req, res) => {
+  try {
+    const warehouseId = String(req.query.warehouseId || '').trim();
+    if (!warehouseId) {
+      const error: any = new Error('Vui lòng chọn kho để xem gợi ý kiểm kho.');
+      error.status = 400;
+      throw error;
+    }
+    assertWarehouseScope(req, warehouseId);
+    const since = new Date();
+    since.setDate(since.getDate() - 90);
+    const recentItems = await InventoryAuditItem.find({ updatedAt: { $gte: since } }).sort({ updatedAt: -1 }).limit(5000).lean();
+    const recentByProduct = new Map<string, any>();
+    for (const item of recentItems) {
+      const key = String(item.productId || '');
+      if (!recentByProduct.has(key)) recentByProduct.set(key, item);
+    }
+    const stocks = await ProductBranchStock.find({ branchId: objectId(warehouseId), qty: { $gt: 0 } }).sort({ qty: -1 }).limit(300).lean();
+    const productIds = stocks.map((stock: any) => String(stock.productId || '')).filter(Boolean);
+    const products = await Product.find({ _id: { $in: productIds.map((value) => new Types.ObjectId(value)) }, type: { $ne: 'service' } }).lean();
+    const productMap = new Map(products.map((product: any) => [String(product._id), product]));
+    const suggestions = stocks.map((stock: any) => {
+      const product = productMap.get(String(stock.productId));
+      const last = recentByProduct.get(String(stock.productId));
+      const daysSinceCount = last?.updatedAt ? Math.floor((Date.now() - new Date(last.updatedAt).getTime()) / 86400000) : null;
+      const absVariance = Math.abs(Number(last?.varianceQuantity || 0));
+      const stockQty = Number(stock.qty || 0);
+      const riskScore = (daysSinceCount === null ? 45 : Math.min(daysSinceCount, 120)) + absVariance * 5 + Math.min(stockQty, 200) / 10;
+      const reasons: string[] = [];
+      if (daysSinceCount === null) reasons.push('Chưa từng kiểm gần đây');
+      if (daysSinceCount !== null && daysSinceCount >= 30) reasons.push(`Đã ${daysSinceCount} ngày chưa kiểm`);
+      if (absVariance > 0) reasons.push(`Lần trước lệch ${absVariance}`);
+      if (stockQty >= 20) reasons.push(`Tồn hiện tại cao (${stockQty})`);
+      return product ? {
+        productId: String(product._id),
+        productCode: product.code || '',
+        productName: product.name || '',
+        barcode: product.barcode || '',
+        unit: product.unit || '',
+        currentStock: stockQty,
+        lastAuditAt: last?.updatedAt || null,
+        lastVarianceQuantity: Number(last?.varianceQuantity || 0),
+        riskScore,
+        reasons,
+      } : null;
+    }).filter(Boolean).sort((a: any, b: any) => b.riskScore - a.riskScore).slice(0, 30);
+    res.json({ items: suggestions });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không tải được gợi ý kiểm kho.' });
   }
 });
 
@@ -824,6 +1054,8 @@ router.get('/', async (req, res) => {
         status: audit.status,
         statusLabel: auditStatusLabel(String(audit.status || '')),
         note: audit.note || '',
+        blindMode: Boolean(audit.blindMode),
+        doubleCount: Boolean(audit.doubleCount),
         createdAt: audit.createdAt,
         updatedAt: audit.updatedAt,
         snapshotAt: audit.snapshotAt,
@@ -917,6 +1149,8 @@ router.post('/', async (req, res) => {
         auditType,
         status,
         note: String(req.body.note || '').trim(),
+        blindMode: booleanInput(req.body.blindMode),
+        doubleCount: booleanInput(req.body.doubleCount),
         snapshotAt: new Date(),
         createdById: actorId(req),
         version: 0,
@@ -1024,10 +1258,16 @@ router.post('/merge', async (req, res) => {
         systemQuantitySnapshot: item.systemQuantitySnapshot,
         inTransitQuantitySnapshot: item.inTransitQuantitySnapshot,
         physicalQuantity: item.physicalQuantity,
+        physicalQuantity2: item.physicalQuantity2,
         varianceQuantity: item.varianceQuantity,
         note: item.note,
         countedById: item.countedById,
         countedAt: item.countedAt,
+        countedById2: item.countedById2,
+        countedAt2: item.countedAt2,
+        assignedToId: item.assignedToId,
+        location: item.location,
+        varianceReason: item.varianceReason,
       })), session);
 
       for (const audit of audits) {
@@ -1085,6 +1325,8 @@ router.patch('/:id', async (req, res) => {
 
       const previousStatus = String(audit.status || 'DRAFT');
       audit.note = String(req.body.note ?? audit.note ?? '').trim();
+      if ('blindMode' in req.body) audit.blindMode = booleanInput(req.body.blindMode);
+      if ('doubleCount' in req.body) audit.doubleCount = booleanInput(req.body.doubleCount);
 
       if (previousStatus === 'COUNTING') {
         if (req.body.warehouseId || req.body.auditType) {
@@ -1120,7 +1362,11 @@ router.patch('/:id', async (req, res) => {
               : currentItems.map((item: any) => ({
                   productId: item.productId,
                   physicalQuantity: item.physicalQuantity,
+                  physicalQuantity2: item.physicalQuantity2,
                   note: item.note,
+                  assignedToId: item.assignedToId,
+                  location: item.location,
+                  varianceReason: item.varianceReason,
                 })),
             preserveMap,
           );
@@ -1149,6 +1395,205 @@ router.patch('/:id', async (req, res) => {
     res.json(await buildAuditView(audit, req, { includeItems: true, includeLogs: true }));
   } catch (err: any) {
     res.status(err.status || 500).json({ message: err.message || 'Không cập nhật được phiếu kiểm kho.' });
+  } finally {
+    await session.endSession();
+  }
+});
+
+router.post('/:id/resnapshot', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const audit = await loadAuditOrThrow(String(req.params.id || ''), session);
+      assertWarehouseScope(req, audit.warehouseId);
+      if (!['DRAFT', 'COUNTING'].includes(String(audit.status || ''))) {
+        const error: any = new Error('Chỉ phiếu nháp hoặc đang kiểm mới được cập nhật lại snapshot.');
+        error.status = 409;
+        throw error;
+      }
+      const currentItems = await InventoryAuditItem.find({ inventoryAuditId: audit._id }).session(session);
+      const preserveMap = new Map(currentItems.map((item: any) => [String(item.productId), item]));
+      const snapshotItems = await buildSnapshotItems(
+        String(audit.auditType || 'BY_PRODUCT'),
+        String(audit.warehouseId),
+        currentItems.map((item: any) => ({
+          productId: item.productId,
+          physicalQuantity: item.physicalQuantity,
+          physicalQuantity2: item.physicalQuantity2,
+          note: item.note,
+          assignedToId: item.assignedToId,
+          location: item.location,
+          varianceReason: item.varianceReason,
+        })),
+        preserveMap,
+      );
+      await replaceAuditItems(audit._id, snapshotItems, session);
+      const previousSnapshotAt = audit.snapshotAt;
+      audit.snapshotAt = new Date();
+      audit.version = Number(audit.version || 0) + 1;
+      await audit.save({ session });
+      await writeAuditLog(audit._id, req, 'RESNAPSHOT', String(audit.status || ''), String(audit.status || ''), '', {
+        previousSnapshotAt,
+        itemCount: snapshotItems.length,
+      }, session);
+    });
+
+    const audit = await loadAuditOrThrow(String(req.params.id || ''));
+    res.json(await buildAuditView(audit, req, { includeItems: true, includeLogs: true }));
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không cập nhật lại snapshot kiểm kho được.' });
+  } finally {
+    await session.endSession();
+  }
+});
+
+async function createInventoryAuditReversalVoucher(
+  audit: any,
+  warehouse: any,
+  req: any,
+  session: mongoose.ClientSession,
+) {
+  const items = await InventoryAuditItem.find({ inventoryAuditId: audit._id }).session(session);
+  const reverseImportItems = items.filter((item: any) => Number(item.varianceQuantity || 0) < 0);
+  const reverseExportItems = items.filter((item: any) => Number(item.varianceQuantity || 0) > 0);
+  const createdVouchers: any[] = [];
+
+  const createVoucher = async (
+    type: 'INVENTORY_AUDIT_IMPORT' | 'INVENTORY_AUDIT_EXPORT',
+    lines: any[],
+  ) => {
+    if (!lines.length) return;
+    const voucherCode = makeVoucherCode(type === 'INVENTORY_AUDIT_IMPORT' ? 'PKKNR' : 'PKKXR');
+    const totalQty = lines.reduce((sum, line) => sum + Math.abs(Number(line.varianceQuantity || 0)), 0);
+    const totalAmount = lines.reduce((sum, line) => sum + Math.abs(Number(line.varianceQuantity || 0)) * Number(line.costPriceSnapshot || 0), 0);
+    const [voucher] = await InventoryVoucher.create([{
+      voucherId: voucherCode,
+      date: new Date().toISOString(),
+      warehouse: warehouse.name,
+      warehouseCode: String(warehouse._id),
+      type,
+      relatedVoucher: audit.code,
+      requestVoucher: audit.code,
+      spCount: lines.length,
+      qty: totalQty,
+      totalAmount,
+      creator: actorName(req),
+      note: `Đảo bù trừ từ phiếu kiểm kho ${audit.code}`,
+      inventoryAuditId: audit._id,
+      inventoryAuditCode: audit.code,
+      reversalOfInventoryAuditId: audit._id,
+      reversalOfInventoryAuditCode: audit.code,
+    }], { session });
+
+    for (const line of lines) {
+      const variance = Number(line.varianceQuantity || 0);
+      const reverseAmount = -variance;
+      const quantity = Math.abs(variance);
+      const isImport = reverseAmount > 0;
+      const productLineId = `${type}-REV-${audit.code}-${line.productCodeSnapshot}-${String(line._id)}`;
+      await InventoryProduct.create([{
+        id: productLineId,
+        voucherId: voucherCode,
+        date: new Date().toISOString(),
+        warehouse: warehouse.name,
+        productCode: line.productCodeSnapshot || '',
+        productName: line.productNameSnapshot || '',
+        barcode: line.barcodeSnapshot || '',
+        type,
+        importQty: isImport ? quantity : 0,
+        exportQty: isImport ? 0 : quantity,
+        price: Number(line.salePriceSnapshot || 0),
+        cost: Number(line.costPriceSnapshot || 0),
+        totalAmount: quantity * Number(line.costPriceSnapshot || 0),
+        creator: actorName(req),
+        unit: line.unitSnapshot || '',
+        note: line.note || '',
+        inventoryAuditId: audit._id,
+        inventoryAuditCode: audit.code,
+        reversalOfInventoryAuditId: audit._id,
+        reversalOfInventoryAuditCode: audit.code,
+      }], { session });
+
+      await moveStockStrict({
+        productId: line.productId,
+        branchId: audit.warehouseId,
+        amount: reverseAmount,
+        sourceType: `${type}_REVERSAL`,
+        sourceId: voucher._id,
+        valueAfter: Number(line.costPriceSnapshot || 0),
+        session,
+      });
+    }
+
+    createdVouchers.push(voucher);
+  };
+
+  await createVoucher('INVENTORY_AUDIT_IMPORT', reverseImportItems);
+  await createVoucher('INVENTORY_AUDIT_EXPORT', reverseExportItems);
+  return createdVouchers;
+}
+
+router.post('/:id/reverse-reconcile', async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    let auditId = '';
+    await session.withTransaction(async () => {
+      const audit = await loadAuditOrThrow(String(req.params.id || ''), session);
+      assertWarehouseScope(req, audit.warehouseId);
+      assertAdminReconcile(req);
+      if (String(audit.status || '') !== 'RECONCILED' || !(audit.linkedInventoryBillIds || []).length) {
+        const error: any = new Error('Chỉ phiếu đã bù trừ mới được đảo bù trừ.');
+        error.status = 409;
+        throw error;
+      }
+      if (audit.reversedAt) {
+        const error: any = new Error('Phiếu này đã được đảo bù trừ trước đó.');
+        error.status = 409;
+        throw error;
+      }
+      const warehouse = await ensureActiveWarehouse(audit.warehouseId);
+      const reversalVouchers = await createInventoryAuditReversalVoucher(audit, warehouse, req, session);
+      const currentItems = await InventoryAuditItem.find({ inventoryAuditId: audit._id }).session(session);
+      const preserveMap = new Map(currentItems.map((item: any) => [String(item.productId), item]));
+      const snapshotItems = await buildSnapshotItems(
+        String(audit.auditType || 'BY_PRODUCT'),
+        String(audit.warehouseId),
+        currentItems.map((item: any) => ({
+          productId: item.productId,
+          physicalQuantity: item.physicalQuantity,
+          physicalQuantity2: item.physicalQuantity2,
+          note: item.note,
+          assignedToId: item.assignedToId,
+          location: item.location,
+          varianceReason: item.varianceReason,
+        })),
+        preserveMap,
+      );
+      await replaceAuditItems(audit._id, snapshotItems, session);
+      audit.status = 'SUBMITTED';
+      audit.reversedById = actorId(req);
+      audit.reversedAt = new Date();
+      audit.reversalVoucherIds = reversalVouchers.map((voucher: any) => voucher._id);
+      audit.reversalVoucherCodes = reversalVouchers.map((voucher: any) => voucher.voucherId);
+      audit.linkedInventoryBillId = undefined;
+      audit.linkedInventoryBillIds = [];
+      audit.linkedInventoryBillCodes = [];
+      audit.reconciledById = undefined;
+      audit.reconciledAt = undefined;
+      audit.snapshotAt = new Date();
+      audit.version = Number(audit.version || 0) + 1;
+      await audit.save({ session });
+      await writeAuditLog(audit._id, req, 'REVERSE_RECONCILE', 'RECONCILED', 'SUBMITTED', String(req.body.reason || '').trim(), {
+        reversalVoucherIds: reversalVouchers.map((voucher: any) => String(voucher._id)),
+        reversalVoucherCodes: reversalVouchers.map((voucher: any) => voucher.voucherId),
+      }, session);
+      auditId = String(audit._id);
+    });
+
+    const audit = await loadAuditOrThrow(auditId || String(req.params.id || ''));
+    res.json(await buildAuditView(audit, req, { includeItems: true, includeLogs: true }));
+  } catch (err: any) {
+    res.status(err.status || 500).json({ message: err.message || 'Không đảo bù trừ kiểm kho được.' });
   } finally {
     await session.endSession();
   }
@@ -1184,8 +1629,29 @@ router.post('/:id/submit', async (req, res) => {
           error.status = 400;
           throw error;
         }
+        if (Boolean(audit.doubleCount)) {
+          const physical2 = toIntegerOrNull(item.physicalQuantity2);
+          if (physical2 === null || Number.isNaN(physical2)) {
+            const error: any = new Error(`Sản phẩm ${item.productCodeSnapshot || item.productNameSnapshot} chưa có số đêm lần 2 hợp lệ.`);
+            error.status = 400;
+            throw error;
+          }
+          if (Number(physical2) !== Number(physical)) {
+            const error: any = new Error(`Sản phẩm ${item.productCodeSnapshot || item.productNameSnapshot} lệch giữa 2 lần đêm. Vui lòng kiểm lại trước khi submit.`);
+            error.status = 409;
+            throw error;
+          }
+          item.physicalQuantity2 = Number(physical2);
+          item.countedById2 = item.countedById2 || actorId(req);
+          item.countedAt2 = item.countedAt2 || new Date();
+        }
         item.physicalQuantity = Number(physical);
         item.varianceQuantity = deriveVariance(Number(item.systemQuantitySnapshot || 0), item.physicalQuantity);
+        if (Number(item.varianceQuantity || 0) !== 0 && !normalizeVarianceReason(item.varianceReason)) {
+          const error: any = new Error(`Sản phẩm ${item.productCodeSnapshot || item.productNameSnapshot} đang có chênh lệch, vui lòng chọn lý do chênh lệch.`);
+          error.status = 400;
+          throw error;
+        }
         item.countedById = actorId(req) || item.countedById;
         item.countedAt = new Date();
         await item.save({ session });

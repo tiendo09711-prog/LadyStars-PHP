@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Area,
   AreaChart,
@@ -27,6 +28,8 @@ import {
   X,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { productApi } from '../../core/api/product.api';
+import type { IStorageDurationKpis } from '../../types/product.type';
 import './dashboard.css';
 
 const fmt = (value: number) => Number(value || 0).toLocaleString('vi-VN');
@@ -129,6 +132,9 @@ export function DashboardPage() {
   const [dailyLoading, setDailyLoading] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [storageSummary, setStorageSummary] = useState<IStorageDurationKpis | null>(null);
+  const [storageLoading, setStorageLoading] = useState(false);
+  const [storageError, setStorageError] = useState('');
 
   type CurrentUser = { name?: string; fullName?: string };
 
@@ -214,6 +220,26 @@ export function DashboardPage() {
       controller.abort();
     };
   }, [selectedStores, chartRange, topRange, topLimit, refreshKey]);
+
+  useEffect(() => {
+    let active = true;
+    setStorageLoading(true);
+    setStorageError('');
+    productApi.getStorageDuration({ page: 1, limit: 5 })
+      .then((response) => {
+        if (!active) return;
+        setStorageSummary(response.kpis || null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setStorageSummary(null);
+        setStorageError('Không tải được cảnh báo tồn kho.');
+      })
+      .finally(() => {
+        if (active) setStorageLoading(false);
+      });
+    return () => { active = false; };
+  }, [refreshKey]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -378,6 +404,26 @@ export function DashboardPage() {
             </div>
           </section>
 
+          <section className="dv-surface dv-card-inventory dv-storage-alert-card">
+            <div className="dv-surface-head"><div><h2>Cảnh báo tồn kho</h2><p>Hàng chưa bán hoặc bán chậm trên {storageSummary?.thresholdDays || 30} ngày.</p></div><Link className="dv-head-tag" to="/products/storage-duration">Xem tất cả</Link></div>
+            {storageLoading && !storageSummary ? <div className="dv-empty">Đang tải cảnh báo tồn kho...</div> : null}
+            {storageError ? <div className="dv-empty">{storageError}</div> : null}
+            {!storageLoading && !storageError && storageSummary ? (
+              <>
+                <div className="dv-stack-metrics dv-inventory-row">
+                  <Link className="dv-storage-metric" to="/products/storage-duration?tab=unsold_long"><small>Hàng chưa bán &gt; {storageSummary.thresholdDays || 30} ngày</small><strong>{fmt(storageSummary.unsoldLong)}</strong></Link>
+                  <Link className="dv-storage-metric" to="/products/storage-duration?tab=slow_selling"><small>Hàng bán chậm &gt; {storageSummary.thresholdDays || 30} ngày</small><strong>{fmt(storageSummary.slowSelling)}</strong></Link>
+                  <Link className="dv-storage-metric" to="/products/storage-duration"><small>Giá vốn hàng tồn lâu</small><strong>{fmt(storageSummary.totalValue)}</strong></Link>
+                </div>
+                <div className="dv-storage-toplist">
+                  {[...(storageSummary.topUnsoldLong || []), ...(storageSummary.topSlowSelling || [])].slice(0, 5).map((item) => (
+                    <Link key={item._id} to={`/products/storage-duration?q=${encodeURIComponent(item.code)}`}><span>{item.code} · {item.name}</span><strong>{item.daysFromLastSold === null ? `${item.daysFromStart} ngày chưa bán` : `${item.daysFromLastSold} ngày chưa bán lại`}</strong></Link>
+                  ))}
+                  {![...(storageSummary.topUnsoldLong || []), ...(storageSummary.topSlowSelling || [])].length ? <div className="dv-empty">Chưa có dữ liệu tồn lâu đáng chú ý.</div> : null}
+                </div>
+              </>
+            ) : null}
+          </section>
           <section className="dv-surface dv-card-recent">
             <div className="dv-surface-head">
               <div><h2>Giao dịch gần nhất</h2><p>Danh sách này theo cửa hàng đang chọn.</p></div>

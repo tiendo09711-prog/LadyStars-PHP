@@ -185,3 +185,132 @@
     width: 100%;
   }
 }
+
+/* Kiểm kho: UI bổ sung — đếm mù, double-count, gán người đếm, vị trí, lý do, dashboard, gợi ý, đảo bù trừ */
+.audit-toolbar-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.audit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.audit-toggle input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.audit-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #f0fdfa, #ecfeff);
+  border: 1px solid #cffafe;
+  border-radius: 12px;
+}
+
+.audit-dashboard div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audit-dashboard .wide {
+  grid-column: 1 / -1;
+}
+
+.audit-dashboard span {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+.audit-dashboard strong {
+  font-size: 18px;
+  color: #0f766e;
+}
+
+.audit-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border: 1px dashed #99f6e4;
+  border-radius: 12px;
+  background: #f0fdfa;
+}
+
+.audit-suggestions > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audit-suggestions strong {
+  font-size: 13px;
+  color: #0f766e;
+}
+
+.audit-suggestions span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.audit-suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 100%;
+}
+
+.audit-suggestion-list button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  border: 1px solid #cffafe;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.audit-suggestion-list button:hover {
+  border-color: #0f9a84;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, .12);
+}
+
+.audit-suggestion-list strong {
+  font-size: 13px;
+  color: #134e4a;
+}
+
+.audit-suggestion-list small {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.audit-table select.audit-note-input {
+  width: auto;
+  min-width: 120px;
+}
+
+.audit-table .audit-qty-input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}

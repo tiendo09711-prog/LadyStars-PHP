@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import * as XLSX from 'xlsx';
+import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import { Pagination } from '../../core/components/Pagination';
 import './warehouseRecords.css';
 import './warehouseAudit.css';
@@ -66,6 +68,8 @@ type AuditRow = {
   linkedInventoryBillIds: string[];
   linkedInventoryBillCodes: string[];
   mergedIntoAuditId?: string | null;
+  blindMode?: boolean;
+  doubleCount?: boolean;
   canDelete: boolean;
   availableActions: Array<{ action: string; label: string; needsReason?: boolean; danger?: boolean }>;
   summary: AuditSummary;
@@ -88,9 +92,14 @@ type AuditItemRow = {
   systemQuantitySnapshot: number;
   inTransitQuantitySnapshot: number;
   physicalQuantity: number | null;
+  physicalQuantity2?: number | null;
   varianceQuantity: number;
   note: string;
+  location?: string;
+  varianceReasonLabel?: string;
+  assignedToName?: string;
   countedByName?: string;
+  countedByName2?: string;
   countedAt?: string;
 };
 
@@ -114,6 +123,26 @@ type VoucherDetail = {
     totalAmount?: number;
     note?: string;
   }>;
+};
+
+type DashboardPayload = {
+  totalAudits: number;
+  itemCount: number;
+  countedItemCount: number;
+  totalVarianceQuantity: number;
+  totalIncreaseQuantity: number;
+  totalDecreaseQuantity: number;
+  byStatus: Array<{ status: string; label: string; count: number }>;
+};
+
+type SuggestionRow = {
+  productId: string;
+  productCode: string;
+  productName: string;
+  currentStock: number;
+  lastVarianceQuantity: number;
+  lastAuditAt?: string | null;
+  reasons: string[];
 };
 
 type MetaPayload = {
@@ -159,6 +188,11 @@ type ConfirmState =
       kind: 'merge';
       auditIds: string[];
       note: string;
+    }
+  | {
+      kind: 'reverse';
+      audit: AuditRow;
+      reason: string;
     };
 
 const PAGE_LIMIT = 20;
@@ -271,6 +305,8 @@ export function WarehouseAuditPage() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('audits');
+  const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
+  const [suggestions, setSuggestions] = useState<SuggestionRow[]>([]);
   const [meta, setMeta] = useState<MetaPayload>({
     role: 'EMPLOYEE',
     warehouses: [],
@@ -294,6 +330,8 @@ export function WarehouseAuditPage() {
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [previewAudit, setPreviewAudit] = useState<AuditRow | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [voucherViewer, setVoucherViewer] = useState<{
@@ -312,6 +350,26 @@ export function WarehouseAuditPage() {
   const loadMeta = async () => {
     const response = await http.get('/inventory-audits/meta');
     setMeta(response.data);
+  };
+
+  const loadDashboard = async () => {
+    try {
+      const response = await http.get('/inventory-audits/dashboard', { params: buildAuditQuery(appliedAuditFilters) });
+      setDashboard(response.data);
+    } catch {
+      setDashboard(null);
+    }
+  };
+
+  const loadSuggestions = async () => {
+    const warehouseId = auditFilters.warehouseId || appliedAuditFilters.warehouseId || meta.warehouses[0]?.value || '';
+    if (!warehouseId) return;
+    try {
+      const response = await http.get('/inventory-audits/suggestions', { params: { warehouseId } });
+      setSuggestions(response.data.items || []);
+    } catch {
+      setSuggestions([]);
+    }
   };
 
   const buildAuditQuery = (filters: AuditFilters) => ({
@@ -377,6 +435,8 @@ export function WarehouseAuditPage() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
+    void loadDashboard();
+    void loadSuggestions();
     return () => controller.abort();
   }, [activeTab, page, appliedAuditFilters, appliedItemFilters]);
 
@@ -445,6 +505,109 @@ export function WarehouseAuditPage() {
     });
   };
 
+  const exportColumns: ColumnOption[] = useMemo(() => {
+    if (activeTab === 'audits') {
+      return [
+        { label: 'Mã phiếu', key: 'code', getValue: (row: AuditRow) => row.code },
+        { label: 'Kho', key: 'warehouse', getValue: (row: AuditRow) => row.warehouseName || '—' },
+        { label: 'Loại kiểm kho', key: 'auditType', getValue: (row: AuditRow) => row.auditTypeLabel || '—' },
+        { label: 'Trạng thái', key: 'status', getValue: (row: AuditRow) => row.statusLabel || row.status || '—' },
+        { label: 'Ngày tạo', key: 'createdAt', getValue: (row: AuditRow) => formatDate(row.createdAt) },
+        { label: 'Người tạo', key: 'createdByName', getValue: (row: AuditRow) => row.createdByName || '—' },
+        { label: 'Người nộp', key: 'submittedByName', getValue: (row: AuditRow) => row.submittedByName || '—' },
+        { label: 'Ngày nộp', key: 'submittedAt', getValue: (row: AuditRow) => formatDateTime(row.submittedAt) },
+        { label: 'Người bù trừ', key: 'reconciledByName', getValue: (row: AuditRow) => row.reconciledByName || '—' },
+        { label: 'Ngày bù trừ', key: 'reconciledAt', getValue: (row: AuditRow) => formatDateTime(row.reconciledAt) },
+        { label: 'SL sản phẩm', key: 'itemCount', getValue: (row: AuditRow) => row.summary?.itemCount ?? 0 },
+        { label: 'SL đã đếm', key: 'countedItemCount', getValue: (row: AuditRow) => row.summary?.countedItemCount ?? 0 },
+        { label: 'Tồn hệ thống', key: 'systemQuantityTotal', getValue: (row: AuditRow) => row.summary?.systemQuantityTotal ?? 0 },
+        { label: 'Đang chuyển', key: 'inTransitQuantityTotal', getValue: (row: AuditRow) => row.summary?.inTransitQuantityTotal ?? 0 },
+        { label: 'Tồn thực tế', key: 'physicalQuantityTotal', getValue: (row: AuditRow) => row.summary?.physicalQuantityTotal ?? 0 },
+        { label: 'Chênh lệch', key: 'varianceQuantityTotal', getValue: (row: AuditRow) => row.summary?.varianceQuantityTotal ?? 0 },
+        { label: 'SL dư', key: 'excessItemCount', getValue: (row: AuditRow) => row.summary?.excessItemCount ?? 0 },
+        { label: 'SL thiếu', key: 'shortageItemCount', getValue: (row: AuditRow) => row.summary?.shortageItemCount ?? 0 },
+        { label: 'Ghi chú', key: 'note', getValue: (row: AuditRow) => row.note || '' },
+      ];
+    }
+    return [
+      { label: 'Mã phiếu kiểm', key: 'auditCode', getValue: (row: AuditItemRow) => row.auditCode || '—' },
+      { label: 'Ngày', key: 'itemCreatedAt', getValue: (row: AuditItemRow) => formatDate(row.createdAt) },
+      { label: 'Kho', key: 'itemWarehouse', getValue: (row: AuditItemRow) => row.warehouseName || '—' },
+      { label: 'Mã SP', key: 'productCodeSnapshot', getValue: (row: AuditItemRow) => row.productCodeSnapshot || '—' },
+      { label: 'Tên SP', key: 'productNameSnapshot', getValue: (row: AuditItemRow) => row.productNameSnapshot || '—' },
+      { label: 'Mã vạch', key: 'barcodeSnapshot', getValue: (row: AuditItemRow) => row.barcodeSnapshot || '—' },
+      { label: 'Đơn vị', key: 'unitSnapshot', getValue: (row: AuditItemRow) => row.unitSnapshot || '—' },
+      { label: 'Vị trí/kệ', key: 'location', getValue: (row: AuditItemRow) => row.location || '—' },
+      { label: 'Giá vốn', key: 'costPriceSnapshot', getValue: (row: AuditItemRow) => row.costPriceSnapshot ?? 0 },
+      { label: 'Giá bán', key: 'salePriceSnapshot', getValue: (row: AuditItemRow) => row.salePriceSnapshot ?? 0 },
+      { label: 'Tồn hệ thống', key: 'systemQuantitySnapshot', getValue: (row: AuditItemRow) => row.systemQuantitySnapshot ?? 0 },
+      { label: 'Đang chuyển', key: 'inTransitQuantitySnapshot', getValue: (row: AuditItemRow) => row.inTransitQuantitySnapshot ?? 0 },
+      { label: 'Tồn thực tế', key: 'physicalQuantity', getValue: (row: AuditItemRow) => row.physicalQuantity ?? '—' },
+      { label: 'Đếm lần 2', key: 'physicalQuantity2', getValue: (row: AuditItemRow) => row.physicalQuantity2 ?? '—' },
+      { label: 'Chênh lệch', key: 'varianceQuantity', getValue: (row: AuditItemRow) => row.varianceQuantity ?? 0 },
+      { label: 'Lý do', key: 'varianceReasonLabel', getValue: (row: AuditItemRow) => row.varianceReasonLabel || '—' },
+      { label: 'Mô tả', key: 'itemNote', getValue: (row: AuditItemRow) => row.note || '' },
+      { label: 'Người đếm', key: 'countedByName', getValue: (row: AuditItemRow) => row.assignedToName || row.countedByName || '—' },
+      { label: 'Ngày đếm', key: 'countedAt', getValue: (row: AuditItemRow) => formatDateTime(row.countedAt) },
+    ];
+  }, [activeTab]);
+
+  const handleExcelExport = async (
+    exportType: 'current' | 'all',
+    filename: string,
+    sheetName: string,
+    selectedColumns: { key: string; customLabel: string }[],
+  ) => {
+    setExportLoading(true);
+    setError('');
+    try {
+      let dataToExport: any[] = [];
+      if (exportType === 'current') {
+        dataToExport = activeTab === 'audits' ? auditRows : itemRows;
+      } else {
+        const endpointPath = activeTab === 'audits' ? '/inventory-audits' : '/inventory-audit-items';
+        const f: Record<string, string> = activeTab === 'audits' ? appliedAuditFilters : appliedItemFilters;
+        const buildParams = (nextPage: number, nextLimit: number) => {
+          const params: Record<string, string | number> = { page: nextPage, limit: nextLimit };
+          for (const [key, value] of Object.entries(f)) { if (value) params[key] = value; }
+          return params;
+        };
+        const pageSize = 100;
+        const firstResponse = await http.get(endpointPath, { params: buildParams(1, pageSize) });
+        let allItems: any[] = [...(firstResponse.data.items || [])];
+        const totalItems = Number(firstResponse.data.total || 0);
+        if (totalItems > pageSize) {
+          const pagesToFetch = Math.ceil(totalItems / pageSize);
+          const responses = await Promise.all(
+            Array.from({ length: pagesToFetch - 1 }, (_, index) => http.get(endpointPath, { params: buildParams(index + 2, pageSize) })),
+          );
+          responses.forEach((response) => { allItems = allItems.concat(response.data.items || []); });
+        }
+        dataToExport = allItems;
+      }
+      if (!dataToExport.length) {
+        setNotice('Không có dữ liệu để xuất.');
+        return;
+      }
+      const mappedRows = dataToExport.map((row) => {
+        const record: Record<string, unknown> = {};
+        selectedColumns.forEach((column) => {
+          const exportColumn = exportColumns.find((item) => item.key === column.key);
+          record[column.customLabel] = exportColumn ? exportColumn.getValue(row) : '';
+        });
+        return record;
+      });
+      const worksheet = XLSX.utils.json_to_sheet(mappedRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      setShowExportModal(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Xuất Excel thất bại.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
   const exportCurrent = async () => {
     setActionLoading(true);
     setError('');
@@ -587,13 +750,16 @@ export function WarehouseAuditPage() {
       } else if (confirm.kind === 'delete') {
         await http.delete(`/inventory-audits/${confirm.audit._id}`);
         setNotice('Đã xóa phiếu kiểm kho nháp.');
-      } else {
+      } else if (confirm.kind === 'merge') {
         const response = await http.post('/inventory-audits/merge', {
           auditIds: confirm.auditIds,
           note: confirm.note,
         });
         setNotice('Gộp phiếu kiểm kho thành công.');
         navigate(`/warehouse/audit/${response.data._id}`);
+      } else {
+        await http.post(`/inventory-audits/${confirm.audit._id}/reverse-reconcile`, { reason: confirm.reason });
+        setNotice('Đã đảo bù trừ kiểm kho.');
       }
       setConfirm(null);
       await refresh();
@@ -621,6 +787,7 @@ export function WarehouseAuditPage() {
             </th>
             <th>ID | Ngày</th>
             <th>Loại kiểm kho</th>
+            <th>Chế độ</th>
             <th>Kho hàng</th>
             <th>Người tạo</th>
             <th className="right">SP</th>
@@ -634,12 +801,12 @@ export function WarehouseAuditPage() {
         <tbody>
           {loading && Array.from({ length: 6 }).map((_, index) => (
             <tr className="wr-skeleton" key={`audit-skeleton-${index}`}>
-              <td colSpan={11}><span /></td>
+              <td colSpan={12}><span /></td>
             </tr>
           ))}
           {!loading && auditRows.length === 0 && (
             <tr>
-              <td className="wr-empty" colSpan={11}>Chưa có phiếu kiểm kho phù hợp.</td>
+              <td className="wr-empty" colSpan={12}>Chưa có phiếu kiểm kho phù hợp.</td>
             </tr>
           )}
           {!loading && auditRows.map((audit) => (
@@ -718,6 +885,11 @@ export function WarehouseAuditPage() {
                           <Link2 size={15} /> Xem phiếu XNK
                         </button>
                       ) : null}
+                      {audit.status === 'RECONCILED' && meta.role === 'ADMIN' ? (
+                        <button type="button" onClick={() => setConfirm({ kind: 'reverse', audit, reason: '' })}>
+                          <RefreshCw size={15} /> Đảo bù trừ
+                        </button>
+                      ) : null}
                       {audit.availableActions.some((action) => action.action === 'cancel') ? (
                         <button type="button" className="danger" onClick={() => setConfirm({ kind: 'cancel', audit, reason: '' })}>
                           <X size={15} /> Hủy phiếu
@@ -747,12 +919,16 @@ export function WarehouseAuditPage() {
             <th>Ngày</th>
             <th>Kho</th>
             <th>Tên sản phẩm</th>
+            <th>Vị trí/kệ</th>
+            <th>Người đếm</th>
             <th className="right">Giá vốn</th>
             <th className="right">Giá bán</th>
             <th className="right">Tồn hệ thống</th>
             <th className="right">Đang chuyển</th>
             <th className="right">Tồn thực tế</th>
+            <th className="right">Đếm lần 2</th>
             <th className="right">Chênh lệch</th>
+            <th>Lý do</th>
             <th>Mô tả</th>
             <th className="wr-action-cell"><MoreHorizontal size={14} /></th>
           </tr>
@@ -760,12 +936,12 @@ export function WarehouseAuditPage() {
         <tbody>
           {loading && Array.from({ length: 6 }).map((_, index) => (
             <tr className="wr-skeleton" key={`item-skeleton-${index}`}>
-              <td colSpan={11}><span /></td>
+              <td colSpan={12}><span /></td>
             </tr>
           ))}
           {!loading && itemRows.length === 0 && (
             <tr>
-              <td className="wr-empty" colSpan={11}>Chưa có sản phẩm kiểm kho phù hợp.</td>
+              <td className="wr-empty" colSpan={12}>Chưa có sản phẩm kiểm kho phù hợp.</td>
             </tr>
           )}
           {!loading && itemRows.map((item) => (
@@ -782,12 +958,16 @@ export function WarehouseAuditPage() {
                 </button>
                 <small>{item.productCodeSnapshot || item.barcodeSnapshot || '—'}</small>
               </td>
+              <td>{item.location || '—'}</td>
+              <td>{item.assignedToName || item.countedByName || '—'}{item.countedByName2 ? ` / ${item.countedByName2}` : ''}</td>
               <td className="right">{formatMoney(item.costPriceSnapshot)}</td>
               <td className="right">{formatMoney(item.salePriceSnapshot)}</td>
               <td className="right">{formatNumber(item.systemQuantitySnapshot)}</td>
               <td className="right">{formatNumber(item.inTransitQuantitySnapshot)}</td>
               <td className="right">{formatNumber(item.physicalQuantity)}</td>
+              <td className="right">{formatNumber(item.physicalQuantity2)}</td>
               <td className={`right ${varianceClass(item.varianceQuantity)}`}>{signedNumber(item.varianceQuantity)}</td>
+              <td>{item.varianceReasonLabel || (item.varianceQuantity === 0 ? '—' : 'Chưa chọn')}</td>
               <td className="audit-note-cell">{item.note || '—'}</td>
               <td className="wr-action-cell">
                 <button
@@ -809,6 +989,36 @@ export function WarehouseAuditPage() {
   return (
     <div className="workspace-page warehouse-records warehouse-audit-admin" ref={rootRef}>
       <section className="wr-card">
+        {dashboard ? (
+          <div className="audit-dashboard">
+            <div><span>Tổng phiếu</span><strong>{formatNumber(dashboard.totalAudits)}</strong></div>
+            <div><span>Dòng đã đếm</span><strong>{formatNumber(dashboard.countedItemCount)} / {formatNumber(dashboard.itemCount)}</strong></div>
+            <div><span>Tổng lệch</span><strong className={varianceClass(dashboard.totalVarianceQuantity)}>{signedNumber(dashboard.totalVarianceQuantity)}</strong></div>
+            <div><span>Tăng/giảm</span><strong>+{formatNumber(dashboard.totalIncreaseQuantity)} / -{formatNumber(dashboard.totalDecreaseQuantity)}</strong></div>
+            <div className="wide"><span>Trạng thái</span><strong>{dashboard.byStatus.map((entry) => `${entry.label}: ${entry.count}`).join(' · ')}</strong></div>
+          </div>
+        ) : null}
+
+        {activeTab === 'audits' ? (
+          <div className="audit-suggestions">
+            <div>
+              <strong>Gợi ý kiểm kho</strong>
+              <span>Ưu tiên sản phẩm lâu chưa kiểm, tồn cao hoặc từng lệch.</span>
+            </div>
+            <button className="btn btn-light" type="button" onClick={() => void loadSuggestions()}>Làm mới gợi ý</button>
+            {suggestions.length ? (
+              <div className="audit-suggestion-list">
+                {suggestions.slice(0, 6).map((item) => (
+                  <button key={item.productId} type="button" onClick={() => navigate(`/warehouse/audit/create`)}>
+                    <strong>{item.productName}</strong>
+                    <small>{item.productCode || '—'} · Tồn {formatNumber(item.currentStock)} · {item.reasons.join(', ') || 'Nên kiểm lại'}</small>
+                  </button>
+                ))}
+              </div>
+            ) : <span className="wr-sub">Chưa có gợi ý hoặc chưa chọn kho.</span>}
+          </div>
+        ) : null}
+
         <div className="workspace-tabs wr-tabs audit-tabs" role="tablist" aria-label="Kiểm kho">
           <button
             type="button"
@@ -898,8 +1108,8 @@ export function WarehouseAuditPage() {
               </button>
               {showBulkMenu && (
                 <div className="wr-menu-panel wr-action-menu">
-                  <button type="button" disabled={actionLoading} onClick={() => void exportCurrent()}>
-                    <FileDown size={15} /> Xuất dữ liệu theo bộ lọc
+                  <button type="button" disabled={exportLoading} onClick={() => setShowExportModal(true)}>
+                    <FileDown size={15} /> Xuất dữ liệu
                   </button>
                   {activeTab === 'audits' ? (
                     <button
@@ -919,7 +1129,7 @@ export function WarehouseAuditPage() {
               {pageRange(page, total, PAGE_LIMIT)}
               {activeTab === 'audits' && selectedIds.size ? ` · Đã chọn ${selectedIds.size}` : ''}
             </span>
-            <button className="wr-icon-button" type="button" title="Làm mới" onClick={() => void refresh()}>
+            <button className="wr-icon-button" type="button" title="Làm mới" onClick={resetCurrentFilters}>
               <RefreshCw size={15} />
             </button>
           </div>
@@ -1105,6 +1315,17 @@ export function WarehouseAuditPage() {
             </footer>
           </section>
         </div>
+      ) : null}
+      {showExportModal ? (
+        <ExportExcelModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          title={'Xuất Excel - ' + (activeTab === 'audits' ? 'Phiếu kiểm kho' : 'Sản phẩm kiểm kho')}
+          defaultFilename={`${activeTab === 'audits' ? 'phieu-kiem-kho' : 'san-pham-kiem-kho'}-${new Date().toISOString().slice(0, 10)}`}
+          columns={exportColumns}
+          onExport={handleExcelExport}
+          loading={exportLoading}
+        />
       ) : null}
     </div>
   );
