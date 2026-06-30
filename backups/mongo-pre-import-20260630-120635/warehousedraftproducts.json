@@ -1,0 +1,6448 @@
+[
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a6"
+    },
+    "externalId": "172948",
+    "requestId": "21267",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-10-13 14:38:06",
+    "dateObj": {
+      "$date": "2022-10-13T07:38:06Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN 8001",
+    "barcode": "2000002458623",
+    "productName": "Đầu đội may máy machine weft 80001",
+    "salePrice": 8800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-10-13 14:38:06",
+    "approvedAtObj": {
+      "$date": "2022-10-13T07:38:06Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a8"
+    },
+    "externalId": "185900",
+    "requestId": "23440",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-10-22 17:05:24",
+    "dateObj": {
+      "$date": "2022-10-22T10:05:24Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "TNU 353",
+    "barcode": "2000001744932",
+    "productName": "Tém nữ 353",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-10-22 17:05:24",
+    "approvedAtObj": {
+      "$date": "2022-10-22T10:05:24Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-10-28 11:01:22",
+    "confirmedAtObj": {
+      "$date": "2022-10-28T04:01:22Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b0"
+    },
+    "externalId": "209722",
+    "requestId": "27141",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-07 17:46:28",
+    "dateObj": {
+      "$date": "2022-11-07T10:46:28Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDV 1004",
+    "barcode": "2000001787168",
+    "productName": "Đầu đội siêu da đầu Silk Base 1004",
+    "salePrice": 10800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-07 17:46:28",
+    "approvedAtObj": {
+      "$date": "2022-11-07T10:46:28Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-07 17:51:31",
+    "confirmedAtObj": {
+      "$date": "2022-11-07T10:51:31Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b1"
+    },
+    "externalId": "228584",
+    "requestId": "30151",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-11-17 10:20:57",
+    "dateObj": {
+      "$date": "2022-11-17T03:20:57Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "XITDUONGHCM",
+    "barcode": "2000002407904",
+    "productName": "Xịt dưỡng tóc LADYSTARS",
+    "salePrice": 199000,
+    "type": "Xuất [C]",
+    "requestedQty": 16,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "chuyển 16 chai xịt dưỡng cho Hà Nội",
+    "approvedAt": "2022-11-17 10:20:57",
+    "approvedAtObj": {
+      "$date": "2022-11-17T03:20:57Z"
+    },
+    "approvedQty": 16,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-19 17:41:16",
+    "confirmedAtObj": {
+      "$date": "2022-11-19T10:41:16Z"
+    },
+    "xnkQty": 16,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b3"
+    },
+    "externalId": "242060",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:14",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DD434",
+    "barcode": "2000001636503",
+    "productName": "Đầu đội xoáy machine weft 434",
+    "salePrice": 4000000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:14",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:11",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b5"
+    },
+    "externalId": "242062",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:14",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "VIC 307",
+    "barcode": "2000001570906",
+    "productName": "Tóc Vic 307",
+    "salePrice": 3800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:14",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:11",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212bd"
+    },
+    "externalId": "242954",
+    "requestId": "32210",
+    "warehouse": "Kho LUXY - Kho Hà Nội",
+    "fromWarehouse": "Kho LUXY",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-11-21 16:29:27",
+    "dateObj": {
+      "$date": "2022-11-21T09:29:27Z"
+    },
+    "creator": "Phạm Thị Trang",
+    "productCode": "TNU 311",
+    "barcode": "2000000682211",
+    "productName": "TÉM NỮ 311",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 16:29:27",
+    "approvedAtObj": {
+      "$date": "2022-11-21T09:29:27Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 18:01:40",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T11:01:40Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212be"
+    },
+    "externalId": "251864",
+    "requestId": "33841",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-11-24 10:07:10",
+    "dateObj": {
+      "$date": "2022-11-24T03:07:10Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "MT17",
+    "barcode": "2000000907253",
+    "productName": "MÁI THƯA 17",
+    "salePrice": 250000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "GHTK 23/11",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c0"
+    },
+    "externalId": "270016",
+    "requestId": "37083",
+    "warehouse": "Kho LUXY - Kho HCM",
+    "fromWarehouse": "Kho LUXY",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-11-29 15:34:13",
+    "dateObj": {
+      "$date": "2022-11-29T08:34:13Z"
+    },
+    "creator": "Phạm Thị Trang",
+    "productCode": "mhnu3d",
+    "barcode": "2000004215460",
+    "productName": "Mái phủ machine weff 3d",
+    "salePrice": 1500000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "ship grap",
+    "approvedAt": "2022-11-29 15:34:13",
+    "approvedAtObj": {
+      "$date": "2022-11-29T08:34:13Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-29 15:35:42",
+    "confirmedAtObj": {
+      "$date": "2022-11-29T08:35:42Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c2"
+    },
+    "externalId": "309136",
+    "requestId": "43780",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-12-10 13:36:05",
+    "dateObj": {
+      "$date": "2022-12-10T06:36:05Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "DDX456",
+    "barcode": "2000000907598",
+    "productName": "Đầu Đội Xoáy Machine Weft 456",
+    "salePrice": 4200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "ghtk 10/12 cho HN",
+    "approvedAt": "2022-12-10 13:36:05",
+    "approvedAtObj": {
+      "$date": "2022-12-10T06:36:05Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-12-10 13:37:04",
+    "confirmedAtObj": {
+      "$date": "2022-12-10T06:37:04Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c5"
+    },
+    "externalId": "342963",
+    "requestId": "50056",
+    "warehouse": "Kho LUXY - Kho HCM",
+    "fromWarehouse": "Kho LUXY",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-12-21 12:10:00",
+    "dateObj": {
+      "$date": "2022-12-21T05:10:00Z"
+    },
+    "creator": "Phạm Thị Trang",
+    "productCode": "DDV1420",
+    "barcode": "2000005490965",
+    "productName": "ĐẦU ĐỘI SIÊU DA ĐẦU DDV1420",
+    "salePrice": 14800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 14800000,
+    "amount": 14800000,
+    "description": "",
+    "approvedAt": "2022-12-21 12:10:00",
+    "approvedAtObj": {
+      "$date": "2022-12-21T05:10:00Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 14800000,
+    "confirmedAt": "2022-12-26 10:30:59",
+    "confirmedAtObj": {
+      "$date": "2022-12-26T03:30:59Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 14800000,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ca"
+    },
+    "externalId": "973139",
+    "requestId": "156515",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-04-27 09:23:10",
+    "dateObj": {
+      "$date": "2023-04-27T02:23:10Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNA 005",
+    "barcode": "2000009391558",
+    "productName": "Mái phủ mono 005",
+    "salePrice": 5280000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-04-27 09:23:10",
+    "approvedAtObj": {
+      "$date": "2023-04-27T02:23:10Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-05-02 10:23:27",
+    "confirmedAtObj": {
+      "$date": "2023-05-02T03:23:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d3"
+    },
+    "externalId": "973148",
+    "requestId": "156519",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-25 10:23:41",
+    "dateObj": {
+      "$date": "2023-08-25T03:23:41Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDNU 2810",
+    "barcode": "2000004071516",
+    "productName": "Đầu đội machine weft 2810",
+    "salePrice": 6200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-25 10:23:41",
+    "approvedAtObj": {
+      "$date": "2023-08-25T03:23:41Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-29 11:55:27",
+    "confirmedAtObj": {
+      "$date": "2023-08-29T04:55:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d5"
+    },
+    "externalId": "973150",
+    "requestId": "156519",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-25 10:23:42",
+    "dateObj": {
+      "$date": "2023-08-25T03:23:42Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDV2508",
+    "barcode": "2000214248715",
+    "productName": "ĐẦU ĐỘI SIÊU DA ĐẦU SILK BASE DDV2508",
+    "salePrice": 11800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-25 10:23:42",
+    "approvedAtObj": {
+      "$date": "2023-08-25T03:23:42Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-29 11:55:27",
+    "confirmedAtObj": {
+      "$date": "2023-08-29T04:55:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d7"
+    },
+    "externalId": "973152",
+    "requestId": "156520",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-10-19 16:43:28",
+    "dateObj": {
+      "$date": "2023-10-19T09:43:28Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU179",
+    "barcode": "2000004070182",
+    "productName": "MÁI HÓI NỮ MHNU178",
+    "salePrice": 3800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 3800000,
+    "amount": 3800000,
+    "description": "",
+    "approvedAt": "2023-10-19 16:43:28",
+    "approvedAtObj": {
+      "$date": "2023-10-19T09:43:28Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 3800000,
+    "confirmedAt": "2023-11-01 09:53:49",
+    "confirmedAtObj": {
+      "$date": "2023-11-01T02:53:49Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 3800000,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212dc"
+    },
+    "externalId": "973157",
+    "requestId": "156524",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-02-17 13:24:18",
+    "dateObj": {
+      "$date": "2024-02-17T06:24:18Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "N4200",
+    "barcode": "2000004407643",
+    "productName": "NGOẠM N4200",
+    "salePrice": 4200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 4200000,
+    "amount": 4200000,
+    "description": "",
+    "approvedAt": "2024-02-17 13:24:18",
+    "approvedAtObj": {
+      "$date": "2024-02-17T06:24:18Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 4200000,
+    "confirmedAt": "2024-02-22 10:00:58",
+    "confirmedAtObj": {
+      "$date": "2024-02-22T03:00:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 4200000,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212dd"
+    },
+    "externalId": "973158",
+    "requestId": "156524",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-02-17 13:24:19",
+    "dateObj": {
+      "$date": "2024-02-17T06:24:19Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "Ngoạm Xoăn 02",
+    "barcode": "2000008561600",
+    "productName": "Tóc Ngoạm 02",
+    "salePrice": 5899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-02-17 13:24:19",
+    "approvedAtObj": {
+      "$date": "2024-02-17T06:24:19Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-02-22 10:00:58",
+    "confirmedAtObj": {
+      "$date": "2024-02-22T03:00:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e6"
+    },
+    "externalId": "973167",
+    "requestId": "156530",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-06-20 14:07:20",
+    "dateObj": {
+      "$date": "2024-06-20T07:07:20Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "TNA120723",
+    "barcode": "2000214248418",
+    "productName": "TÉM NAM TNA120723",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-06-20 14:07:20",
+    "approvedAtObj": {
+      "$date": "2024-06-20T07:07:20Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-06-22 17:07:10",
+    "confirmedAtObj": {
+      "$date": "2024-06-22T10:07:10Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ec"
+    },
+    "externalId": "973173",
+    "requestId": "156534",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-10-28 11:11:52",
+    "dateObj": {
+      "$date": "2024-10-28T04:11:52Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "2510241 Hà",
+    "barcode": "2000214251777",
+    "productName": "Mái hói siêu da silk base 2510241",
+    "salePrice": 5499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-10-28 11:11:52",
+    "approvedAtObj": {
+      "$date": "2024-10-28T04:11:52Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-02 14:57:26",
+    "confirmedAtObj": {
+      "$date": "2024-11-02T07:57:26Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f5"
+    },
+    "externalId": "973182",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:37",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:37Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071252",
+    "barcode": "2000214252606",
+    "productName": "Mái hói siêu da MHNU071252",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:37",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:37Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:09",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:09Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f7"
+    },
+    "externalId": "973184",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:38",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071259",
+    "barcode": "2000214252675",
+    "productName": "Mái hói siêu da MHNU071259",
+    "salePrice": 1200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:38",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:09",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:09Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f8"
+    },
+    "externalId": "973185",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:38",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071258",
+    "barcode": "2000214252668",
+    "productName": "Mái hói siêu da MHNU071258",
+    "salePrice": 2499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:38",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:09",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:09Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212fc"
+    },
+    "externalId": "973189",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:39",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:39Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU07125",
+    "barcode": "2000214252583",
+    "productName": "Mái phủ hói 8*13 MHNU07125",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 3899000,
+    "amount": 3899000,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:39",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:39Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 3899000,
+    "confirmedAt": "2025-01-11 18:23:10",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:10Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 3899000,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21300"
+    },
+    "externalId": "973193",
+    "requestId": "156543",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-23 10:53:36",
+    "dateObj": {
+      "$date": "2025-10-23T03:53:36Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDV231025",
+    "barcode": "2000214254549",
+    "productName": "Đầu đội siêu da silk base DDV231025",
+    "salePrice": 6899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-23 10:53:36",
+    "approvedAtObj": {
+      "$date": "2025-10-23T03:53:36Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-10-25 16:08:32",
+    "confirmedAtObj": {
+      "$date": "2025-10-25T09:08:32Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21301"
+    },
+    "externalId": "973194",
+    "requestId": "156543",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-23 10:53:36",
+    "dateObj": {
+      "$date": "2025-10-23T03:53:36Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDV2310251",
+    "barcode": "2000214254556",
+    "productName": "Đầu đội siêu da silk base DDV2310251",
+    "salePrice": 6899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-23 10:53:36",
+    "approvedAtObj": {
+      "$date": "2025-10-23T03:53:36Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-10-25 16:08:32",
+    "confirmedAtObj": {
+      "$date": "2025-10-25T09:08:32Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21303"
+    },
+    "externalId": "973196",
+    "requestId": "156544",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-28 14:49:42",
+    "dateObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN281025",
+    "barcode": "2000214254655",
+    "productName": "Đầu đội pixel DDN281025",
+    "salePrice": 4620000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-28 14:49:42",
+    "approvedAtObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-11-04 17:14:58",
+    "confirmedAtObj": {
+      "$date": "2025-11-04T10:14:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21309"
+    },
+    "externalId": "973202",
+    "requestId": "156545",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-08 11:15:47",
+    "dateObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU0412251",
+    "barcode": "2000214254921",
+    "productName": "Tóc tém xoăn TNU0412251",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-08 11:15:47",
+    "approvedAtObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-13 09:34:25",
+    "confirmedAtObj": {
+      "$date": "2025-12-13T02:34:25Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2130a"
+    },
+    "externalId": "973203",
+    "requestId": "156545",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-08 11:15:47",
+    "dateObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN041225",
+    "barcode": "2000214254891",
+    "productName": "Đầu đội machine weft DDN041225",
+    "salePrice": 4620000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-08 11:15:47",
+    "approvedAtObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-13 09:34:25",
+    "confirmedAtObj": {
+      "$date": "2025-12-13T02:34:25Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21314"
+    },
+    "externalId": "973213",
+    "requestId": "156549",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-26 13:59:52",
+    "dateObj": {
+      "$date": "2025-12-26T06:59:52Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU211125",
+    "barcode": "2000214254839",
+    "productName": "mái phủ hói siêu da silk base MHNU211125",
+    "salePrice": 2980000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-26 13:59:52",
+    "approvedAtObj": {
+      "$date": "2025-12-26T06:59:52Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-26 14:00:18",
+    "confirmedAtObj": {
+      "$date": "2025-12-26T07:00:18Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21319"
+    },
+    "externalId": "973218",
+    "requestId": "156552",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:44:14",
+    "dateObj": {
+      "$date": "2026-03-24T04:44:14Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN0311252",
+    "barcode": "2000214254723",
+    "productName": "Đầu đội machine weft DDN0311252",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2131e"
+    },
+    "externalId": "973223",
+    "requestId": "156553",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:57:22",
+    "dateObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU1508243",
+    "barcode": "2000214251173",
+    "productName": "Mái hói siêu da silk base MHNU1508243",
+    "salePrice": 2500000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-24 11:57:22",
+    "approvedAtObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:50:11",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:50:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21326"
+    },
+    "externalId": "973231",
+    "requestId": "156555",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-05-13 14:30:53",
+    "dateObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN090126",
+    "barcode": "2000214255386",
+    "productName": "Đầu đội machine weft DDN090126",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-05-13 14:30:53",
+    "approvedAtObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-05-19 10:45:29",
+    "confirmedAtObj": {
+      "$date": "2026-05-19T03:45:29Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2129c"
+    },
+    "externalId": "35540",
+    "requestId": "3818",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-07-21 09:39:03",
+    "dateObj": {
+      "$date": "2022-07-21T02:39:03Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN413",
+    "barcode": "2000001635469",
+    "productName": "Đầu đội may máy machine weft 413",
+    "salePrice": 4200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-07-21 09:39:03",
+    "approvedAtObj": {
+      "$date": "2022-07-21T02:39:03Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-08-22 15:17:27",
+    "confirmedAtObj": {
+      "$date": "2022-08-22T08:17:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2129f"
+    },
+    "externalId": "65860",
+    "requestId": "7945",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-08-17 14:09:38",
+    "dateObj": {
+      "$date": "2022-08-17T07:09:38Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDX4604",
+    "barcode": "2000000907574",
+    "productName": "Đầu Đội Xoáy Machine Weft 4604",
+    "salePrice": 4600000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-08-17 14:09:38",
+    "approvedAtObj": {
+      "$date": "2022-08-17T07:09:38Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-08-22 15:16:58",
+    "confirmedAtObj": {
+      "$date": "2022-08-22T08:16:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a0"
+    },
+    "externalId": "65861",
+    "requestId": "7945",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-08-17 14:09:39",
+    "dateObj": {
+      "$date": "2022-08-17T07:09:39Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDX4602",
+    "barcode": "2000000907581",
+    "productName": "Đầu Đội Xoáy Machine Weft 4602",
+    "salePrice": 4600000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-08-17 14:09:39",
+    "approvedAtObj": {
+      "$date": "2022-08-17T07:09:39Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-08-22 15:16:58",
+    "confirmedAtObj": {
+      "$date": "2022-08-22T08:16:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a1"
+    },
+    "externalId": "133373",
+    "requestId": "15959",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-09-19 16:15:09",
+    "dateObj": {
+      "$date": "2022-09-19T09:15:09Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN 616",
+    "barcode": "2000002378075",
+    "productName": "Đầu đội may máy machine weft 616",
+    "salePrice": 6200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-09-19 16:15:09",
+    "approvedAtObj": {
+      "$date": "2022-09-19T09:15:09Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-09-19 16:16:08",
+    "confirmedAtObj": {
+      "$date": "2022-09-19T09:16:08Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a2"
+    },
+    "externalId": "134064",
+    "requestId": "16141",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-09-20 14:11:07",
+    "dateObj": {
+      "$date": "2022-09-20T07:11:07Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "MHNU130",
+    "barcode": "2000000907963",
+    "productName": "Mái Phủ Hói Nữ Mono Ladystars 130",
+    "salePrice": 2000000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 2000000,
+    "amount": 2000000,
+    "description": "",
+    "approvedAt": "2022-09-20 14:11:07",
+    "approvedAtObj": {
+      "$date": "2022-09-20T07:11:07Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 2000000,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a3"
+    },
+    "externalId": "134065",
+    "requestId": "16141",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-09-20 14:11:07",
+    "dateObj": {
+      "$date": "2022-09-20T07:11:07Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "TNU411",
+    "barcode": "2000000919362",
+    "productName": "TÉM NỮ 411",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 3499000,
+    "amount": 3499000,
+    "description": "",
+    "approvedAt": "2022-09-20 14:11:07",
+    "approvedAtObj": {
+      "$date": "2022-09-20T07:11:07Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 3499000,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a4"
+    },
+    "externalId": "166401",
+    "requestId": "20462",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-10-10 12:40:45",
+    "dateObj": {
+      "$date": "2022-10-10T05:40:45Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "M3D 3I1 2609",
+    "barcode": "2000003062607",
+    "productName": "mái 3D 3 in 1 2609",
+    "salePrice": 1500000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-10-10 12:40:45",
+    "approvedAtObj": {
+      "$date": "2022-10-10T05:40:45Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2022-10-11 11:58:14",
+    "confirmedAtObj": {
+      "$date": "2022-10-11T04:58:14Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a5"
+    },
+    "externalId": "172947",
+    "requestId": "21267",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-10-13 14:38:06",
+    "dateObj": {
+      "$date": "2022-10-13T07:38:06Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN 1103",
+    "barcode": "2000001898475",
+    "productName": "Đầu đội may máy machine weft 1103",
+    "salePrice": 11800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-10-13 14:38:06",
+    "approvedAtObj": {
+      "$date": "2022-10-13T07:38:06Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212aa"
+    },
+    "externalId": "190972",
+    "requestId": "24392",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-10-27 13:06:01",
+    "dateObj": {
+      "$date": "2022-10-27T06:06:01Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "TNU 324",
+    "barcode": "2000000737942",
+    "productName": "Tém nữ 324",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-10-27 13:06:01",
+    "approvedAtObj": {
+      "$date": "2022-10-27T06:06:01Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-10-28 11:01:01",
+    "confirmedAtObj": {
+      "$date": "2022-10-28T04:01:01Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ad"
+    },
+    "externalId": "192679",
+    "requestId": "24623",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-10-28 11:40:35",
+    "dateObj": {
+      "$date": "2022-10-28T04:40:35Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "MHNU178",
+    "barcode": "2000000907796",
+    "productName": "Mái Phủ Hói Nữ siêu da Silk Base 178",
+    "salePrice": 3800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "đã gửi hàng đi ngày 25/10/2022",
+    "approvedAt": "2022-10-28 11:40:35",
+    "approvedAtObj": {
+      "$date": "2022-10-28T04:40:35Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-10-28 13:04:06",
+    "confirmedAtObj": {
+      "$date": "2022-10-28T06:04:06Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b6"
+    },
+    "externalId": "242063",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:14",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "TNU 311",
+    "barcode": "2000000682211",
+    "productName": "TÉM NỮ 311",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:14",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:11",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b8"
+    },
+    "externalId": "242065",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:15",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU 1911",
+    "barcode": "2000004756871",
+    "productName": "Mái phủ silk base 1911",
+    "salePrice": 3800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:15",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:12",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:12Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212bb"
+    },
+    "externalId": "242068",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:16",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:16Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MÁI 3D",
+    "barcode": "2000004058906",
+    "productName": "mái 3D",
+    "salePrice": 1800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:16",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:16Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:12",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:12Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212bf"
+    },
+    "externalId": "269255",
+    "requestId": "36909",
+    "warehouse": "Kho HCM - Kho LUXY",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-29 12:22:35",
+    "dateObj": {
+      "$date": "2022-11-29T05:22:35Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "mhnu3d",
+    "barcode": "2000004215460",
+    "productName": "Mái phủ machine weff 3d",
+    "salePrice": 1500000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "ship grap cho khách Luxy",
+    "approvedAt": "2022-11-29 12:22:35",
+    "approvedAtObj": {
+      "$date": "2022-11-29T05:22:35Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-29 15:28:00",
+    "confirmedAtObj": {
+      "$date": "2022-11-29T08:28:00Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c1"
+    },
+    "externalId": "307535",
+    "requestId": "43654",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-12-10 10:45:09",
+    "dateObj": {
+      "$date": "2022-12-10T03:45:09Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "MN5",
+    "barcode": "2000000906867",
+    "productName": "MÁI NGỐ 5",
+    "salePrice": 350000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "ship cod ghtt 10/12",
+    "approvedAt": "2022-12-10 10:45:09",
+    "approvedAtObj": {
+      "$date": "2022-12-10T03:45:09Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-12-10 13:35:20",
+    "confirmedAtObj": {
+      "$date": "2022-12-10T06:35:20Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c3"
+    },
+    "externalId": "309770",
+    "requestId": "43878",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-12-10 14:37:02",
+    "dateObj": {
+      "$date": "2022-12-10T07:37:02Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU 0711",
+    "barcode": "2000004405571",
+    "productName": "Mái phủ silk base 0711",
+    "salePrice": 6800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-12-10 14:37:02",
+    "approvedAtObj": {
+      "$date": "2022-12-10T07:37:02Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-12-10 15:49:13",
+    "confirmedAtObj": {
+      "$date": "2022-12-10T08:49:13Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c4"
+    },
+    "externalId": "325814",
+    "requestId": "46766",
+    "warehouse": "Kho LUXY - Kho Hà Nội",
+    "fromWarehouse": "Kho LUXY",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-12-15 13:30:28",
+    "dateObj": {
+      "$date": "2022-12-15T06:30:28Z"
+    },
+    "creator": "Phạm Thị Trang",
+    "productCode": "B500",
+    "barcode": "2000003792030",
+    "productName": "BÚI HOA TRÒN B500",
+    "salePrice": 500000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 500000,
+    "amount": 1000000,
+    "description": "",
+    "approvedAt": "2022-12-15 13:30:28",
+    "approvedAtObj": {
+      "$date": "2022-12-15T06:30:28Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 1000000,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c6"
+    },
+    "externalId": "343150",
+    "requestId": "50092",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-12-21 13:14:08",
+    "dateObj": {
+      "$date": "2022-12-21T06:14:08Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MN5",
+    "barcode": "2000000906867",
+    "productName": "MÁI NGỐ 5",
+    "salePrice": 350000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "GHTK hvf",
+    "approvedAt": "2022-12-21 13:14:08",
+    "approvedAtObj": {
+      "$date": "2022-12-21T06:14:08Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-12-21 13:28:23",
+    "confirmedAtObj": {
+      "$date": "2022-12-21T06:28:23Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c8"
+    },
+    "externalId": "410484",
+    "requestId": "63017",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-01-10 15:18:12",
+    "dateObj": {
+      "$date": "2023-01-10T08:18:12Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "PP0211",
+    "barcode": "2000004212285",
+    "productName": "phím phồng 0211",
+    "salePrice": 380000,
+    "type": "Xuất [C]",
+    "requestedQty": 6,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-01-10 15:18:12",
+    "approvedAtObj": {
+      "$date": "2023-01-10T08:18:12Z"
+    },
+    "approvedQty": 6,
+    "approvedValue": 0,
+    "confirmedAt": "2023-01-16 09:44:13",
+    "confirmedAtObj": {
+      "$date": "2023-01-16T02:44:13Z"
+    },
+    "xnkQty": 6,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212cd"
+    },
+    "externalId": "973142",
+    "requestId": "156517",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-02 18:45:57",
+    "dateObj": {
+      "$date": "2023-08-02T11:45:57Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "TK3P 5001",
+    "barcode": "2000002862147",
+    "productName": "Tóc kẹp 3 phím 5001",
+    "salePrice": 5049000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-02 18:45:57",
+    "approvedAtObj": {
+      "$date": "2023-08-02T11:45:57Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-05 17:22:36",
+    "confirmedAtObj": {
+      "$date": "2023-08-05T10:22:36Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212cf"
+    },
+    "externalId": "973144",
+    "requestId": "156517",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-02 18:45:58",
+    "dateObj": {
+      "$date": "2023-08-02T11:45:58Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU 00404",
+    "barcode": "2000214247411",
+    "productName": "mái phủ silk base 00404",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-02 18:45:58",
+    "approvedAtObj": {
+      "$date": "2023-08-02T11:45:58Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-05 17:22:36",
+    "confirmedAtObj": {
+      "$date": "2023-08-05T10:22:36Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d1"
+    },
+    "externalId": "973146",
+    "requestId": "156517",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-02 18:45:59",
+    "dateObj": {
+      "$date": "2023-08-02T11:45:59Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDNU 1405",
+    "barcode": "2000214247701",
+    "productName": "Đầu đội machine weft 1405",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-02 18:45:59",
+    "approvedAtObj": {
+      "$date": "2023-08-02T11:45:59Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-05 17:22:36",
+    "confirmedAtObj": {
+      "$date": "2023-08-05T10:22:36Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d9"
+    },
+    "externalId": "973154",
+    "requestId": "156521",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-01-09 11:40:35",
+    "dateObj": {
+      "$date": "2024-01-09T04:40:35Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DD 400",
+    "barcode": "2000002458173",
+    "productName": "Đầu đội xoáy machine weft 400",
+    "salePrice": 5060000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 4600000,
+    "amount": 4600000,
+    "description": "",
+    "approvedAt": "2024-01-09 11:40:35",
+    "approvedAtObj": {
+      "$date": "2024-01-09T04:40:35Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 4600000,
+    "confirmedAt": "2024-01-13 15:27:37",
+    "confirmedAtObj": {
+      "$date": "2024-01-13T08:27:37Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 4600000,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212de"
+    },
+    "externalId": "973159",
+    "requestId": "156524",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-02-17 13:24:19",
+    "dateObj": {
+      "$date": "2024-02-17T06:24:19Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "C5002",
+    "barcode": "2000003791989",
+    "productName": "CỘT ĐUÔI 5002",
+    "salePrice": 5800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 5800000,
+    "amount": 5800000,
+    "description": "",
+    "approvedAt": "2024-02-17 13:24:19",
+    "approvedAtObj": {
+      "$date": "2024-02-17T06:24:19Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 5800000,
+    "confirmedAt": "2024-02-22 10:00:58",
+    "confirmedAtObj": {
+      "$date": "2024-02-22T03:00:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 5800000,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212df"
+    },
+    "externalId": "973160",
+    "requestId": "156525",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-02-17 17:19:25",
+    "dateObj": {
+      "$date": "2024-02-17T10:19:25Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "ddn130124-3",
+    "barcode": "2000214249422",
+    "productName": "Đầu đội machine 130124-3",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-02-17 17:19:25",
+    "approvedAtObj": {
+      "$date": "2024-02-17T10:19:25Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-03-22 10:04:58",
+    "confirmedAtObj": {
+      "$date": "2024-03-22T03:04:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e1"
+    },
+    "externalId": "973162",
+    "requestId": "156527",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-05-08 16:36:22",
+    "dateObj": {
+      "$date": "2024-05-08T09:36:22Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DĐN12324",
+    "barcode": "2000214250022",
+    "productName": "Đầu đội machine weft DĐN12324",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-05-08 16:36:22",
+    "approvedAtObj": {
+      "$date": "2024-05-08T09:36:22Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-05-13 09:47:32",
+    "confirmedAtObj": {
+      "$date": "2024-05-13T02:47:32Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e5"
+    },
+    "externalId": "973166",
+    "requestId": "156529",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2024-06-17 10:33:46",
+    "dateObj": {
+      "$date": "2024-06-17T03:33:46Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "ddv300523",
+    "barcode": "2000214247862",
+    "productName": "Đầu đội siêu da 300523",
+    "salePrice": 8899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-06-17 10:34:03",
+    "approvedAtObj": {
+      "$date": "2024-06-17T03:34:03Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-06-17 12:41:01",
+    "confirmedAtObj": {
+      "$date": "2024-06-17T05:41:01Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e8"
+    },
+    "externalId": "973169",
+    "requestId": "156532",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-10-19 14:02:21",
+    "dateObj": {
+      "$date": "2024-10-19T07:02:21Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDV190823",
+    "barcode": "2000214248661",
+    "productName": "Đầu đội siêu da đầu silk base DDV190823",
+    "salePrice": 12899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-10-19 14:02:21",
+    "approvedAtObj": {
+      "$date": "2024-10-19T07:02:21Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-10-30 15:40:20",
+    "confirmedAtObj": {
+      "$date": "2024-10-30T08:40:20Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e9"
+    },
+    "externalId": "973170",
+    "requestId": "156533",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-10-25 16:39:02",
+    "dateObj": {
+      "$date": "2024-10-25T09:39:02Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDV181024 HÀ",
+    "barcode": "2000214251685",
+    "productName": "Đầu đội siêu da đầu silk base DDV181024",
+    "salePrice": 15899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-10-25 16:39:02",
+    "approvedAtObj": {
+      "$date": "2024-10-25T09:39:02Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-02 14:56:48",
+    "confirmedAtObj": {
+      "$date": "2024-11-02T07:56:48Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ef"
+    },
+    "externalId": "973176",
+    "requestId": "156536",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-11-06 10:54:48",
+    "dateObj": {
+      "$date": "2024-11-06T03:54:48Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "HÀ DDV1810242",
+    "barcode": "2000214251708",
+    "productName": "Đầu đội siêu da đầu silk base DDV1810242",
+    "salePrice": 13899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-11-06 10:54:48",
+    "approvedAtObj": {
+      "$date": "2024-11-06T03:54:48Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-11 14:26:44",
+    "confirmedAtObj": {
+      "$date": "2024-11-11T07:26:44Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f1"
+    },
+    "externalId": "973178",
+    "requestId": "156537",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-11-20 12:11:14",
+    "dateObj": {
+      "$date": "2024-11-20T05:11:14Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN91124",
+    "barcode": "2000214251999",
+    "productName": "Đầu đội machine weft DDN91124",
+    "salePrice": 4490000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-11-20 12:11:14",
+    "approvedAtObj": {
+      "$date": "2024-11-20T05:11:14Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-25 09:44:11",
+    "confirmedAtObj": {
+      "$date": "2024-11-25T02:44:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f2"
+    },
+    "externalId": "973179",
+    "requestId": "156538",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-11-28 14:46:20",
+    "dateObj": {
+      "$date": "2024-11-28T07:46:20Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "HUYEN 221124",
+    "barcode": "2000214252156",
+    "productName": "Đầu đội siêu da silk base DDV221124",
+    "salePrice": 17899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-11-28 14:46:20",
+    "approvedAtObj": {
+      "$date": "2024-11-28T07:46:20Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-12-01 12:43:54",
+    "confirmedAtObj": {
+      "$date": "2024-12-01T05:43:54Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f3"
+    },
+    "externalId": "973180",
+    "requestId": "156539",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-12-09 14:01:23",
+    "dateObj": {
+      "$date": "2024-12-09T07:01:23Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "HÂN-271124",
+    "barcode": "2000214252217",
+    "productName": "Mái hói siêu da silk base MHNU271124",
+    "salePrice": 4890000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-12-09 14:01:23",
+    "approvedAtObj": {
+      "$date": "2024-12-09T07:01:23Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-12-09 14:03:15",
+    "confirmedAtObj": {
+      "$date": "2024-12-09T07:03:15Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212fb"
+    },
+    "externalId": "973188",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:38",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071254",
+    "barcode": "2000214252620",
+    "productName": "Mái hói siêu da MHNU071254",
+    "salePrice": 4980000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:38",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:10",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:10Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212fe"
+    },
+    "externalId": "973191",
+    "requestId": "156542",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-08-05 11:43:20",
+    "dateObj": {
+      "$date": "2025-08-05T04:43:20Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU 300",
+    "barcode": "2000002458227",
+    "productName": "Tém nữ 300",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-08-05 11:43:20",
+    "approvedAtObj": {
+      "$date": "2025-08-05T04:43:20Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-08-08 12:18:59",
+    "confirmedAtObj": {
+      "$date": "2025-08-08T05:18:59Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ff"
+    },
+    "externalId": "973192",
+    "requestId": "156542",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-08-05 11:43:20",
+    "dateObj": {
+      "$date": "2025-08-05T04:43:20Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU230625",
+    "barcode": "2000214253689",
+    "productName": "TÓC TÉM TNU230625",
+    "salePrice": 2899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-08-05 11:43:20",
+    "approvedAtObj": {
+      "$date": "2025-08-05T04:43:20Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-08-08 12:18:59",
+    "confirmedAtObj": {
+      "$date": "2025-08-08T05:18:59Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2130b"
+    },
+    "externalId": "973204",
+    "requestId": "156545",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-08 11:15:47",
+    "dateObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN0412252",
+    "barcode": "2000214254952",
+    "productName": "Đầu đội bop siêu da DDN0412252",
+    "salePrice": 5899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-08 11:15:47",
+    "approvedAtObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-13 09:34:25",
+    "confirmedAtObj": {
+      "$date": "2025-12-13T02:34:25Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2130e"
+    },
+    "externalId": "973207",
+    "requestId": "156546",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-13 09:55:24",
+    "dateObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU0812256",
+    "barcode": "2000214255089",
+    "productName": "Mái hói siêu da silk base MHNU0812256",
+    "salePrice": 4899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-13 09:55:24",
+    "approvedAtObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-16 11:50:17",
+    "confirmedAtObj": {
+      "$date": "2025-12-16T04:50:17Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21310"
+    },
+    "externalId": "973209",
+    "requestId": "156546",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-13 09:55:24",
+    "dateObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "HÀ-091025",
+    "barcode": "2000214254518",
+    "productName": "Đầu đội siêu da silk base DDV091025",
+    "salePrice": 9899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-13 09:55:24",
+    "approvedAtObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-16 11:50:17",
+    "confirmedAtObj": {
+      "$date": "2025-12-16T04:50:17Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21315"
+    },
+    "externalId": "973214",
+    "requestId": "156550",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-01-08 15:29:37",
+    "dateObj": {
+      "$date": "2026-01-08T08:29:37Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN0412252",
+    "barcode": "2000214254952",
+    "productName": "Đầu đội bop siêu da DDN0412252",
+    "salePrice": 5899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21316"
+    },
+    "externalId": "973215",
+    "requestId": "156550",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-01-08 15:29:37",
+    "dateObj": {
+      "$date": "2026-01-08T08:29:37Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN150126",
+    "barcode": "2000214255362",
+    "productName": "Đầu đội xoăn trung niên DDN150126",
+    "salePrice": 4560000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21317"
+    },
+    "externalId": "973216",
+    "requestId": "156551",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-01-16 17:01:40",
+    "dateObj": {
+      "$date": "2026-01-16T10:01:40Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN0412252",
+    "barcode": "2000214254952",
+    "productName": "Đầu đội bop siêu da DDN0412252",
+    "salePrice": 5899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-01-16 17:01:40",
+    "approvedAtObj": {
+      "$date": "2026-01-16T10:01:40Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-01-16 17:02:14",
+    "confirmedAtObj": {
+      "$date": "2026-01-16T10:02:14Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2131a"
+    },
+    "externalId": "973219",
+    "requestId": "156552",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:44:14",
+    "dateObj": {
+      "$date": "2026-03-24T04:44:14Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN0801261",
+    "barcode": "2000214255348",
+    "productName": "Đầu đội xoăn trung niên DDN0801261",
+    "salePrice": 4720000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2131d"
+    },
+    "externalId": "973222",
+    "requestId": "156553",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:57:22",
+    "dateObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU0302265",
+    "barcode": "2000214255874",
+    "productName": "Mái phủ hói siêu da silk base MHNU0302265",
+    "salePrice": 3980000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-24 11:57:22",
+    "approvedAtObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:50:11",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:50:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2131f"
+    },
+    "externalId": "973224",
+    "requestId": "156553",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:57:22",
+    "dateObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU010824",
+    "barcode": "2000214250961",
+    "productName": "MÁI PHỦ HÓI SIÊU DA MHNU010824",
+    "salePrice": 2499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-24 11:57:22",
+    "approvedAtObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:50:11",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:50:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21320"
+    },
+    "externalId": "973225",
+    "requestId": "156553",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:57:22",
+    "dateObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU260126",
+    "barcode": "2000214255713",
+    "productName": "Mái phủ hói siêu da silk base MHNU260126",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-24 11:57:22",
+    "approvedAtObj": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:50:11",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:50:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2132b"
+    },
+    "externalId": "973236",
+    "requestId": "156556",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-06-15 11:23:31",
+    "dateObj": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN300526",
+    "barcode": "2000214256802",
+    "productName": "Đầu đội machine weft DDN300526",
+    "salePrice": 6299000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-06-15 11:23:31",
+    "approvedAtObj": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-06-17 11:56:50",
+    "confirmedAtObj": {
+      "$date": "2026-06-17T04:56:50Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2129a"
+    },
+    "externalId": "35538",
+    "requestId": "3818",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-07-21 09:39:02",
+    "dateObj": {
+      "$date": "2022-07-21T02:39:02Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDV 1402",
+    "barcode": "2000000681610",
+    "productName": "Đầu đội siêu da đầu Silk Base 1402",
+    "salePrice": 14800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-07-21 09:39:02",
+    "approvedAtObj": {
+      "$date": "2022-07-21T02:39:02Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-08-22 15:17:27",
+    "confirmedAtObj": {
+      "$date": "2022-08-22T08:17:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2129b"
+    },
+    "externalId": "35539",
+    "requestId": "3818",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-07-21 09:39:02",
+    "dateObj": {
+      "$date": "2022-07-21T02:39:02Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN418",
+    "barcode": "2000001635513",
+    "productName": "Đầu đội may máy machine weft 418",
+    "salePrice": 4200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-07-21 09:39:02",
+    "approvedAtObj": {
+      "$date": "2022-07-21T02:39:02Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-08-22 15:17:27",
+    "confirmedAtObj": {
+      "$date": "2022-08-22T08:17:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a7"
+    },
+    "externalId": "172949",
+    "requestId": "21267",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-10-13 14:38:07",
+    "dateObj": {
+      "$date": "2022-10-13T07:38:07Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDV 1502",
+    "barcode": "2000000684543",
+    "productName": "Đầu đội siêu da đầu Silk Base 1502",
+    "salePrice": 15800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-10-13 14:38:07",
+    "approvedAtObj": {
+      "$date": "2022-10-13T07:38:07Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212a9"
+    },
+    "externalId": "186209",
+    "requestId": "23506",
+    "warehouse": "Kho LUXY - Kho Hà Nội",
+    "fromWarehouse": "Kho LUXY",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-10-23 14:17:15",
+    "dateObj": {
+      "$date": "2022-10-23T07:17:15Z"
+    },
+    "creator": "Phạm Thị Trang",
+    "productCode": "PP381",
+    "barcode": "2000003792245",
+    "productName": "PHÍM PHỒNG PP381",
+    "salePrice": 380000,
+    "type": "Xuất [C]",
+    "requestedQty": 4,
+    "requestedPrice": 380000,
+    "amount": 1520000,
+    "description": "",
+    "approvedAt": "2022-10-23 14:17:15",
+    "approvedAtObj": {
+      "$date": "2022-10-23T07:17:15Z"
+    },
+    "approvedQty": 4,
+    "approvedValue": 1520000,
+    "confirmedAt": "2022-10-28 09:06:51",
+    "confirmedAtObj": {
+      "$date": "2022-10-28T02:06:51Z"
+    },
+    "xnkQty": 4,
+    "confirmedValue": 1520000,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ab"
+    },
+    "externalId": "190975",
+    "requestId": "24395",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-10-27 13:07:52",
+    "dateObj": {
+      "$date": "2022-10-27T06:07:52Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DD 400",
+    "barcode": "2000002458173",
+    "productName": "Đầu đội xoáy machine weft 400",
+    "salePrice": 5060000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-10-27 13:07:52",
+    "approvedAtObj": {
+      "$date": "2022-10-27T06:07:52Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2022-10-28 11:00:14",
+    "confirmedAtObj": {
+      "$date": "2022-10-28T04:00:14Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ac"
+    },
+    "externalId": "192678",
+    "requestId": "24623",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-10-28 11:40:34",
+    "dateObj": {
+      "$date": "2022-10-28T04:40:34Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "MHNU139",
+    "barcode": "2000000907833",
+    "productName": "Mái Phủ Hói Nữ siêu da Silk Base 139",
+    "salePrice": 3000000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "đã gửi hàng đi ngày 25/10/2022",
+    "approvedAt": "2022-10-28 11:40:34",
+    "approvedAtObj": {
+      "$date": "2022-10-28T04:40:34Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-10-28 13:04:06",
+    "confirmedAtObj": {
+      "$date": "2022-10-28T06:04:06Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ae"
+    },
+    "externalId": "192680",
+    "requestId": "24623",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-10-28 11:40:35",
+    "dateObj": {
+      "$date": "2022-10-28T04:40:35Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "MHNU3803",
+    "barcode": "2000001735084",
+    "productName": "Mái hói nữ silk base 3803",
+    "salePrice": 3800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "đã gửi hàng đi ngày 25/10/2022",
+    "approvedAt": "2022-10-28 11:40:35",
+    "approvedAtObj": {
+      "$date": "2022-10-28T04:40:35Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-10-28 13:04:06",
+    "confirmedAtObj": {
+      "$date": "2022-10-28T06:04:06Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b4"
+    },
+    "externalId": "242061",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:14",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU BN 30",
+    "barcode": "2000002842750",
+    "productName": "Mái phủ Silk Base medium 30",
+    "salePrice": 5280000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:14",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:14Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:11",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ba"
+    },
+    "externalId": "242067",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:15",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MAI 3D 0111",
+    "barcode": "2000004201524",
+    "productName": "mái 3d 0111",
+    "salePrice": 1500000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:15",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:12",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:12Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c7"
+    },
+    "externalId": "384191",
+    "requestId": "57619",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2023-01-03 14:21:07",
+    "dateObj": {
+      "$date": "2023-01-03T07:21:07Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "K3606",
+    "barcode": "2000002468394",
+    "productName": "Tóc kẹp 3 phím 60cm k3606",
+    "salePrice": 6399000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "đã ship grap giao khách cho HN",
+    "approvedAt": "2023-01-03 14:21:07",
+    "approvedAtObj": {
+      "$date": "2023-01-03T07:21:07Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-01-03 14:22:44",
+    "confirmedAtObj": {
+      "$date": "2023-01-03T07:22:44Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212cc"
+    },
+    "externalId": "973141",
+    "requestId": "156516",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-06-20 11:33:07",
+    "dateObj": {
+      "$date": "2023-06-20T04:33:07Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "",
+    "barcode": "2000002594185",
+    "productName": "Đầu đội thẳng machine weft DT55011",
+    "salePrice": 14899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-06-20 11:33:07",
+    "approvedAtObj": {
+      "$date": "2023-06-20T04:33:07Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-06-23 17:59:04",
+    "confirmedAtObj": {
+      "$date": "2023-06-23T10:59:04Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ce"
+    },
+    "externalId": "973143",
+    "requestId": "156517",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-02 18:45:58",
+    "dateObj": {
+      "$date": "2023-08-02T11:45:58Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU 00504",
+    "barcode": "2000214247428",
+    "productName": "Mái Phủ Silk Base 00504",
+    "salePrice": 5899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-02 18:45:58",
+    "approvedAtObj": {
+      "$date": "2023-08-02T11:45:58Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-05 17:22:36",
+    "confirmedAtObj": {
+      "$date": "2023-08-05T10:22:36Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d0"
+    },
+    "externalId": "973145",
+    "requestId": "156517",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-02 18:45:59",
+    "dateObj": {
+      "$date": "2023-08-02T11:45:59Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU18042",
+    "barcode": "2000214247985",
+    "productName": "Mái hói siêu da MHNU18042",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-02 18:45:59",
+    "approvedAtObj": {
+      "$date": "2023-08-02T11:45:59Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-05 17:22:36",
+    "confirmedAtObj": {
+      "$date": "2023-08-05T10:22:36Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d2"
+    },
+    "externalId": "973147",
+    "requestId": "156518",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-02 18:47:00",
+    "dateObj": {
+      "$date": "2023-08-02T11:47:00Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU 00504",
+    "barcode": "2000214247428",
+    "productName": "Mái Phủ Silk Base 00504",
+    "salePrice": 5899000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-02 18:47:00",
+    "approvedAtObj": {
+      "$date": "2023-08-02T11:47:00Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-05 17:22:53",
+    "confirmedAtObj": {
+      "$date": "2023-08-05T10:22:53Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d6"
+    },
+    "externalId": "973151",
+    "requestId": "156520",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-10-19 16:43:27",
+    "dateObj": {
+      "$date": "2023-10-19T09:43:27Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU 3112",
+    "barcode": "2000006300355",
+    "productName": "Mái phủ silk base 3112",
+    "salePrice": 3800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-10-19 16:43:27",
+    "approvedAtObj": {
+      "$date": "2023-10-19T09:43:27Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-11-01 09:53:49",
+    "confirmedAtObj": {
+      "$date": "2023-11-01T02:53:49Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e2"
+    },
+    "externalId": "973163",
+    "requestId": "156527",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-05-08 16:36:23",
+    "dateObj": {
+      "$date": "2024-05-08T09:36:23Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN18041",
+    "barcode": "2000214248036",
+    "productName": "Đầu đội machine weft DDN18041",
+    "salePrice": 6200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-05-08 16:36:23",
+    "approvedAtObj": {
+      "$date": "2024-05-08T09:36:23Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-05-13 09:47:32",
+    "confirmedAtObj": {
+      "$date": "2024-05-13T02:47:32Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e3"
+    },
+    "externalId": "973164",
+    "requestId": "156528",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-06-03 12:13:36",
+    "dateObj": {
+      "$date": "2024-06-03T05:13:36Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DĐN1705241",
+    "barcode": "2000214250428",
+    "productName": "Đầu đôi machine weft DĐN1705241",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-06-03 12:13:36",
+    "approvedAtObj": {
+      "$date": "2024-06-03T05:13:36Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-06-06 10:40:32",
+    "confirmedAtObj": {
+      "$date": "2024-06-06T03:40:32Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ea"
+    },
+    "externalId": "973171",
+    "requestId": "156533",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-10-25 16:39:05",
+    "dateObj": {
+      "$date": "2024-10-25T09:39:05Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN231024",
+    "barcode": "2000214251753",
+    "productName": "Đầu đội machine weft DDN231024",
+    "salePrice": 6299000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-10-25 16:39:05",
+    "approvedAtObj": {
+      "$date": "2024-10-25T09:39:05Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-02 14:56:48",
+    "confirmedAtObj": {
+      "$date": "2024-11-02T07:56:48Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f4"
+    },
+    "externalId": "973181",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:37",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:37Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071251",
+    "barcode": "2000214252590",
+    "productName": "Mái hói siêu da MHNU071251",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:37",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:37Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:09",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:09Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21305"
+    },
+    "externalId": "973198",
+    "requestId": "156544",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-28 14:49:42",
+    "dateObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU271025",
+    "barcode": "2000214254594",
+    "productName": "Mái phủ hói siêu da silk base MHNU271025",
+    "salePrice": 1290000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-28 14:49:42",
+    "approvedAtObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-11-04 17:14:58",
+    "confirmedAtObj": {
+      "$date": "2025-11-04T10:14:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21306"
+    },
+    "externalId": "973199",
+    "requestId": "156544",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-28 14:49:42",
+    "dateObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "HNU2710253",
+    "barcode": "2000214254624",
+    "productName": "Mái phủ hói siêu da silk base MHNU2710253",
+    "salePrice": 2799000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-28 14:49:42",
+    "approvedAtObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2025-11-04 17:14:58",
+    "confirmedAtObj": {
+      "$date": "2025-11-04T10:14:58Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21308"
+    },
+    "externalId": "973201",
+    "requestId": "156545",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-08 11:15:47",
+    "dateObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU041225",
+    "barcode": "2000214254914",
+    "productName": "tóc tém siêu da TNU041225",
+    "salePrice": 5499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-08 11:15:47",
+    "approvedAtObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-13 09:34:25",
+    "confirmedAtObj": {
+      "$date": "2025-12-13T02:34:25Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2130d"
+    },
+    "externalId": "973206",
+    "requestId": "156546",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-13 09:55:24",
+    "dateObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU2111251",
+    "barcode": "2000214254846",
+    "productName": "mái phủ hói siêu da silk base MHNU2111251",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-13 09:55:24",
+    "approvedAtObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:50:43",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:50:43Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21311"
+    },
+    "externalId": "973210",
+    "requestId": "156546",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-13 09:55:24",
+    "dateObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MINH-0812251",
+    "barcode": "2000214255065",
+    "productName": "Đầu đội siêu da silk base DDV0812251",
+    "salePrice": 9899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-13 09:55:24",
+    "approvedAtObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-16 11:50:17",
+    "confirmedAtObj": {
+      "$date": "2025-12-16T04:50:17Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21312"
+    },
+    "externalId": "973211",
+    "requestId": "156547",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-13 10:00:03",
+    "dateObj": {
+      "$date": "2025-12-13T03:00:03Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU2710254",
+    "barcode": "2000214254631",
+    "productName": "Mái phủ hói siêu da silk base MHNU2710254",
+    "salePrice": 3000000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-13 10:00:03",
+    "approvedAtObj": {
+      "$date": "2025-12-13T03:00:03Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-16 11:49:50",
+    "confirmedAtObj": {
+      "$date": "2025-12-16T04:49:50Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21313"
+    },
+    "externalId": "973212",
+    "requestId": "156548",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-25 10:23:42",
+    "dateObj": {
+      "$date": "2025-12-25T03:23:42Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN241225",
+    "barcode": "2000214255263",
+    "productName": "Đầu đội xoáy machine weft DDN241225",
+    "salePrice": 4560000,
+    "type": "Xuất [C]",
+    "requestedQty": 4,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-25 10:23:42",
+    "approvedAtObj": {
+      "$date": "2025-12-25T03:23:42Z"
+    },
+    "approvedQty": 4,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-26 14:00:08",
+    "confirmedAtObj": {
+      "$date": "2025-12-26T07:00:08Z"
+    },
+    "xnkQty": 4,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21323"
+    },
+    "externalId": "973228",
+    "requestId": "156554",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-27 16:49:23",
+    "dateObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN0801261",
+    "barcode": "2000214255348",
+    "productName": "Đầu đội xoăn trung niên DDN0801261",
+    "salePrice": 4720000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-27 16:49:23",
+    "approvedAtObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:49:49",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:49:49Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21325"
+    },
+    "externalId": "973230",
+    "requestId": "156555",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-05-13 14:30:53",
+    "dateObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN100326",
+    "barcode": "2000214256161",
+    "productName": "Đầu đội siêu da 1 ngôi DDN100326",
+    "salePrice": 11899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-05-13 14:30:53",
+    "approvedAtObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-05-19 10:45:29",
+    "confirmedAtObj": {
+      "$date": "2026-05-19T03:45:29Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21327"
+    },
+    "externalId": "973232",
+    "requestId": "156555",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-05-13 14:30:53",
+    "dateObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MINH-080526",
+    "barcode": "2000214256659",
+    "productName": "Đầu đội siêu da silk base DDV080526",
+    "salePrice": 11499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-05-13 14:30:53",
+    "approvedAtObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-05-19 10:45:29",
+    "confirmedAtObj": {
+      "$date": "2026-05-19T03:45:29Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21329"
+    },
+    "externalId": "973234",
+    "requestId": "156556",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-06-15 11:23:31",
+    "dateObj": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU2001243",
+    "barcode": "2000214249514",
+    "productName": "MÁI HÓI SIÊU DA ĐẦU MHNU2001243",
+    "salePrice": 2899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-06-15 11:23:31",
+    "approvedAtObj": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-06-17 11:56:50",
+    "confirmedAtObj": {
+      "$date": "2026-06-17T04:56:50Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21299"
+    },
+    "externalId": "35000",
+    "requestId": "3670",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-07-19 15:15:31",
+    "dateObj": {
+      "$date": "2022-07-19T08:15:31Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU 801",
+    "barcode": "2000000682143",
+    "productName": "Mái phủ hói siêu da Silk Base Ladystars 801",
+    "salePrice": 8000000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-07-19 16:06:52",
+    "approvedAtObj": {
+      "$date": "2022-07-19T09:06:52Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-07-19 16:52:44",
+    "confirmedAtObj": {
+      "$date": "2022-07-19T09:52:44Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.404Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.404Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2129d"
+    },
+    "externalId": "36367",
+    "requestId": "3840",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-07-21 10:48:09",
+    "dateObj": {
+      "$date": "2022-07-21T03:48:09Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDV 1405",
+    "barcode": "2000001388150",
+    "productName": "Đầu đội da đầu Mono Ladystars 1405",
+    "salePrice": 14800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-07-21 10:48:09",
+    "approvedAtObj": {
+      "$date": "2022-07-21T03:48:09Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-08-22 15:17:12",
+    "confirmedAtObj": {
+      "$date": "2022-08-22T08:17:12Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2129e"
+    },
+    "externalId": "58415",
+    "requestId": "7138",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2022-08-13 16:05:27",
+    "dateObj": {
+      "$date": "2022-08-13T09:05:27Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU 411",
+    "barcode": "2000000682020",
+    "productName": "Mái phủ hói Silk Base 411",
+    "salePrice": 4400000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-08-13 16:05:27",
+    "approvedAtObj": {
+      "$date": "2022-08-13T09:05:27Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-08-22 15:16:45",
+    "confirmedAtObj": {
+      "$date": "2022-08-22T08:16:45Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212af"
+    },
+    "externalId": "196853",
+    "requestId": "25511",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-01 09:07:49",
+    "dateObj": {
+      "$date": "2022-11-01T02:07:49Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MPNU 0027",
+    "barcode": "2000004018788",
+    "productName": "mái phủ siik base 0027",
+    "salePrice": 6200000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-01 09:07:49",
+    "approvedAtObj": {
+      "$date": "2022-11-01T02:07:49Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-01 10:16:50",
+    "confirmedAtObj": {
+      "$date": "2022-11-01T03:16:50Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.406Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b2"
+    },
+    "externalId": "241697",
+    "requestId": "32010",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2022-11-21 12:57:05",
+    "dateObj": {
+      "$date": "2022-11-21T05:57:05Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "PP380",
+    "barcode": "2000002679998",
+    "productName": "Phím phồng 380",
+    "salePrice": 380000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "ship GHTK cho Hà Nội 20/11",
+    "approvedAt": "2022-11-21 12:57:05",
+    "approvedAtObj": {
+      "$date": "2022-11-21T05:57:05Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-22 08:46:32",
+    "confirmedAtObj": {
+      "$date": "2022-11-22T01:46:32Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b7"
+    },
+    "externalId": "242064",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:15",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "TNU 342",
+    "barcode": "2000001744826",
+    "productName": "Tém nữ 342",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:15",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:11",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212b9"
+    },
+    "externalId": "242066",
+    "requestId": "32102",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 14:35:15",
+    "dateObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN 3",
+    "barcode": "2000002347712",
+    "productName": "Đầu đội may máy machine weft 3",
+    "salePrice": 3800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 14:35:15",
+    "approvedAtObj": {
+      "$date": "2022-11-21T07:35:15Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:12",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:12Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212bc"
+    },
+    "externalId": "242510",
+    "requestId": "32154",
+    "warehouse": "Kho Hà Nội - Kho LUXY",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho LUXY",
+    "date": "2022-11-21 15:30:18",
+    "dateObj": {
+      "$date": "2022-11-21T08:30:18Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "TNU 331",
+    "barcode": "2000000738161",
+    "productName": "Tém nữ 331",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2022-11-21 15:30:18",
+    "approvedAtObj": {
+      "$date": "2022-11-21T08:30:18Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2022-11-21 16:28:27",
+    "confirmedAtObj": {
+      "$date": "2022-11-21T09:28:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212c9"
+    },
+    "externalId": "411071",
+    "requestId": "63139",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-01-10 17:07:06",
+    "dateObj": {
+      "$date": "2023-01-10T10:07:06Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU 1312",
+    "barcode": "2000005581199",
+    "productName": "Mái phủ silk base",
+    "salePrice": 4800000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-01-10 17:07:06",
+    "approvedAtObj": {
+      "$date": "2023-01-10T10:07:06Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2023-01-16 09:49:46",
+    "confirmedAtObj": {
+      "$date": "2023-01-16T02:49:46Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212cb"
+    },
+    "externalId": "973140",
+    "requestId": "156516",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-06-20 11:33:07",
+    "dateObj": {
+      "$date": "2023-06-20T04:33:07Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDV 1701",
+    "barcode": "2000000681641",
+    "productName": "Đầu đội siêu da đầu Silk Base  1701",
+    "salePrice": 17800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-06-20 11:33:07",
+    "approvedAtObj": {
+      "$date": "2023-06-20T04:33:07Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-06-23 17:59:04",
+    "confirmedAtObj": {
+      "$date": "2023-06-23T10:59:04Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d4"
+    },
+    "externalId": "973149",
+    "requestId": "156519",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-08-25 10:23:42",
+    "dateObj": {
+      "$date": "2023-08-25T03:23:42Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDNU 08004",
+    "barcode": "2000010959853",
+    "productName": "Đầu đội machine weft 08004",
+    "salePrice": 7199000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-08-25 10:23:42",
+    "approvedAtObj": {
+      "$date": "2023-08-25T03:23:42Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-08-29 11:55:27",
+    "confirmedAtObj": {
+      "$date": "2023-08-29T04:55:27Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212d8"
+    },
+    "externalId": "973153",
+    "requestId": "156520",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2023-10-19 16:43:29",
+    "dateObj": {
+      "$date": "2023-10-19T09:43:29Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU18043",
+    "barcode": "2000214247978",
+    "productName": "Mái hói siêu da MHNU18043",
+    "salePrice": 5800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2023-10-19 16:43:29",
+    "approvedAtObj": {
+      "$date": "2023-10-19T09:43:29Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2023-11-01 09:53:49",
+    "confirmedAtObj": {
+      "$date": "2023-11-01T02:53:49Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212da"
+    },
+    "externalId": "973155",
+    "requestId": "156522",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-01-09 15:29:56",
+    "dateObj": {
+      "$date": "2024-01-09T08:29:56Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN151223",
+    "barcode": "2000214249255",
+    "productName": "Đầu đội machine weft DDN151223",
+    "salePrice": 6299000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-01-09 15:29:56",
+    "approvedAtObj": {
+      "$date": "2024-01-09T08:29:56Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-01-13 15:28:37",
+    "confirmedAtObj": {
+      "$date": "2024-01-13T08:28:37Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212db"
+    },
+    "externalId": "973156",
+    "requestId": "156523",
+    "warehouse": "Kho HCM - Kho Hà Nội",
+    "fromWarehouse": "Kho HCM",
+    "toWarehouse": "Kho Hà Nội",
+    "date": "2024-02-02 10:15:33",
+    "dateObj": {
+      "$date": "2024-02-02T03:15:33Z"
+    },
+    "creator": "Nguyễn Học Xuân Uyên",
+    "productCode": "ddn130124-3",
+    "barcode": "2000214249422",
+    "productName": "Đầu đội machine 130124-3",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-02-02 10:16:02",
+    "approvedAtObj": {
+      "$date": "2024-02-02T03:16:02Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-02-17 17:17:58",
+    "confirmedAtObj": {
+      "$date": "2024-02-17T10:17:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e0"
+    },
+    "externalId": "973161",
+    "requestId": "156526",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-03-12 14:41:22",
+    "dateObj": {
+      "$date": "2024-03-12T07:41:22Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN 901",
+    "barcode": "2000000681535",
+    "productName": "Đầu đội may máy machine weft 901",
+    "salePrice": 10800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-03-12 14:41:22",
+    "approvedAtObj": {
+      "$date": "2024-03-12T07:41:22Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-03-22 10:05:29",
+    "confirmedAtObj": {
+      "$date": "2024-03-22T03:05:29Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.408Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e4"
+    },
+    "externalId": "973165",
+    "requestId": "156528",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-06-03 12:13:36",
+    "dateObj": {
+      "$date": "2024-06-03T05:13:36Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU141123",
+    "barcode": "2000214249064",
+    "productName": "Mái hói siêu da đầu silk base MHNU141123",
+    "salePrice": 5800000,
+    "type": "Xuất [C]",
+    "requestedQty": 3,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-06-03 12:13:36",
+    "approvedAtObj": {
+      "$date": "2024-06-03T05:13:36Z"
+    },
+    "approvedQty": 3,
+    "approvedValue": 0,
+    "confirmedAt": "2024-06-06 10:40:32",
+    "confirmedAtObj": {
+      "$date": "2024-06-06T03:40:32Z"
+    },
+    "xnkQty": 3,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212e7"
+    },
+    "externalId": "973168",
+    "requestId": "156531",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-07-24 14:23:51",
+    "dateObj": {
+      "$date": "2024-07-24T07:23:51Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU18043",
+    "barcode": "2000214247978",
+    "productName": "Mái hói siêu da MHNU18043",
+    "salePrice": 5800000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-07-24 14:23:51",
+    "approvedAtObj": {
+      "$date": "2024-07-24T07:23:51Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-07-29 10:06:01",
+    "confirmedAtObj": {
+      "$date": "2024-07-29T03:06:01Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212eb"
+    },
+    "externalId": "973172",
+    "requestId": "156534",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-10-28 11:11:50",
+    "dateObj": {
+      "$date": "2024-10-28T04:11:50Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "2510242 huyên",
+    "barcode": "2000214251784",
+    "productName": "Mái hói siêu da silk base 2510242",
+    "salePrice": 5280000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-10-28 11:11:50",
+    "approvedAtObj": {
+      "$date": "2024-10-28T04:11:50Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-02 14:57:26",
+    "confirmedAtObj": {
+      "$date": "2024-11-02T07:57:26Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ed"
+    },
+    "externalId": "973174",
+    "requestId": "156535",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-11-06 10:46:03",
+    "dateObj": {
+      "$date": "2024-11-06T03:46:03Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "HÀ DDV1810242",
+    "barcode": "2000214251708",
+    "productName": "Đầu đội siêu da đầu silk base DDV1810242",
+    "salePrice": 13899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212ee"
+    },
+    "externalId": "973175",
+    "requestId": "156536",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-11-06 10:54:46",
+    "dateObj": {
+      "$date": "2024-11-06T03:54:46Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN61124",
+    "barcode": "2000214251920",
+    "productName": "Đầu đội machine weft DDN61124",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-11-06 10:54:46",
+    "approvedAtObj": {
+      "$date": "2024-11-06T03:54:46Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-11 14:26:44",
+    "confirmedAtObj": {
+      "$date": "2024-11-11T07:26:44Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f0"
+    },
+    "externalId": "973177",
+    "requestId": "156537",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2024-11-20 12:11:13",
+    "dateObj": {
+      "$date": "2024-11-20T05:11:13Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "DDN2806241",
+    "barcode": "2000214250664",
+    "productName": "Đầu đội machine weft DDN2806241",
+    "salePrice": 7899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2024-11-20 12:11:13",
+    "approvedAtObj": {
+      "$date": "2024-11-20T05:11:13Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2024-11-25 09:44:11",
+    "confirmedAtObj": {
+      "$date": "2024-11-25T02:44:11Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f6"
+    },
+    "externalId": "973183",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:37",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:37Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071253",
+    "barcode": "2000214252613",
+    "productName": "Mái hói siêu da MHNU071253",
+    "salePrice": 3299000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:37",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:37Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:09",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:09Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212f9"
+    },
+    "externalId": "973186",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:38",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071257",
+    "barcode": "2000214252651",
+    "productName": "Mái hói siêu da MHNU071257",
+    "salePrice": 2499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:38",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:10",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:10Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212fa"
+    },
+    "externalId": "973187",
+    "requestId": "156540",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-01-09 13:54:38",
+    "dateObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "MHNU071255",
+    "barcode": "2000214252637",
+    "productName": "Mái hói siêu da MHNU071255",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-01-09 13:54:38",
+    "approvedAtObj": {
+      "$date": "2025-01-09T06:54:38Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-01-11 18:23:10",
+    "confirmedAtObj": {
+      "$date": "2025-01-11T11:23:10Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b212fd"
+    },
+    "externalId": "973190",
+    "requestId": "156541",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-03-27 11:01:56",
+    "dateObj": {
+      "$date": "2025-03-27T04:01:56Z"
+    },
+    "creator": "Đỗ Thị Nhàn",
+    "productCode": "HÂN- 20325",
+    "barcode": "2000214253054",
+    "productName": "Đầu đội siêu da silk base DDV20325",
+    "salePrice": 12599000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-03-27 11:01:56",
+    "approvedAtObj": {
+      "$date": "2025-03-27T04:01:56Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-03-31 09:02:35",
+    "confirmedAtObj": {
+      "$date": "2025-03-31T02:02:35Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21302"
+    },
+    "externalId": "973195",
+    "requestId": "156544",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-28 14:49:42",
+    "dateObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU281025",
+    "barcode": "2000214254648",
+    "productName": "TÓC TÉM TNU281025",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-28 14:49:42",
+    "approvedAtObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2025-11-04 17:14:58",
+    "confirmedAtObj": {
+      "$date": "2025-11-04T10:14:58Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21304"
+    },
+    "externalId": "973197",
+    "requestId": "156544",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-28 14:49:42",
+    "dateObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU2710252",
+    "barcode": "2000214254617",
+    "productName": "Mái phủ hói siêu da silk base MHNU2710252",
+    "salePrice": 3199000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-28 14:49:42",
+    "approvedAtObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2025-11-04 17:14:58",
+    "confirmedAtObj": {
+      "$date": "2025-11-04T10:14:58Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21307"
+    },
+    "externalId": "973200",
+    "requestId": "156544",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-10-28 14:49:42",
+    "dateObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU2710254",
+    "barcode": "2000214254631",
+    "productName": "Mái phủ hói siêu da silk base MHNU2710254",
+    "salePrice": 3000000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-10-28 14:49:42",
+    "approvedAtObj": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-11-04 17:14:58",
+    "confirmedAtObj": {
+      "$date": "2025-11-04T10:14:58Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2130c"
+    },
+    "externalId": "973205",
+    "requestId": "156545",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-08 11:15:47",
+    "dateObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN0412251",
+    "barcode": "2000214254907",
+    "productName": "Đầu đội machine weft DDN0412251",
+    "salePrice": 4980000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-08 11:15:47",
+    "approvedAtObj": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-13 09:34:25",
+    "confirmedAtObj": {
+      "$date": "2025-12-13T02:34:25Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2130f"
+    },
+    "externalId": "973208",
+    "requestId": "156546",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2025-12-13 09:55:24",
+    "dateObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU121225",
+    "barcode": "2000214255140",
+    "productName": "Mái phủ hói siêu da MHNU121225",
+    "salePrice": 3499000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2025-12-13 09:55:24",
+    "approvedAtObj": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2025-12-16 11:50:17",
+    "confirmedAtObj": {
+      "$date": "2025-12-16T04:50:17Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.410Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21318"
+    },
+    "externalId": "973217",
+    "requestId": "156551",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-01-16 17:01:40",
+    "dateObj": {
+      "$date": "2026-01-16T10:01:40Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU0801261",
+    "barcode": "2000214255560",
+    "productName": "TÉM NỮ SIÊU DA TNU0801261",
+    "salePrice": 5499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-01-16 17:01:40",
+    "approvedAtObj": {
+      "$date": "2026-01-16T10:01:40Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-01-16 17:02:14",
+    "confirmedAtObj": {
+      "$date": "2026-01-16T10:02:14Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2131b"
+    },
+    "externalId": "973220",
+    "requestId": "156552",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:44:14",
+    "dateObj": {
+      "$date": "2026-03-24T04:44:14Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "HUYỀN-271225",
+    "barcode": "2000214255287",
+    "productName": "Đầu đội siêu da nhiều ngôi DDV271225",
+    "salePrice": 11899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2131c"
+    },
+    "externalId": "973221",
+    "requestId": "156552",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-24 11:44:14",
+    "dateObj": {
+      "$date": "2026-03-24T04:44:14Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU281025",
+    "barcode": "2000214254648",
+    "productName": "TÓC TÉM TNU281025",
+    "salePrice": 3899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "",
+    "approvedQty": 0,
+    "approvedValue": 0,
+    "confirmedAt": "",
+    "xnkQty": 0,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21321"
+    },
+    "externalId": "973226",
+    "requestId": "156554",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-27 16:49:23",
+    "dateObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "TNU0801261",
+    "barcode": "2000214255560",
+    "productName": "TÉM NỮ SIÊU DA TNU0801261",
+    "salePrice": 5499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-27 16:49:23",
+    "approvedAtObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:49:49",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:49:49Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21322"
+    },
+    "externalId": "973227",
+    "requestId": "156554",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-27 16:49:23",
+    "dateObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "DDN0311252",
+    "barcode": "2000214254723",
+    "productName": "Đầu đội machine weft DDN0311252",
+    "salePrice": 6499000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-27 16:49:23",
+    "approvedAtObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:49:49",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:49:49Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21324"
+    },
+    "externalId": "973229",
+    "requestId": "156554",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-03-27 16:49:23",
+    "dateObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "HUYỀN-271225",
+    "barcode": "2000214255287",
+    "productName": "Đầu đội siêu da nhiều ngôi DDV271225",
+    "salePrice": 11899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-03-27 16:49:23",
+    "approvedAtObj": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-03-27 16:49:49",
+    "confirmedAtObj": {
+      "$date": "2026-03-27T09:49:49Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b21328"
+    },
+    "externalId": "973233",
+    "requestId": "156555",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-05-13 14:30:53",
+    "dateObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "HÂN-210326",
+    "barcode": "2000214256208",
+    "productName": "Đầu đội siêu da silk base DDV210326",
+    "salePrice": 12899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-05-13 14:30:53",
+    "approvedAtObj": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-05-19 10:45:29",
+    "confirmedAtObj": {
+      "$date": "2026-05-19T03:45:29Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2132a"
+    },
+    "externalId": "973235",
+    "requestId": "156556",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-06-15 11:23:31",
+    "dateObj": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "MHNU010824",
+    "barcode": "2000214250961",
+    "productName": "MÁI PHỦ HÓI SIÊU DA MHNU010824",
+    "salePrice": 2499000,
+    "type": "Xuất [C]",
+    "requestedQty": 2,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-06-15 11:23:31",
+    "approvedAtObj": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "approvedQty": 2,
+    "approvedValue": 0,
+    "confirmedAt": "2026-06-17 11:56:50",
+    "confirmedAtObj": {
+      "$date": "2026-06-17T04:56:50Z"
+    },
+    "xnkQty": 2,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3286d408138fff35b2132c"
+    },
+    "externalId": "973237",
+    "requestId": "156557",
+    "warehouse": "Kho Hà Nội - Kho HCM",
+    "fromWarehouse": "Kho Hà Nội",
+    "toWarehouse": "Kho HCM",
+    "date": "2026-06-15 11:35:09",
+    "dateObj": {
+      "$date": "2026-06-15T04:35:09Z"
+    },
+    "creator": "LÊ SỸ BÁCH",
+    "productCode": "HUYÊN-1601261",
+    "barcode": "2000214255522",
+    "productName": "Đầu đội siêu da silk base DDV1601261",
+    "salePrice": 18899000,
+    "type": "Xuất [C]",
+    "requestedQty": 1,
+    "requestedPrice": 0,
+    "amount": 0,
+    "description": "",
+    "approvedAt": "2026-06-15 11:35:09",
+    "approvedAtObj": {
+      "$date": "2026-06-15T04:35:09Z"
+    },
+    "approvedQty": 1,
+    "approvedValue": 0,
+    "confirmedAt": "2026-06-17 11:56:26",
+    "confirmedAtObj": {
+      "$date": "2026-06-17T04:56:26Z"
+    },
+    "xnkQty": 1,
+    "confirmedValue": 0,
+    "vendor": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:36:52.411Z"
+    }
+  }
+]

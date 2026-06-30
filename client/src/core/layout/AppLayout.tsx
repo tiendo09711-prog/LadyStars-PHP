@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { matchPath, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeftRight,
   Boxes,
@@ -203,6 +203,67 @@ type StoreSettings = {
   taxCode?: string;
 };
 
+type PageTitleRoute = {
+  path: string;
+  title: string;
+  end?: boolean;
+};
+
+const specificPageTitleRoutes: PageTitleRoute[] = [
+  { path: '/', title: 'Dashboard', end: true },
+  { path: '/warehouse/transactions/vouchers/import', title: 'Nhập kho', end: false },
+  { path: '/warehouse/transactions/vouchers/export', title: 'Xuất kho', end: false },
+  { path: '/warehouse/transactions/vouchers/excel', title: 'Nhập kho bằng Excel', end: false },
+  { path: '/warehouse/transfers/create', title: 'Tạo phiếu chuyển kho', end: true },
+  { path: '/warehouse/transfers/:id/edit', title: 'Sửa phiếu chuyển kho', end: true },
+  { path: '/warehouse/transfers/:id', title: 'Chi tiết chuyển kho', end: true },
+  { path: '/warehouse/audit/create', title: 'Tạo phiếu kiểm kho', end: true },
+  { path: '/warehouse/audit/:id', title: 'Chi tiết kiểm kho', end: true },
+  { path: '/sales-channels/:channel/retail/create', title: 'Tạo hóa đơn bán lẻ', end: true },
+  { path: '/sales-channels/:channel/wholesale/create', title: 'Tạo hóa đơn bán sỉ', end: true },
+  { path: '/sales-channels/:channel/refund/create', title: 'Tạo phiếu trả hàng', end: true },
+  { path: '/sales-channels/:channel/refund/:id', title: 'Chi tiết trả hàng', end: true },
+  { path: '/sales-channels/:channel/:action', title: 'Kênh bán hàng', end: true },
+  { path: '/sales-channels/:channel', title: 'Kênh bán hàng', end: true },
+  { path: '/sales', title: 'Bán hàng', end: false },
+  { path: '/customers', title: 'Khách hàng', end: true },
+  { path: '/staff', title: 'Quản lý nhân viên', end: true },
+];
+
+const routeSpecificity = (path: string) => {
+  const segments = path.split('/').filter(Boolean);
+  return segments.reduce((score, segment) => score + (segment.startsWith(':') ? 1 : 10), 0);
+};
+
+const flattenMenuTitleRoutes = (groups: MenuGroup[]): PageTitleRoute[] => groups.flatMap((group) => group.items.flatMap((item) => {
+  if ('to' in item) return [{ path: item.to, title: item.label, end: item.to === '/' }];
+  return item.subItems.map((subItem) => ({ path: subItem.to, title: subItem.label }));
+}));
+
+const resolveQueryPageTitle = (pathname: string, search: string) => {
+  const searchParams = new URLSearchParams(search);
+  if (pathname === '/products' && searchParams.get('tab') === 'history') return 'Lịch sử sửa/xóa sản phẩm';
+  if (matchPath({ path: '/sales-channels/:channel/wholesale', end: true }, pathname)) {
+    if (searchParams.get('tab') === 'debt') return 'Hóa đơn bán sỉ - Có công nợ';
+    if (searchParams.get('tab') === 'discount') return 'Hóa đơn bán sỉ - Có chiết khấu';
+  }
+  return null;
+};
+
+const resolvePageTitle = (pathname: string, search: string, routes: PageTitleRoute[]) => {
+  const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  const queryPageTitle = resolveQueryPageTitle(normalizedPathname, search);
+  if (queryPageTitle) return queryPageTitle;
+
+  const sortedRoutes = [...routes].sort((left, right) => {
+    const specificityDiff = routeSpecificity(right.path) - routeSpecificity(left.path);
+    if (specificityDiff !== 0) return specificityDiff;
+    return right.path.length - left.path.length;
+  });
+
+  return sortedRoutes.find((route) => matchPath({ path: route.path, end: route.end ?? false }, normalizedPathname))?.title ?? 'LadyStars ERP';
+};
+
 export function AppLayout() {
   useProductScannerBridge();
   const navigate = useNavigate();
@@ -215,7 +276,7 @@ export function AppLayout() {
   const [reportSearch, setReportSearch] = useState('');
   const isAdmin = isAdminRole(user?.role);
 
-  const isDesktopNav = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 981px)').matches;
+  const isDesktopNav = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1201px)').matches;
   const closeAllMenus = () => {
     setOpenMenuGroups(defaultMenuGroupState);
     setReportSearch('');
@@ -228,7 +289,7 @@ export function AppLayout() {
       if (!target.closest('.user-dropdown-container')) {
         setUserMenuOpen(false);
       }
-      if (!target.closest('.app-sidebar')) {
+      if (!target.closest('.app-sidebar') && !target.closest('.menu-toggle')) {
         closeAllMenus();
       }
     };
@@ -256,6 +317,20 @@ export function AppLayout() {
       items: [...group.items, { to: '/warehouse/branches', label: 'Cấu hình kho hàng', icon: Building2 }],
     };
   }), [isAdmin, menuGroups]);
+
+  const pageTitleRoutes = useMemo(
+    () => [...specificPageTitleRoutes, ...flattenMenuTitleRoutes(visibleMenuGroups)],
+    [visibleMenuGroups],
+  );
+  const currentPageTitle = useMemo(
+    () => resolvePageTitle(location.pathname, location.search, pageTitleRoutes),
+    [location.pathname, location.search, pageTitleRoutes],
+  );
+
+  useEffect(() => {
+    const shopName = storeSettings.shopName?.trim() || 'LadyStars';
+    document.title = currentPageTitle === shopName ? shopName : `${currentPageTitle} • ${shopName}`;
+  }, [currentPageTitle, storeSettings.shopName]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -510,7 +585,7 @@ export function AppLayout() {
               </div>
             );
           })}
-          {user && (
+          {user && isAdmin && (
             <div className="menu-group owner-setting-group" onMouseEnter={() => { if (isDesktopNav()) closeAllMenus(); }}>
               <NavLink className="sidebar-setting" to="/settings" onClick={() => setSidebarOpen(false)}>
                 <Settings size={16} className="menu-icon" />
@@ -528,7 +603,7 @@ export function AppLayout() {
           </button>
           <div className="app-header-title">
             <strong>{storeSettings.shopName || 'LadyStars'}</strong>
-            <span>{location.pathname === '/' ? 'Dashboard' : location.pathname}</span>
+            <span>{currentPageTitle}</span>
           </div>
           <div className="app-header-user">{roleLabel(user?.role)}</div>
         </header>

@@ -1,0 +1,56 @@
+[
+  {
+    "_id": {
+      "$oid": "6a3280709c9e848126906f27"
+    },
+    "type": "person",
+    "name": "Tồn đầu",
+    "code": "NCC.1283",
+    "phone": "0987654321",
+    "email": "",
+    "address": "",
+    "status": "active",
+    "total": 0,
+    "debt": 0,
+    "totalPurchase": 0,
+    "note": "",
+    "groups": [],
+    "userCreatedId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:09:36.673Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:09:36.673Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3280709c9e848126906f26"
+    },
+    "type": "person",
+    "name": "ladystars",
+    "code": "NCC.1284",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "status": "active",
+    "total": 0,
+    "debt": 0,
+    "totalPurchase": 0,
+    "note": "",
+    "groups": [],
+    "userCreatedId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-17T11:09:36.672Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T11:09:36.672Z"
+    }
+  }
+]

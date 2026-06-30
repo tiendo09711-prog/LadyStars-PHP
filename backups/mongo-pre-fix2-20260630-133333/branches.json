@@ -1,0 +1,276 @@
+[
+  {
+    "_id": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "name": "Kho Hà Nội",
+    "code": "HN",
+    "isActive": true,
+    "invoiceProfile": {
+      "displayName": "",
+      "templateId": "retail-a4-classic",
+      "footerText": "Cảm ơn quý khách đã mua hàng!",
+      "showBranchName": false,
+      "showCashier": true,
+      "showProductCode": false,
+      "showLogo": false,
+      "$__parent": {
+        "_id": {
+          "$oid": "6a43526e128caa7df6512e04"
+        },
+        "name": "Kho Hà Nội",
+        "code": "HN",
+        "isActive": true,
+        "invoiceProfile": {
+          "displayName": "",
+          "templateId": "retail-a4-classic",
+          "footerText": "Cảm ơn quý khách đã mua hàng!",
+          "showBranchName": false,
+          "showCashier": true,
+          "showProductCode": false,
+          "showLogo": false,
+          "templateConfig": {
+            "version": 1,
+            "title": "",
+            "subtitle": "",
+            "noteText": "",
+            "totalLabels": {
+              "subtotal": "Tổng cộng",
+              "discount": "Giảm giá",
+              "total": "Thành tiền",
+              "paid": "Đã thanh toán",
+              "change": "Tiền trả lại"
+            },
+            "typography": {
+              "titleAlign": "center",
+              "bodyFontSize": "normal"
+            }
+          }
+        },
+        "__v": 0,
+        "createdAt": {
+          "$date": "2026-06-30T05:21:50.615Z"
+        },
+        "updatedAt": {
+          "$date": "2026-06-30T05:21:50.615Z"
+        }
+      },
+      "$__": {
+        "activePaths": {
+          "paths": {
+            "displayName": "init",
+            "templateId": "init",
+            "footerText": "init",
+            "showBranchName": "init",
+            "showCashier": "init",
+            "showProductCode": "init",
+            "showLogo": "init",
+            "templateConfig": "init"
+          },
+          "states": {
+            "init": {
+              "displayName": true,
+              "templateId": true,
+              "footerText": true,
+              "showBranchName": true,
+              "showCashier": true,
+              "showProductCode": true,
+              "showLogo": true,
+              "templateConfig": true
+            }
+          }
+        }
+      },
+      "$isNew": false,
+      "_doc": {
+        "displayName": "",
+        "templateId": "retail-a4-classic",
+        "footerText": "Cảm ơn quý khách đã mua hàng!",
+        "showBranchName": false,
+        "showCashier": true,
+        "showProductCode": false,
+        "showLogo": false,
+        "templateConfig": {
+          "version": 1,
+          "title": "",
+          "subtitle": "",
+          "noteText": "",
+          "totalLabels": {
+            "subtotal": "Tổng cộng",
+            "discount": "Giảm giá",
+            "total": "Thành tiền",
+            "paid": "Đã thanh toán",
+            "change": "Tiền trả lại"
+          },
+          "typography": {
+            "titleAlign": "center",
+            "bodyFontSize": "normal"
+          }
+        }
+      },
+      "templateConfig": {
+        "version": 1,
+        "title": "",
+        "subtitle": "",
+        "noteText": "",
+        "totalLabels": {
+          "subtotal": "Tổng cộng",
+          "discount": "Giảm giá",
+          "total": "Thành tiền",
+          "paid": "Đã thanh toán",
+          "change": "Tiền trả lại"
+        },
+        "typography": {
+          "titleAlign": "center",
+          "bodyFontSize": "normal"
+        }
+      }
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:50.615Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:50.615Z"
+    },
+    "address": "LadyStars Store",
+    "phone": "0900000000"
+  },
+  {
+    "_id": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "name": "Kho HCM",
+    "code": "HCM",
+    "isActive": true,
+    "invoiceProfile": {
+      "displayName": "",
+      "templateId": "retail-a4-classic",
+      "footerText": "Cảm ơn quý khách đã mua hàng!",
+      "showBranchName": false,
+      "showCashier": true,
+      "showProductCode": false,
+      "showLogo": false,
+      "$__parent": {
+        "_id": {
+          "$oid": "6a43526e128caa7df6512e05"
+        },
+        "name": "Kho HCM",
+        "code": "HCM",
+        "isActive": true,
+        "invoiceProfile": {
+          "displayName": "",
+          "templateId": "retail-a4-classic",
+          "footerText": "Cảm ơn quý khách đã mua hàng!",
+          "showBranchName": false,
+          "showCashier": true,
+          "showProductCode": false,
+          "showLogo": false,
+          "templateConfig": {
+            "version": 1,
+            "title": "",
+            "subtitle": "",
+            "noteText": "",
+            "totalLabels": {
+              "subtotal": "Tổng cộng",
+              "discount": "Giảm giá",
+              "total": "Thành tiền",
+              "paid": "Đã thanh toán",
+              "change": "Tiền trả lại"
+            },
+            "typography": {
+              "titleAlign": "center",
+              "bodyFontSize": "normal"
+            }
+          }
+        },
+        "__v": 0,
+        "createdAt": {
+          "$date": "2026-06-30T05:21:50.619Z"
+        },
+        "updatedAt": {
+          "$date": "2026-06-30T05:21:50.619Z"
+        }
+      },
+      "$__": {
+        "activePaths": {
+          "paths": {
+            "displayName": "init",
+            "templateId": "init",
+            "footerText": "init",
+            "showBranchName": "init",
+            "showCashier": "init",
+            "showProductCode": "init",
+            "showLogo": "init",
+            "templateConfig": "init"
+          },
+          "states": {
+            "init": {
+              "displayName": true,
+              "templateId": true,
+              "footerText": true,
+              "showBranchName": true,
+              "showCashier": true,
+              "showProductCode": true,
+              "showLogo": true,
+              "templateConfig": true
+            }
+          }
+        }
+      },
+      "$isNew": false,
+      "_doc": {
+        "displayName": "",
+        "templateId": "retail-a4-classic",
+        "footerText": "Cảm ơn quý khách đã mua hàng!",
+        "showBranchName": false,
+        "showCashier": true,
+        "showProductCode": false,
+        "showLogo": false,
+        "templateConfig": {
+          "version": 1,
+          "title": "",
+          "subtitle": "",
+          "noteText": "",
+          "totalLabels": {
+            "subtotal": "Tổng cộng",
+            "discount": "Giảm giá",
+            "total": "Thành tiền",
+            "paid": "Đã thanh toán",
+            "change": "Tiền trả lại"
+          },
+          "typography": {
+            "titleAlign": "center",
+            "bodyFontSize": "normal"
+          }
+        }
+      },
+      "templateConfig": {
+        "version": 1,
+        "title": "",
+        "subtitle": "",
+        "noteText": "",
+        "totalLabels": {
+          "subtotal": "Tổng cộng",
+          "discount": "Giảm giá",
+          "total": "Thành tiền",
+          "paid": "Đã thanh toán",
+          "change": "Tiền trả lại"
+        },
+        "typography": {
+          "titleAlign": "center",
+          "bodyFontSize": "normal"
+        }
+      }
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:50.619Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:50.619Z"
+    },
+    "address": "LadyStars Store",
+    "phone": "0900000000"
+  }
+]

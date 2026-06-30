@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import xlsxPkg from 'xlsx';
 import bcrypt from 'bcryptjs';
 import { connectDatabase } from '../config/database.js';
+import { buildCustomerMetricsMap, persistCustomerMetrics } from '../modules/customer/customer.metrics.js';
 import { User } from '../core/auth/user.model.js';
 import { AuditLog } from '../core/audit/audit.model.js';
 import { Branch } from '../core/org/branch.model.js';
@@ -27,9 +28,13 @@ import {
 } from '../modules/product/product.models.js';
 import {
   InventoryCheck,
+  InventoryAudit,
+  InventoryAuditItem,
+  InventoryAuditLog,
   InventoryCheckProduct,
   InventoryProduct,
   InventoryVoucher,
+  TransferAuditLog,
   WarehouseTransfer,
 } from '../modules/warehouse/warehouse.models.js';
 import {
@@ -39,6 +44,7 @@ import {
   VendorRefund,
   VendorTransfer,
 } from '../modules/vendor/vendor.models.js';
+import { RevenueTime } from '../modules/reports/revenueTime.model.js';
 
 type Row = Record<string, any>;
 
@@ -50,32 +56,80 @@ const projectRoot = fs.existsSync(path.join(process.cwd(), 'server'))
 const dataRoot = path.join(projectRoot, 'Bảng dữ liệu');
 
 const files = {
-  categories: path.join(dataRoot, 'Danh mục nền', 'Danh mục sản phẩm.xlsx'),
-  products: path.join(dataRoot, 'Sản phẩm và tồn kho', 'Danh sách sản phẩm.xlsx'),
-  inventory: path.join(dataRoot, 'Sản phẩm và tồn kho', 'Tồn Kho.xlsx'),
-  productLogs: path.join(dataRoot, 'Sản phẩm và tồn kho', 'Lịch sử sửa xóa sản phẩm.xlsx'),
-  customersAll: path.join(dataRoot, 'Khách hàng', 'Khách Hàng - tab Tất cả.xlsx'),
-  customersHighValue: path.join(dataRoot, 'Khách hàng', 'Khách hàng - tab Mua nhiều.xlsx'),
-  customersFrequent: path.join(dataRoot, 'Khách hàng', 'Khách hàng - tab Mua thường xuyên.xlsx'),
-  customersBirthdayHighValue: path.join(dataRoot, 'Khách hàng', 'Khách hàng - tab Mua nhiều, sinh nhật trong tháng.xlsx'),
-  customersInactive: path.join(dataRoot, 'Khách hàng', 'Khách Hàng - tab Lâu chưa mua.xlsx'),
-  customerCare: path.join(dataRoot, 'Khách hàng', 'Lịch sử chăm sóc khách hàng.xlsx'),
-  retailSales: path.join(dataRoot, 'Bán hàng đơn hàng', 'Bán lẻ tất cả hóa đơn.xlsx'),
-  vouchers: path.join(dataRoot, 'Kho vận', 'Phiếu xuất nhập kho.xlsx'),
-  voucherProducts: path.join(dataRoot, 'Kho vận', 'Sản phẩm xuất phiếu trong kho.xlsx'),
-  transfersAll: path.join(dataRoot, 'Kho vận', 'Chuyển kho - tất cả.xlsx'),
-  transfersDraft: path.join(dataRoot, 'Kho vận', 'Chuyển kho - phiếu nháp.xlsx'),
-  transfersIncoming: path.join(dataRoot, 'Kho vận', 'Chuyển kho - sắp chuyển đến.xlsx'),
-  transfersOutgoing: path.join(dataRoot, 'Kho vận', 'Chuyển kho - đang chuyển đi.xlsx'),
-  inventoryChecks: path.join(dataRoot, 'Kho vận', 'Kiểm kho.xlsx'),
-  inventoryCheckProducts: path.join(dataRoot, 'Kho vận', 'Sản phẩm kiểm kho.xlsx'),
-  cash: path.join(dataRoot, 'Kế toán', 'Sổ quỹ tiền mặt.xlsx'),
-  bank: path.join(dataRoot, 'Kế toán', 'Sổ quỹ ngân hàng.xlsx'),
-  summary: path.join(dataRoot, 'Kế toán', 'Tổng hợp thu chi.xlsx'),
-  accounts: path.join(dataRoot, 'Kế toán', 'Tài khoản kế toán.xlsx'),
-  journalEntries: path.join(dataRoot, 'Kế toán', 'Bút toán.xlsx'),
-  customerDebt: path.join(dataRoot, 'Kế toán', 'Công nợ khách hàng.xlsx'),
+  categories: path.join(dataRoot, 'Danh mục.xlsx'),
+  products: path.join(dataRoot, 'Sản phẩm - Sản phẩm.xlsx'),
+  inventory: path.join(dataRoot, 'Tồn kho.xlsx'),
+  productLogs: path.join(dataRoot, 'Sản phẩm - Lịch sử sửa xóa.xlsx'),
+  customersAll: path.join(dataRoot, 'Khách hàng.xlsx'),
+  customersHighValue: '',
+  customersFrequent: '',
+  customersBirthdayHighValue: '',
+  customersInactive: '',
+  customerCare: path.join(dataRoot, 'Chăm sóc khách hàng.xlsx'),
+  retailSales: path.join(dataRoot, 'Bán lẻ .xlsx'),
+  refunds: path.join(dataRoot, 'Trả hàng.xlsx'),
+  vouchers: path.join(dataRoot, 'Xuất nhập kho - Phiếu xuất nhập kho.xlsx'),
+  voucherProducts: path.join(dataRoot, 'Xuất nhập kho - Sản phẩm xuất nhập kho.xlsx'),
+  transfersAll: path.join(dataRoot, 'Chuyển kho - Tất Cả.xlsx'),
+  transfersDraft: '',
+  transfersIncoming: '',
+  transfersOutgoing: '',
+  inventoryChecks: path.join(dataRoot, 'Kiểm kho - Kiểm kho.xlsx'),
+  inventoryCheckProducts: path.join(dataRoot, 'Kiểm kho - Sản phẩm kiểm kho.xlsx'),
+  cash: '',
+  bank: '',
+  summary: '',
+  accounts: '',
+  journalEntries: '',
+  customerDebt: '',
 };
+
+const legacyCollectionsToClear = [
+  'accountingaccounts',
+  'accountingtransactionlogs',
+  'accountingtypes',
+  'banktransactions',
+  'cashtransactions',
+  'customerdebtrecords',
+  'customerdebtsummaries',
+  'expensepayments',
+  'installmentcollections',
+  'installmentservices',
+  'installmentsettings',
+  'inventoryimexbills',
+  'inventoryimexproducts',
+  'inventorytransfers',
+  'logbookentries',
+  'ordercodcontrols',
+  'orderdisputes',
+  'orderduplicates',
+  'orderhandovers',
+  'orderhistories',
+  'orderpackagings',
+  'orders',
+  'ordershippingpendings',
+  'ordersources',
+  'paypeople',
+  'printforms',
+  'productattributes',
+  'productbatches',
+  'productinventorysnapshots',
+  'projects',
+  'receipts',
+  'refundinvoices',
+  'retailinvoices',
+  'staffdebtsummaries',
+  'storageperiods',
+  'summarytransactions',
+  'tasks',
+  'vendordebtrecords',
+  'vendordebtsummaries',
+  'warehousedraftproducts',
+  'warehousedraftvouchers',
+  'warehouseproductlogs',
+  'warehousevoucherlogs',
+  'wholesaleinvoices',
+];
 
 const summary: Record<string, number> = {};
 const warnings: string[] = [];
@@ -146,6 +200,7 @@ function displayDate(value: any): string {
 }
 
 function readRows(file: string): Row[] {
+  if (!file) return [];
   if (!fs.existsSync(file)) {
     warnings.push(`Không tìm thấy file: ${file}`);
     return [];
@@ -228,11 +283,22 @@ async function resetCollections() {
     Vendor.deleteMany({}),
     InventoryProduct.deleteMany({}),
     InventoryVoucher.deleteMany({}),
+    InventoryAuditLog.deleteMany({}),
+    InventoryAuditItem.deleteMany({}),
+    InventoryAudit.deleteMany({}),
     WarehouseTransfer.deleteMany({}),
+    TransferAuditLog.deleteMany({}),
     InventoryCheckProduct.deleteMany({}),
     InventoryCheck.deleteMany({}),
+    RevenueTime.deleteMany({}),
     Branch.deleteMany({}),
   ]);
+
+  await Promise.all(legacyCollectionsToClear.map(async (collectionName) => {
+    const exists = await mongoose.connection.db.listCollections({ name: collectionName }).hasNext();
+    if (!exists) return;
+    await mongoose.connection.db.collection(collectionName).deleteMany({});
+  }));
 
   await User.deleteMany({ isRootOwner: { $ne: true }, email: { $ne: 'admin@myerp.local' } });
 }
@@ -688,6 +754,128 @@ async function importRetailSales(branches: { hn: any; hcm: any }) {
   count('retail_sales', docs.length);
 }
 
+async function importProductRefunds(branches: { hn: any; hcm: any }) {
+  const rows = readRows(files.refunds).filter((row) => text(row['ID']));
+  const paymentMethods = await PaymentMethod.find();
+  const methodByCode = new Map(paymentMethods.map((method: any) => [method.code, method]));
+  const saleChannel = await SaleChannel.findOne({ name: saleChannelName() });
+  const groups = new Map<string, Row[]>();
+
+  for (const row of rows) {
+    const id = text(row['ID']);
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id)!.push(row);
+  }
+
+  const docs: any[] = [];
+  let linkedPayments = 0;
+  let placeholderPayments = 0;
+  for (const [id, groupRows] of groups) {
+    const first = groupRows[0];
+    const saleCode = text(first['Trả hàng từ hóa đơn'] || first['Trả hàng từ đơn hàng']);
+    const createdAt = parseDate(first['Ngày']) || new Date();
+    let payment = saleCode ? await SalePayment.findOne({ code: saleCode }) : null;
+    let sourceSaleCode = saleCode;
+    if (!payment) {
+      const branch = branchCodeFromName(text(first['Kho'])) === 'HCM' ? branches.hcm : branches.hn;
+      const customer = await findCustomerForSale(first);
+      const placeholderCode = 'PH.' + id;
+      payment = await SalePayment.create({
+        code: placeholderCode,
+        branchId: branch._id,
+        customerId: customer?._id,
+        amountProducts: 0,
+        totalCost: 0,
+        discountValue: 0,
+        discountType: 'number',
+        value: 0,
+        valuePayment: 0,
+        typePayment: [],
+        isDelivery: false,
+        saleChannelId: saleChannel?._id,
+        isCod: false,
+        status: 'completed',
+        note: 'Placeholder sale (original invoice missing) for refund ' + id + '. Source order: ' + (saleCode || '(empty)'),
+        completedAt: createdAt,
+        items: [],
+        createdAt,
+        updatedAt: createdAt,
+        sourceType: 'placeholder_refund_' + id,
+      });
+      placeholderPayments++;
+      sourceSaleCode = placeholderCode;
+      warnings.push('Created placeholder sale ' + placeholderCode + ' for refund ' + id);
+    } else {
+      linkedPayments++;
+    }
+
+    const items = [];
+    let amount = 0;
+    let value = 0;
+    for (const row of groupRows) {
+      const product = await ensureProduct(row);
+      const qty = money(row['Số lượng']) || 1;
+      const itemValue = money(row['Doanh thu']) || money(row['Trả lại']) || money(row['Tổng tiền']) || money(row['Giá bán']) * qty;
+      amount += qty;
+      value += itemValue;
+      items.push({
+        productId: product._id,
+        amount: qty,
+        price: money(row['Giá bán']),
+        cost: money(row['Giá vốn']) || product.cost || 0,
+        discountValue: money(row['Chiết khấu']),
+        discountType: 'number',
+        value: itemValue,
+      });
+    }
+
+    const cash = groupRows.reduce((sum, row) => sum + money(row['Tiền mặt']), 0);
+    const bank = groupRows.reduce((sum, row) => sum + money(row['Chuyển khoản']), 0);
+    const typePayment = [
+      cash ? { methodId: methodByCode.get('cash')?._id, amount: cash } : null,
+      bank ? { methodId: methodByCode.get('bank_transfer')?._id, amount: bank } : null,
+    ].filter(Boolean);
+
+    docs.push({
+      paymentId: payment._id,
+      code: id,
+      discountValue: groupRows.reduce((sum, row) => sum + money(row['Chiết khấu']), 0),
+      discountType: 'number',
+      refundFee: money(first['Phí trả hàng']),
+      refundFeeType: 'number',
+      amount,
+      originalTotalAmount: payment.value || value,
+      totalPayableAmount: value,
+      value,
+      settlementValue: value - money(first['Phí trả hàng']),
+      completedAt: createdAt,
+      status: 'completed',
+      note: text(first['Mô tả']),
+      typePayment,
+      items,
+      createdAt,
+      updatedAt: createdAt,
+      sourceSaleCode: sourceSaleCode,
+      receiverName: text(first['Nhân viên nhận trả hàng']),
+      sourceType: text(first['Kiểu']),
+    });
+  }
+
+  if (docs.length) await ProductRefund.insertMany(docs);
+  count('product_refunds', docs.length);
+  count('product_refunds_linked_payments', linkedPayments);
+  count('product_refund_placeholder_payments', placeholderPayments);
+}
+
+async function recomputeAllCustomerMetrics() {
+  const customers = await Customer.find()
+    .select('phone name totalSpent purchaseCount purchaseProductQuantity firstPurchaseDate lastPurchaseDate daysSinceLastPurchase purchaseCycleDays')
+    .lean();
+  const metrics = await buildCustomerMetricsMap(customers as any[]);
+  await persistCustomerMetrics(customers as any[], metrics);
+  count('customer_metrics_recomputed', customers.length);
+}
+
 async function importWarehouse() {
   const voucherRows = readRows(files.vouchers);
   const vouchers = voucherRows
@@ -774,7 +962,7 @@ function splitTransferWarehouses(raw: string) {
   return { fromWarehouse: parts[0] || '', toWarehouse: parts[1] || '' };
 }
 
-async function importTransfers() {
+async function importTransfers(branches: { hn: any; hcm: any }) {
   const transferMap = new Map<string, any>();
 
   const addTransfer = (row: Row, tab: string, source: 'summary' | 'index') => {
@@ -788,11 +976,14 @@ async function importTransfers() {
     const warehouse = source === 'summary' ? text(row['Kho hàng']) || text(row['Mã kho']) : text(row['Kho']);
     const split = splitTransferWarehouses(warehouse);
     Object.assign(existing, {
+      status: 'COMPLETED',
       date: text(row['Ngày']) || existing.date,
       type: text(row['Kiểu']) || existing.type,
       warehouse: warehouse || existing.warehouse,
-      fromWarehouse: split.fromWarehouse || existing.fromWarehouse,
-      toWarehouse: split.toWarehouse || existing.toWarehouse,
+      sourceWarehouseName: split.fromWarehouse || existing.sourceWarehouseName,
+      destinationWarehouseName: split.toWarehouse || existing.destinationWarehouseName,
+      sourceWarehouseId: branchCodeFromName(split.fromWarehouse || '') === 'HCM' ? branches.hcm._id : branches.hn._id,
+      destinationWarehouseId: branchCodeFromName(split.toWarehouse || '') === 'HCM' ? branches.hcm._id : branches.hn._id,
       label: text(row['Nhãn hóa đơn XNK']) || existing.label,
       qty: money(row['Tổng SL'] || row['SL']) || existing.qty || 0,
       spCount: money(row['Số lượng SP'] || row['Số SP'] || row['SP']) || existing.spCount || 0,
@@ -905,8 +1096,10 @@ async function run() {
   await importCustomers(admin._id, branches);
   await importCustomerCare();
   await importRetailSales(branches);
+  await importProductRefunds(branches);
+  await recomputeAllCustomerMetrics();
   await importWarehouse();
-  await importTransfers();
+  await importTransfers(branches);
   await importInventoryChecks();
 
   console.log('\n[import] Done.');

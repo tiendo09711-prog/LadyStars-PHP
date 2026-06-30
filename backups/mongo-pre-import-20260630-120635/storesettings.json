@@ -1,0 +1,23 @@
+[
+  {
+    "_id": {
+      "$oid": "69fd4e6c3899e11829d2b5e0"
+    },
+    "singletonKey": "store",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-08T02:46:03.935Z"
+    },
+    "shopName": "LadyStars ",
+    "updatedAt": {
+      "$date": "2026-06-30T04:43:04.629Z"
+    },
+    "address": "LadyStars Store",
+    "logoUrl": "https://example.com/logo.png",
+    "phone": "0900000000",
+    "taxCode": "",
+    "updatedBy": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  }
+]

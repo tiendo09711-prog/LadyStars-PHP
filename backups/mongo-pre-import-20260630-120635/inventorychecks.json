@@ -1,0 +1,52 @@
+[
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b317e4"
+    },
+    "id": "4072",
+    "date": "10/08/2022",
+    "type": "Theo sản phẩm",
+    "warehouse": "Kho Hà Nội",
+    "creator": "LÊ SỸ BÁCH",
+    "spCount": 1,
+    "qty": 0,
+    "note": "",
+    "missingSp": "",
+    "balance": "LÊ SỸ BÁCH | 10/08/2022 17:32:59",
+    "createdAt": {
+      "$date": "2022-08-10T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2022-08-10T05:00:00Z"
+    },
+    "__v": 0,
+    "warehouseId": {
+      "$oid": "6a32227adee7933920b305cc"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b317e3"
+    },
+    "id": "4073",
+    "date": "15/01/2026",
+    "type": "Theo sản phẩm",
+    "warehouse": "Kho HCM",
+    "creator": "Nguyễn Học Xuân Uyên",
+    "spCount": 0,
+    "qty": 0,
+    "note": "",
+    "missingSp": "",
+    "balance": "",
+    "createdAt": {
+      "$date": "2026-01-15T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-15T05:00:00Z"
+    },
+    "__v": 0,
+    "warehouseId": {
+      "$oid": "6a32227adee7933920b305cd"
+    }
+  }
+]

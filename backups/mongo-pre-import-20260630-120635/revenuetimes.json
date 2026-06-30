@@ -1,0 +1,86 @@
+[
+  {
+    "_id": {
+      "$oid": "6a22a1aa2d65550d7d7fa183"
+    },
+    "time": "02/06/2026",
+    "__v": 0,
+    "bhmr": 0,
+    "cost": 0,
+    "createdAt": {
+      "$date": "2026-06-05T10:15:05.660Z"
+    },
+    "discount": 399000,
+    "expectedRevenue": 13399000,
+    "focus": 0,
+    "ordersPlaced": 0,
+    "profit": 13399000,
+    "retail": 13798000,
+    "returnFee": 0,
+    "revenue": 13399000,
+    "revenuePlusVat": 13399000,
+    "sales": 13798000,
+    "successfulOrders": 0,
+    "updatedAt": {
+      "$date": "2026-06-05T10:15:05.660Z"
+    },
+    "vat": 0,
+    "wholesale": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a22a1aa2d65550d7d7fa184"
+    },
+    "time": "03/06/2026",
+    "__v": 0,
+    "bhmr": 0,
+    "cost": 0,
+    "createdAt": {
+      "$date": "2026-06-05T10:15:06.086Z"
+    },
+    "discount": 0,
+    "expectedRevenue": 3699000,
+    "focus": 0,
+    "ordersPlaced": 0,
+    "profit": 3699000,
+    "retail": 3699000,
+    "returnFee": 0,
+    "revenue": 3699000,
+    "revenuePlusVat": 3699000,
+    "sales": 3699000,
+    "successfulOrders": 0,
+    "updatedAt": {
+      "$date": "2026-06-05T10:15:06.086Z"
+    },
+    "vat": 0,
+    "wholesale": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a22a1aa2d65550d7d7fa185"
+    },
+    "time": "05/06/2026",
+    "__v": 0,
+    "bhmr": 0,
+    "cost": 0,
+    "createdAt": {
+      "$date": "2026-06-05T10:15:06.134Z"
+    },
+    "discount": 1687900,
+    "expectedRevenue": 12991100,
+    "focus": 0,
+    "ordersPlaced": 0,
+    "profit": 12991100,
+    "retail": 14679000,
+    "returnFee": 0,
+    "revenue": 12991100,
+    "revenuePlusVat": 12991100,
+    "sales": 14679000,
+    "successfulOrders": 0,
+    "updatedAt": {
+      "$date": "2026-06-05T10:15:06.134Z"
+    },
+    "vat": 0,
+    "wholesale": 0
+  }
+]

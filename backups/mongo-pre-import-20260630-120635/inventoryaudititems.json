@@ -1,0 +1,741 @@
+[
+  {
+    "_id": {
+      "$oid": "6a3618847778027edfe65acf"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618817778027edfe65aa6"
+    },
+    "productId": {
+      "$oid": "6a3618817778027edfe65a96"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE3",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Count Validation",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 90000,
+    "salePriceSnapshot": 130000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 8,
+    "varianceQuantity": -2,
+    "note": "counted once",
+    "countedAt": {
+      "$date": "2026-06-20T04:35:16.489Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:16.551Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:16.551Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618867778027edfe65af5"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618867778027edfe65af2"
+    },
+    "productId": {
+      "$oid": "6a3618857778027edfe65adb"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE4",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Shortage",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 110000,
+    "salePriceSnapshot": 150000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 8,
+    "varianceQuantity": -2,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:35:19.328Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:18.614Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:19.328Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a36188c7778027edfe65b59"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a36188c7778027edfe65b56"
+    },
+    "productId": {
+      "$oid": "6a36188b7778027edfe65b42"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE5",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Excess",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 80000,
+    "salePriceSnapshot": 140000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 13,
+    "varianceQuantity": 3,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:35:25.322Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:24.657Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:25.323Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618917778027edfe65bb6"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618917778027edfe65bb3"
+    },
+    "productId": {
+      "$oid": "6a3618907778027edfe65ba3"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE6",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Double Reconcile",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 75000,
+    "salePriceSnapshot": 125000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 13,
+    "varianceQuantity": 3,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:35:30.423Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:29.788Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:30.423Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618957778027edfe65c15"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618957778027edfe65c12"
+    },
+    "productId": {
+      "$oid": "6a3618947778027edfe65c02"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE7",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Drift",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 66000,
+    "salePriceSnapshot": 99000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 8,
+    "varianceQuantity": -2,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:35:34.246Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:33.613Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:34.246Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a36189a7778027edfe65c77"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a36189a7778027edfe65c74"
+    },
+    "productId": {
+      "$oid": "6a3618987778027edfe65c42"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE8-A",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Merge A",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 5,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:38.345Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:38.345Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a36189b7778027edfe65c88"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a36189b7778027edfe65c85"
+    },
+    "productId": {
+      "$oid": "6a3618987778027edfe65c4f"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE8-B",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Merge B",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 6,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:39.217Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:39.217Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a36189c7778027edfe65ca9"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a36189c7778027edfe65ca5"
+    },
+    "productId": {
+      "$oid": "6a3618987778027edfe65c4f"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE8-B",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Merge B",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 6,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:40.846Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:40.846Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a36189c7778027edfe65ca8"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a36189c7778027edfe65ca5"
+    },
+    "productId": {
+      "$oid": "6a3618987778027edfe65c42"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930104245-CASE8-A",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930104245 Merge A",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 5,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:35:40.846Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:40.846Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618ce7778027edfe6628b"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618cb7778027edfe66262"
+    },
+    "productId": {
+      "$oid": "6a3618ca7778027edfe66252"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE3",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Count Validation",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 90000,
+    "salePriceSnapshot": 130000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 8,
+    "varianceQuantity": -2,
+    "note": "counted once",
+    "countedAt": {
+      "$date": "2026-06-20T04:36:30.325Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:30.391Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:30.391Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618d07778027edfe662b1"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618d07778027edfe662ae"
+    },
+    "productId": {
+      "$oid": "6a3618cf7778027edfe66297"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE4",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Shortage",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 110000,
+    "salePriceSnapshot": 150000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 8,
+    "varianceQuantity": -2,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:36:33.340Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:32.589Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:33.340Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618d67778027edfe66315"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618d67778027edfe66312"
+    },
+    "productId": {
+      "$oid": "6a3618d57778027edfe662fe"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE5",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Excess",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 80000,
+    "salePriceSnapshot": 140000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 13,
+    "varianceQuantity": 3,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:36:39.662Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:38.974Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:39.663Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618dc7778027edfe66372"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618dc7778027edfe6636f"
+    },
+    "productId": {
+      "$oid": "6a3618db7778027edfe6635f"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE6",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Double Reconcile",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 75000,
+    "salePriceSnapshot": 125000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 13,
+    "varianceQuantity": 3,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:36:45.162Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:44.499Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:45.163Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e07778027edfe663d1"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618e07778027edfe663ce"
+    },
+    "productId": {
+      "$oid": "6a3618df7778027edfe663be"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE7",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Drift",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 66000,
+    "salePriceSnapshot": 99000,
+    "systemQuantitySnapshot": 10,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 8,
+    "varianceQuantity": -2,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:36:48.824Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:48.218Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:48.824Z"
+    },
+    "countedById": {
+      "$oid": "69fc44d83899e11829d2b449"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e47778027edfe66433"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618e47778027edfe66430"
+    },
+    "productId": {
+      "$oid": "6a3618e27778027edfe663fe"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE8-A",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Merge A",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 5,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:52.769Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:52.769Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e57778027edfe66444"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618e57778027edfe66441"
+    },
+    "productId": {
+      "$oid": "6a3618e37778027edfe6640b"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE8-B",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Merge B",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 6,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:53.597Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:53.597Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e77778027edfe66465"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618e77778027edfe66461"
+    },
+    "productId": {
+      "$oid": "6a3618e37778027edfe6640b"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE8-B",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Merge B",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 6,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:55.149Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:55.149Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e77778027edfe66464"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618e77778027edfe66461"
+    },
+    "productId": {
+      "$oid": "6a3618e27778027edfe663fe"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE8-A",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Merge A",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 5,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": null,
+    "varianceQuantity": 0,
+    "note": "",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:55.149Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:55.149Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618ea7778027edfe664b3"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618ea7778027edfe664b0"
+    },
+    "productId": {
+      "$oid": "6a3618e97778027edfe66491"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE9-HN",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Employee HN",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 4,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 4,
+    "varianceQuantity": 0,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:37:00.652Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:58.976Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:00.652Z"
+    },
+    "countedById": {
+      "$oid": "6a3618e97778027edfe66487"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618eb7778027edfe664c6"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618eb7778027edfe664c3"
+    },
+    "productId": {
+      "$oid": "6a3618e97778027edfe6649e"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE9-HCM",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Employee HCM",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 4,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 2,
+    "varianceQuantity": -2,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:36:59.810Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:36:59.919Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:59.919Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618ee7778027edfe66508"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618ee7778027edfe66505"
+    },
+    "productId": {
+      "$oid": "6a3618ee7778027edfe664f5"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE10",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Filter Product",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 2,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 2,
+    "varianceQuantity": 0,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:37:02.881Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:37:02.991Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:02.991Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3618ef7778027edfe66519"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a3618ef7778027edfe66516"
+    },
+    "productId": {
+      "$oid": "6a3618ee7778027edfe664f5"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-1781930177488-CASE10",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-1781930177488 Filter Product",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 0,
+    "salePriceSnapshot": 0,
+    "systemQuantitySnapshot": 2,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 1,
+    "varianceQuantity": -1,
+    "note": "",
+    "countedAt": {
+      "$date": "2026-06-20T04:37:03.711Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:37:03.820Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:03.820Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a36190e7778027edfe6667a"
+    },
+    "inventoryAuditId": {
+      "$oid": "6a36190e7778027edfe66677"
+    },
+    "productId": {
+      "$oid": "6a36190d7778027edfe66667"
+    },
+    "productCodeSnapshot": "E2E-AUDIT-UI-1781930252763-PROD",
+    "barcodeSnapshot": "",
+    "productNameSnapshot": "E2E-AUDIT-UI-1781930252763 UI Product",
+    "unitSnapshot": "Cái",
+    "costPriceSnapshot": 100000,
+    "salePriceSnapshot": 150000,
+    "systemQuantitySnapshot": 5,
+    "inTransitQuantitySnapshot": 0,
+    "physicalQuantity": 4,
+    "varianceQuantity": -1,
+    "note": "seeded for UI",
+    "countedAt": {
+      "$date": "2026-06-20T04:37:34.064Z"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-20T04:37:34.174Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:34.174Z"
+    }
+  }
+]

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../core/api/http';
@@ -10,6 +10,10 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Đăng nhập • LadyStars';
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

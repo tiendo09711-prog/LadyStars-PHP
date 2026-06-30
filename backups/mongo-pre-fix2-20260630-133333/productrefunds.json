@@ -1,0 +1,596 @@
+[
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160e5"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df65158a5"
+    },
+    "code": "14793023",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 9333000,
+    "totalPayableAmount": 9333000,
+    "value": 9333000,
+    "settlementValue": 9333000,
+    "completedAt": {
+      "$date": "2026-06-22T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 9333000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6512e63"
+        },
+        "amount": 1,
+        "price": 9333000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 9333000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160e6"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-06-22T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160e7"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df65158d2"
+    },
+    "code": "14792959",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 6499000,
+    "totalPayableAmount": 6499000,
+    "value": 6499000,
+    "settlementValue": 6499000,
+    "completedAt": {
+      "$date": "2026-05-18T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 6499000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6512e7f"
+        },
+        "amount": 1,
+        "price": 6499000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 6499000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160e8"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-05-18T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160e9"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df65158de"
+    },
+    "code": "14792927",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 4000000,
+    "totalPayableAmount": 4000000,
+    "value": 4000000,
+    "settlementValue": 4000000,
+    "completedAt": {
+      "$date": "2026-04-29T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 4000000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6512ed9"
+        },
+        "amount": 1,
+        "price": 4000000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 4000000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160ea"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-04-29T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-29T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160eb"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df651594f"
+    },
+    "code": "14792769",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 4980000,
+    "totalPayableAmount": 4980000,
+    "value": 4980000,
+    "settlementValue": 4980000,
+    "completedAt": {
+      "$date": "2026-03-02T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 4980000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6512ec0"
+        },
+        "amount": 1,
+        "price": 4980000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 4980000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160ec"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-03-02T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-02T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160ed"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df6515945"
+    },
+    "code": "14792761",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 3000000,
+    "totalPayableAmount": 3000000,
+    "value": 3000000,
+    "settlementValue": 3000000,
+    "completedAt": {
+      "$date": "2026-02-25T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 3000000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6512eb8"
+        },
+        "amount": 1,
+        "price": 3000000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 3000000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160ee"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-02-25T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-25T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160ef"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df6515955"
+    },
+    "code": "14792759",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 3500000,
+    "totalPayableAmount": 3500000,
+    "value": 3500000,
+    "settlementValue": 3500000,
+    "completedAt": {
+      "$date": "2026-02-24T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 3500000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6512ef6"
+        },
+        "amount": 1,
+        "price": 3500000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 3500000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160f0"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-02-24T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-24T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160f1"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df6515cb0"
+    },
+    "code": "14791225",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 7899000,
+    "totalPayableAmount": 7899000,
+    "value": 7899000,
+    "settlementValue": 7899000,
+    "completedAt": {
+      "$date": "2024-02-27T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 7899000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6513140"
+        },
+        "amount": 1,
+        "price": 7899000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 7899000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160f2"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2024-02-27T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2024-02-27T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160f3"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df6515d2c"
+    },
+    "code": "14791002",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 3899000,
+    "totalPayableAmount": 3899000,
+    "value": 3899000,
+    "settlementValue": 3899000,
+    "completedAt": {
+      "$date": "2023-10-24T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 3899000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df65131c5"
+        },
+        "amount": 1,
+        "price": 3899000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 3899000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160f4"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2023-10-24T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2023-10-24T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160f5"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df6516048"
+    },
+    "code": "1915761",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 8400000,
+    "totalPayableAmount": 4200000,
+    "value": 4200000,
+    "settlementValue": 4200000,
+    "completedAt": {
+      "$date": "2022-08-23T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 8400000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df65134b5"
+        },
+        "amount": 1,
+        "price": 4200000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 4200000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160f6"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2022-08-23T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2022-08-23T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160f7"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df6516092"
+    },
+    "code": "1102213",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 8000000,
+    "totalPayableAmount": 8000000,
+    "value": 8000000,
+    "settlementValue": 8000000,
+    "completedAt": {
+      "$date": "2022-07-27T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 8000000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6513624"
+        },
+        "amount": 1,
+        "price": 8000000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 8000000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160f8"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2022-07-27T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2022-07-27T05:00:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a43536c128caa7df65160f9"
+    },
+    "paymentId": {
+      "$oid": "6a43536a128caa7df65160be"
+    },
+    "code": "445846",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 4200000,
+    "totalPayableAmount": 4200000,
+    "value": 4200000,
+    "settlementValue": 4200000,
+    "completedAt": {
+      "$date": "2022-06-27T05:00:00Z"
+    },
+    "status": "completed",
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a43526f128caa7df6512e52"
+        },
+        "amount": 4200000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a435270128caa7df6513636"
+        },
+        "amount": 1,
+        "price": 4200000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 4200000,
+        "_id": {
+          "$oid": "6a43536c128caa7df65160fa"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2022-06-27T05:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-27T05:00:00Z"
+    },
+    "__v": 0
+  }
+]

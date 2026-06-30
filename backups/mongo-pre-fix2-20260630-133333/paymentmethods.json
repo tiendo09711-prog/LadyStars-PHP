@@ -1,0 +1,87 @@
+[
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e52"
+    },
+    "name": "Tiền mặt",
+    "code": "cash",
+    "targetPaymentStatus": "paid",
+    "sortOrder": 1,
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.456Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e53"
+    },
+    "name": "Chuyển khoản",
+    "code": "bank_transfer",
+    "targetPaymentStatus": "paid",
+    "sortOrder": 2,
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e54"
+    },
+    "name": "Quẹt thẻ",
+    "code": "card",
+    "targetPaymentStatus": "paid",
+    "sortOrder": 3,
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e55"
+    },
+    "name": "Trả góp",
+    "code": "installment",
+    "targetPaymentStatus": "paid",
+    "sortOrder": 4,
+    "isActive": true,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e56"
+    },
+    "name": "COD",
+    "code": "cod",
+    "targetPaymentStatus": "unpaid",
+    "sortOrder": 5,
+    "isActive": false,
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.457Z"
+    }
+  }
+]

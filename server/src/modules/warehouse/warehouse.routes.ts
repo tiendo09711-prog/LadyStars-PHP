@@ -1523,6 +1523,7 @@ router.get('/transfers/meta', async (req, res) => {
     role: isAdminActor((req as any).user) ? 'ADMIN' : 'EMPLOYEE',
     userWarehouseIds,
     warehouses: visibleBranches.map((branch: any) => ({ value: String(branch._id), label: branch.name, code: branch.code })),
+    destinationWarehouses: branches.map((branch: any) => ({ value: String(branch._id), label: branch.name, code: branch.code })),
     statuses: PUBLIC_TRANSFER_STATUSES.map((status) => ({ value: status, label: transferPublicStatus(status) })),
   });
 });

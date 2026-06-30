@@ -1,0 +1,21 @@
+[
+  {
+    "_id": {
+      "$oid": "6a05949b67c30b7a39107e69"
+    },
+    "name": "Mặc định",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-14T09:23:39.266Z"
+    },
+    "days": 0,
+    "isActive": true,
+    "note": "Tạo sẵn để quản lý thời gian lưu kho",
+    "updatedAt": {
+      "$date": "2026-05-14T10:11:12.757Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  }
+]

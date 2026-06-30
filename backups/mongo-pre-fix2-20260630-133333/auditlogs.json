@@ -1,0 +1,37 @@
+[
+  {
+    "_id": {
+      "$oid": "6a4352c0e40eb165854639fb"
+    },
+    "action": "branch.migration_backfill",
+    "module": "branch",
+    "resource": "Branch",
+    "metadata": {
+      "branches": {
+        "hanoi": {
+          "outcome": "existing",
+          "branchId": "6a43526e128caa7df6512e04",
+          "code": "HN",
+          "isActive": true
+        },
+        "hcm": {
+          "outcome": "existing",
+          "branchId": "6a43526e128caa7df6512e05",
+          "code": "HCM",
+          "isActive": true
+        }
+      },
+      "productBranchStocksBackfilled": 0,
+      "documentsBackfilled": 1,
+      "skippedDocuments": 1,
+      "warnings": []
+    },
+    "createdAt": {
+      "$date": "2026-06-30T05:23:12.115Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:23:12.115Z"
+    },
+    "__v": 0
+  }
+]

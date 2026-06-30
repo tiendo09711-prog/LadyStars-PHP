@@ -27,6 +27,12 @@ const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 const STORAGE_ALERT_DAYS = 30;
 
+function requireAdminAction(req: any, res: any) {
+  if (isAdminUser(req.user)) return false;
+  res.status(403).json({ message: 'Chỉ tài khoản admin mới được thực hiện thao tác này.' });
+  return true;
+}
+
 function storageRiskStatus(daysFromStart: number, daysFromLastSold: number | null) {
   if (daysFromStart >= STORAGE_ALERT_DAYS && daysFromLastSold === null) {
     return { status: 'unsold_long', statusLabel: 'Nhập lâu - chưa bán' };
@@ -272,7 +278,9 @@ async function scopedProductIdsForWarehouses(branchIds: string[]) {
 async function getStockTotals(productIds: mongoose.Types.ObjectId[], branchIds?: string[] | null) {
   if (!productIds.length) return new Map<string, number>();
   const match: Record<string, any> = { productId: { $in: productIds } };
-  if (branchIds) match.branchId = { $in: branchIds };
+  if (branchIds) {
+    match.branchId = { $in: branchIds.map((id) => new mongoose.Types.ObjectId(id)) };
+  }
   const totals = await ProductBranchStock.aggregate([
     { $match: match },
     { $group: { _id: '$productId', quantity: { $sum: '$qty' } } },
@@ -504,6 +512,7 @@ router.post('/products/import', upload.single('file'), async (req, res) => {
     }
 
     const { warehouse, importMode, branchId: requestedBranchId, branchCode: requestedBranchCode } = req.body; // importMode: 'Thêm mới' | 'Cập nhật thông tin'
+    if (/^c/i.test(String(importMode || '').trim()) && requireAdminAction(req as any, res)) return;
     if (!warehouse) {
       return res.status(400).json({ message: 'Vui lòng chọn Kho hàng' });
     }
@@ -662,6 +671,7 @@ router.get('/products', async (req, res) => {
     const page = Math.max(Number(req.query.page ?? 1), 1);
     const limit = Math.min(Math.max(Number(req.query.limit ?? 15), 1), 5000);
     const q = String(req.query.q ?? '').trim();
+    const selectedBranchId = String(req.query.branchId ?? '').trim();
     const sortField = String(req.query.sort || 'createdAt');
     const sortOrder = req.query.order === 'asc' ? 1 : -1;
     const filter: any = {};
@@ -678,9 +688,23 @@ router.get('/products', async (req, res) => {
     }
 
     const warehouseScope = assignedWarehouseScope(req as any);
-    if (warehouseScope) {
-      if (!warehouseScope.length) return res.status(403).json({ message: 'No assigned warehouse' });
-      filter._id = { $in: await scopedProductIdsForWarehouses(warehouseScope) };
+    if (warehouseScope && !warehouseScope.length) {
+      return res.status(403).json({ message: 'No assigned warehouse' });
+    }
+
+    let stockScope: string[] | null = warehouseScope;
+    if (selectedBranchId) {
+      if (!mongoose.isValidObjectId(selectedBranchId)) {
+        return res.status(400).json({ message: 'Kho hàng không hợp lệ.' });
+      }
+      if (warehouseScope && !warehouseScope.includes(selectedBranchId)) {
+        return res.status(403).json({ message: 'Warehouse is outside employee scope' });
+      }
+      stockScope = [selectedBranchId];
+    }
+
+    if (stockScope) {
+      filter._id = { $in: await scopedProductIdsForWarehouses(stockScope) };
     }
 
     const [items, total] = await Promise.all([
@@ -688,14 +712,15 @@ router.get('/products', async (req, res) => {
       Product.countDocuments(filter),
     ]);
     const itemIds = items.map((item: any) => item._id);
-    const totals = await getStockTotals(itemIds, warehouseScope);
+    const totals = await getStockTotals(itemIds, stockScope);
+    const saleBranchScope = stockScope ?? warehouseScope;
     const [oldestBatches, latestSales] = itemIds.length ? await Promise.all([
       Batch.aggregate([
         { $match: { productId: { $in: itemIds } } },
         { $group: { _id: '$productId', firstDate: { $min: { $ifNull: ['$manufactureDate', '$createdAt'] } } } },
       ]),
       SalePayment.aggregate([
-        { $match: { status: 'completed', 'items.productId': { $in: itemIds }, ...(warehouseScope ? { branchId: { $in: warehouseScope.map((id) => new mongoose.Types.ObjectId(id)) } } : {}) } },
+        { $match: { status: 'completed', 'items.productId': { $in: itemIds }, ...(saleBranchScope ? { branchId: { $in: saleBranchScope.map((id) => new mongoose.Types.ObjectId(id)) } } : {}) } },
         { $unwind: '$items' },
         { $match: { 'items.productId': { $in: itemIds } } },
         { $group: { _id: '$items.productId', lastSoldDate: { $max: { $ifNull: ['$completedAt', '$createdAt'] } } } },
@@ -852,6 +877,7 @@ router.post('/products', async (req, res) => {
 });
 
 router.patch('/products/:id', async (req, res) => {
+  if (requireAdminAction(req as any, res)) return;
   const session = await mongoose.startSession();
   try {
 ﻿    const productPayload = sanitizeProductPayload(req.body);
@@ -1011,6 +1037,27 @@ router.patch('/products/:id', async (req, res) => {
     await session.endSession();
   }
 });
+
+router.delete('/products/:id', async (req, res) => {
+  if (requireAdminAction(req as any, res)) return;
+  const item = await Product.findByIdAndDelete(req.params.id);
+  if (!item) return res.status(404).json({ message: 'Not found' });
+  await ProductEditLog.create([{
+    productCode: item.code,
+    productName: item.name,
+    logType: 'Xóa sản phẩm',
+    logAction: 'Xóa sản phẩm khỏi hệ thống',
+    createdBy: (req as any).user?.name || (req as any).user?.email || 'Admin',
+  }]);
+  await writeAuditLog(req, {
+    action: 'product.delete',
+    module: 'Product',
+    resource: 'Product',
+    resourceId: item.id,
+    before: item,
+  });
+  res.status(204).send();
+});
 router.use('/products', crudRoutes(Product));
 router.use('/branch-stocks', crudRoutes(ProductBranchStock));
 router.use('/sale-channels', crudRoutes(SaleChannel));
@@ -1108,6 +1155,7 @@ router.get('/sales/:id', async (req, res) => {
 });
 
 router.patch('/sales/:id', async (req, res) => {
+  if (requireAdminAction(req as any, res)) return;
   const before = await findScopedSale(req as any, { _id: req.params.id });
   if (!before) return res.status(404).json({ message: 'Not found' });
   ensureBranchInScope(req as any, before.branchId);
@@ -1141,6 +1189,7 @@ router.patch('/sales/:id', async (req, res) => {
 });
 
 router.post('/sales/:id/cancel', async (req, res) => {
+  if (requireAdminAction(req as any, res)) return;
   const payment = await findScopedSale(req as any, { _id: req.params.id });
   if (!payment) return res.status(404).json({ message: 'Not found' });
   const before = typeof payment.toObject === 'function' ? payment.toObject() : payment;
@@ -1151,6 +1200,7 @@ router.post('/sales/:id/cancel', async (req, res) => {
 });
 
 router.delete('/sales/:id', async (req, res) => {
+  if (requireAdminAction(req as any, res)) return;
   const item = await findScopedSale(req as any, { _id: req.params.id });
   if (!item) return res.status(404).json({ message: 'Not found' });
   const activeRefundCount = await ProductRefund.countDocuments({ paymentId: item._id, status: { $ne: 'cancelled' } });

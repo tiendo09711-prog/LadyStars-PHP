@@ -331,7 +331,7 @@
 }
 
 .products-filter-grid.products-grid-products {
-  grid-template-columns: minmax(220px, 1.7fr) minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(220px, 1.7fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
 }
 
 .products-filter-grid.products-grid-history {

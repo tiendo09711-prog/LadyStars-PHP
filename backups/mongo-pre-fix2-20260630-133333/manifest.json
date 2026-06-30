@@ -1,0 +1,426 @@
+{
+  "database": "ladystars",
+  "createdAt": "2026-06-30T06:33:41.369Z",
+  "collections": [
+    {
+      "collection": "trademarks",
+      "count": 0,
+      "file": "trademarks.json"
+    },
+    {
+      "collection": "warehousedraftvouchers",
+      "count": 0,
+      "file": "warehousedraftvouchers.json"
+    },
+    {
+      "collection": "staffdebtsummaries",
+      "count": 0,
+      "file": "staffdebtsummaries.json"
+    },
+    {
+      "collection": "inventoryaudititems",
+      "count": 0,
+      "file": "inventoryaudititems.json"
+    },
+    {
+      "collection": "inventoryaudits",
+      "count": 0,
+      "file": "inventoryaudits.json"
+    },
+    {
+      "collection": "productlogs",
+      "count": 0,
+      "file": "productlogs.json"
+    },
+    {
+      "collection": "accountingtransactionlogs",
+      "count": 0,
+      "file": "accountingtransactionlogs.json"
+    },
+    {
+      "collection": "batches",
+      "count": 0,
+      "file": "batches.json"
+    },
+    {
+      "collection": "tasks",
+      "count": 0,
+      "file": "tasks.json"
+    },
+    {
+      "collection": "orders",
+      "count": 0,
+      "file": "orders.json"
+    },
+    {
+      "collection": "warehousevoucherlogs",
+      "count": 0,
+      "file": "warehousevoucherlogs.json"
+    },
+    {
+      "collection": "wallets",
+      "count": 0,
+      "file": "wallets.json"
+    },
+    {
+      "collection": "products",
+      "count": 2072,
+      "file": "products.json"
+    },
+    {
+      "collection": "inventoryvouchers",
+      "count": 3565,
+      "file": "inventoryvouchers.json"
+    },
+    {
+      "collection": "installmentservices",
+      "count": 0,
+      "file": "installmentservices.json"
+    },
+    {
+      "collection": "summarytransactions",
+      "count": 0,
+      "file": "summarytransactions.json"
+    },
+    {
+      "collection": "salechannels",
+      "count": 1,
+      "file": "salechannels.json"
+    },
+    {
+      "collection": "ordercodcontrols",
+      "count": 0,
+      "file": "ordercodcontrols.json"
+    },
+    {
+      "collection": "projects",
+      "count": 0,
+      "file": "projects.json"
+    },
+    {
+      "collection": "retailinvoices",
+      "count": 0,
+      "file": "retailinvoices.json"
+    },
+    {
+      "collection": "inventorychecks",
+      "count": 2,
+      "file": "inventorychecks.json"
+    },
+    {
+      "collection": "warehouseproductlogs",
+      "count": 0,
+      "file": "warehouseproductlogs.json"
+    },
+    {
+      "collection": "inventoryimexbills",
+      "count": 0,
+      "file": "inventoryimexbills.json"
+    },
+    {
+      "collection": "wholesaleinvoices",
+      "count": 0,
+      "file": "wholesaleinvoices.json"
+    },
+    {
+      "collection": "customerdebtsummaries",
+      "count": 0,
+      "file": "customerdebtsummaries.json"
+    },
+    {
+      "collection": "customerdebtrecords",
+      "count": 0,
+      "file": "customerdebtrecords.json"
+    },
+    {
+      "collection": "receipts",
+      "count": 0,
+      "file": "receipts.json"
+    },
+    {
+      "collection": "inventorytransfers",
+      "count": 0,
+      "file": "inventorytransfers.json"
+    },
+    {
+      "collection": "menuitems",
+      "count": 7,
+      "file": "menuitems.json"
+    },
+    {
+      "collection": "permissions",
+      "count": 19,
+      "file": "permissions.json"
+    },
+    {
+      "collection": "customercares",
+      "count": 5,
+      "file": "customercares.json"
+    },
+    {
+      "collection": "vendorrefunds",
+      "count": 0,
+      "file": "vendorrefunds.json"
+    },
+    {
+      "collection": "paypeople",
+      "count": 0,
+      "file": "paypeople.json"
+    },
+    {
+      "collection": "warehousetransfers",
+      "count": 73,
+      "file": "warehousetransfers.json"
+    },
+    {
+      "collection": "orderpackagings",
+      "count": 0,
+      "file": "orderpackagings.json"
+    },
+    {
+      "collection": "productattributes",
+      "count": 0,
+      "file": "productattributes.json"
+    },
+    {
+      "collection": "ordershippingpendings",
+      "count": 0,
+      "file": "ordershippingpendings.json"
+    },
+    {
+      "collection": "productinventorysnapshots",
+      "count": 0,
+      "file": "productinventorysnapshots.json"
+    },
+    {
+      "collection": "productbatches",
+      "count": 0,
+      "file": "productbatches.json"
+    },
+    {
+      "collection": "paymentmethods",
+      "count": 5,
+      "file": "paymentmethods.json"
+    },
+    {
+      "collection": "warehousedraftproducts",
+      "count": 0,
+      "file": "warehousedraftproducts.json"
+    },
+    {
+      "collection": "orderhandovers",
+      "count": 0,
+      "file": "orderhandovers.json"
+    },
+    {
+      "collection": "vendordebtrecords",
+      "count": 0,
+      "file": "vendordebtrecords.json"
+    },
+    {
+      "collection": "users",
+      "count": 2,
+      "file": "users.json"
+    },
+    {
+      "collection": "inventoryproducts",
+      "count": 4541,
+      "file": "inventoryproducts.json"
+    },
+    {
+      "collection": "shelves",
+      "count": 0,
+      "file": "shelves.json"
+    },
+    {
+      "collection": "roles",
+      "count": 1,
+      "file": "roles.json"
+    },
+    {
+      "collection": "vendortransfers",
+      "count": 0,
+      "file": "vendortransfers.json"
+    },
+    {
+      "collection": "producteditlogs",
+      "count": 121,
+      "file": "producteditlogs.json"
+    },
+    {
+      "collection": "storageperiods",
+      "count": 0,
+      "file": "storageperiods.json"
+    },
+    {
+      "collection": "categories",
+      "count": 68,
+      "file": "categories.json"
+    },
+    {
+      "collection": "orderduplicates",
+      "count": 0,
+      "file": "orderduplicates.json"
+    },
+    {
+      "collection": "productbranchstocks",
+      "count": 1948,
+      "file": "productbranchstocks.json"
+    },
+    {
+      "collection": "customers",
+      "count": 1605,
+      "file": "customers.json"
+    },
+    {
+      "collection": "productrefunds",
+      "count": 11,
+      "file": "productrefunds.json"
+    },
+    {
+      "collection": "expensepayments",
+      "count": 0,
+      "file": "expensepayments.json"
+    },
+    {
+      "collection": "customergroups",
+      "count": 0,
+      "file": "customergroups.json"
+    },
+    {
+      "collection": "deliverypartners",
+      "count": 0,
+      "file": "deliverypartners.json"
+    },
+    {
+      "collection": "cashtransactions",
+      "count": 0,
+      "file": "cashtransactions.json"
+    },
+    {
+      "collection": "vendorpurchases",
+      "count": 0,
+      "file": "vendorpurchases.json"
+    },
+    {
+      "collection": "printforms",
+      "count": 0,
+      "file": "printforms.json"
+    },
+    {
+      "collection": "banktransactions",
+      "count": 0,
+      "file": "banktransactions.json"
+    },
+    {
+      "collection": "transferauditlogs",
+      "count": 0,
+      "file": "transferauditlogs.json"
+    },
+    {
+      "collection": "inventoryauditlogs",
+      "count": 0,
+      "file": "inventoryauditlogs.json"
+    },
+    {
+      "collection": "vendorgroups",
+      "count": 0,
+      "file": "vendorgroups.json"
+    },
+    {
+      "collection": "ordersources",
+      "count": 0,
+      "file": "ordersources.json"
+    },
+    {
+      "collection": "storesettings",
+      "count": 1,
+      "file": "storesettings.json"
+    },
+    {
+      "collection": "logbookentries",
+      "count": 0,
+      "file": "logbookentries.json"
+    },
+    {
+      "collection": "orderdisputes",
+      "count": 0,
+      "file": "orderdisputes.json"
+    },
+    {
+      "collection": "inventorycheckproducts",
+      "count": 1,
+      "file": "inventorycheckproducts.json"
+    },
+    {
+      "collection": "accountingtypes",
+      "count": 0,
+      "file": "accountingtypes.json"
+    },
+    {
+      "collection": "inventoryimexproducts",
+      "count": 0,
+      "file": "inventoryimexproducts.json"
+    },
+    {
+      "collection": "orderhistories",
+      "count": 0,
+      "file": "orderhistories.json"
+    },
+    {
+      "collection": "vendors",
+      "count": 2,
+      "file": "vendors.json"
+    },
+    {
+      "collection": "refundinvoices",
+      "count": 0,
+      "file": "refundinvoices.json"
+    },
+    {
+      "collection": "branches",
+      "count": 2,
+      "file": "branches.json"
+    },
+    {
+      "collection": "installmentcollections",
+      "count": 0,
+      "file": "installmentcollections.json"
+    },
+    {
+      "collection": "revenuetimes",
+      "count": 0,
+      "file": "revenuetimes.json"
+    },
+    {
+      "collection": "vendordebtsummaries",
+      "count": 0,
+      "file": "vendordebtsummaries.json"
+    },
+    {
+      "collection": "salepayments",
+      "count": 2096,
+      "file": "salepayments.json"
+    },
+    {
+      "collection": "accountingaccounts",
+      "count": 0,
+      "file": "accountingaccounts.json"
+    },
+    {
+      "collection": "stockadjustments",
+      "count": 0,
+      "file": "stockadjustments.json"
+    },
+    {
+      "collection": "auditlogs",
+      "count": 1,
+      "file": "auditlogs.json"
+    },
+    {
+      "collection": "installmentsettings",
+      "count": 0,
+      "file": "installmentsettings.json"
+    }
+  ]
+}

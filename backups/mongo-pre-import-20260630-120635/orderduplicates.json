@@ -1,0 +1,146 @@
+[
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f0e"
+    },
+    "duplicateCode": "DUP.0329920037",
+    "orderCode": "DUP.0329920037",
+    "__v": 0,
+    "customerName": "Chị Hương",
+    "customerPhone": "0329920037",
+    "reason": "Quất Lâm, Quất Động, Thường Tín, Hà Nội",
+    "status": "Mới",
+    "totalAmount": 2,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f0f"
+    },
+    "orderCode": "DUP.0339383999",
+    "duplicateCode": "DUP.0339383999",
+    "__v": 0,
+    "customerName": "Chị Hảo",
+    "customerPhone": "0339383999",
+    "reason": "Số 47/370 Đường Bình Lộc, Phương Tân Bình ,Thành phố Hải Dương, Tỉnh Hải Dương",
+    "status": "Mới",
+    "totalAmount": 2,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f10"
+    },
+    "orderCode": "DUP.0774762105",
+    "duplicateCode": "DUP.0774762105",
+    "__v": 0,
+    "customerName": "Trần Thị Kim Cúc",
+    "customerPhone": "0774762105",
+    "reason": "Tổ dân phố Ngô Mây - Ba Ngòi - Cam Ranh - Khánh Hòa",
+    "status": "Mới",
+    "totalAmount": 2,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f11"
+    },
+    "orderCode": "DUP.0913599601",
+    "duplicateCode": "DUP.0913599601",
+    "__v": 0,
+    "customerName": "CHÚ SƠN",
+    "customerPhone": "0913599601",
+    "reason": "ĐƯỜNG 2 MAI ĐÌNH, SÓC SƠN, HÀ NỘI",
+    "status": "Mới",
+    "totalAmount": 2,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f13"
+    },
+    "orderCode": "DUP.0948390149",
+    "duplicateCode": "DUP.0948390149",
+    "__v": 0,
+    "customerName": "An Nguyễn",
+    "customerPhone": "0948390149",
+    "reason": "An Nguyễn\nUBND huyện Vĩnh Hưng, thị trấn Vĩnh Hưng, huyện Vĩnh Hưng, tỉnh Long An\n0948390149",
+    "status": "Mới",
+    "totalAmount": 6,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f12"
+    },
+    "orderCode": "DUP.0919923059",
+    "duplicateCode": "DUP.0919923059",
+    "__v": 0,
+    "customerName": "chị Phượng",
+    "customerPhone": "0919923059",
+    "reason": "Chị Phượng xã Thụy Ninh huyện Thái Thụy tỉnh Thái Bình",
+    "status": "Mới",
+    "totalAmount": 2,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f14"
+    },
+    "orderCode": "DUP.0986711117",
+    "duplicateCode": "DUP.0986711117",
+    "__v": 0,
+    "customerName": "LÊ THỊ PHƯƠNG KIM",
+    "customerPhone": "0986711117",
+    "reason": "ẤP 15 XÃ VĨNH MỸ B, HUYỆN HÒA BÌNH , TỈNH BẠC LIÊU",
+    "status": "Mới",
+    "totalAmount": 2,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f15"
+    },
+    "orderCode": "DUP.0987035023",
+    "duplicateCode": "DUP.0987035023",
+    "__v": 0,
+    "customerName": "Ms. Ban",
+    "customerPhone": "0987035023",
+    "reason": "Ms Ban - 0987035023\nSố nhà 18 ngõ 2 ngách 3 Khu tập thể trường sỹ quan chính trị, P. Vệ An, TP. Bắc Ninh, T. Bắc Ninh",
+    "status": "Mới",
+    "totalAmount": 3,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f16"
+    },
+    "orderCode": "DUP.0988891770",
+    "duplicateCode": "DUP.0988891770",
+    "__v": 0,
+    "customerName": "anh Hoàng",
+    "customerPhone": "0988891770",
+    "reason": "51 Đào Duy Anh, phường Hải Tân, thành phố Hải Dương ( khu đô thị Đông Nam Cường)",
+    "status": "Mới",
+    "totalAmount": 3,
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    }
+  }
+]

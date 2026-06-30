@@ -774,7 +774,13 @@ export async function createReturnExchange(saleId: string, payload: any) {
         throw new ProductFlowError('Return or exchange must include at least one returned product');
       }
 
+      const stockAllowanceByProduct = groupQuantitiesByProduct(returnedItems as any[]);
+
       const rawRefundPayments = await normalizePaymentLines(payload.refundPayments, session);
+      const discountValue = toNumber(payload.discountValue);
+      const discountType = payload.discountType === 'percent' ? 'percent' : 'number';
+      const orderDiscount = lineDiscount(returnedValue, discountValue, discountType);
+      const discountedReturnedValue = Math.max(returnedValue - orderDiscount, 0);
 
       let settlementValue = 0;
       let replacementPayload: any = null;
@@ -794,16 +800,16 @@ export async function createReturnExchange(saleId: string, payload: any) {
           items: payload.replacementItems,
           userId: payload.userId || sale.userId,
           authorId: payload.userId || sale.authorId || sale.userId,
-        }, { session });
+        }, { session, stockAllowanceByProduct });
 
-        settlementValue = Math.min(returnedValue, replacementPayload.value);
+        settlementValue = Math.min(discountedReturnedValue, replacementPayload.value);
         const saleCashDue = Math.max(replacementPayload.value - settlementValue, 0);
         if (Math.abs(replacementPayload.valuePayment - saleCashDue) > MONEY_TOLERANCE) {
           throw new ProductFlowError('Replacement sale payments must equal the amount the customer still has to pay');
         }
       }
 
-      const refundCashDue = Math.max(returnedValue - settlementValue, 0);
+      const refundCashDue = Math.max(discountedReturnedValue - settlementValue, 0);
       if (Math.abs(sumPaymentLines(rawRefundPayments) - refundCashDue) > MONEY_TOLERANCE) {
         throw new ProductFlowError('Refund payments must equal the amount returned to the customer');
       }
@@ -811,8 +817,8 @@ export async function createReturnExchange(saleId: string, payload: any) {
       const [createdRefund] = await ProductRefund.create([{
         paymentId: sale._id,
         code: payload.code || buildNextCode('THB'),
-        discountValue: 0,
-        discountType: 'number',
+        discountValue,
+        discountType,
         refundFee: 0,
         refundFeeType: 'number',
         amount: returnedAmount,

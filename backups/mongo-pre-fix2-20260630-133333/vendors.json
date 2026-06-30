@@ -1,0 +1,48 @@
+[
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e4d"
+    },
+    "type": "company",
+    "name": "ladystars -",
+    "code": "NCC.1",
+    "status": "active",
+    "total": 0,
+    "debt": 0,
+    "totalPurchase": 0,
+    "groups": [],
+    "userCreatedId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.343Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.343Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e4e"
+    },
+    "type": "company",
+    "name": "Tồn đầu - 0987654321",
+    "code": "NCC.2",
+    "status": "active",
+    "total": 0,
+    "debt": 0,
+    "totalPurchase": 0,
+    "groups": [],
+    "userCreatedId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.343Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.343Z"
+    }
+  }
+]

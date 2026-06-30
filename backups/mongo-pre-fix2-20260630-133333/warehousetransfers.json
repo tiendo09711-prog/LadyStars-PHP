@@ -1,0 +1,2566 @@
+[
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ad"
+    },
+    "id": "156561",
+    "tabs": [
+      "all"
+    ],
+    "date": "2026-06-22",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 1,
+    "totalAmount": 11798000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2026-06-22T07:40:45Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T07:40:45Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ae"
+    },
+    "id": "156556",
+    "tabs": [
+      "all"
+    ],
+    "date": "2026-06-15",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 4,
+    "spCount": 3,
+    "totalAmount": 14196000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-15T04:23:31Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180af"
+    },
+    "id": "156557",
+    "tabs": [
+      "all"
+    ],
+    "date": "2026-06-15",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 18899000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2026-06-15T04:35:09Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-15T04:35:09Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b0"
+    },
+    "id": "156555",
+    "tabs": [
+      "all"
+    ],
+    "date": "2026-05-13",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 4,
+    "spCount": 4,
+    "totalAmount": 42796000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-13T07:30:53Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b1"
+    },
+    "id": "156553",
+    "tabs": [
+      "all"
+    ],
+    "date": "2026-03-24",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 4,
+    "spCount": 4,
+    "totalAmount": 12878000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-24T04:57:22Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b2"
+    },
+    "id": "156554",
+    "tabs": [
+      "all"
+    ],
+    "date": "2026-03-27",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 4,
+    "spCount": 4,
+    "totalAmount": 28617000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-27T09:49:23Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b3"
+    },
+    "id": "156551",
+    "tabs": [
+      "all"
+    ],
+    "date": "2026-01-16",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 11398000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2026-01-16T10:01:40Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-16T10:01:40Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b4"
+    },
+    "id": "156549",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-12-26",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 2980000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-12-26T06:59:52Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-26T06:59:52Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b5"
+    },
+    "id": "156548",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-12-25",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 4,
+    "spCount": 1,
+    "totalAmount": 18240000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-12-25T03:23:42Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-25T03:23:42Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b6"
+    },
+    "id": "156546",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-12-13",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 6,
+    "spCount": 5,
+    "totalAmount": 35194000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-13T02:55:24Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b7"
+    },
+    "id": "156547",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-12-13",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 3000000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-12-13T03:00:03Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-13T03:00:03Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b8"
+    },
+    "id": "156545",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-12-08",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 5,
+    "spCount": 5,
+    "totalAmount": 24897000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-08T04:15:47Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180b9"
+    },
+    "id": "156544",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-10-28",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 9,
+    "spCount": 6,
+    "totalAmount": 28704000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-28T07:49:42Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ba"
+    },
+    "id": "156543",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-10-23",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 13798000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-10-23T03:53:36Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-23T03:53:36Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180bb"
+    },
+    "id": "156542",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-08-05",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 6798000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-08-05T04:43:20Z"
+    },
+    "updatedAt": {
+      "$date": "2025-08-05T04:43:20Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180bc"
+    },
+    "id": "156541",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-03-27",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 12599000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-03-27T04:01:56Z"
+    },
+    "updatedAt": {
+      "$date": "2025-03-27T04:01:56Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180bd"
+    },
+    "id": "156540",
+    "tabs": [
+      "all"
+    ],
+    "date": "2025-01-09",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 10,
+    "spCount": 9,
+    "totalAmount": 32772000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2025-01-09T06:54:39Z"
+    },
+    "updatedAt": {
+      "$date": "2025-01-09T06:54:39Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180be"
+    },
+    "id": "156539",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-12-09",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 4890000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-12-09T07:01:23Z"
+    },
+    "updatedAt": {
+      "$date": "2024-12-09T07:01:23Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180bf"
+    },
+    "id": "156538",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-11-28",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 17899000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-11-28T07:46:20Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-28T07:46:20Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c0"
+    },
+    "id": "156537",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-11-20",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 12389000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-11-20T05:11:14Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-20T05:11:14Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c1"
+    },
+    "id": "156536",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-11-06",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 20398000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-11-06T03:54:48Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-06T03:54:48Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c2"
+    },
+    "id": "156534",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-10-28",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 10779000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-10-28T04:11:52Z"
+    },
+    "updatedAt": {
+      "$date": "2024-10-28T04:11:52Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c3"
+    },
+    "id": "156533",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-10-25",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 22198000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-10-25T09:39:05Z"
+    },
+    "updatedAt": {
+      "$date": "2024-10-25T09:39:05Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c4"
+    },
+    "id": "156532",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-10-19",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 12899000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-10-19T07:02:21Z"
+    },
+    "updatedAt": {
+      "$date": "2024-10-19T07:02:21Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c5"
+    },
+    "id": "156531",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-07-24",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 5800000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-07-24T07:23:51Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-24T07:23:51Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c6"
+    },
+    "id": "156530",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-06-20",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 3499000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-06-20T07:07:20Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-20T07:07:20Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c7"
+    },
+    "id": "156529",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-06-17",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 8899000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-06-17T03:34:03Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-17T03:34:03Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c8"
+    },
+    "id": "156528",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-06-03",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 4,
+    "spCount": 2,
+    "totalAmount": 23899000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-06-03T05:13:36Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-03T05:13:36Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180c9"
+    },
+    "id": "156527",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-05-08",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 12699000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-05-08T09:36:23Z"
+    },
+    "updatedAt": {
+      "$date": "2024-05-08T09:36:23Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ca"
+    },
+    "id": "156526",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-03-12",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 10800000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-03-12T07:41:22Z"
+    },
+    "updatedAt": {
+      "$date": "2024-03-12T07:41:22Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180cb"
+    },
+    "id": "156525",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-02-17",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 6499000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-02-17T10:19:25Z"
+    },
+    "updatedAt": {
+      "$date": "2024-02-17T10:19:25Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180cc"
+    },
+    "id": "156524",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-02-17",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 3,
+    "spCount": 3,
+    "totalAmount": 15899000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-02-17T06:24:19Z"
+    },
+    "updatedAt": {
+      "$date": "2024-02-17T06:24:19Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180cd"
+    },
+    "id": "156523",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-02-02",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 6499000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-02-02T03:16:02Z"
+    },
+    "updatedAt": {
+      "$date": "2024-02-02T03:16:02Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ce"
+    },
+    "id": "156522",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-01-09",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 6299000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-01-09T08:29:56Z"
+    },
+    "updatedAt": {
+      "$date": "2024-01-09T08:29:56Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180cf"
+    },
+    "id": "156521",
+    "tabs": [
+      "all"
+    ],
+    "date": "2024-01-09",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 5060000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2024-01-09T04:40:35Z"
+    },
+    "updatedAt": {
+      "$date": "2024-01-09T04:40:35Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d0"
+    },
+    "id": "156520",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-10-19",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 3,
+    "spCount": 3,
+    "totalAmount": 13400000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-10-19T09:43:29Z"
+    },
+    "updatedAt": {
+      "$date": "2023-10-19T09:43:29Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d1"
+    },
+    "id": "156519",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-08-25",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 3,
+    "spCount": 3,
+    "totalAmount": 25199000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-08-25T03:23:42Z"
+    },
+    "updatedAt": {
+      "$date": "2023-08-25T03:23:42Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d2"
+    },
+    "id": "156518",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-08-02",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 1,
+    "totalAmount": 11798000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-08-02T11:47:00Z"
+    },
+    "updatedAt": {
+      "$date": "2023-08-02T11:47:00Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d3"
+    },
+    "id": "156517",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-08-02",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 6,
+    "spCount": 5,
+    "totalAmount": 29144000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-08-02T11:45:59Z"
+    },
+    "updatedAt": {
+      "$date": "2023-08-02T11:45:59Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d4"
+    },
+    "id": "156516",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-06-20",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 32699000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-06-20T04:33:07Z"
+    },
+    "updatedAt": {
+      "$date": "2023-06-20T04:33:07Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d5"
+    },
+    "id": "156515",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-04-27",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 5280000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-04-27T02:23:10Z"
+    },
+    "updatedAt": {
+      "$date": "2023-04-27T02:23:10Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d6"
+    },
+    "id": "63139",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-01-10",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 1,
+    "totalAmount": 9600000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-01-10T10:07:06Z"
+    },
+    "updatedAt": {
+      "$date": "2023-01-10T10:07:06Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d7"
+    },
+    "id": "63017",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-01-10",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 6,
+    "spCount": 1,
+    "totalAmount": 2280000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2023-01-10T08:18:12Z"
+    },
+    "updatedAt": {
+      "$date": "2023-01-10T08:18:12Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d8"
+    },
+    "id": "57619",
+    "tabs": [
+      "all"
+    ],
+    "date": "2023-01-03",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 6399000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "đã ship grap giao khách cho HN",
+    "createdAt": {
+      "$date": "2023-01-03T07:21:07Z"
+    },
+    "updatedAt": {
+      "$date": "2023-01-03T07:21:07Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180d9"
+    },
+    "id": "50056",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-12-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho LUXY",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho LUXY",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 14800000,
+    "creator": "Phạm Thị Trang",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-12-21T05:10:00Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-21T05:10:00Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180da"
+    },
+    "id": "50092",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-12-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 350000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "GHTK hvf",
+    "createdAt": {
+      "$date": "2022-12-21T06:14:08Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-21T06:14:08Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180db"
+    },
+    "id": "46766",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-12-15",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho LUXY",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho LUXY",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 1,
+    "totalAmount": 1000000,
+    "creator": "Phạm Thị Trang",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-12-15T06:30:28Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T06:30:28Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180dc"
+    },
+    "id": "43878",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-12-10",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 6800000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-12-10T07:37:02Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-10T07:37:02Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180dd"
+    },
+    "id": "43780",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-12-10",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 4200000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "ghtk 10/12 cho HN",
+    "createdAt": {
+      "$date": "2022-12-10T06:36:05Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-10T06:36:05Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180de"
+    },
+    "id": "43654",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-12-10",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 350000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "ship cod ghtt 10/12",
+    "createdAt": {
+      "$date": "2022-12-10T03:45:09Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-10T03:45:09Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180df"
+    },
+    "id": "37083",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-29",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho LUXY",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho LUXY",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 1500000,
+    "creator": "Phạm Thị Trang",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "ship grap",
+    "createdAt": {
+      "$date": "2022-11-29T08:34:13Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-29T08:34:13Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e0"
+    },
+    "id": "36909",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-29",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 1500000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "ship grap cho khách Luxy",
+    "createdAt": {
+      "$date": "2022-11-29T05:22:35Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-29T05:22:35Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e1"
+    },
+    "id": "32010",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 1,
+    "totalAmount": 760000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "ship GHTK cho Hà Nội 20/11",
+    "createdAt": {
+      "$date": "2022-11-21T05:57:05Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-21T05:57:05Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e2"
+    },
+    "id": "32210",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho LUXY",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho LUXY",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 3499000,
+    "creator": "Phạm Thị Trang",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-11-21T09:29:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-21T09:29:27Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e3"
+    },
+    "id": "32154",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 3899000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-11-21T08:30:18Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-21T08:30:18Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e4"
+    },
+    "id": "32102",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 9,
+    "spCount": 9,
+    "totalAmount": 31378000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-11-21T07:35:16Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-21T07:35:16Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e5"
+    },
+    "id": "30151",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-17",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 16,
+    "spCount": 1,
+    "totalAmount": 3184000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "chuyển 16 chai xịt dưỡng cho Hà Nội",
+    "createdAt": {
+      "$date": "2022-11-17T03:20:57Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-17T03:20:57Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e6"
+    },
+    "id": "27141",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-07",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 10800000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-11-07T10:46:28Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-07T10:46:28Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e7"
+    },
+    "id": "25511",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-11-01",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 6200000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-11-01T02:07:49Z"
+    },
+    "updatedAt": {
+      "$date": "2022-11-01T02:07:49Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e8"
+    },
+    "id": "24623",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-10-28",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 3,
+    "spCount": 3,
+    "totalAmount": 10600000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "note": "đã gửi hàng đi ngày 25/10/2022",
+    "createdAt": {
+      "$date": "2022-10-28T04:40:35Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-28T04:40:35Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180e9"
+    },
+    "id": "23440",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-10-22",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 3899000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-10-22T10:05:24Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-22T10:05:24Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ea"
+    },
+    "id": "24392",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-10-27",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 3899000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-10-27T06:06:01Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-27T06:06:01Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180eb"
+    },
+    "id": "24395",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-10-27",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 1,
+    "totalAmount": 10120000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-10-27T06:07:52Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-27T06:07:52Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ec"
+    },
+    "id": "23506",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-10-23",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho LUXY",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho LUXY",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 4,
+    "spCount": 1,
+    "totalAmount": 1520000,
+    "creator": "Phạm Thị Trang",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-10-23T07:17:15Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-23T07:17:15Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ed"
+    },
+    "id": "21267",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-10-13",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 3,
+    "spCount": 3,
+    "totalAmount": 36400000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-10-13T07:38:07Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-13T07:38:07Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ee"
+    },
+    "id": "20462",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-10-10",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 1,
+    "totalAmount": 3000000,
+    "creator": "Đỗ Thị Nhàn",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-10-10T05:40:45Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-10T05:40:45Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180ef"
+    },
+    "id": "16141",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-09-20",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 5499000,
+    "creator": "Nguyễn Học Xuân Uyên",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-09-20T07:11:07Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-20T07:11:07Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180f0"
+    },
+    "id": "15959",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-09-19",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 6200000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-09-19T09:15:09Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-19T09:15:09Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180f1"
+    },
+    "id": "3818",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-07-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 3,
+    "spCount": 3,
+    "totalAmount": 23200000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-07-21T02:39:03Z"
+    },
+    "updatedAt": {
+      "$date": "2022-07-21T02:39:03Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180f2"
+    },
+    "id": "3840",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-07-21",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 14800000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-07-21T03:48:09Z"
+    },
+    "updatedAt": {
+      "$date": "2022-07-21T03:48:09Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180f3"
+    },
+    "id": "7945",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-08-17",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho HCM",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e05"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho HCM",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 2,
+    "spCount": 2,
+    "totalAmount": 9200000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-08-17T07:09:39Z"
+    },
+    "updatedAt": {
+      "$date": "2022-08-17T07:09:39Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180f4"
+    },
+    "id": "7138",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-08-13",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 4400000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-08-13T09:05:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-08-13T09:05:27Z"
+    },
+    "lines": [],
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a435375128caa7df65180f5"
+    },
+    "id": "3670",
+    "tabs": [
+      "all"
+    ],
+    "date": "2022-07-19",
+    "type": "Xuất chuyển kho",
+    "warehouse": "Kho Hà Nội",
+    "sourceWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "destinationWarehouseId": {
+      "$oid": "6a43526e128caa7df6512e04"
+    },
+    "sourceWarehouseName": "Kho Hà Nội",
+    "status": "DRAFT",
+    "kind": "NORMAL_TRANSFER",
+    "qty": 1,
+    "spCount": 1,
+    "totalAmount": 8000000,
+    "creator": "LÊ SỸ BÁCH",
+    "source": "MANUAL",
+    "version": 0,
+    "createdAt": {
+      "$date": "2022-07-19T09:06:52Z"
+    },
+    "updatedAt": {
+      "$date": "2022-07-19T09:06:52Z"
+    },
+    "lines": [],
+    "__v": 0
+  }
+]

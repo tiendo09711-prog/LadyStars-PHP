@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import { isAdminRole } from '../../core/auth/access';
 import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
 import { buildReceiptHtml } from './invoicePrint';
 import * as XLSX from 'xlsx';
@@ -248,6 +249,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const [actionBusyId, setActionBusyId] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const canManageSales = isAdminRole(currentUser?.role);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -271,6 +274,21 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       navigate(location.pathname, { replace: true });
     }
   }, [location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    let mounted = true;
+    http.get('/auth/me')
+      .then((response) => {
+        if (mounted) setCurrentUser(response.data?.user || response.data || null);
+      })
+      .catch(() => {
+        if (mounted) setCurrentUser(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const loadBranches = async () => {
     setBranchLoading(true);
@@ -551,6 +569,10 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   };
 
   const handleDeleteInvoice = async (invoice: Invoice) => {
+    if (!canManageSales) {
+      window.alert('Chỉ tài khoản admin mới được xóa hoặc hủy hóa đơn.');
+      return;
+    }
     const state = deleteActionState(invoice);
     if (!state.enabled) {
       window.alert(state.title);
@@ -935,8 +957,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                             <button type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice)}><Printer size={15} /> In hóa đơn</button>
                             <button type="button" disabled={giftDisabled} title={giftDisabled ? 'Hóa đơn này không có sản phẩm tặng kèm' : ''} onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice, true)}><Gift size={15} /> In hóa đơn quà tặng</button>
                             <button type="button" disabled={!refundState.enabled} title={refundState.title} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${invoice._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
-                            <button type="button" disabled={!editState.enabled} title={editState.title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>
-                            <button type="button" disabled={!deleteState.enabled || actionBusyId === invoice._id} title={deleteState.title} onClick={() => void handleDeleteInvoice(invoice)}><Trash2 size={15} /> {actionBusyId === invoice._id ? 'Đang xử lý...' : 'Xóa hóa đơn'}</button>
+                            {canManageSales ? (<button type="button" disabled={!editState.enabled} title={editState.title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>) : null}
+                            {canManageSales ? (<button type="button" disabled={!deleteState.enabled || actionBusyId === invoice._id} title={deleteState.title} onClick={() => void handleDeleteInvoice(invoice)}><Trash2 size={15} /> {actionBusyId === invoice._id ? 'Đang xử lý...' : 'Xóa hóa đơn'}</button>) : null}
                           </div>
                         )}
                       </div>
@@ -1027,7 +1049,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               <button className="retail-btn primary" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail)}><Printer size={15} /> In hóa đơn</button>
               {hasGiftItems(detail) && <button className="retail-btn ghost" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail, true)}><Gift size={15} /> In hóa đơn quà tặng</button>}
               <button className="retail-btn primary" type="button" disabled={!refundActionState(detail).enabled} title={refundActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${detail._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
-              <button className="retail-btn ghost" type="button" disabled={!editActionState(detail).enabled} title={editActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${detail._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>
+              {canManageSales ? (<button className="retail-btn ghost" type="button" disabled={!editActionState(detail).enabled} title={editActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${detail._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>) : null}
             </footer>
           </div>
         </div>

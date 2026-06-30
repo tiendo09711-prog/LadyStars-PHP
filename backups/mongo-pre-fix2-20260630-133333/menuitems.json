@@ -1,0 +1,128 @@
+[
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4c8"
+    },
+    "path": "/",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.071Z"
+    },
+    "isActive": true,
+    "label": "Dashboard",
+    "module": "dashboard",
+    "permission": "dashboard.index",
+    "sortOrder": 0,
+    "updatedAt": {
+      "$date": "2026-05-22T14:38:29.024Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4ca"
+    },
+    "path": "/sales",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.184Z"
+    },
+    "isActive": true,
+    "label": "Bán hàng",
+    "module": "sale",
+    "permission": "sale.index",
+    "sortOrder": 0,
+    "updatedAt": {
+      "$date": "2026-05-22T14:38:29.140Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4cb"
+    },
+    "path": "/customers",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.241Z"
+    },
+    "isActive": true,
+    "label": "Khách hàng",
+    "module": "customer",
+    "permission": "customer.index",
+    "sortOrder": 0,
+    "updatedAt": {
+      "$date": "2026-05-22T14:38:29.200Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4ce"
+    },
+    "path": "/tasks",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.411Z"
+    },
+    "isActive": true,
+    "label": "Công việc",
+    "module": "task",
+    "permission": "task.index",
+    "sortOrder": 0,
+    "updatedAt": {
+      "$date": "2026-05-22T14:38:29.369Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4c9"
+    },
+    "path": "/products",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.128Z"
+    },
+    "isActive": true,
+    "label": "Hàng hóa",
+    "module": "product",
+    "permission": "product.index",
+    "sortOrder": 0,
+    "updatedAt": {
+      "$date": "2026-05-22T14:38:29.082Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4cd"
+    },
+    "path": "/accounting",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.354Z"
+    },
+    "isActive": true,
+    "label": "Kế toán",
+    "module": "accounting",
+    "permission": "accounting.index",
+    "sortOrder": 0,
+    "updatedAt": {
+      "$date": "2026-05-22T14:38:29.314Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4cf"
+    },
+    "path": "/print-forms",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.467Z"
+    },
+    "isActive": true,
+    "label": "Mẫu in",
+    "module": "print-forms",
+    "permission": "print-forms.index",
+    "sortOrder": 0,
+    "updatedAt": {
+      "$date": "2026-05-22T14:38:29.424Z"
+    }
+  }
+]

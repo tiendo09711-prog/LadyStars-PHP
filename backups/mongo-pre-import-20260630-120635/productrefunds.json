@@ -1,0 +1,345 @@
+[
+  {
+    "_id": {
+      "$oid": "6a3f8ca2903161b989ba713c"
+    },
+    "paymentId": {
+      "$oid": "6a391948a9392671531ee8a5"
+    },
+    "code": "HDTH-742212",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 11814150,
+    "totalPayableAmount": 3000000,
+    "value": 13899000,
+    "settlementValue": 10899000,
+    "completedAt": {
+      "$date": "2026-06-27T08:41:06.220Z"
+    },
+    "status": "completed",
+    "userId": {
+      "$oid": "69fc44d83899e11829d2b449"
+    },
+    "userCreatedId": {
+      "$oid": "69fc44d83899e11829d2b449"
+    },
+    "note": "",
+    "typePayment": [
+      {
+        "methodId": {
+          "$oid": "6a328e5c8f38685141bc15fa"
+        },
+        "amount": 3000000
+      }
+    ],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126906f2f"
+        },
+        "amount": 1,
+        "price": 13899000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 13899000,
+        "_id": {
+          "$oid": "6a3f8ca2903161b989ba713d"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-06-27T08:41:06.223Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-27T13:18:44.979Z"
+    },
+    "__v": 0,
+    "replacementSaleId": {
+      "$oid": "6a3f8ca2903161b989ba7145"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a3fb0eb9ea5e03f9ddfffe1"
+    },
+    "paymentId": {
+      "$oid": "6a3f8ca2903161b989ba7145"
+    },
+    "code": "HDTH-508458",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 10899000,
+    "totalPayableAmount": 0,
+    "value": 10899000,
+    "settlementValue": 10899000,
+    "completedAt": {
+      "$date": "2026-06-27T11:15:55.440Z"
+    },
+    "status": "completed",
+    "userId": {
+      "$oid": "69fc44d83899e11829d2b449"
+    },
+    "userCreatedId": {
+      "$oid": "69fc44d83899e11829d2b449"
+    },
+    "note": "",
+    "typePayment": [],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126906f3a"
+        },
+        "amount": 1,
+        "price": 10899000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 10899000,
+        "_id": {
+          "$oid": "6a3fb0eb9ea5e03f9ddfffe2"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-06-27T11:15:55.448Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-27T11:15:56.095Z"
+    },
+    "__v": 0,
+    "replacementSaleId": {
+      "$oid": "6a3fb0eb9ea5e03f9ddfffea"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a421ef62615ec4bb78e7bef"
+    },
+    "paymentId": {
+      "$oid": "6a4215f12615ec4bb78e7660"
+    },
+    "code": "HDTH-696365",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 4949100,
+    "totalPayableAmount": 0,
+    "value": 5499000,
+    "settlementValue": 5499000,
+    "completedAt": {
+      "$date": "2026-06-29T07:29:58.956Z"
+    },
+    "status": "completed",
+    "userId": {
+      "$oid": "69fc44d83899e11829d2b449"
+    },
+    "userCreatedId": {
+      "$oid": "69fc44d83899e11829d2b449"
+    },
+    "note": "",
+    "typePayment": [],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126906f37"
+        },
+        "amount": 1,
+        "price": 5499000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 5499000,
+        "_id": {
+          "$oid": "6a421ef62615ec4bb78e7bf0"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-06-29T07:29:58.961Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-29T07:29:59.668Z"
+    },
+    "__v": 0,
+    "replacementSaleId": {
+      "$oid": "6a421ef72615ec4bb78e7bf8"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a4344ea6dc1bd66fb3dc5f9"
+    },
+    "paymentId": {
+      "$oid": "6a3296e78f38685141bc269d"
+    },
+    "code": "HDTH-116485",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 3781000,
+    "totalPayableAmount": 0,
+    "value": 3980000,
+    "settlementValue": 3980000,
+    "completedAt": {
+      "$date": "2026-06-30T04:24:10.935Z"
+    },
+    "status": "completed",
+    "userId": {
+      "$oid": "6a433d569123edff97dbe804"
+    },
+    "userCreatedId": {
+      "$oid": "6a433d569123edff97dbe804"
+    },
+    "note": "",
+    "typePayment": [],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126906f91"
+        },
+        "amount": 1,
+        "price": 3980000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 3980000,
+        "_id": {
+          "$oid": "6a4344ea6dc1bd66fb3dc5fa"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-06-30T04:24:10.943Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T04:24:11.605Z"
+    },
+    "__v": 0,
+    "replacementSaleId": {
+      "$oid": "6a4344eb6dc1bd66fb3dc602"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a4345a76dc1bd66fb3dc787"
+    },
+    "paymentId": {
+      "$oid": "6a3296e78f38685141bc26b0"
+    },
+    "code": "HDTH-365811",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 2499000,
+    "totalPayableAmount": 0,
+    "value": 2499000,
+    "settlementValue": 2499000,
+    "completedAt": {
+      "$date": "2026-06-30T04:27:19.047Z"
+    },
+    "status": "completed",
+    "userId": {
+      "$oid": "6a433d569123edff97dbe804"
+    },
+    "userCreatedId": {
+      "$oid": "6a433d569123edff97dbe804"
+    },
+    "note": "",
+    "typePayment": [],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907179"
+        },
+        "amount": 1,
+        "price": 2499000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 2499000,
+        "_id": {
+          "$oid": "6a4345a76dc1bd66fb3dc788"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-06-30T04:27:19.049Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T04:27:19.700Z"
+    },
+    "__v": 0,
+    "replacementSaleId": {
+      "$oid": "6a4345a76dc1bd66fb3dc790"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6a4346a56dc1bd66fb3dc93e"
+    },
+    "paymentId": {
+      "$oid": "6a4338c29123edff97dbe3f8"
+    },
+    "code": "HDTH-815821",
+    "discountValue": 0,
+    "discountType": "number",
+    "refundFee": 0,
+    "refundFeeType": "number",
+    "amount": 1,
+    "originalTotalAmount": 3899000,
+    "totalPayableAmount": 0,
+    "value": 3899000,
+    "settlementValue": 3899000,
+    "completedAt": {
+      "$date": "2026-06-30T04:31:33.870Z"
+    },
+    "status": "completed",
+    "userId": {
+      "$oid": "6a433da64ef83233e579a5ca"
+    },
+    "userCreatedId": {
+      "$oid": "6a433da64ef83233e579a5ca"
+    },
+    "note": "",
+    "typePayment": [],
+    "items": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126906f34"
+        },
+        "amount": 1,
+        "price": 3899000,
+        "cost": 0,
+        "discountValue": 0,
+        "discountType": "number",
+        "value": 3899000,
+        "_id": {
+          "$oid": "6a4346a56dc1bd66fb3dc93f"
+        }
+      }
+    ],
+    "createdAt": {
+      "$date": "2026-06-30T04:31:33.872Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T04:31:34.532Z"
+    },
+    "__v": 0,
+    "replacementSaleId": {
+      "$oid": "6a4346a66dc1bd66fb3dc947"
+    }
+  }
+]

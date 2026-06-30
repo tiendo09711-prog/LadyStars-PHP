@@ -1,0 +1,3302 @@
+[
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ec3"
+    },
+    "orderCode": "518887403",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2025-03-31T08:45:57Z"
+    },
+    "customerName": "Nha TRANG",
+    "customerPhone": "0948390149",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269070b2"
+        },
+        "sku": "sen-180325",
+        "productName": "Đầu đội siêu da silk base DDV180325",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839743"
+        }
+      }
+    ],
+    "shippingAddress": "UBND huyện Vĩnh Hưng, thị trấn Vĩnh Hưng, huyện Vĩnh Hưng, tỉnh Long An, Thị trấn Vĩnh Hưng, Huyện Vĩnh Hưng, Long An",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 13584050,
+    "updatedAt": {
+      "$date": "2025-03-31T08:45:57Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ec4"
+    },
+    "orderCode": "473795687",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 9904050,
+    "createdAt": {
+      "$date": "2024-12-21T10:02:39Z"
+    },
+    "customerName": "C Lan Anh",
+    "customerPhone": "0969892558",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907119"
+        },
+        "sku": "MINH 061124",
+        "productName": "Đầu đội siêu da silk base DDV061124",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839744"
+        }
+      }
+    ],
+    "shippingAddress": "số 1d/33h/409 Miếu 2 Xã , Dư Hàng Kênh Lê Chân HP, Phường Dư Hàng Kênh, Quận Lê Chân, Hải Phòng",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 11874050,
+    "updatedAt": {
+      "$date": "2024-12-21T10:02:39Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ec5"
+    },
+    "orderCode": "432773439",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 2000000,
+    "createdAt": {
+      "$date": "2024-09-19T07:22:01Z"
+    },
+    "customerName": "VÂN ANH NGUYỄN",
+    "customerPhone": "0976833575",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907147"
+        },
+        "sku": "C140924",
+        "productName": "Tóc cột khách đặt C140924",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839745"
+        }
+      }
+    ],
+    "shippingAddress": "Số 55 nguyễn văn cừ phường ngô quyền TP Bắc giang., Phường Ngô Quyền, Thành phố Bắc Giang, Bắc Giang",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 3000000,
+    "updatedAt": {
+      "$date": "2024-09-19T07:22:01Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ec6"
+    },
+    "orderCode": "413871741",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2024-08-06T07:38:10Z"
+    },
+    "customerName": "NHA TRANG",
+    "customerPhone": "0948390149",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690716e"
+        },
+        "sku": "DDKĐ060824",
+        "productName": "Đầu đội siêu da khách đặt DDKĐ060824",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839746"
+        }
+      }
+    ],
+    "shippingAddress": "UBND huyện Vĩnh Hưng, thị trấn Vĩnh Hưng, huyện Vĩnh Hưng, tỉnh Long An, Thị trấn Vĩnh Hưng, Huyện Vĩnh Hưng, Long An",
+    "shippingFee": 40000,
+    "status": "Thành công",
+    "totalAmount": 15649000,
+    "updatedAt": {
+      "$date": "2024-08-06T07:38:10Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ec7"
+    },
+    "orderCode": "408583175",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2024-07-22T07:07:19Z"
+    },
+    "customerName": "chị NGA",
+    "customerPhone": "0987138893",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690718e"
+        },
+        "sku": "MINH-MHNU1007241",
+        "productName": "Mái hói siêu da silk base MHNU1007241",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839747"
+        }
+      }
+    ],
+    "shippingAddress": "79c9 trung đoàn 240, khu tập thể quân đội, ngõ 282 đường đà nẵng, phường vạn mỹ , ngô quyền, hải phòng, Phường Vạn Mỹ, Quận Ngô Quyền, Hải Phòng",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 5280000,
+    "updatedAt": {
+      "$date": "2024-07-22T07:07:19Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ecb"
+    },
+    "orderCode": "393082325",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 2232500,
+    "createdAt": {
+      "$date": "2024-06-12T08:45:23Z"
+    },
+    "customerName": "Chị Hoa",
+    "customerPhone": "0986034959",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269071a3"
+        },
+        "sku": "2000214250541",
+        "productName": "MÓC THÊM TÓC MÁI HÓI CHO KHÁCH + HẤP DƯỠNG",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883974b"
+        }
+      }
+    ],
+    "shippingAddress": "315 ng thị lưu p ngô quyền tp bắc giang, Phường Ngô Quyền, Thành phố Bắc Giang, Bắc Giang",
+    "shippingFee": 32500,
+    "status": "Thành công",
+    "totalAmount": 2200000,
+    "updatedAt": {
+      "$date": "2024-06-12T08:45:23Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ecc"
+    },
+    "orderCode": "390422812",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5000000,
+    "createdAt": {
+      "$date": "2024-06-06T03:05:16Z"
+    },
+    "customerName": "CHÚ SƠN",
+    "customerPhone": "0913599601",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269071a8"
+        },
+        "sku": "DDV050624",
+        "productName": "Đầu đội khách đặt DDV050624",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883974c"
+        }
+      }
+    ],
+    "shippingAddress": "ĐƯỜNG 2 MAI ĐÌNH, SÓC SƠN, HÀ NỘI, Xã Mai Đình, Huyện Sóc Sơn, Hà Nội",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 15899000,
+    "updatedAt": {
+      "$date": "2024-06-06T03:05:16Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ec9"
+    },
+    "orderCode": "401543747",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2024-07-05T07:36:02Z"
+    },
+    "customerName": "NHA TRANG",
+    "customerPhone": "0948390149",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907192"
+        },
+        "sku": "HUYỀN DDV050724",
+        "productName": "Đầu đội siêu da khách đặt DDV050724",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839749"
+        }
+      }
+    ],
+    "shippingAddress": "UBND huyện Vĩnh Hưng, thị trấn Vĩnh Hưng, huyện Vĩnh Hưng, tỉnh Long An, Thị trấn Vĩnh Hưng, Huyện Vĩnh Hưng, Long An",
+    "shippingFee": 40000,
+    "status": "Thành công",
+    "totalAmount": 11649000,
+    "updatedAt": {
+      "$date": "2024-07-05T07:36:02Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eca"
+    },
+    "orderCode": "393838739",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 9899000,
+    "createdAt": {
+      "$date": "2024-06-14T10:41:26Z"
+    },
+    "customerName": "chị TƯƠI",
+    "customerPhone": "0982843395",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269071a2"
+        },
+        "sku": "MHNU14-0624",
+        "productName": "Đầu đội khách đặt làm MHNU14-0624",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883974a"
+        }
+      }
+    ],
+    "shippingAddress": "Thôn Vân kỳ, bắc hưng, tiên lãng, hải phòng, Xã Bắc Hưng, Huyện Tiên Lãng, Hải Phòng",
+    "shippingFee": 35000,
+    "status": "Thành công",
+    "totalAmount": 10899000,
+    "updatedAt": {
+      "$date": "2024-06-14T10:41:26Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ece"
+    },
+    "orderCode": "384598335",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 12649000,
+    "createdAt": {
+      "$date": "2024-05-21T08:08:32Z"
+    },
+    "customerName": "Nha Trang",
+    "customerPhone": "0948390149",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907201"
+        },
+        "sku": "DDV2601241",
+        "productName": "Đầu đội siêu đầu silk base DDV2601241",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883974e"
+        }
+      }
+    ],
+    "shippingAddress": "UBND huyện Vĩnh Hưng, thị trấn Vĩnh Hưng, huyện Vĩnh Hưng, tỉnh Long An, Thị trấn Vĩnh Hưng, Huyện Vĩnh Hưng, Long An",
+    "shippingFee": 40000,
+    "status": "Thành công",
+    "totalAmount": 14649000,
+    "updatedAt": {
+      "$date": "2024-05-21T08:08:32Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ecf"
+    },
+    "orderCode": "384130422",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 5848000,
+    "createdAt": {
+      "$date": "2024-05-20T02:34:40Z"
+    },
+    "customerName": "Chị Thanh",
+    "customerPhone": "0986022996",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907250"
+        },
+        "sku": "2000214248807",
+        "productName": "xịt dưỡng tóc XD41023",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883974f"
+        }
+      }
+    ],
+    "shippingAddress": "Nhà 31 phố Trương Công Giai, Dịch vọng, Phường Trung Liệt, Quận Đống Đa, Hà Nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 5848000,
+    "updatedAt": {
+      "$date": "2024-05-20T02:34:40Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ec8"
+    },
+    "orderCode": "407232974",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 6800000,
+    "createdAt": {
+      "$date": "2024-07-18T08:28:46Z"
+    },
+    "customerName": "nguyễn thị hồng",
+    "customerPhone": "0383615286",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "cổng KTX SDV khu công nghiệp yên phong ( GIAO GIỜ HÀNH CHÍNH)",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269071b8"
+        },
+        "sku": "MHNU100524",
+        "productName": "Mái hói siêu da đầu silk base MHNU100524",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839748"
+        }
+      }
+    ],
+    "shippingAddress": "cổng KTX SDV khu công nghiệp yên phong, yên trung, bắc ninh ạ, Xã Yên Trung, Huyện Yên Phong, Bắc Ninh",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 7800000,
+    "updatedAt": {
+      "$date": "2024-07-18T08:28:46Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ecd"
+    },
+    "orderCode": "389042291",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 11304050,
+    "createdAt": {
+      "$date": "2024-06-03T04:22:50Z"
+    },
+    "customerName": "CHỊ BAN NGÔ",
+    "customerPhone": "0987035023",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690726a"
+        },
+        "sku": "DDV1208231",
+        "productName": "Đầu đội siêu da đầu silk base DDV1208231",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883974d"
+        }
+      }
+    ],
+    "shippingAddress": "Ms Ban - 0987035023\nSố nhà 18 ngõ 2 ngách 3 Khu tập thể trường sỹ quan chính trị, P. Vệ An, TP. Bắc Ninh, T. Bắc Ninh, Phường Vệ An, Thành phố Bắc Ninh, Bắc Ninh",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 11304050,
+    "updatedAt": {
+      "$date": "2024-06-03T04:22:50Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed5"
+    },
+    "orderCode": "339309158",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 12899000,
+    "createdAt": {
+      "$date": "2024-01-18T05:06:54Z"
+    },
+    "customerName": "Nha Trang",
+    "customerPhone": "0948390149",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907211"
+        },
+        "sku": "DDV180124",
+        "productName": "ĐẦU ĐỘI KHÁCH ĐẶT DDV180124",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839755"
+        }
+      }
+    ],
+    "shippingAddress": "UBND huyện Vĩnh Hưng, thị trấn Vĩnh Hưng, huyện Vĩnh Hưng, tỉnh Long An, Thị trấn Vĩnh Hưng, Huyện Vĩnh Hưng, Long An",
+    "shippingFee": 104495,
+    "status": "Thành công",
+    "totalAmount": 14899000,
+    "updatedAt": {
+      "$date": "2024-01-18T05:06:54Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed4"
+    },
+    "orderCode": "341034971",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5299000,
+    "createdAt": {
+      "$date": "2024-01-22T04:28:34Z"
+    },
+    "customerName": "Thái PHỤNG",
+    "customerPhone": "0785333675",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690721f"
+        },
+        "sku": "DDN281223",
+        "productName": "Đầu đội machine weft DDN281223",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839754"
+        }
+      }
+    ],
+    "shippingAddress": "258 quốc lộ 91, khu vực Tân Phước 1, phường Thuận Hưng, quận Thốt Nốt, TP Cần Thơ, Phường Thuận Hưng, Quận Thốt Nốt, Cần Thơ",
+    "shippingFee": 66495,
+    "status": "Thành công",
+    "totalAmount": 6299000,
+    "updatedAt": {
+      "$date": "2024-01-22T04:28:34Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed1"
+    },
+    "orderCode": "366643147",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 4766000,
+    "createdAt": {
+      "$date": "2024-04-02T04:07:29Z"
+    },
+    "customerName": "hạnh",
+    "customerPhone": "0913540548",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907296"
+        },
+        "sku": "DDN020424",
+        "productName": "Đầu đội khách đặt DDN020424",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839751"
+        }
+      }
+    ],
+    "shippingAddress": "Tầng 8 toà nhà Việt Á, số 9, Duy Tân, Cầu Giấy, Hà Nội, Quận Cầu Giấy, Hà Nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 5766000,
+    "updatedAt": {
+      "$date": "2024-04-02T04:07:29Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed0"
+    },
+    "orderCode": "384129615",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 4950000,
+    "createdAt": {
+      "$date": "2024-05-20T02:32:25Z"
+    },
+    "customerName": "chị huệ",
+    "customerPhone": "0982766004",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690749b"
+        },
+        "sku": "C190424",
+        "productName": "tóc cột C190424",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839750"
+        }
+      }
+    ],
+    "shippingAddress": "13 ngô văn sở, an hòa rạch giá, kiên giang, Phường An Hòa, Thành phố Rạch Giá, Kiên Giang",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 4950000,
+    "updatedAt": {
+      "$date": "2024-05-20T02:32:25Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed2"
+    },
+    "orderCode": "353580915",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 6899000,
+    "createdAt": {
+      "$date": "2024-02-27T06:22:30Z"
+    },
+    "customerName": "Nguyễn mạnh quyết",
+    "customerPhone": "0966133615",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269071e8"
+        },
+        "sku": "2000214249842",
+        "productName": "Đầu đội khách đặt DDKD270224",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839752"
+        }
+      }
+    ],
+    "shippingAddress": "Thôn tây thủy, xa tiến hóa,tuyên hóa , quảng bình, Xã Tiến Hóa, Huyện Tuyên Hóa, Quảng Bình",
+    "shippingFee": 71495,
+    "status": "Thành công",
+    "totalAmount": 6899000,
+    "updatedAt": {
+      "$date": "2024-02-27T06:22:30Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed3"
+    },
+    "orderCode": "349681575",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5800000,
+    "createdAt": {
+      "$date": "2024-02-17T09:56:09Z"
+    },
+    "customerName": "Chiêu dương",
+    "customerPhone": "0972815739",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269071f2"
+        },
+        "sku": "DDN170224",
+        "productName": "Tóc khách đặt làm DDN170224",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839753"
+        }
+      }
+    ],
+    "shippingAddress": "361/1 KP1 , P4, BẾN TRE, Phường 4, Thành phố Bến Tre, Bến Tre",
+    "shippingFee": 61000,
+    "status": "Thành công",
+    "totalAmount": 6800000,
+    "updatedAt": {
+      "$date": "2024-02-17T09:56:09Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed6"
+    },
+    "orderCode": "333596416",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 13800000,
+    "createdAt": {
+      "$date": "2024-01-06T07:53:21Z"
+    },
+    "customerName": "Tố hoa",
+    "customerPhone": "0913512183",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690721c"
+        },
+        "sku": "DDN060124",
+        "productName": "Đầu đội khách đặt DDN060124",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839756"
+        }
+      }
+    ],
+    "shippingAddress": "6 BT4 X2 Khu Bắc Linh Đàm Phường Hoàng Liệt quận Hoàng Mai Hà Nội, Phường Hoàng Liệt, Quận Hoàng Mai, Hà Nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 15800000,
+    "updatedAt": {
+      "$date": "2024-01-06T07:53:21Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed7"
+    },
+    "orderCode": "325038040",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 12999000,
+    "createdAt": {
+      "$date": "2023-12-16T03:27:33Z"
+    },
+    "customerName": "chị nga",
+    "customerPhone": "0383528719",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "giao hàng giờ hành chính :Buoi sáng từ 9 h -12 h , Buoi chiều từ 15 h - 21 h ( khi đó khách mới nhận được hàng)",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907222"
+        },
+        "sku": "2000214249262",
+        "productName": "Đầu đội khách đặt",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839757"
+        }
+      }
+    ],
+    "shippingAddress": "181 phố ga tt phu thái kim thành hải duong ( tạp hoá sơn ngân cạnh nhà nghỉ tự thanh ), Thị trấn Phú Thái, Huyện Kim Thành, Hải Dương",
+    "shippingFee": 99995,
+    "status": "Thành công",
+    "totalAmount": 13999000,
+    "updatedAt": {
+      "$date": "2023-12-16T03:27:33Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed8"
+    },
+    "orderCode": "323220268",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 9899000,
+    "createdAt": {
+      "$date": "2023-12-12T07:10:30Z"
+    },
+    "customerName": "Chị Hảo",
+    "customerPhone": "0339383999",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907226"
+        },
+        "sku": "DDV121223",
+        "productName": "Đầu đội khách đặt DDV121223",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839758"
+        }
+      }
+    ],
+    "shippingAddress": "Số 47/370 Đường Bình Lộc, Phương Tân Bình ,Thành phố Hải Dương, Tỉnh Hải Dương, Phường Tân Bình, Thành phố Hải Dương, Hải Dương",
+    "shippingFee": 79495,
+    "status": "Thành công",
+    "totalAmount": 9899000,
+    "updatedAt": {
+      "$date": "2023-12-12T07:10:30Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ed9"
+    },
+    "orderCode": "322158016",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2023-12-11T03:14:41Z"
+    },
+    "customerName": "VŨ THỊ  NINH",
+    "customerPhone": "0988526962",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907248"
+        },
+        "sku": "MHNU111023",
+        "productName": "Mái phủ hói siêu da silk base MHNU111023",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839759"
+        }
+      }
+    ],
+    "shippingAddress": "51 Ngô Quyền, Hàng Bài, Hoàn Kiếm, Hanoi",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 7499000,
+    "updatedAt": {
+      "$date": "2023-12-11T03:14:41Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2edc"
+    },
+    "orderCode": "294196387",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 9210000,
+    "createdAt": {
+      "$date": "2023-09-26T08:20:41Z"
+    },
+    "customerName": "CHỊ BAN NGÔ",
+    "customerPhone": "0987035023",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907255"
+        },
+        "sku": "DDV260923",
+        "productName": "Đầu đội siêu da silk base DDV260923",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883975c"
+        }
+      }
+    ],
+    "shippingAddress": "Ms Ban - 0987035023\nSố nhà 18 ngõ 2 ngách 3 Khu tập thể trường sỹ quan chính trị, P. Vệ An, TP. Bắc Ninh, T. Bắc Ninh, Phường Vệ An, Thành phố Bắc Ninh, Bắc Ninh",
+    "shippingFee": 76050,
+    "status": "Thành công",
+    "totalAmount": 11210000,
+    "updatedAt": {
+      "$date": "2023-09-26T08:20:41Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2edd"
+    },
+    "orderCode": "289576810",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 2099000,
+    "createdAt": {
+      "$date": "2023-09-12T08:05:10Z"
+    },
+    "customerName": "trần trung",
+    "customerPhone": "0977339976",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269073bc"
+        },
+        "sku": "MPNA 1411",
+        "productName": "Mái phủ nam 1411",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883975d"
+        }
+      }
+    ],
+    "shippingAddress": "tổ dân phố long thạnh1 phường phổ thạnh thị xã đức phổ quảng ngãi, Phường Phổ Thạnh, Thị xã Đức Phổ, Quảng Ngãi",
+    "shippingFee": 47495,
+    "status": "Thành công",
+    "totalAmount": 2299000,
+    "updatedAt": {
+      "$date": "2023-09-12T08:05:10Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2edb"
+    },
+    "orderCode": "307097498",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5499000,
+    "createdAt": {
+      "$date": "2023-11-02T06:55:30Z"
+    },
+    "customerName": "LUÂN PARIS",
+    "customerPhone": "0977016191",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690724b"
+        },
+        "sku": "DDN111023",
+        "productName": "Đầu đội machine weft DDN111023",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883975b"
+        }
+      }
+    ],
+    "shippingAddress": "Salon luân paris số nhà 14 ngõ 305 đường Lạc Long Quân phường ngọc trạo TP Thanh Hóa, Phường Ngọc Trạo, Thành phố Thanh Hóa, Thanh Hóa",
+    "shippingFee": 57495,
+    "status": "Thành công",
+    "totalAmount": 6499000,
+    "updatedAt": {
+      "$date": "2023-11-02T06:55:30Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2edf"
+    },
+    "orderCode": "279132436",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2023-08-11T07:18:57Z"
+    },
+    "customerName": "chị Hương",
+    "customerPhone": "0965306722",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907293"
+        },
+        "sku": "TNU0703",
+        "productName": "Tóc tém nữ TNU0703",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883975f"
+        }
+      }
+    ],
+    "shippingAddress": "98R chu văn an , rạch giá kiên Giang, Phường Vĩnh Lạc, Thành phố Rạch Giá, Kiên Giang",
+    "shippingFee": 32000,
+    "status": "Thành công",
+    "totalAmount": 3899000,
+    "updatedAt": {
+      "$date": "2023-08-11T07:18:57Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eda"
+    },
+    "orderCode": "313169484",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 3499000,
+    "createdAt": {
+      "$date": "2023-11-17T05:19:14Z"
+    },
+    "customerName": "chị HOA",
+    "customerPhone": "0394881296",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690729f"
+        },
+        "sku": "MHNU18041",
+        "productName": "Mái hói siêu da đầu MHNU18041",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883975a"
+        }
+      }
+    ],
+    "shippingAddress": "Sưởng may Khánh hoà  . Trường Cấp 2 xã thanh Vân , huyện Tam dương  Vĩnh phúc, Xã Thanh Vân, Huyện Tam Dương, Vĩnh Phúc",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 3499000,
+    "updatedAt": {
+      "$date": "2023-11-17T05:19:14Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ede"
+    },
+    "orderCode": "285183657",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": -8500000,
+    "createdAt": {
+      "$date": "2023-08-31T05:53:18Z"
+    },
+    "customerName": "anh Hoàng",
+    "customerPhone": "0988891770",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690726e"
+        },
+        "sku": "TNA040823",
+        "productName": "Tém nam siêu da đầu mono TNA040823",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883975e"
+        }
+      }
+    ],
+    "shippingAddress": "51 Đào Duy Anh, phường Hải Tân, thành phố Hải Dương ( khu đô thị Đông Nam Cường), Phường Trung Liệt, Quận Đống Đa, Hà Nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 8500000,
+    "updatedAt": {
+      "$date": "2023-08-31T05:53:18Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee2"
+    },
+    "orderCode": "276320497",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2023-08-04T02:46:51Z"
+    },
+    "customerName": "anh Hoàng",
+    "customerPhone": "0988891770",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690726e"
+        },
+        "sku": "TNA040823",
+        "productName": "Tém nam siêu da đầu mono TNA040823",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839762"
+        }
+      }
+    ],
+    "shippingAddress": "51 Đào Duy Anh, phường Hải Tân, thành phố Hải Dương ( khu đô thị Đông Nam Cường), Phường Hải Tân, Thành phố Hải Dương, Hải Dương",
+    "shippingFee": 67500,
+    "status": "Xác nhận hoàn",
+    "totalAmount": 8500000,
+    "updatedAt": {
+      "$date": "2023-08-04T02:46:51Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee0"
+    },
+    "orderCode": "278018658",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 7600000,
+    "createdAt": {
+      "$date": "2023-08-08T09:25:01Z"
+    },
+    "customerName": "Anh Bảy",
+    "customerPhone": "0912696979",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690726e"
+        },
+        "sku": "TNA040823",
+        "productName": "Tém nam siêu da đầu mono TNA040823",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839760"
+        }
+      }
+    ],
+    "shippingAddress": "Sgd Bất Động San. Chợ đầu mối Thổ Tang Huyện Vĩnh Tường. Tỉnh Vĩnh Phúc, Thị trấn Vĩnh Tường, Huyện Vĩnh Tường, Vĩnh Phúc",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 8600000,
+    "updatedAt": {
+      "$date": "2023-08-08T09:25:01Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee1"
+    },
+    "orderCode": "278015402",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": -8500000,
+    "createdAt": {
+      "$date": "2023-08-08T09:18:01Z"
+    },
+    "customerName": "anh Hoàng",
+    "customerPhone": "0988891770",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690726e"
+        },
+        "sku": "TNA040823",
+        "productName": "Tém nam siêu da đầu mono TNA040823",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839761"
+        }
+      }
+    ],
+    "shippingAddress": "51 Đào Duy Anh, phường Hải Tân, thành phố Hải Dương ( khu đô thị Đông Nam Cường), Phường Trung Liệt, Quận Đống Đa, Hà Nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 8500000,
+    "updatedAt": {
+      "$date": "2023-08-08T09:18:01Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee3"
+    },
+    "orderCode": "274300682",
+    "__v": 0,
+    "carrier": "Tự Vận Chuyển",
+    "codAmount": 4700000,
+    "createdAt": {
+      "$date": "2023-07-28T07:39:05Z"
+    },
+    "customerName": "Chị Thanh",
+    "customerPhone": "0986022995",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907287"
+        },
+        "sku": "MHNU1902",
+        "productName": "Mái phủ hói siêu da đầu MHNU1902",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839763"
+        }
+      }
+    ],
+    "shippingAddress": "65 truong công giai, Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 5700000,
+    "updatedAt": {
+      "$date": "2023-07-28T07:39:05Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee6"
+    },
+    "orderCode": "241310163",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 4000000,
+    "createdAt": {
+      "$date": "2023-03-31T05:38:38Z"
+    },
+    "customerName": "Dương Hương",
+    "customerPhone": "0987524606",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074fa"
+        },
+        "sku": "DD428",
+        "productName": "Đầu đội xoáy machine weft 428",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839766"
+        }
+      }
+    ],
+    "shippingAddress": "CT1A, Văn Quán Hà Đông, Phường Văn Quán, Quận Hà Đông, Hà Nội",
+    "shippingFee": 42000,
+    "status": "Thành công",
+    "totalAmount": 4000000,
+    "updatedAt": {
+      "$date": "2023-03-31T05:38:38Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee5"
+    },
+    "orderCode": "269036692",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5200000,
+    "createdAt": {
+      "$date": "2023-07-11T09:37:23Z"
+    },
+    "customerName": "Nguyễn Thị Tiếng",
+    "customerPhone": "0989753180",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690742a"
+        },
+        "sku": "DDN548",
+        "productName": "ĐẦU ĐỘI NGÔI 548",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839765"
+        }
+      }
+    ],
+    "shippingAddress": "Ấp 4, xã Trung An Mỹ Tho tiền Giang, Xã Trung An, Thành phố Mỹ Tho, Tiền Giang",
+    "shippingFee": 58000,
+    "status": "Thành công",
+    "totalAmount": 6200000,
+    "updatedAt": {
+      "$date": "2023-07-11T09:37:23Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee4"
+    },
+    "orderCode": "273323806",
+    "__v": 0,
+    "carrier": "Ahamove",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2023-07-25T07:32:06Z"
+    },
+    "customerName": "Dinh An",
+    "customerPhone": "0902664284",
+    "deliveryStatus": "Chưa đối soát",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269072c6"
+        },
+        "sku": "MHNU 080523",
+        "productName": "Mái phủ siêu da silk base 080523",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839764"
+        }
+      }
+    ],
+    "shippingAddress": "T11 TIME CITY, Phường Vĩnh Tuy, Quận Hai Bà Trưng, Hà Nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 8899000,
+    "updatedAt": {
+      "$date": "2023-07-25T07:32:06Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee9"
+    },
+    "orderCode": "233432095",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 1700000,
+    "createdAt": {
+      "$date": "2023-02-27T06:00:03Z"
+    },
+    "customerName": "Nguyễn Nhật Trà",
+    "customerPhone": "0868611101",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269073f6"
+        },
+        "sku": "DMH 2710",
+        "productName": "dán mái hói 2710",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839769"
+        }
+      }
+    ],
+    "shippingAddress": "15 Đức Sơn, Đức Mạnh, Đăkmil, Đăk Nông, Xã Đức Mạnh, Huyện Đăk Mil, Đắk Nông",
+    "shippingFee": 45500,
+    "status": "Thành công",
+    "totalAmount": 2200000,
+    "updatedAt": {
+      "$date": "2023-02-27T06:00:03Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee7"
+    },
+    "orderCode": "239614227",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 3499000,
+    "createdAt": {
+      "$date": "2023-03-24T04:49:48Z"
+    },
+    "customerName": "Nam Hải",
+    "customerPhone": "0977278666",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907390"
+        },
+        "sku": "DDNA 0512",
+        "productName": "tém nam 0212",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839767"
+        }
+      }
+    ],
+    "shippingAddress": "141 Sài đồng, Phường Sài Đồng, Quận Long Biên, Hà Nội",
+    "shippingFee": 39495,
+    "status": "Thành công",
+    "totalAmount": 3499000,
+    "updatedAt": {
+      "$date": "2023-03-24T04:49:48Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ee8"
+    },
+    "orderCode": "238716556",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 13000000,
+    "createdAt": {
+      "$date": "2023-03-20T09:30:02Z"
+    },
+    "customerName": "An Nguyễn",
+    "customerPhone": "0948390149",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690748f"
+        },
+        "sku": "XITDUONGHCM",
+        "productName": "Xịt dưỡng tóc LADYSTARS",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839768"
+        }
+      }
+    ],
+    "shippingAddress": "An Nguyễn\nUBND huyện Vĩnh Hưng, thị trấn Vĩnh Hưng, huyện Vĩnh Hưng, tỉnh Long An\n0948390149, Thị trấn Vĩnh Hưng, Huyện Vĩnh Hưng, Long An",
+    "shippingFee": 110000,
+    "status": "Thành công",
+    "totalAmount": 13800000,
+    "updatedAt": {
+      "$date": "2023-03-20T09:30:02Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eea"
+    },
+    "orderCode": "224685717",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 6726000,
+    "createdAt": {
+      "$date": "2023-01-15T07:59:35Z"
+    },
+    "customerName": "Ms. Ban",
+    "customerPhone": "0987035023",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907340"
+        },
+        "sku": "DDNU 1501",
+        "productName": "Đầu đội siêu da siêu base",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883976a"
+        }
+      }
+    ],
+    "shippingAddress": "Ms Ban - 0987035023\nSố nhà 18 ngõ 2 ngách 3 Khu tập thể trường sỹ quan chính trị, P. Vệ An, TP. Bắc Ninh, T. Bắc Ninh, Phường Vệ An, Thành phố Bắc Ninh, Bắc Ninh",
+    "shippingFee": 63630,
+    "status": "Thành công",
+    "totalAmount": 11286000,
+    "updatedAt": {
+      "$date": "2023-01-15T07:59:35Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eeb"
+    },
+    "orderCode": "223463073",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5700000,
+    "createdAt": {
+      "$date": "2023-01-11T04:35:40Z"
+    },
+    "customerName": "Diệp Anh",
+    "customerPhone": "0373250533",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907398"
+        },
+        "sku": "DDNU 2911",
+        "productName": "Đầu đội machine weft 2911",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883976b"
+        }
+      }
+    ],
+    "shippingAddress": "Ng nhận: Diệp Anh\n0373250533\nSố nhà 41, đường Lương Khánh Thiện, khu Nam Đồng Mạ, Thanh Miếu, Việt Trì, Phú Thọ, Phường Thanh Miếu, Thành phố Việt Trì, Phú Thọ",
+    "shippingFee": 58500,
+    "status": "Thành công",
+    "totalAmount": 6200000,
+    "updatedAt": {
+      "$date": "2023-01-11T04:35:40Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eec"
+    },
+    "orderCode": "222241280",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 4200000,
+    "createdAt": {
+      "$date": "2023-01-07T11:05:25Z"
+    },
+    "customerName": "CHỊ HOÀNG TÚ",
+    "customerPhone": "0964794599",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690734f"
+        },
+        "sku": "DDN667",
+        "productName": "ĐẦU ĐỘI NGÔI DDN667",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883976c"
+        }
+      }
+    ],
+    "shippingAddress": "Hoàng thị thanh Tú. Làng Krai, Thị trấn Phú hoà, chư păh, gia lai, Thị trấn Phú Hòa, Huyện Chư Păh, Gia Lai",
+    "shippingFee": 58000,
+    "status": "Thành công",
+    "totalAmount": 6200000,
+    "updatedAt": {
+      "$date": "2023-01-07T11:05:25Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho LUXY"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eed"
+    },
+    "orderCode": "219219880",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 3999000,
+    "createdAt": {
+      "$date": "2022-12-29T07:17:34Z"
+    },
+    "customerName": "Cô Ngát",
+    "customerPhone": "0984199087",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907497"
+        },
+        "sku": "2000002360438",
+        "productName": "Lược gỡ rối",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883976d"
+        }
+      }
+    ],
+    "shippingAddress": "Đường 2 mai đình, sóc sơn,hà nội cạnh FPT cháu nhé \n098 4199087 thu phương \n0913599601 chú sơn cháu nhé, Xã Mai Đình, Huyện Sóc Sơn, Hà Nội",
+    "shippingFee": 49995,
+    "status": "Thành công",
+    "totalAmount": 13999000,
+    "updatedAt": {
+      "$date": "2022-12-29T07:17:34Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eee"
+    },
+    "orderCode": "218022234",
+    "__v": 0,
+    "carrier": "",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2022-12-25T03:20:57Z"
+    },
+    "customerName": "Cô Vân",
+    "customerPhone": "0912430813",
+    "deliveryStatus": "Chưa đối soát",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269073c1"
+        },
+        "sku": "MHNU 1311",
+        "productName": "Mái phủ silk base 1311",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883976e"
+        }
+      }
+    ],
+    "shippingAddress": "hà nội",
+    "shippingFee": 0,
+    "status": "Thành công",
+    "totalAmount": 3800000,
+    "updatedAt": {
+      "$date": "2022-12-25T03:20:57Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eef"
+    },
+    "orderCode": "217609168",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5600000,
+    "createdAt": {
+      "$date": "2022-12-23T07:31:10Z"
+    },
+    "customerName": "Dương Thị Sang",
+    "customerPhone": "0395728237",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907398"
+        },
+        "sku": "DDNU 2911",
+        "productName": "Đầu đội machine weft 2911",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883976f"
+        }
+      }
+    ],
+    "shippingAddress": "Dương lãnh . Hiệp Hòa , tân liên  , hướng hoá , Quảng trị . Sdt 0395728237, Xã Tân Liên, Huyện Hướng Hóa, Quảng Trị",
+    "shippingFee": 65000,
+    "status": "Thành công",
+    "totalAmount": 6100000,
+    "updatedAt": {
+      "$date": "2022-12-23T07:31:10Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef1"
+    },
+    "orderCode": "214807060",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2022-12-13T11:17:09Z"
+    },
+    "customerName": "chị Phượng",
+    "customerPhone": "0919923059",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907389"
+        },
+        "sku": "DDNU 1012",
+        "productName": "Đầu đội siêu da siêu base 1012",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839771"
+        }
+      }
+    ],
+    "shippingAddress": "Chị Phượng Thôn Đông Mai  xã Thụy Ninh huyện Thái Thụy tỉnh Thái Bình, Xã Thụy Ninh, Huyện Thái Thụy, Thái Bình",
+    "shippingFee": 37000,
+    "status": "Thành công",
+    "totalAmount": 16800000,
+    "updatedAt": {
+      "$date": "2022-12-13T11:17:09Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef2"
+    },
+    "orderCode": "213426626",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 4000000,
+    "createdAt": {
+      "$date": "2022-12-10T06:37:56Z"
+    },
+    "customerName": "Diệu Anh",
+    "customerPhone": "0926276666",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690757d"
+        },
+        "sku": "DDX456",
+        "productName": "Đầu Đội Xoáy Machine Weft 456",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839772"
+        }
+      }
+    ],
+    "shippingAddress": "Toà S5.02, Vinhomes Grand Park, đuong Nguyễn Xiển, phưởng Long Thạnh Mỹ, TP Thủ Đức, TP HCM, Phường Long Thạnh Mỹ, Thành Phố Thủ Đức, Hồ Chí Minh",
+    "shippingFee": 50000,
+    "status": "Thành công",
+    "totalAmount": 4000000,
+    "updatedAt": {
+      "$date": "2022-12-10T06:37:56Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef3"
+    },
+    "orderCode": "213240480",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 4440000,
+    "createdAt": {
+      "$date": "2022-12-09T10:30:09Z"
+    },
+    "customerName": "chị Phượng",
+    "customerPhone": "0919923059",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "Chị Phượng xã Thụy Ninh huyện Thái Thụy tỉnh Thái Bình",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907395"
+        },
+        "sku": "MHNU 02",
+        "productName": "mái phủ silk base 02",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839773"
+        }
+      }
+    ],
+    "shippingAddress": "Chị Phượng xã Thụy Ninh huyện Thái Thụy tỉnh Thái Bình, Xã Thụy Ninh, Huyện Thái Thụy, Thái Bình",
+    "shippingFee": 57200,
+    "status": "Khách hủy",
+    "totalAmount": 4940000,
+    "updatedAt": {
+      "$date": "2022-12-09T10:30:09Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef5"
+    },
+    "orderCode": "207072777",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5260000,
+    "createdAt": {
+      "$date": "2022-11-14T03:00:57Z"
+    },
+    "customerName": "chị nguyệt",
+    "customerPhone": "0985351535",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074d8"
+        },
+        "sku": "DDV 1004",
+        "productName": "Đầu đội siêu da đầu Silk Base 1004",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839775"
+        }
+      }
+    ],
+    "shippingAddress": "25B Nguyễn Duy Hiệu, Thảo Điền, Quận 2 tphcm, Phường Thảo Điền, Hồ Chí Minh",
+    "shippingFee": 56300,
+    "status": "HVC hủy",
+    "totalAmount": 10260000,
+    "updatedAt": {
+      "$date": "2022-11-14T03:00:57Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho LUXY"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef0"
+    },
+    "orderCode": "215250290",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 14510000,
+    "createdAt": {
+      "$date": "2022-12-15T02:37:22Z"
+    },
+    "customerName": "Ngọc Ánh",
+    "customerPhone": "0372024942",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907726"
+        },
+        "sku": "DDV 1501",
+        "productName": "Đầu đội siêu da đầu Silk Base 1501",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839770"
+        }
+      }
+    ],
+    "shippingAddress": "Địa chỉ 779/28, tổ 22, khu phố 1, phường Tân Hiệp, Biên Hoà Đồng Nai, Phường Tân Hiệp, Thành phố Biên Hòa, Đồng Nai",
+    "shippingFee": 102550,
+    "status": "Thành công",
+    "totalAmount": 15010000,
+    "updatedAt": {
+      "$date": "2022-12-15T02:37:22Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef4"
+    },
+    "orderCode": "208710572",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 3800000,
+    "createdAt": {
+      "$date": "2022-11-21T06:45:35Z"
+    },
+    "customerName": "Thùy Dương",
+    "customerPhone": "0868180768",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269073c1"
+        },
+        "sku": "MHNU 1311",
+        "productName": "Mái phủ silk base 1311",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839774"
+        }
+      }
+    ],
+    "shippingAddress": "Cty cổ phần X20 phúc đồng quận long biên HN, Phường Phúc Đồng, Quận Long Biên, Hà Nội",
+    "shippingFee": 41000,
+    "status": "Thành công",
+    "totalAmount": 3800000,
+    "updatedAt": {
+      "$date": "2022-11-21T06:45:35Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef6"
+    },
+    "orderCode": "206407764",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5800000,
+    "createdAt": {
+      "$date": "2022-11-11T09:29:51Z"
+    },
+    "customerName": "Minh Quân",
+    "customerPhone": "0973938350",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269073c5"
+        },
+        "sku": "MHN 11",
+        "productName": "Mái phủ siêu da silk base 11",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839776"
+        }
+      }
+    ],
+    "shippingAddress": "Số 39 Thành Phao 3, Phả Lại, Chí Linh, Hải Dương, Phường Phả Lại, Thành Phố Chí Linh, Hải Dương",
+    "shippingFee": 59000,
+    "status": "Thành công",
+    "totalAmount": 6800000,
+    "updatedAt": {
+      "$date": "2022-11-11T09:29:51Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef8"
+    },
+    "orderCode": "202398260",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2022-10-25T10:25:07Z"
+    },
+    "customerName": "Trần Thị Kim Cúc",
+    "customerPhone": "0774762105",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690748a"
+        },
+        "sku": "DD 400",
+        "productName": "Đầu đội xoáy machine weft 400",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839778"
+        }
+      }
+    ],
+    "shippingAddress": "Tổ dân phố Ngô Mây - Ba Ngòi - Cam Ranh - Khánh Hòa, Phường Ba Ngòi, Thành phố Cam Ranh, Khánh Hòa",
+    "shippingFee": 53000,
+    "status": "Đã hoàn",
+    "totalAmount": 4600000,
+    "updatedAt": {
+      "$date": "2022-10-25T10:25:07Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2efa"
+    },
+    "orderCode": "197487495",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 4399000,
+    "createdAt": {
+      "$date": "2022-10-05T03:12:43Z"
+    },
+    "customerName": "Chị Trang",
+    "customerPhone": "0943447446",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907478"
+        },
+        "sku": "2000002498773",
+        "productName": "XỊT DƯỠNG 2",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883977a"
+        }
+      }
+    ],
+    "shippingAddress": "hẻm 197, xóm 3, phường 6 Lý thường kiệt - Thành phố Cà Mau, Phường 6, Thành phố Cà Mau, Cà Mau",
+    "shippingFee": 58995,
+    "status": "Thành công",
+    "totalAmount": 4399000,
+    "updatedAt": {
+      "$date": "2022-10-05T03:12:43Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef7"
+    },
+    "orderCode": "202582787",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 7500000,
+    "createdAt": {
+      "$date": "2022-10-26T06:51:12Z"
+    },
+    "customerName": "Chị Anh Anh",
+    "customerPhone": "0949797909",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907494"
+        },
+        "sku": "2000002389873",
+        "productName": "Xịt dưỡng tóc",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839777"
+        }
+      }
+    ],
+    "shippingAddress": "218 Ngô Quyền - Vĩnh lạc - Rạch Giá - Kiên Giang, Phường Vĩnh Lạc, Thành phố Rạch Giá, Kiên Giang",
+    "shippingFee": 79500,
+    "status": "Thành công",
+    "totalAmount": 9500000,
+    "updatedAt": {
+      "$date": "2022-10-26T06:51:12Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2ef9"
+    },
+    "orderCode": "198369304",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 1200000,
+    "createdAt": {
+      "$date": "2022-10-09T08:53:19Z"
+    },
+    "customerName": "chị Cúc",
+    "customerPhone": "0869031596",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269076e8"
+        },
+        "sku": "TNA 205",
+        "productName": "TÉM NAM 205",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839779"
+        }
+      }
+    ],
+    "shippingAddress": "Trường THCS Phạm Trấn ,Gia Lộc , Hải Dương, Thị trấn Gia Lộc, Huyện Gia Lộc, Hải Dương",
+    "shippingFee": 41000,
+    "status": "Thành công",
+    "totalAmount": 2200000,
+    "updatedAt": {
+      "$date": "2022-10-09T08:53:19Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2efb"
+    },
+    "orderCode": "194635568",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 3800000,
+    "createdAt": {
+      "$date": "2022-09-23T11:31:33Z"
+    },
+    "customerName": "Trần Thị Kim Cúc",
+    "customerPhone": "0774762105",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907468"
+        },
+        "sku": "MHNU 3004",
+        "productName": "Mái phủ Silk Base 3004",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883977b"
+        }
+      }
+    ],
+    "shippingAddress": "Tổ dân phố Ngô Mây - Ba Ngòi - Cam Ranh - Khánh Hòa, Phường Ba Ngòi, Thành phố Cam Ranh, Khánh Hòa",
+    "shippingFee": 49000,
+    "status": "Thành công",
+    "totalAmount": 3800000,
+    "updatedAt": {
+      "$date": "2022-09-23T11:31:33Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2efc"
+    },
+    "orderCode": "194487056",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 10544000,
+    "createdAt": {
+      "$date": "2022-09-23T03:39:29Z"
+    },
+    "customerName": "Chị Hảo",
+    "customerPhone": "0339383999",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690748c"
+        },
+        "sku": "DDV 1205",
+        "productName": "Đầu đội siêu da đầu Silk Base Ladystars 1205",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883977c"
+        }
+      }
+    ],
+    "shippingAddress": "Số 47/370 Đường Bình Lộc, Phương Tân Bình ,Thành phố Hải Dương, Tỉnh Hải Dương, Phường Tân Bình, Thành phố Hải Dương, Hải Dương",
+    "shippingFee": 82720,
+    "status": "Thành công",
+    "totalAmount": 12544000,
+    "updatedAt": {
+      "$date": "2022-09-23T03:39:29Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2efd"
+    },
+    "orderCode": "194467109",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 0,
+    "createdAt": {
+      "$date": "2022-09-23T02:39:06Z"
+    },
+    "customerName": "Thuydu",
+    "customerPhone": "0399978332",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074bf"
+        },
+        "sku": "PP 501",
+        "productName": "Phím phồng 501",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883977d"
+        }
+      }
+    ],
+    "shippingAddress": "số nhà 35 ngõ 343 tổ 16 cụm 2, Phường Phú Thượng, Quận Tây Hồ, Hà Nội",
+    "shippingFee": 22000,
+    "status": "Đã hoàn",
+    "totalAmount": 550000,
+    "updatedAt": {
+      "$date": "2022-09-23T02:39:06Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2efe"
+    },
+    "orderCode": "194119391",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 6800000,
+    "createdAt": {
+      "$date": "2022-09-21T08:20:15Z"
+    },
+    "customerName": "Phạm Thị Duyên",
+    "customerPhone": "0812410238",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907738"
+        },
+        "sku": "DDN 601",
+        "productName": "Đầu đội may máy machine weft 601",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883977e"
+        }
+      }
+    ],
+    "shippingAddress": "Đội 5 xã Gia Thắng, Huyện Gia Viễn, Ninh Bình, Xã Gia Thắng, Huyện Gia Viễn, Ninh Bình",
+    "shippingFee": 69000,
+    "status": "Thành công",
+    "totalAmount": 6800000,
+    "updatedAt": {
+      "$date": "2022-09-21T08:20:15Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f00"
+    },
+    "orderCode": "190332284",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 229000,
+    "createdAt": {
+      "$date": "2022-09-06T08:19:30Z"
+    },
+    "customerName": "Chị Hương",
+    "customerPhone": "0329920037",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907494"
+        },
+        "sku": "2000002389873",
+        "productName": "Xịt dưỡng tóc",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839780"
+        }
+      }
+    ],
+    "shippingAddress": "Quất Lâm, Quất Động, Thường Tín, Hà Nội, Xã Quất Động, Huyện Thường Tín, Hà Nội",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 199000,
+    "updatedAt": {
+      "$date": "2022-09-06T08:19:30Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2eff"
+    },
+    "orderCode": "192873220",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 6500000,
+    "createdAt": {
+      "$date": "2022-09-15T08:58:28Z"
+    },
+    "customerName": "Nguyễn Hương",
+    "customerPhone": "0832870839",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074a8"
+        },
+        "sku": "DDN 704",
+        "productName": "Đầu đội may máy machine weft 704",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883977f"
+        }
+      }
+    ],
+    "shippingAddress": "Công ty cổ phần lâm sản Nam Định, Lô C1, Đường D2, Khu công nghiệp Hòa Xá, Phường Lộc Hòa, TP Nam Định, Tỉnh Nam Định, Phường Lộc Hòa, Thành phố Nam Định, Nam Định",
+    "shippingFee": 62500,
+    "status": "Thành công",
+    "totalAmount": 7500000,
+    "updatedAt": {
+      "$date": "2022-09-15T08:58:28Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f01"
+    },
+    "orderCode": "190331858",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 790000,
+    "createdAt": {
+      "$date": "2022-09-06T08:17:57Z"
+    },
+    "customerName": "chị Linh",
+    "customerPhone": "0974726154",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "COD",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690748b"
+        },
+        "sku": "PP 301",
+        "productName": "Phím phồng 301",
+        "quantity": 2,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839781"
+        }
+      }
+    ],
+    "shippingAddress": "149 Nguyễn Đình Chiểu, p6, quận 3, tphcm, Quận 3, Hồ Chí Minh",
+    "shippingFee": 30000,
+    "status": "Thành công",
+    "totalAmount": 760000,
+    "updatedAt": {
+      "$date": "2022-09-06T08:17:57Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f03"
+    },
+    "orderCode": "188620762",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 2800000,
+    "createdAt": {
+      "$date": "2022-08-28T07:48:06Z"
+    },
+    "customerName": "Chị Hương",
+    "customerPhone": "0329920037",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074fb"
+        },
+        "sku": "DD427",
+        "productName": "Đầu đội xoáy machine weft 427",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839783"
+        }
+      }
+    ],
+    "shippingAddress": "Quất Lâm, Quất Động, Thường Tín, Hà Nội, Xã Quất Động, Huyện Thường Tín, Hà Nội",
+    "shippingFee": 44000,
+    "status": "Thành công",
+    "totalAmount": 3800000,
+    "updatedAt": {
+      "$date": "2022-08-28T07:48:06Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f02"
+    },
+    "orderCode": "189213560",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 2275000,
+    "createdAt": {
+      "$date": "2022-08-31T08:13:07Z"
+    },
+    "customerName": "chị Huyền",
+    "customerPhone": "0989606150",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690767d"
+        },
+        "sku": "DD 416",
+        "productName": "Đầu đội xoáy machine weft 416",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839782"
+        }
+      }
+    ],
+    "shippingAddress": "Thôn Lâm Tiên - xã Nguyên Khê - Đông Anh - Hà Nội, Xã Nguyên Khê, Huyện Đông Anh, Hà Nội",
+    "shippingFee": 41375,
+    "status": "Thành công",
+    "totalAmount": 4275000,
+    "updatedAt": {
+      "$date": "2022-08-31T08:13:07Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f04"
+    },
+    "orderCode": "186674439",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 3800000,
+    "createdAt": {
+      "$date": "2022-08-19T07:33:50Z"
+    },
+    "customerName": "Chị Chi",
+    "customerPhone": "0976958734",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690771d"
+        },
+        "sku": "DD 405",
+        "productName": "Đầu đội xoáy machine weft 405",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839784"
+        }
+      }
+    ],
+    "shippingAddress": "Trạm y tế xã sin suối hồ, phong thổ, lai châu, Xã Sin Suối Hồ, Huyện Phong Thổ, Lai Châu",
+    "shippingFee": 54000,
+    "status": "Thành công",
+    "totalAmount": 4800000,
+    "updatedAt": {
+      "$date": "2022-08-19T07:33:50Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f05"
+    },
+    "orderCode": "186430397",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 2200000,
+    "createdAt": {
+      "$date": "2022-08-18T04:18:38Z"
+    },
+    "customerName": "Chị Nhung",
+    "customerPhone": "0937338802",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269076e3"
+        },
+        "sku": "TNA 304",
+        "productName": "TÉM NAM 304",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839785"
+        }
+      }
+    ],
+    "shippingAddress": "số 449A phạm văn chí, phường 7, quận 6, Phường 7, Quận 6, Hồ Chí Minh",
+    "shippingFee": 41000,
+    "status": "Thành công",
+    "totalAmount": 3200000,
+    "updatedAt": {
+      "$date": "2022-08-18T04:18:38Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f08"
+    },
+    "orderCode": "182796464",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 9800000,
+    "createdAt": {
+      "$date": "2022-08-04T07:56:18Z"
+    },
+    "customerName": "LÊ THỊ PHƯƠNG KIM",
+    "customerPhone": "0986711117",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074c6"
+        },
+        "sku": "DDKĐ",
+        "productName": "Đầu đội khách đặt làm lại",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839788"
+        }
+      }
+    ],
+    "shippingAddress": "ẤP 15 XÃ VĨNH MỸ B, HUYỆN HÒA BÌNH , TỈNH BẠC LIÊU, Xã Vĩnh Mỹ B, Huyện Hòa Bình, Bạc Liêu",
+    "shippingFee": 81000,
+    "status": "Thành công",
+    "totalAmount": 11800000,
+    "updatedAt": {
+      "$date": "2022-08-04T07:56:18Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f09"
+    },
+    "orderCode": "181298819",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 9800000,
+    "createdAt": {
+      "$date": "2022-07-28T07:38:36Z"
+    },
+    "customerName": "LÊ THỊ PHƯƠNG KIM",
+    "customerPhone": "0986711117",
+    "deliveryStatus": "Chưa thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "<br>(Đơn hàng đã bị khách trả lại tại quầy ID: 1528180)",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074d5"
+        },
+        "sku": "DDN 1104",
+        "productName": "Đầu đội may máy machine weft 1104",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839789"
+        }
+      }
+    ],
+    "shippingAddress": "ẤP 15 XÃ VĨNH MỸ B, HUYỆN HÒA BÌNH , TỈNH BẠC LIÊU, Xã Vĩnh Mỹ B, Huyện Hòa Bình, Bạc Liêu",
+    "shippingFee": 81000,
+    "status": "Khách hủy",
+    "totalAmount": 11800000,
+    "updatedAt": {
+      "$date": "2022-07-28T07:38:36Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f07"
+    },
+    "orderCode": "184281079",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 4200000,
+    "createdAt": {
+      "$date": "2022-08-09T03:00:39Z"
+    },
+    "customerName": "Đàm Nguyệt",
+    "customerPhone": "0949281083",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "<br>(Đơn hàng đã bị khách trả lại tại quầy ID: 1528146)",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269076fd"
+        },
+        "sku": "MHNU 501",
+        "productName": "Mái phủ hói siêu da Silk Base Ladystars 501",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839787"
+        }
+      }
+    ],
+    "shippingAddress": "UBND xã Yên trường, yên định, thanh hóa, Xã Yên Trường, Huyện Yên Định, Thanh Hóa",
+    "shippingFee": 56000,
+    "status": "Khách hủy",
+    "totalAmount": 5200000,
+    "updatedAt": {
+      "$date": "2022-08-09T03:00:39Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f06"
+    },
+    "orderCode": "185415458",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 5200000,
+    "createdAt": {
+      "$date": "2022-08-14T08:53:03Z"
+    },
+    "customerName": "Le Nguyên Sa",
+    "customerPhone": "0908825453",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074c3"
+        },
+        "sku": "DDN 612",
+        "productName": "Đầu đội may máy machine weft 612",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f8839786"
+        }
+      }
+    ],
+    "shippingAddress": "73 Trần Hưng Đạo, khóm 6, Thị trấn cầu kè, Trà Vinh, Thị trấn Cầu Kè, Huyện Cầu Kè, Trà Vinh",
+    "shippingFee": 66000,
+    "status": "Thành công",
+    "totalAmount": 6200000,
+    "updatedAt": {
+      "$date": "2022-08-14T08:53:03Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f0a"
+    },
+    "orderCode": "181004443",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 12000000,
+    "createdAt": {
+      "$date": "2022-07-27T04:31:02Z"
+    },
+    "customerName": "CHÚ SƠN",
+    "customerPhone": "0913599601",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e8481269074da"
+        },
+        "sku": "DDVKD3",
+        "productName": "ĐẦU ĐỘI VIP KHÁCH  ĐẶT",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883978a"
+        }
+      }
+    ],
+    "shippingAddress": "ĐƯỜNG 2 MAI ĐÌNH, SÓC SƠN, HÀ NỘI, Xã Mai Đình, Huyện Sóc Sơn, Hà Nội",
+    "shippingFee": 90000,
+    "status": "Thành công",
+    "totalAmount": 14000000,
+    "updatedAt": {
+      "$date": "2022-07-27T04:31:02Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f0b"
+    },
+    "orderCode": "180533750",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 3600000,
+    "createdAt": {
+      "$date": "2022-07-25T04:58:59Z"
+    },
+    "customerName": "chị  Tuyết",
+    "customerPhone": "0988977032",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907722"
+        },
+        "sku": "DD 414",
+        "productName": "Đầu đội xoáy machine weft 414",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883978b"
+        }
+      }
+    ],
+    "shippingAddress": "số 8 ngõ 34 đường Trần Đăng Ninh, quyết Tâm, Son La, Phường Quyết Tâm, Thành phố Sơn La, Sơn La",
+    "shippingFee": 48000,
+    "status": "Thành công",
+    "totalAmount": 4600000,
+    "updatedAt": {
+      "$date": "2022-07-25T04:58:59Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f0c"
+    },
+    "orderCode": "177682382",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 16700000,
+    "createdAt": {
+      "$date": "2022-07-12T09:15:40Z"
+    },
+    "customerName": "Nana VŨ",
+    "customerPhone": "0988450088",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "khách trả lại  2 mái 5.200.000 (Đơn hàng đã bị khách trả lại tại quầy ID: 1044188) (Đơn hàng đã bị khách trả lại tại quầy ID: 1044282) | Khách trả lại 2 mái hói 5.200.000",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e848126907516"
+        },
+        "sku": "MHNU kd1",
+        "productName": "MÁI HÓI KHÁCH ĐẶT",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883978c"
+        }
+      }
+    ],
+    "shippingAddress": "538/12 QUANG TRUNG, P11, GÒ VẤP, Phường 11, Quận Gò Vấp, Hồ Chí Minh",
+    "shippingFee": 113500,
+    "status": "Thành công",
+    "totalAmount": 17200000,
+    "updatedAt": {
+      "$date": "2022-07-12T09:15:40Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  },
+  {
+    "_id": {
+      "$oid": "6a32976b8f38685141bc2f0d"
+    },
+    "orderCode": "175200741",
+    "__v": 0,
+    "carrier": "Giao hàng tiết kiệm",
+    "codAmount": 9300000,
+    "createdAt": {
+      "$date": "2022-07-02T02:45:14Z"
+    },
+    "customerName": "Nguyễn Thu Hòa",
+    "customerPhone": "0949873889",
+    "deliveryStatus": "Đã thanh toán",
+    "eInvoiceStatus": "Chưa tạo",
+    "note": "Nếu không gọi được cho khách, có thể liên hệ sdt chị Tuệ TÂM ( 0886213548)",
+    "packageWeight": 0,
+    "paymentMethod": "Chuyển khoản",
+    "products": [
+      {
+        "productId": {
+          "$oid": "6a3280719c9e84812690772d"
+        },
+        "sku": "DDV 901",
+        "productName": "Đầu đội siêu da đầu Silk Base 901",
+        "quantity": 1,
+        "scannedQuantity": 0,
+        "_id": {
+          "$oid": "6a32976a67cb04b6f883978d"
+        }
+      }
+    ],
+    "shippingAddress": "bệnh viện lạc việt, vĩnh yên, Xã Định Trung, Thành phố Vĩnh Yên, Vĩnh Phúc",
+    "shippingFee": 76500,
+    "status": "Thành công",
+    "totalAmount": 9800000,
+    "updatedAt": {
+      "$date": "2022-07-02T02:45:14Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "warehouse": "Kho Hà Nội"
+  }
+]

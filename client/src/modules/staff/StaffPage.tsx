@@ -1,4 +1,5 @@
 import { FormEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Edit3, KeyRound, Lock, MoreHorizontal, RefreshCw, ShieldCheck, Trash2, Unlock, UserCog, Users, WalletCards } from 'lucide-react';
 import { http } from '../../core/api/http';
@@ -138,6 +139,7 @@ export function StaffPage() {
   const [rowMenuOpen, setRowMenuOpen] = useState<string | null>(null);
   const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
   const rowMenuRef = useRef<HTMLDivElement | null>(null);
+  const rowMenuPanelRef = useRef<HTMLDivElement | null>(null);
 
   const selectedStaff = useMemo(
     () => staff.find((item) => getId(item) === selectedStaffId),
@@ -208,8 +210,13 @@ export function StaffPage() {
   const toggleRowMenu = (item: StaffAccount, event: ReactMouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const menuWidth = 220;
-    const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-    setRowMenuPos({ top: rect.bottom + 6, left });
+    const menuHeight = 184;
+    const gap = 6;
+    const viewportPadding = 8;
+    const left = Math.max(viewportPadding, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding));
+    const opensBelow = rect.bottom + gap + menuHeight <= window.innerHeight - viewportPadding;
+    const top = opensBelow ? rect.bottom + gap : Math.max(viewportPadding, rect.top - menuHeight - gap);
+    setRowMenuPos({ top, left });
     setRowMenuOpen((current) => (current === getId(item) ? null : getId(item)));
   };
 
@@ -217,7 +224,7 @@ export function StaffPage() {
     if (!rowMenuOpen) return;
     const close = (event: MouseEvent) => {
       const target = event.target;
-      if (target instanceof Element && rowMenuRef.current?.contains(target)) return;
+      if (target instanceof Element && (rowMenuRef.current?.contains(target) || rowMenuPanelRef.current?.contains(target))) return;
       setRowMenuOpen(null);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -501,17 +508,19 @@ export function StaffPage() {
                         >
                           <MoreHorizontal size={17} />
                         </button>
-                        {rowMenuOpen === getId(item) && rowMenuPos && (
+                        {rowMenuOpen === getId(item) && rowMenuPos && createPortal(
                           <div
+                            ref={rowMenuPanelRef}
                             className="dropdown-menu staff-row-menu-panel"
-                            style={{ position: 'fixed', top: rowMenuPos.top, left: rowMenuPos.left, right: 'auto' }}
+                            style={{ position: 'fixed', top: rowMenuPos.top, left: rowMenuPos.left, right: 'auto', zIndex: 240 }}
                             onClick={(event) => event.stopPropagation()}
                           >
                             <button className="dropdown-item" type="button" onClick={() => { setRowMenuOpen(null); openEdit(item); }}><Edit3 size={15} /> Sửa thông tin</button>
                             <button className="dropdown-item" type="button" onClick={() => { setRowMenuOpen(null); void toggleStatus(item); }}>{item.status === 'LOCKED' ? <Unlock size={15} /> : <Lock size={15} />} {item.status === 'LOCKED' ? 'Mở khóa' : 'Khóa'}</button>
                             <button className="dropdown-item" type="button" onClick={() => { setRowMenuOpen(null); setResetTarget(item); }}><KeyRound size={15} /> Reset mật khẩu</button>
                             <button className="dropdown-item danger" type="button" onClick={() => { setRowMenuOpen(null); setDeleteTarget(item); }}><Trash2 size={15} /> Xóa</button>
-                          </div>
+                          </div>,
+                          document.body,
                         )}
                       </div>
                     </td>

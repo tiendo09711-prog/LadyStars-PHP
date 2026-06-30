@@ -1,0 +1,4830 @@
+[
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ac"
+    },
+    "productCode": "MINH-080425",
+    "productName": "Đầu đội siêu da silk base DDVc",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-06-03T03:28:35Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T03:28:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ad"
+    },
+    "productCode": "N502102",
+    "productName": "NGOẠM XOĂN N502102",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-05-05T03:51:29Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-05T03:51:29Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082af"
+    },
+    "productCode": "DDN100124",
+    "productName": "Đầu đội machine weft DDN100124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-04-11T02:54:04Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-11T02:54:04Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b5"
+    },
+    "productCode": "MHNA2901261",
+    "productName": "Mái phủ hói nam MHNA2901261",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-29T04:10:20Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-29T04:10:20Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b7"
+    },
+    "productCode": "TNU230126",
+    "productName": "Tóc tém TNU230126",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-23T05:35:48Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-23T05:35:48Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b8"
+    },
+    "productCode": "TLV451601234",
+    "productName": "TÓC LÔNG VŨ 451601234 ĐEN",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-17T08:33:06Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-17T08:33:06Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082bd"
+    },
+    "productCode": "MHNU 2710",
+    "productName": "Mái hói nữ 2710",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-14T09:36:45Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-14T09:36:45Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082be"
+    },
+    "productCode": "MHNU2010",
+    "productName": "MÁI HÓI NỮ MHNU2010",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-14T09:33:34Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-14T09:33:34Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082bf"
+    },
+    "productCode": "HÀ-250825",
+    "productName": "Đầu đội siêu da silk base DDV250825",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-13T10:46:37Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-13T10:46:37Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c2"
+    },
+    "productCode": "MHNU1301261",
+    "productName": "Mái phủ hói siêu da silk base MHNU1301261",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-13T09:54:13Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-13T09:54:13Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c6"
+    },
+    "productCode": "MHNU0812255",
+    "productName": "Mái hói siêu da silk base MHNU0812255",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-12-08T09:54:52Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-08T09:54:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c7"
+    },
+    "productCode": "DDN2811251",
+    "productName": "Đầu đội machine weft DDN2811251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-28T03:40:32Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-28T03:40:32Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082cc"
+    },
+    "productCode": "UNKNOWN.37",
+    "productName": "sửa tóc cô liên",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-22T05:13:48Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-22T05:13:48Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ce"
+    },
+    "productCode": "HÂN-1911251",
+    "productName": "Đầu đội siêu da silk base DDV1911251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-19T04:26:50Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-19T04:26:50Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082cf"
+    },
+    "productCode": "hà-191125",
+    "productName": "Đầu đội siêu da silk base DDV191125",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-19T04:26:06Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-19T04:26:06Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d0"
+    },
+    "productCode": "TNU041125",
+    "productName": "Tóc tém siêu da TNU041125",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-04T09:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-04T09:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d1"
+    },
+    "productCode": "TNU231025",
+    "productName": "TÓC TÉM SIÊU DA TNU231025",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-04T09:27:49Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-04T09:27:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d2"
+    },
+    "productCode": "DDV2409251",
+    "productName": "Đầu đội siêu da silk base DDV2409251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-04T09:27:15Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-04T09:27:15Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d3"
+    },
+    "productCode": "DDV2409251",
+    "productName": "Đầu đội siêu da silk base DDV2409251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-10-23T03:51:24Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-23T03:51:24Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d5"
+    },
+    "productCode": "DDV240925",
+    "productName": "Đầu đội siêu da silk base DDV240925",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-09-24T08:10:52Z"
+    },
+    "updatedAt": {
+      "$date": "2025-09-24T08:10:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d6"
+    },
+    "productCode": "DDV6125",
+    "productName": "Đầu đội silk base DDV6125",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-08-21T08:11:30Z"
+    },
+    "updatedAt": {
+      "$date": "2025-08-21T08:11:30Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d7"
+    },
+    "productCode": "MT1507",
+    "productName": "Mái thưa MT1507",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-15T07:12:20Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-15T07:12:20Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082dd"
+    },
+    "productCode": "MHNA140725",
+    "productName": "Mái phủ hói nam siêu da silk base",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-14T11:06:14Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-14T11:06:14Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e2"
+    },
+    "productCode": "HÂN-170425",
+    "productName": "Đâu đội khách đặt DDV170425",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-04-22T07:24:47Z"
+    },
+    "updatedAt": {
+      "$date": "2025-04-22T07:24:47Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e4"
+    },
+    "productCode": "MINH-170425",
+    "productName": "Đâu đội siêu da SILK BASE DDV170425",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-04-17T06:50:42Z"
+    },
+    "updatedAt": {
+      "$date": "2025-04-17T06:50:42Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ec"
+    },
+    "productCode": "SEN-2112241",
+    "productName": "Đầu đội siêu da silk base DDV2112241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-02-19T04:43:28Z"
+    },
+    "updatedAt": {
+      "$date": "2025-02-19T04:43:28Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f0"
+    },
+    "productCode": "MHNU071258",
+    "productName": "Mái hói siêu da MHNU071258",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-01-09T08:11:05Z"
+    },
+    "updatedAt": {
+      "$date": "2025-01-09T08:11:05Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f1"
+    },
+    "productCode": "MHNU07125",
+    "productName": "Mái phủ hói 8*13 MHNU07125",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-01-07T10:20:26Z"
+    },
+    "updatedAt": {
+      "$date": "2025-01-07T10:20:26Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f5"
+    },
+    "productCode": "MHNU191124",
+    "productName": "Mái phủ hói 1 ngôi MHNU191124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-12-03T08:25:53Z"
+    },
+    "updatedAt": {
+      "$date": "2024-12-03T08:25:53Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f6"
+    },
+    "productCode": "MHNA82",
+    "productName": "Mái Phủ Hói Nam siêu da Silk Base 82",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-12-03T06:50:15Z"
+    },
+    "updatedAt": {
+      "$date": "2024-12-03T06:50:15Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082fb"
+    },
+    "productCode": "MHNU131124",
+    "productName": "mái hói có ngôi da đầu MHNU131124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-11-13T04:47:31Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-13T04:47:31Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908300"
+    },
+    "productCode": "TNU 350",
+    "productName": "Tém nữ 350",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T10:18:11Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T10:18:11Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908307"
+    },
+    "productCode": "TNU190424",
+    "productName": "Tóc tém TNU190424",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T09:57:35Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T09:57:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908309"
+    },
+    "productCode": "HUYỀN-MHNU100824",
+    "productName": "Mái hói siêu da đầu silk base MHNU100824",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-10T08:47:31Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-10T08:47:31Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690830d"
+    },
+    "productCode": "HÀ-240724",
+    "productName": "Mái hói siêu da silk base MHNU240724",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-24T09:09:12Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-24T09:09:12Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908319"
+    },
+    "productCode": "UNKNOWN.114",
+    "productName": "UNKNOWN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-06-11T10:32:27Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-11T10:32:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690831a"
+    },
+    "productCode": "UNKNOWN.115",
+    "productName": "UNKNOWN",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-06-11T10:31:55Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-11T10:31:55Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690831c"
+    },
+    "productCode": "UNKNOWN.117",
+    "productName": "xịt dưỡng tóc XD41023",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-05-20T03:15:26Z"
+    },
+    "updatedAt": {
+      "$date": "2024-05-20T03:15:26Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082a9"
+    },
+    "productCode": "BT",
+    "productName": "Búi tròn nhỏ",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-06-17T07:15:08Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T07:15:08Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082aa"
+    },
+    "productCode": "LC",
+    "productName": "Lưới chùm tóc 2508",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-06-17T06:51:50Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T06:51:50Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ab"
+    },
+    "productCode": "KU",
+    "productName": "kem ủ tóc LADYSTARS",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-06-17T05:33:35Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T05:33:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b0"
+    },
+    "productCode": "UNKNOWN.9",
+    "productName": "UNKNOWN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-04-02T07:52:30Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-02T07:52:30Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b1"
+    },
+    "productCode": "MHNU030226",
+    "productName": "Mái phủ hói siêu da silk base MHNU030226",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-02-03T04:41:51Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-03T04:41:51Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b4"
+    },
+    "productCode": "MHNU0302264",
+    "productName": "Mái phủ hói siêu da silk base MHNU0302264",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-02-03T03:41:10Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-03T03:41:10Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b9"
+    },
+    "productCode": "TLV451601234",
+    "productName": "TÓC LÔNG VŨ 451601234 ĐEN",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-17T08:24:04Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-17T08:24:04Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082bb"
+    },
+    "productCode": "N150126",
+    "productName": "NGOẠM NÂU HẠT DẺ",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-15T08:58:19Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-15T08:58:19Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082bc"
+    },
+    "productCode": "DDN150126",
+    "productName": "Đầu đội xoăn trung niên DDN150126",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-15T08:27:21Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-15T08:27:21Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c5"
+    },
+    "productCode": "hân-2107251",
+    "productName": "Mái phủ hói siêu da silk base MHNU2107251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-12-21T08:23:20Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-21T08:23:20Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c9"
+    },
+    "productCode": "MHNU0108241",
+    "productName": "MÁI PHỦ HÓI SIÊU DA MHNU0108241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-28T02:34:56Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-28T02:34:56Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ca"
+    },
+    "productCode": "MHNU010824",
+    "productName": "MÁI PHỦ HÓI SIÊU DA MHNU010824",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-28T02:34:10Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-28T02:34:10Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082cd"
+    },
+    "productCode": "UNKNOWN.38",
+    "productName": "sửa tóc cô liên",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-22T05:12:54Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-22T05:12:54Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d4"
+    },
+    "productCode": "TNU2409251",
+    "productName": "TÓC TÉM TNU2409251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-09-24T08:11:14Z"
+    },
+    "updatedAt": {
+      "$date": "2025-09-24T08:11:14Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082da"
+    },
+    "productCode": "MHNU2607242",
+    "productName": "Mái phủ 1 ngôi MHNU2607242",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-14T11:28:54Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-14T11:28:54Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082db"
+    },
+    "productCode": "MHNU2607241",
+    "productName": "Mái phủ siêu da 1 ngôi MHNU2607241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-14T11:16:42Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-14T11:16:42Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082de"
+    },
+    "productCode": "HUYỀN-30125",
+    "productName": "Mái phủ hói siêu da silk base MHNU30125",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-14T11:03:53Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-14T11:03:53Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082df"
+    },
+    "productCode": "MHNU0207254",
+    "productName": "Mái hói siêu da đầu silk base MHNU0207254",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-02T08:18:32Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-02T08:18:32Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e0"
+    },
+    "productCode": "DDV2306251",
+    "productName": "1Đầu đội siêu da silk base DDV2306251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-06-23T10:54:16Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-23T10:54:16Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e5"
+    },
+    "productCode": "trang-0504253",
+    "productName": "Mái phủ hói silk base MHNU0504253",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-04-05T04:33:59Z"
+    },
+    "updatedAt": {
+      "$date": "2025-04-05T04:33:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e7"
+    },
+    "productCode": "MINH-183253",
+    "productName": "Đầu đội siêu da silk base DDV183253",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-03-18T11:00:59Z"
+    },
+    "updatedAt": {
+      "$date": "2025-03-18T11:00:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e9"
+    },
+    "productCode": "UNKNOWN.66",
+    "productName": "UNKNOWN",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-03-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2025-03-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ef"
+    },
+    "productCode": "UNKNOWN.72",
+    "productName": "UNKNOWN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-01-25T08:06:49Z"
+    },
+    "updatedAt": {
+      "$date": "2025-01-25T08:06:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f3"
+    },
+    "productCode": "HUYỀN 21124",
+    "productName": "Đầu đội siêu da silk base DDV21124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-12-03T08:33:14Z"
+    },
+    "updatedAt": {
+      "$date": "2024-12-03T08:33:14Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082fc"
+    },
+    "productCode": "UNKNOWN.85",
+    "productName": "UNKNOWN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-09-29T08:27:26Z"
+    },
+    "updatedAt": {
+      "$date": "2024-09-29T08:27:26Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082fd"
+    },
+    "productCode": "HÀ-DDV280924",
+    "productName": "ĐẦU ĐỘI NGÔI DDV280924",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-09-28T07:02:23Z"
+    },
+    "updatedAt": {
+      "$date": "2024-09-28T07:02:23Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908303"
+    },
+    "productCode": "MHN 401",
+    "productName": "Mái Phủ Nam MHN401",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T10:12:24Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T10:12:24Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690830a"
+    },
+    "productCode": "HUYỀN-260724",
+    "productName": "Đầu đội siêu da silk base DDV260724",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-31T11:05:55Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-31T11:05:55Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690830b"
+    },
+    "productCode": "UNKNOWN.100",
+    "productName": "Đầu đội may tóc của khách",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-31T04:27:29Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-31T04:27:29Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908310"
+    },
+    "productCode": "HÀ 220624-2",
+    "productName": "đầu đội siêu da silkbase 220624",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-05T11:03:12Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-05T11:03:12Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908316"
+    },
+    "productCode": "HUYỀN  DDV280624",
+    "productName": "Đầu đội siêu da silk base DDV280624",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-06-28T11:30:06Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-28T11:30:06Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690831b"
+    },
+    "productCode": "DDV1208231",
+    "productName": "Đầu đội siêu da đầu silk base DDV1208231",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-06-03T04:20:48Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-03T04:20:48Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690831d"
+    },
+    "productCode": "MHNU170523",
+    "productName": "Mái hói siêu da đầu silk base MHNU170523",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-05-17T10:07:08Z"
+    },
+    "updatedAt": {
+      "$date": "2024-05-17T10:07:08Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690831f"
+    },
+    "productCode": "DDN140524",
+    "productName": "Đầu đội machine weft DDN140524",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-05-14T03:09:24Z"
+    },
+    "updatedAt": {
+      "$date": "2024-05-14T03:09:24Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b2"
+    },
+    "productCode": "MHNU0302266",
+    "productName": "Mái phủ hói siêu da silk base MHNU0302266",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-02-03T04:23:47Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-03T04:23:47Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b3"
+    },
+    "productCode": "TNU030226",
+    "productName": "TÉM XOĂN TNU030226",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-02-03T03:44:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-03T03:44:00Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082b6"
+    },
+    "productCode": "DDN230126",
+    "productName": "Nguyên đầu xoăn trung niên DDN230126",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-23T07:09:01Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-23T07:09:01Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c0"
+    },
+    "productCode": "MHNU1301266",
+    "productName": "Mái phủ hói siêu da silk base MHNU1301266",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-13T10:19:42Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-13T10:19:42Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c4"
+    },
+    "productCode": "DDX1806-24",
+    "productName": "Đầu đội xoáy machine weft DDX1806-24",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-12-23T08:05:10Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-23T08:05:10Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c8"
+    },
+    "productCode": "MHNU0108241",
+    "productName": "MÁI PHỦ HÓI SIÊU DA MHNU0108241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-28T02:35:31Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-28T02:35:31Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082cb"
+    },
+    "productCode": "hân-191125",
+    "productName": "Mái phủ hói siêu da silk base MHNU191125",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-11-28T02:33:26Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-28T02:33:26Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082dc"
+    },
+    "productCode": "MHNA14071",
+    "productName": "Mái phủ hói mono nam MHNA14071",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-14T11:07:49Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-14T11:07:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e1"
+    },
+    "productCode": "DDV230625",
+    "productName": "Đầu đội siêu da silk base DDV230625",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-06-23T10:53:52Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-23T10:53:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e3"
+    },
+    "productCode": "MINH-160425",
+    "productName": "Đâu đội khách đặt DDV160425",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-04-17T06:50:56Z"
+    },
+    "updatedAt": {
+      "$date": "2025-04-17T06:50:56Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e6"
+    },
+    "productCode": "UNKNOWN.63",
+    "productName": "UNKNOWN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-03-18T11:01:08Z"
+    },
+    "updatedAt": {
+      "$date": "2025-03-18T11:01:08Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ed"
+    },
+    "productCode": "SEN-2112241",
+    "productName": "Đầu đội siêu da silk base DDV2112241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-02-18T08:52:45Z"
+    },
+    "updatedAt": {
+      "$date": "2025-02-18T08:52:45Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ee"
+    },
+    "productCode": "SEN-2112241",
+    "productName": "Đầu đội siêu da silk base DDV2112241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-02-18T08:24:37Z"
+    },
+    "updatedAt": {
+      "$date": "2025-02-18T08:24:37Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f9"
+    },
+    "productCode": "MINH 2011241",
+    "productName": "Đầu đội siêu da silk base DDV2011241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-11-20T07:06:49Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-20T07:06:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082fa"
+    },
+    "productCode": "HÀ-DDN2308241",
+    "productName": "Đầu đội siêu da Silkbase DDN2308241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-11-15T10:43:38Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-15T10:43:38Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082fe"
+    },
+    "productCode": "HÀ-DDV280924",
+    "productName": "ĐẦU ĐỘI NGÔI DDV280924",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-09-28T07:00:40Z"
+    },
+    "updatedAt": {
+      "$date": "2024-09-28T07:00:40Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ff"
+    },
+    "productCode": "SEN-MHNU2009241",
+    "productName": "Mái siêu da silkbase MHNU2009241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-09-20T04:46:51Z"
+    },
+    "updatedAt": {
+      "$date": "2024-09-20T04:46:51Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908301"
+    },
+    "productCode": "MPNA 007",
+    "productName": "Mái Phủ Nam 07",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T10:16:06Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T10:16:06Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908305"
+    },
+    "productCode": "MHNU191023",
+    "productName": "Mái hói machine weft MHNU191023",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T10:06:35Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T10:06:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908308"
+    },
+    "productCode": "HUYỀN- MHNU1008241",
+    "productName": "Mái hói siêu da đầu silk base MHNU1008241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-10T08:49:28Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-10T08:49:28Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690830e"
+    },
+    "productCode": "HUYỀN-2407244",
+    "productName": "Mái phủ hói siêu da silk base MHNU2407244",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-24T09:08:36Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-24T09:08:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908311"
+    },
+    "productCode": "HUYỀN  DDV280624",
+    "productName": "Đầu đội siêu da silk base DDV280624",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-05T11:01:54Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-05T11:01:54Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908313"
+    },
+    "productCode": "MINH 020724-2",
+    "productName": "đầu đội siêu da silkbase 020724",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-05T10:59:10Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-05T10:59:10Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908314"
+    },
+    "productCode": "HUYỀN DDV050724",
+    "productName": "Đầu đội siêu da khách đặt DDV050724",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-05T10:58:14Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-05T10:58:14Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908315"
+    },
+    "productCode": "SEN DDV0507241",
+    "productName": "Đầu đội siêu da SILK BASE DDV0507241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-05T10:57:59Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-05T10:57:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908317"
+    },
+    "productCode": "MHNU270124",
+    "productName": "Mái hói siêu da đầu silk base MHNU270124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-06-28T11:08:35Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-28T11:08:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908320"
+    },
+    "productCode": "DDN140524",
+    "productName": "Đầu đội machine weft DDN140524",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-05-14T03:08:38Z"
+    },
+    "updatedAt": {
+      "$date": "2024-05-14T03:08:38Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082a8"
+    },
+    "productCode": "MC",
+    "productName": "mái cột",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-06-17T07:16:53Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T07:16:53Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ae"
+    },
+    "productCode": "DDN150126",
+    "productName": "Đầu đội xoăn trung niên DDN150126",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-04-29T08:43:42Z"
+    },
+    "updatedAt": {
+      "$date": "2026-04-29T08:43:42Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ba"
+    },
+    "productCode": "DDN271225",
+    "productName": "Đầu đội ngôi 271225",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-16T11:20:51Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-16T11:20:51Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c1"
+    },
+    "productCode": "MHNU130126",
+    "productName": "Mái phủ hói siêu da silk base MHNU130126",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá nhập",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-13T09:54:35Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-13T09:54:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082c3"
+    },
+    "productCode": "minh-090126",
+    "productName": "Đầu đội siêu da silk base DDV090126",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2026-01-09T03:23:23Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-09T03:23:23Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d8"
+    },
+    "productCode": "UNKNOWN.49",
+    "productName": "UNKNOWN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-15T03:08:47Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-15T03:08:47Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082d9"
+    },
+    "productCode": "VIC304",
+    "productName": "VÍC305",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-07-15T03:01:43Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-15T03:01:43Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082e8"
+    },
+    "productCode": "SEN-183252",
+    "productName": "Đầu đội siêu da silk base DDV183252",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-03-18T10:58:37Z"
+    },
+    "updatedAt": {
+      "$date": "2025-03-18T10:58:37Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082ea"
+    },
+    "productCode": "DDV183251",
+    "productName": "Đầu đội siêu da silk base DDV183251",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-03-18T10:57:11Z"
+    },
+    "updatedAt": {
+      "$date": "2025-03-18T10:57:11Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082eb"
+    },
+    "productCode": "HÀ-18325",
+    "productName": "Mái phủ hói silk base MNHU180325",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2025-03-18T10:56:29Z"
+    },
+    "updatedAt": {
+      "$date": "2025-03-18T10:56:29Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f2"
+    },
+    "productCode": "UNKNOWN.75",
+    "productName": "Mái phủ hói siêu da đầu MHNU301224",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-12-30T07:18:10Z"
+    },
+    "updatedAt": {
+      "$date": "2024-12-30T07:18:10Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f4"
+    },
+    "productCode": "HUYEN -301124",
+    "productName": "Mái hói siêu da silk base MHNU301124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-12-03T08:32:01Z"
+    },
+    "updatedAt": {
+      "$date": "2024-12-03T08:32:01Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f7"
+    },
+    "productCode": "HÂN-271124",
+    "productName": "Mái hói siêu da silk base MHNU271124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-11-27T04:01:48Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-27T04:01:48Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e8481269082f8"
+    },
+    "productCode": "SEN 101124",
+    "productName": "Đầu đội siêu da silk base DDV201124",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-11-20T07:07:11Z"
+    },
+    "updatedAt": {
+      "$date": "2024-11-20T07:07:11Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908302"
+    },
+    "productCode": "MPNA 007",
+    "productName": "Mái Phủ Nam 07",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T10:15:58Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T10:15:58Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908304"
+    },
+    "productCode": "K4062102",
+    "productName": "Tóc kẹp 3 phím 35cm K4062102",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T10:10:47Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T10:10:47Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908306"
+    },
+    "productCode": "TNU1904231",
+    "productName": "TÉM NỮ TNU1904241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-08-15T10:00:25Z"
+    },
+    "updatedAt": {
+      "$date": "2024-08-15T10:00:25Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690830c"
+    },
+    "productCode": "HUYỀN-2607241",
+    "productName": "Mái phủ hói siêu da silk base MHNU2607241",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-26T08:23:45Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-26T08:23:45Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690830f"
+    },
+    "productCode": "HUYỀN DDV170624",
+    "productName": "Đầu đội siêu da silk base DDV170624",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-05T11:04:12Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-05T11:04:12Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908312"
+    },
+    "productCode": "HUYỀN  DDV280624",
+    "productName": "Đầu đội siêu da silk base DDV280624",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Không có dữ liệu",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-07-05T10:59:59Z"
+    },
+    "updatedAt": {
+      "$date": "2024-07-05T10:59:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e848126908318"
+    },
+    "productCode": "DDN110624",
+    "productName": "Đầu đội pixel Đầu đội pixel DDN110624",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-06-11T10:33:39Z"
+    },
+    "updatedAt": {
+      "$date": "2024-06-11T10:33:39Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3280ab9c9e84812690831e"
+    },
+    "productCode": "DDN140524",
+    "productName": "Đầu đội machine weft DDN140524",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa giá bán",
+    "createdBy": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2024-05-14T03:12:20Z"
+    },
+    "updatedAt": {
+      "$date": "2024-05-14T03:12:20Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3351d0cdd95165d3846830"
+    },
+    "productCode": "E2E_MAIN_1781748173160",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:02:56.188Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:02:56.188Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3351d1cdd95165d3846843"
+    },
+    "productCode": "E2E_MAIN_1781748173160",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:02:57.592Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:02:57.592Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3351ebcdd95165d38468a7"
+    },
+    "productCode": "E2E_MAIN_1781748199314",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:03:23.338Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:03:23.338Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3351eccdd95165d38468ba"
+    },
+    "productCode": "E2E_MAIN_1781748199314",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:03:24.941Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:03:24.941Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a335209cdd95165d3846921"
+    },
+    "productCode": "E2E_MAIN_1781748229005",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:03:53.354Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:03:53.354Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a33520bcdd95165d3846934"
+    },
+    "productCode": "E2E_MAIN_1781748229005",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:03:55.213Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:03:55.213Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a335227cdd95165d38469a4"
+    },
+    "productCode": "E2E_MAIN_1781748261550",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:04:23.933Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:04:23.933Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a335229cdd95165d38469b7"
+    },
+    "productCode": "E2E_MAIN_1781748261550",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:04:25.316Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:04:25.316Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a33522ccdd95165d38469d8"
+    },
+    "productCode": "E2E_MAIN_1781748261550",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T02:04:28.016Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T02:04:28.016Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a33c759a3a3d919272d3c76"
+    },
+    "productCode": "E2E_MAIN_1781748173160",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-18T10:24:25.426Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T10:24:25.426Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a33cf5ea001d65e2da61568"
+    },
+    "productCode": "E2E_MAIN_1781780315395",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T10:58:38.233Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T10:58:38.233Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a33cf5fa001d65e2da61579"
+    },
+    "productCode": "E2E_MAIN_1781780315395",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T10:58:39.741Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T10:58:39.741Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a33cf62a001d65e2da61596"
+    },
+    "productCode": "E2E_MAIN_1781780315395",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T10:58:42.660Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T10:58:42.660Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3431272922ca7af83a0038"
+    },
+    "productCode": "E2E_MAIN_1781748229005",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-18T17:55:51.571Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T17:55:51.571Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a34312c2922ca7af83a0041"
+    },
+    "productCode": "E2E_MAIN_1781748199314",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-18T17:55:56.269Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T17:55:56.269Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3434f02922ca7af83a069d"
+    },
+    "productCode": "E2E_MAIN_1781806317348",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:12:00.354Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:12:00.354Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3434f12922ca7af83a06ae"
+    },
+    "productCode": "E2E_MAIN_1781806317348",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:12:01.711Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:12:01.711Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3434f42922ca7af83a06e0"
+    },
+    "productCode": "E2E_MAIN_1781806317348",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:12:04.652Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:12:04.652Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3435a02922ca7af83a0843"
+    },
+    "productCode": "E2E_MAIN_1781806494086",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:14:56.925Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:14:56.925Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3435a22922ca7af83a0854"
+    },
+    "productCode": "E2E_MAIN_1781806494086",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:14:58.285Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:14:58.285Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3435a52922ca7af83a0871"
+    },
+    "productCode": "E2E_MAIN_1781806494086",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:15:01.293Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:15:01.293Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3437272922ca7af83a0b28"
+    },
+    "productCode": "E2E_MAIN_1781806884585",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:21:27.767Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:21:27.767Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3437292922ca7af83a0b3c"
+    },
+    "productCode": "E2E_MAIN_1781806884585",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:21:29.281Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:21:29.281Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a34372c2922ca7af83a0b59"
+    },
+    "productCode": "E2E_MAIN_1781806884585",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:21:32.570Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:21:32.570Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3439ef2922ca7af83a1011"
+    },
+    "productCode": "E2E_MAIN_1781807596949",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:33:19.335Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:33:19.335Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3439f02922ca7af83a1022"
+    },
+    "productCode": "E2E_MAIN_1781807596949",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:33:20.691Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:33:20.691Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3439f32922ca7af83a103f"
+    },
+    "productCode": "E2E_MAIN_1781807596949",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:33:23.664Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:33:23.664Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a343a202922ca7af83a10d0"
+    },
+    "productCode": "E2E_MAIN_1781807645166",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:34:08Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:34:08Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a343a212922ca7af83a10e1"
+    },
+    "productCode": "E2E_MAIN_1781807645166",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:34:09.568Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:34:09.568Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a343a242922ca7af83a1113"
+    },
+    "productCode": "E2E_MAIN_1781807645166",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:34:12.814Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:34:12.814Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a343aa12922ca7af83a127d"
+    },
+    "productCode": "E2E_MAIN_1781807774065",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Tạo sản phẩm mới",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:36:17.024Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:36:17.024Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a343aa22922ca7af83a128e"
+    },
+    "productCode": "E2E_MAIN_1781807774065",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Sửa thông tin",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:36:18.958Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:36:18.958Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a343aa62922ca7af83a12ab"
+    },
+    "productCode": "E2E_MAIN_1781807774065",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T18:36:22.107Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T18:36:22.107Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3447a1307ff20a31e0c088"
+    },
+    "productCode": "E2E_MAIN_1781811101876",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:31:45.104Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:31:45.104Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3447a3307ff20a31e0c0ac"
+    },
+    "productCode": "E2E_MAIN_1781811101876",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:31:47.445Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:31:47.445Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3447a6307ff20a31e0c0d3"
+    },
+    "productCode": "E2E_MAIN_1781811101876",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:31:50.726Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:31:50.726Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3447dc307ff20a31e0c137"
+    },
+    "productCode": "E2E_MAIN_1781811161297",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:32:44.523Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:32:44.523Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3447de307ff20a31e0c15b"
+    },
+    "productCode": "E2E_MAIN_1781811161297",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:32:46.830Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:32:46.830Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3447e3307ff20a31e0c182"
+    },
+    "productCode": "E2E_MAIN_1781811161297",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:32:51.108Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:32:51.108Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3447e7307ff20a31e0c1b0"
+    },
+    "productCode": "E2E_STOCK_1781811172252",
+    "productName": "Sản phẩm tồn kho nhiều kho",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 5",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:32:55.551Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:32:55.551Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a34486c307ff20a31e0c3e5"
+    },
+    "productCode": "E2E_MAIN_1781811306310",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:35:08.998Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:35:08.998Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a34486f307ff20a31e0c409"
+    },
+    "productCode": "E2E_MAIN_1781811306310",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:35:11.126Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:35:11.126Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a344872307ff20a31e0c430"
+    },
+    "productCode": "E2E_MAIN_1781811306310",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:35:14.343Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:35:14.343Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3448c6307ff20a31e0c514"
+    },
+    "productCode": "E2E_MAIN_1781811395422",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:36:38.591Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:36:38.591Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3448c8307ff20a31e0c538"
+    },
+    "productCode": "E2E_MAIN_1781811395422",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:36:40.932Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:36:40.932Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3448cc307ff20a31e0c55f"
+    },
+    "productCode": "E2E_MAIN_1781811395422",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:36:44.312Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:36:44.312Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3448f3307ff20a31e0c5df"
+    },
+    "productCode": "E2E_MAIN_1781811439939",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:37:23.177Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:37:23.177Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3448f5307ff20a31e0c603"
+    },
+    "productCode": "E2E_MAIN_1781811439939",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:37:25.208Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:37:25.208Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3448f8307ff20a31e0c62a"
+    },
+    "productCode": "E2E_MAIN_1781811439939",
+    "productName": "Sản phẩm Test E2E Update",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:37:28.565Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:37:28.565Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a344e11ba50603a2fbb8378"
+    },
+    "productCode": "E2E_MAIN_1781812750670",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin",
+    "createdAt": {
+      "$date": "2026-06-18T19:59:13.675Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-18T19:59:13.675Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618797778027edfe65661"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE1-A",
+    "productName": "E2E-AUDIT-1781930104245 Product A",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:05.214Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:05.214Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618797778027edfe6566e"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE1-B",
+    "productName": "E2E-AUDIT-1781930104245 Product B",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 6",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:05.819Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:05.819Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a36187d7778027edfe656a9"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE2-SEED",
+    "productName": "E2E-AUDIT-1781930104245 Full Warehouse Seed",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 7",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:09.088Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:09.088Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618817778027edfe65a9d"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE3",
+    "productName": "E2E-AUDIT-1781930104245 Count Validation",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:13.392Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:13.392Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618857778027edfe65ae2"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE4",
+    "productName": "E2E-AUDIT-1781930104245 Shortage",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:17.524Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:17.524Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a36188b7778027edfe65b49"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE5",
+    "productName": "E2E-AUDIT-1781930104245 Excess",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:23.794Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:23.794Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618917778027edfe65baa"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE6",
+    "productName": "E2E-AUDIT-1781930104245 Double Reconcile",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:29.213Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:29.213Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618957778027edfe65c09"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE7",
+    "productName": "E2E-AUDIT-1781930104245 Drift",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:33.034Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:33.034Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618987778027edfe65c49"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE8-A",
+    "productName": "E2E-AUDIT-1781930104245 Merge A",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 5",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:36.243Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:36.243Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618987778027edfe65c56"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE8-B",
+    "productName": "E2E-AUDIT-1781930104245 Merge B",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 6",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:36.763Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:36.763Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618997778027edfe65c63"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE8-C",
+    "productName": "E2E-AUDIT-1781930104245 Merge C",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:37.288Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:37.288Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a36189f7778027edfe65cdc"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE9-HN",
+    "productName": "E2E-AUDIT-1781930104245 Employee HN",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 4",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:43.384Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:43.384Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a36189f7778027edfe65ce9"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE9-HCM",
+    "productName": "E2E-AUDIT-1781930104245 Employee HCM",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 4",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:43.905Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:43.905Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a17778027edfe65d11"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE9-HCM",
+    "productName": "E2E-AUDIT-1781930104245 Employee HCM",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:45.663Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:45.663Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a27778027edfe65d1f"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE9-HN",
+    "productName": "E2E-AUDIT-1781930104245 Employee HN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:46.289Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:46.289Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a27778027edfe65d2d"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE8-C",
+    "productName": "E2E-AUDIT-1781930104245 Merge C",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:46.939Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:46.939Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a37778027edfe65d3b"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE8-B",
+    "productName": "E2E-AUDIT-1781930104245 Merge B",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:47.581Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:47.581Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a47778027edfe65d49"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE8-A",
+    "productName": "E2E-AUDIT-1781930104245 Merge A",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:48.205Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:48.205Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a47778027edfe65d57"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE7",
+    "productName": "E2E-AUDIT-1781930104245 Drift",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:48.836Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:48.836Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a57778027edfe65d65"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE6",
+    "productName": "E2E-AUDIT-1781930104245 Double Reconcile",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:49.472Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:49.472Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a67778027edfe65d73"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE5",
+    "productName": "E2E-AUDIT-1781930104245 Excess",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:50.092Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:50.092Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a67778027edfe65d81"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE4",
+    "productName": "E2E-AUDIT-1781930104245 Shortage",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:50.710Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:50.710Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a77778027edfe65d8f"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE3",
+    "productName": "E2E-AUDIT-1781930104245 Count Validation",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:51.349Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:51.349Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a77778027edfe65d9d"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE2-SEED",
+    "productName": "E2E-AUDIT-1781930104245 Full Warehouse Seed",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:51.977Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:51.977Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a87778027edfe65dab"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE1-B",
+    "productName": "E2E-AUDIT-1781930104245 Product B",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:52.609Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:52.609Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618a97778027edfe65db9"
+    },
+    "productCode": "E2E-AUDIT-1781930104245-CASE1-A",
+    "productName": "E2E-AUDIT-1781930104245 Product A",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:35:53.234Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:35:53.234Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618c27778027edfe65e1d"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE1-A",
+    "productName": "E2E-AUDIT-1781930177488 Product A",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:18.466Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:18.466Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618c37778027edfe65e2a"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE1-B",
+    "productName": "E2E-AUDIT-1781930177488 Product B",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 6",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:19.077Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:19.077Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618c67778027edfe65e65"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE2-SEED",
+    "productName": "E2E-AUDIT-1781930177488 Full Warehouse Seed",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 7",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:22.534Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:22.534Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618ca7778027edfe66259"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE3",
+    "productName": "E2E-AUDIT-1781930177488 Count Validation",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:26.988Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:26.988Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618cf7778027edfe6629e"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE4",
+    "productName": "E2E-AUDIT-1781930177488 Shortage",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:31.433Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:31.433Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618d67778027edfe66305"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE5",
+    "productName": "E2E-AUDIT-1781930177488 Excess",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:38.072Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:38.072Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618db7778027edfe66366"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE6",
+    "productName": "E2E-AUDIT-1781930177488 Double Reconcile",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:43.932Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:43.932Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618df7778027edfe663c5"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE7",
+    "productName": "E2E-AUDIT-1781930177488 Drift",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 10",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:47.654Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:47.654Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e27778027edfe66405"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE8-A",
+    "productName": "E2E-AUDIT-1781930177488 Merge A",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 5",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:50.749Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:50.749Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e37778027edfe66412"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE8-B",
+    "productName": "E2E-AUDIT-1781930177488 Merge B",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 6",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:51.259Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:51.259Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e37778027edfe6641f"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE8-C",
+    "productName": "E2E-AUDIT-1781930177488 Merge C",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 3",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:51.766Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:51.766Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618e97778027edfe66498"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE9-HN",
+    "productName": "E2E-AUDIT-1781930177488 Employee HN",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 4",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:57.649Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:57.649Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618ea7778027edfe664a5"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE9-HCM",
+    "productName": "E2E-AUDIT-1781930177488 Employee HCM",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 4",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:36:58.167Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:36:58.167Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618ee7778027edfe664fc"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE10",
+    "productName": "E2E-AUDIT-1781930177488 Filter Product",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 2",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:02.423Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:02.423Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f17778027edfe66544"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE10",
+    "productName": "E2E-AUDIT-1781930177488 Filter Product",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:05.921Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:05.921Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f27778027edfe66552"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE9-HCM",
+    "productName": "E2E-AUDIT-1781930177488 Employee HCM",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:06.555Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:06.555Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f37778027edfe66560"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE9-HN",
+    "productName": "E2E-AUDIT-1781930177488 Employee HN",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:07.189Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:07.189Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f37778027edfe6656e"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE8-C",
+    "productName": "E2E-AUDIT-1781930177488 Merge C",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:07.825Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:07.825Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f47778027edfe6657c"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE8-B",
+    "productName": "E2E-AUDIT-1781930177488 Merge B",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:08.465Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:08.465Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f57778027edfe6658a"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE8-A",
+    "productName": "E2E-AUDIT-1781930177488 Merge A",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:09.100Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:09.100Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f57778027edfe66598"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE7",
+    "productName": "E2E-AUDIT-1781930177488 Drift",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:09.752Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:09.752Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f67778027edfe665a6"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE6",
+    "productName": "E2E-AUDIT-1781930177488 Double Reconcile",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:10.403Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:10.403Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f77778027edfe665b4"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE5",
+    "productName": "E2E-AUDIT-1781930177488 Excess",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:11.049Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:11.049Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f77778027edfe665c2"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE4",
+    "productName": "E2E-AUDIT-1781930177488 Shortage",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:11.684Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:11.684Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f87778027edfe665d0"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE3",
+    "productName": "E2E-AUDIT-1781930177488 Count Validation",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:12.323Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:12.323Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f87778027edfe665de"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE2-SEED",
+    "productName": "E2E-AUDIT-1781930177488 Full Warehouse Seed",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:12.958Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:12.958Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618f97778027edfe665ec"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE1-B",
+    "productName": "E2E-AUDIT-1781930177488 Product B",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:13.594Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:13.594Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3618fa7778027edfe665fa"
+    },
+    "productCode": "E2E-AUDIT-1781930177488-CASE1-A",
+    "productName": "E2E-AUDIT-1781930177488 Product A",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:14.250Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:14.250Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a36190d7778027edfe6666e"
+    },
+    "productCode": "E2E-AUDIT-UI-1781930252763-PROD",
+    "productName": "E2E-AUDIT-UI-1781930252763 UI Product",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 5",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:33.606Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:33.606Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3619167778027edfe666ca"
+    },
+    "productCode": "E2E-AUDIT-UI-1781930252763-PROD",
+    "productName": "E2E-AUDIT-UI-1781930252763 UI Product",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T04:37:42.588Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T04:37:42.588Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a364c1a064059a1041bda47"
+    },
+    "productCode": "E2E_MAIN_1781812750670",
+    "productName": "Sản phẩm Test E2E Main",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T08:15:22.907Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T08:15:22.907Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a364c1d064059a1041bda58"
+    },
+    "productCode": "E2E_STOCK_1781811172252",
+    "productName": "Sản phẩm tồn kho nhiều kho",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-20T08:15:25.731Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-20T08:15:25.731Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a37a9763aeaee3a8322dddd"
+    },
+    "productCode": "PROD1_1781956043509s0n8r9",
+    "productName": "E2E_BRANCH_CONFIG_1781956042734_PRINT_1781956043509_6aksmf_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-21T09:05:58.439Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-21T09:05:58.439Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a388e58b0a6d1d714b0772c"
+    },
+    "productCode": "PROD1_17819560363553hvzog",
+    "productName": "E2E_BRANCH_CONFIG_1781956034926_EMP_1781956036355_emebdn_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T01:22:32.243Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T01:22:32.243Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a388e58b0a6d1d714b07730"
+    },
+    "productCode": "PROD1_1781955642196qz7105",
+    "productName": "E2E_BRANCH_CONFIG_1781955640370_EMP_1781955642196_kvk297_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T01:22:32.250Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T01:22:32.250Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a388e58b0a6d1d714b0772e"
+    },
+    "productCode": "PROD1_1781955939698fo1t92",
+    "productName": "E2E_BRANCH_CONFIG_1781955938107_EMP_1781955939698_b0llj9_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T01:22:32.247Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T01:22:32.247Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a388e58b0a6d1d714b07732"
+    },
+    "productCode": "PROD1_17819556493615nl1me",
+    "productName": "E2E_BRANCH_CONFIG_1781955648446_PRINT_1781955649361_8iz37i_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T01:22:32.253Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T01:22:32.253Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a388e58b0a6d1d714b07734"
+    },
+    "productCode": "PROD1_1781955298701wo61df",
+    "productName": "E2E_BRANCH_CONFIG_1781955297895_PRINT_1781955298701_xh41m4_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T01:22:32.255Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T01:22:32.255Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a388e58b0a6d1d714b07736"
+    },
+    "productCode": "PROD1_1781955947041ek2xfh",
+    "productName": "E2E_BRANCH_CONFIG_1781955946194_PRINT_1781955947041_viu24c_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T01:22:32.258Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T01:22:32.258Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a388e58b0a6d1d714b0773c"
+    },
+    "productCode": "PROD1_1781955290202ug3ijx",
+    "productName": "E2E_BRANCH_CONFIG_1781955288584_EMP_1781955290202_muimjh_PRODUCT_1",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T01:22:32.483Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T01:22:32.483Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3916cd7966796562b78298"
+    },
+    "productCode": "QA-INVOICE-PRINT-1782126284193-PRODUCT",
+    "productName": "QA-INVOICE-PRINT-1782126284193 Product",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 0",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T11:04:45.976Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T11:04:45.976Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3916d77966796562b78386"
+    },
+    "productCode": "QA-INVOICE-PRINT-1782126284193-PRODUCT",
+    "productName": "QA-INVOICE-PRINT-1782126284193 Product",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T11:04:55.499Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T11:04:55.499Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3917307966796562b7844b"
+    },
+    "productCode": "QA-INVOICE-PRINT-1782126382967-PRODUCT",
+    "productName": "QA-INVOICE-PRINT-1782126382967 Product",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 0",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T11:06:24.588Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T11:06:24.588Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a39173a7966796562b78542"
+    },
+    "productCode": "QA-INVOICE-PRINT-1782126382967-PRODUCT",
+    "productName": "QA-INVOICE-PRINT-1782126382967 Product",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T11:06:34.494Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T11:06:34.494Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3917847966796562b78616"
+    },
+    "productCode": "QA-INVOICE-PRINT-1782126466885-PRODUCT",
+    "productName": "QA-INVOICE-PRINT-1782126466885 Product",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 0",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T11:07:48.455Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T11:07:48.455Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a39178e7966796562b7870d"
+    },
+    "productCode": "QA-INVOICE-PRINT-1782126466885-PRODUCT",
+    "productName": "QA-INVOICE-PRINT-1782126466885 Product",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-22T11:07:58.262Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-22T11:07:58.262Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d27d514dc8b5699d8eeb7"
+    },
+    "productCode": "11111",
+    "productName": "11111",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 0",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T13:06:29.828Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T13:06:29.828Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d2b3d14dc8b5699d8eef3"
+    },
+    "productCode": "11111",
+    "productName": "11111",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T13:21:01.403Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T13:21:01.403Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d33fcee58f0d1ef77b63d"
+    },
+    "productCode": "1111",
+    "productName": "1111",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 0",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T13:58:20.718Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T13:58:20.718Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d3413ee58f0d1ef77b665"
+    },
+    "productCode": "1111",
+    "productName": "1111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T13:58:43.074Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T13:58:43.074Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d3422ee58f0d1ef77b68e"
+    },
+    "productCode": "1111",
+    "productName": "1111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T13:58:58.129Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T13:58:58.129Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d3435ee58f0d1ef77b6de"
+    },
+    "productCode": "1111",
+    "productName": "1111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T13:59:17.184Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T13:59:17.184Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d3440ee58f0d1ef77b72e"
+    },
+    "productCode": "1111",
+    "productName": "1111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T13:59:28.999Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T13:59:28.999Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3d348cee58f0d1ef77b750"
+    },
+    "productCode": "1111",
+    "productName": "1111",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-25T14:00:44.084Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-25T14:00:44.084Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e0f001ed2af827823a04c"
+    },
+    "productCode": "111",
+    "productName": "1111",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 2",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T05:32:48.467Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T05:32:48.467Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e0f311ed2af827823a0bb"
+    },
+    "productCode": "111",
+    "productName": "1111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T05:33:37.101Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T05:33:37.101Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e115d7fc0188cd7bface1"
+    },
+    "productCode": "111",
+    "productName": "1111",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T05:42:53.800Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T05:42:53.800Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e117d7fc0188cd7bfacfe"
+    },
+    "productCode": "1111",
+    "productName": "111",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 1",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T05:43:25.262Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T05:43:25.262Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e11837fc0188cd7bfad28"
+    },
+    "productCode": "1111",
+    "productName": "111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T05:43:31.677Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T05:43:31.677Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e11897fc0188cd7bfad51"
+    },
+    "productCode": "1111",
+    "productName": "111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T05:43:37.779Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T05:43:37.779Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e118f7fc0188cd7bfad73"
+    },
+    "productCode": "1111",
+    "productName": "111",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T05:43:43.552Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T05:43:43.552Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e19104e7bf892fee17cbc"
+    },
+    "productCode": "SP-MQUJEWXT3829",
+    "productName": "1111",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 1",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T06:15:44.981Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T06:15:44.981Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e19194e7bf892fee17ce6"
+    },
+    "productCode": "SP-MQUJEWXT3829",
+    "productName": "1111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T06:15:53.051Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T06:15:53.051Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e19234e7bf892fee17cf2"
+    },
+    "productCode": "SP-MQUJEWXT3829",
+    "productName": "1111",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T06:16:03.975Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T06:16:03.975Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e195f4e7bf892fee17d25"
+    },
+    "productCode": "SP-MQUJG1NK8752",
+    "productName": "Áo thun nữ basic",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T06:17:03.019Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T06:17:03.019Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e1bad64ab31e07a008d6e"
+    },
+    "productCode": "MHNA170626",
+    "productName": "Mái hói nam size part 7:3",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T06:26:53.637Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T06:26:53.637Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e1bb864ab31e07a008d7d"
+    },
+    "productCode": "MHNA170626",
+    "productName": "Mái hói nam size part 7:3",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T06:27:04.719Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T06:27:04.719Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e1bbd64ab31e07a008d8c"
+    },
+    "productCode": "MHNA170626",
+    "productName": "Mái hói nam size part 7:3",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T06:27:09.239Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T06:27:09.239Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e30a92e65c21f1e463584"
+    },
+    "productCode": "SP.4944229",
+    "productName": "Đầu đội khách đăt ddv 130225",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T07:56:25.846Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T07:56:25.846Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e30c52e65c21f1e4635a1"
+    },
+    "productCode": "MINH-170425",
+    "productName": "Đâu đội siêu da SILK BASE DDV170425",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T07:56:53.417Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T07:56:53.417Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e30c52e65c21f1e4635a3"
+    },
+    "productCode": "SP.4944229",
+    "productName": "Đầu đội khách đăt ddv 130225",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T07:56:53.457Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T07:56:53.457Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e30c52e65c21f1e4635a5"
+    },
+    "productCode": "SP.4944486",
+    "productName": "Đầu đội siêu da đầu cô liên",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T07:56:53.458Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T07:56:53.458Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a3e445239dd84465b36ce6b"
+    },
+    "productCode": "MHNA170626",
+    "productName": "Mái hói nam size part 7:3",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-26T09:20:18.164Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-26T09:20:18.164Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4131ac4035ba05617045bd"
+    },
+    "productCode": "SP-MQXW7WZZ6273",
+    "productName": "1111",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 1",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-28T14:37:32.170Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-28T14:37:32.170Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4131bd4035ba05617045cc"
+    },
+    "productCode": "SP-MQXW7WZZ6273",
+    "productName": "1111",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-28T14:37:49.377Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-28T14:37:49.377Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4131e14035ba05617045d8"
+    },
+    "productCode": "SP-MQXW7WZZ6273",
+    "productName": "1111",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-28T14:38:25.284Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-28T14:38:25.284Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4135d64035ba0561704654"
+    },
+    "productCode": "SP-MQXWA8OG2615",
+    "productName": "Áo thun nữ basic",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-28T14:55:18.518Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-28T14:55:18.518Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4135e54035ba056170466e"
+    },
+    "productCode": "MHNA170626",
+    "productName": "Mái hói nam size part 7:3",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-28T14:55:33.203Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-28T14:55:33.203Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4135ed4035ba0561704678"
+    },
+    "productCode": "DDB170626",
+    "productName": "Đầu đội bop silk base DDB170626",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-28T14:55:41.905Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-28T14:55:41.905Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a421cd42615ec4bb78e797e"
+    },
+    "productCode": "DDV170626",
+    "productName": "Đầu đội siêu da silk base DDV170626",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-29T07:20:52.362Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-29T07:20:52.362Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a421d272615ec4bb78e79a7"
+    },
+    "productCode": "MHNU170626",
+    "productName": "Mái hói siêu da silk base MHNU170626",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-29T07:22:15.189Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-29T07:22:15.189Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4332d0a7ccf4454f420b25"
+    },
+    "productCode": "MHNU170626",
+    "productName": "Mái hói siêu da silk base MHNU170626",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-30T03:06:56.415Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T03:06:56.415Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4332dda7ccf4454f420b45"
+    },
+    "productCode": "MHNU170626",
+    "productName": "Mái hói siêu da silk base MHNU170626",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-30T03:07:09.125Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T03:07:09.125Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4332e2a7ccf4454f420b53"
+    },
+    "productCode": "MHNU170626",
+    "productName": "Mái hói siêu da silk base MHNU170626",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-30T03:07:14.808Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T03:07:14.808Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4335a1a7ccf4454f420cac"
+    },
+    "productCode": "B NGỌC -3030626",
+    "productName": "Mái hói siêu da silk base MNHU3030626",
+    "logType": "Tạo sản phẩm",
+    "logAction": "Tạo sản phẩm với tổng tồn ban đầu 1",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-30T03:18:57.711Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T03:18:57.711Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4335dba7ccf4454f420ccc"
+    },
+    "productCode": "B NGỌC -3030626",
+    "productName": "Mái hói siêu da silk base MNHU3030626",
+    "logType": "Sửa sản phẩm",
+    "logAction": "Cập nhật thông tin và tồn kho theo kho hàng",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-30T03:19:55.813Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T03:19:55.813Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4335e4a7ccf4454f420cda"
+    },
+    "productCode": "B NGỌC -3030626",
+    "productName": "Mái hói siêu da silk base MNHU3030626",
+    "logType": "Xóa sản phẩm",
+    "logAction": "Xóa sản phẩm",
+    "createdBy": "Admin E2E",
+    "createdAt": {
+      "$date": "2026-06-30T03:20:04.247Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T03:20:04.247Z"
+    },
+    "__v": 0
+  }
+]

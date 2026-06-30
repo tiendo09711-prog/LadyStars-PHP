@@ -1047,7 +1047,7 @@ h1 {
   }
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1200px) {
   .app-sidebar {
     inset: 0 auto 0 0 !important;
     width: min(320px, calc(100vw - 24px)) !important;
@@ -1441,7 +1441,7 @@ h1 {
   opacity: 1;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1200px) {
   .app-sidebar .sidebar-nav {
     gap: 7px !important;
   }

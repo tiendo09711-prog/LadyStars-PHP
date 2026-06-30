@@ -1,0 +1,48 @@
+[
+  {
+    "_id": {
+      "$oid": "6a05949b67c30b7a39107e67"
+    },
+    "code": "size",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-14T09:23:39.175Z"
+    },
+    "externalId": "2108",
+    "isRequired": false,
+    "isSearchable": true,
+    "name": "Kích thước",
+    "sortOrder": 2,
+    "updatedAt": {
+      "$date": "2026-05-14T10:11:12.666Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "valueCount": 0,
+    "values": []
+  },
+  {
+    "_id": {
+      "$oid": "6a05949b67c30b7a39107e68"
+    },
+    "code": "color",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-14T09:23:39.221Z"
+    },
+    "externalId": "2107",
+    "isRequired": false,
+    "isSearchable": true,
+    "name": "Màu sắc",
+    "sortOrder": 1,
+    "updatedAt": {
+      "$date": "2026-05-14T10:11:12.712Z"
+    },
+    "userId": {
+      "$oid": "6a0593c367c30b7a3910737a"
+    },
+    "valueCount": 0,
+    "values": []
+  }
+]

@@ -131,6 +131,7 @@ export function RefundInvoiceCreatePage() {
 
     // Order Totals / Aggregates
     discount: 0, // Chiết khấu đơn hàng (F6)
+    discountType: 'number',
     cash: 0,
     transfer: 0,
     card: 0, // Quẹt thẻ
@@ -170,6 +171,9 @@ export function RefundInvoiceCreatePage() {
   const newProductSearchRef = useRef<HTMLInputElement>(null);
   const [showNewSearchResults, setShowNewSearchResults] = useState(false);
   const [newProductTypeTab, setNewProductTypeTab] = useState<'normal' | 'imei'>('normal');
+
+  const productSearchBoxRef = useRef<HTMLDivElement>(null);
+  const newProductSearchBoxRef = useRef<HTMLDivElement>(null);
 
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -289,7 +293,7 @@ export function RefundInvoiceCreatePage() {
       })
         .then((res) => {
           const items = Array.isArray(res.data?.items) ? res.data.items : [];
-          setDbProducts(items.filter((item: any) => Number(item.selectedStock ?? item.stockByBranchId?.[resolvedBranchId] ?? 0) > 0));
+          setDbProducts(items.filter((item: any) => getBranchStock(item) > 0));
         })
         .catch((err) => {
           if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
@@ -339,6 +343,30 @@ export function RefundInvoiceCreatePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (productSearchBoxRef.current && target && !productSearchBoxRef.current.contains(target)) {
+        setShowSearchResults(false);
+      }
+      if (newProductSearchBoxRef.current && target && !newProductSearchBoxRef.current.contains(target)) {
+        setShowNewSearchResults(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowSearchResults(false);
+        setShowNewSearchResults(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
   // Auto-calculator engine for returns and purchases
   useEffect(() => {
     let tempReturnsSubtotal = 0;
@@ -379,9 +407,12 @@ export function RefundInvoiceCreatePage() {
       return;
     }
 
-    const orderDiscount = Number(form.discount) || 0;
     const totalReturns = tempReturnsSubtotal + tempReturnsVat + tempReturnsWarranty - tempReturnsRefundFee;
     const totalPurchases = tempPurchasesSubtotal + tempPurchasesVat + tempPurchasesWarranty;
+    const discountValue = Math.max(Number(form.discount) || 0, 0);
+    const orderDiscount = form.discountType === 'percent'
+      ? Math.min(totalReturns, totalReturns * Math.min(discountValue, 100) / 100)
+      : Math.min(totalReturns, discountValue);
     const netTotal = totalReturns - totalPurchases - orderDiscount;
 
     setForm(prev => {
@@ -403,15 +434,15 @@ export function RefundInvoiceCreatePage() {
   }, [
     products,
     newProducts,
-    form.discount
+    form.discount,
+    form.discountType
   ]);
 
   const handleChange = (field: string, value: any) => {
     const readOnlyFields = new Set([
-      'type', 'returnFromInvoice', 'returnFromOrder', 'receiver', 'salesperson', 'salesAccount',
+      'receiver', 'salesperson', 'salesAccount',
       'customerName', 'cardId', 'email', 'gender', 'facebook', 'birthday', 'source', 'customerLevel',
-      'labels', 'note', 'province', 'district', 'ward', 'address', 'companyName', 'companyAddress', 'taxId',
-      'coupon', 'autoDiscount', 'autoPoint',
+      'labels',
     ]);
     if (readOnlyFields.has(field)) return;
     setForm(prev => ({ ...prev, [field]: value }));
@@ -450,7 +481,20 @@ export function RefundInvoiceCreatePage() {
   // Add Product Helpers (Refund Products)
   const normalizeSearchValue = (value: string) => value.trim().toLowerCase();
 
-  const getBranchStock = (prod: any) => Number(prod.selectedStock ?? prod.stockByBranchId?.[resolvedBranchId] ?? 0);
+  const getBranchStock = (prod: any) => {
+    const availableStock = Number(prod.availableStock);
+    if (Number.isFinite(availableStock) && availableStock > 0) return availableStock;
+
+    const selectedStock = Number(prod.selectedStock);
+    if (Number.isFinite(selectedStock) && selectedStock > 0) {
+      return Math.max(selectedStock - Math.max(Number(prod.lockedQuantity) || 0, 0), 0);
+    }
+
+    const branchStock = Number(prod.stockByBranchId?.[resolvedBranchId]);
+    if (Number.isFinite(branchStock) && branchStock > 0) return branchStock;
+
+    return Number(prod.totalStock ?? prod.qty ?? prod.stock ?? 0) || 0;
+  };
 
   const findExactReturnProduct = (rawBarcode: string) => {
     const lower = normalizeSearchValue(rawBarcode);
@@ -669,6 +713,8 @@ export function RefundInvoiceCreatePage() {
         code: form.id,
         branchId: resolvedBranchId,
         note: [form.description, form.newDescription].filter(Boolean).join('\n'),
+        discountValue: Math.max(Number(form.discount) || 0, 0),
+        discountType: form.discountType === 'percent' ? 'percent' : 'number',
         returnedItems,
         replacementItems,
         refundPayments: amountDelta >= 0 ? paymentPayloadLines : [],
@@ -707,7 +753,7 @@ export function RefundInvoiceCreatePage() {
             },
           ],
           summary: [
-            { label: 'Chiết khấu', value: receiptMoney(form.discount) },
+            { label: 'Chiết khấu', value: form.discountType === 'percent' ? `${Math.min(Math.max(Number(form.discount) || 0, 0), 100)}%` : receiptMoney(form.discount) },
             { label: 'Tổng', value: receiptMoney(Math.abs(amountDelta)), strong: true },
             { label: amountDelta < 0 ? 'Khách cần thanh toán thêm' : 'Tiền trả khách hàng', value: receiptMoney(Math.abs(amountDelta)), strong: true },
           ],
@@ -907,7 +953,7 @@ export function RefundInvoiceCreatePage() {
               </div>
 
               {/* F3 Autocomplete Product Search Bar */}
-              <div style={{ position: 'relative', width: '380px' }}>
+              <div ref={productSearchBoxRef} style={{ position: 'relative', width: '380px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 12px', background: '#ffffff' }}>
                   <Search size={16} color="#94a3b8" />
                   <input
@@ -1152,7 +1198,7 @@ export function RefundInvoiceCreatePage() {
               </div>
 
               {/* Autocomplete Product Search Bar */}
-              <div style={{ position: 'relative', width: '380px' }}>
+              <div ref={newProductSearchBoxRef} style={{ position: 'relative', width: '380px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 12px', background: '#ffffff' }}>
                   <Search size={16} color="#94a3b8" />
                   <input
@@ -1748,10 +1794,26 @@ export function RefundInvoiceCreatePage() {
                     type="number"
                     min={0}
                     value={form.discount || ''}
-                    onChange={(e) => handleChange('discount', Number(e.target.value) || 0)}
+                    max={form.discountType === 'percent' ? 100 : undefined}
+                    onChange={(e) => {
+                      const value = Number(e.target.value) || 0;
+                      handleChange('discount', form.discountType === 'percent' ? Math.min(value, 100) : value);
+                    }}
                     style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '13px', width: '90px', textAlign: 'right', outline: 'none', fontWeight: '600' }}
                   />
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>đ</span>
+                  <select
+                    value={form.discountType}
+                    onChange={(e) => {
+                      const discountType = e.target.value === 'percent' ? 'percent' : 'number';
+                      const discount = discountType === 'percent' ? Math.min(Number(form.discount) || 0, 100) : Number(form.discount) || 0;
+                      setForm(prev => ({ ...prev, discountType, discount }));
+                    }}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 6px', fontSize: '12px', color: '#475569', background: '#ffffff', outline: 'none' }}
+                    aria-label="Loại chiết khấu đơn"
+                  >
+                    <option value="number">đ</option>
+                    <option value="percent">%</option>
+                  </select>
                 </div>
               </div>
 

@@ -1,0 +1,50 @@
+[
+  {
+    "_id": {
+      "$oid": "6a0ad37967c30b7a39116010"
+    },
+    "code": "156555",
+    "branchRoute": "Kho Hà Nội - Kho HCM",
+    "creator": "LÊ SỸ BÁCH",
+    "date": "13/05/2026",
+    "note": null,
+    "totalQuantity": 4,
+    "type": "Xuất [C]"
+  },
+  {
+    "_id": {
+      "$oid": "6a0ad37967c30b7a39116011"
+    },
+    "code": "46766",
+    "branchRoute": "Kho LUXY - Kho Hà Nội",
+    "creator": "Phạm Thị Trang",
+    "date": "15/12/2022",
+    "note": null,
+    "totalQuantity": 2,
+    "type": "Xuất [C]"
+  },
+  {
+    "_id": {
+      "$oid": "6a0ad37967c30b7a39116013"
+    },
+    "code": "16141",
+    "branchRoute": "Kho HCM - Kho Hà Nội",
+    "creator": "Nguyễn Học Xuân Uyên",
+    "date": "20/09/2022",
+    "note": null,
+    "totalQuantity": 2,
+    "type": "Xuất [C]"
+  },
+  {
+    "_id": {
+      "$oid": "6a0ad37967c30b7a39116012"
+    },
+    "code": "33841",
+    "branchRoute": "Kho HCM - Kho Hà Nội",
+    "creator": "Nguyễn Học Xuân Uyên",
+    "date": "24/11/2022",
+    "note": "GHTK 23/11",
+    "totalQuantity": 0,
+    "type": "Xuất [C]"
+  }
+]

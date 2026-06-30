@@ -1,0 +1,2149 @@
+[
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31940"
+    },
+    "date": "17/6/2026",
+    "transactionId": "6834971",
+    "voucherId": "14793001",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-17T02:30:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T02:30:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31942"
+    },
+    "date": "15/6/2026",
+    "transactionId": "6834969",
+    "voucherId": "14793000",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 2000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-15T06:58:19Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-15T06:58:19Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31949"
+    },
+    "date": "14/6/2026",
+    "transactionId": "6834962",
+    "voucherId": "14792995",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-14T11:30:11Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-14T11:30:11Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3194a"
+    },
+    "date": "14/6/2026",
+    "transactionId": "6834961",
+    "voucherId": "14792994",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-14T10:42:44Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-14T10:42:44Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31951"
+    },
+    "date": "13/6/2026",
+    "transactionId": "6834954",
+    "voucherId": "14792992",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 7000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-13T08:53:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-13T08:53:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31953"
+    },
+    "date": "12/6/2026",
+    "transactionId": "6834952",
+    "voucherId": "14792991",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 3781000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-12T03:46:57Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-12T03:46:57Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31956"
+    },
+    "date": "7/6/2026",
+    "transactionId": "6834949",
+    "voucherId": "14792990",
+    "account": "11211",
+    "contraAccount": "131",
+    "debit": 5000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-07T11:25:54Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-07T11:25:54Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31958"
+    },
+    "date": "7/6/2026",
+    "transactionId": "6834947",
+    "voucherId": "14792990",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-07T11:25:54Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-07T11:25:54Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31962"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834937",
+    "voucherId": "14792985",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 5000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T06:31:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T06:31:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31967"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834932",
+    "voucherId": "14792983",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 3509100,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T03:11:49Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T03:11:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31968"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834931",
+    "voucherId": "14792983",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3509100,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T03:11:49Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T03:11:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3196c"
+    },
+    "date": "3/6/2026",
+    "transactionId": "6834927",
+    "voucherId": "14792982",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-03T05:26:19Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T05:26:19Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3196f"
+    },
+    "date": "3/6/2026",
+    "transactionId": "6834924",
+    "voucherId": "14792980",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-03T03:30:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T03:30:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31970"
+    },
+    "date": "3/6/2026",
+    "transactionId": "6834923",
+    "voucherId": "14792980",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-03T03:30:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T03:30:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31974"
+    },
+    "date": "2/6/2026",
+    "transactionId": "6834919",
+    "voucherId": "14792978",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-02T03:43:35Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-02T03:43:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31975"
+    },
+    "date": "2/6/2026",
+    "transactionId": "6834918",
+    "voucherId": "14792977",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 3500000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-02T03:11:16Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-02T03:11:16Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31976"
+    },
+    "date": "2/6/2026",
+    "transactionId": "6834917",
+    "voucherId": "14792977",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3500000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-02T03:11:16Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-02T03:11:16Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31978"
+    },
+    "date": "30/5/2026",
+    "transactionId": "6834915",
+    "voucherId": "14792976",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 16599000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-30T10:06:01Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-30T10:06:01Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3197a"
+    },
+    "date": "30/5/2026",
+    "transactionId": "6834913",
+    "voucherId": "14792976",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-30T10:06:01Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-30T10:06:01Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3197b"
+    },
+    "date": "30/5/2026",
+    "transactionId": "6834912",
+    "voucherId": "14792975",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-30T02:10:49Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-30T02:10:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3197e"
+    },
+    "date": "28/5/2026",
+    "transactionId": "6834909",
+    "voucherId": "14792974",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-28T08:17:58Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-28T08:17:58Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3197f"
+    },
+    "date": "28/5/2026",
+    "transactionId": "6834908",
+    "voucherId": "14792973",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 5899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-28T04:22:45Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-28T04:22:45Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31981"
+    },
+    "date": "28/5/2026",
+    "transactionId": "6834906",
+    "voucherId": "14792973",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-28T04:22:45Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-28T04:22:45Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31987"
+    },
+    "date": "26/5/2026",
+    "transactionId": "6834900",
+    "voucherId": "14792970",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 8909100,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-26T08:42:39Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-26T08:42:39Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31988"
+    },
+    "date": "26/5/2026",
+    "transactionId": "6834899",
+    "voucherId": "14792970",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-26T08:42:39Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-26T08:42:39Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31989"
+    },
+    "date": "25/5/2026",
+    "transactionId": "6834898",
+    "voucherId": "14792969",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 4260000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-25T03:00:31Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-25T03:00:31Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31997"
+    },
+    "date": "21/5/2026",
+    "transactionId": "6834884",
+    "voucherId": "14792963",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 2500000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-21T04:34:23Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-21T04:34:23Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3199b"
+    },
+    "date": "20/5/2026",
+    "transactionId": "6834880",
+    "voucherId": "14792962",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3299000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-20T07:33:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-20T07:33:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a0"
+    },
+    "date": "18/5/2026",
+    "transactionId": "6834875",
+    "voucherId": "14792959",
+    "account": "131",
+    "contraAccount": "11111",
+    "debit": 6499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a3"
+    },
+    "date": "18/5/2026",
+    "transactionId": "6834872",
+    "voucherId": "14792958",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-18T09:55:11Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T09:55:11Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a4"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834871",
+    "voucherId": "14792957",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 2400000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T09:01:03Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T09:01:03Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a6"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834869",
+    "voucherId": "14792957",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T09:01:03Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T09:01:03Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a8"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834867",
+    "voucherId": "14792956",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T05:48:17Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T05:48:17Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3193f"
+    },
+    "date": "17/6/2026",
+    "transactionId": "6834972",
+    "voucherId": "14793001",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 3499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-17T02:30:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T02:30:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31941"
+    },
+    "date": "17/6/2026",
+    "transactionId": "6834970",
+    "voucherId": "14793001",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-17T02:30:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T02:30:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31943"
+    },
+    "date": "15/6/2026",
+    "transactionId": "6834968",
+    "voucherId": "14793000",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 2000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-15T06:58:19Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-15T06:58:19Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3194b"
+    },
+    "date": "14/6/2026",
+    "transactionId": "6834960",
+    "voucherId": "14792994",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-14T10:42:44Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-14T10:42:44Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3194f"
+    },
+    "date": "13/6/2026",
+    "transactionId": "6834956",
+    "voucherId": "14792993",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-13T09:54:53Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-13T09:54:53Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31955"
+    },
+    "date": "12/6/2026",
+    "transactionId": "6834950",
+    "voucherId": "14792991",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-12T03:46:57Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-12T03:46:57Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31957"
+    },
+    "date": "7/6/2026",
+    "transactionId": "6834948",
+    "voucherId": "14792990",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 5000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-07T11:25:54Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-07T11:25:54Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3195a"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834945",
+    "voucherId": "14792989",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T09:53:04Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T09:53:04Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3195c"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834943",
+    "voucherId": "14792988",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 6000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T04:58:08Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T04:58:08Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3195d"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834942",
+    "voucherId": "14792988",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 6000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T04:58:08Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T04:58:08Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31960"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834939",
+    "voucherId": "14792986",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T03:56:29Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T03:56:29Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31961"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834938",
+    "voucherId": "14792985",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 5000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T06:31:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T06:31:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31964"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834935",
+    "voucherId": "14792984",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 4482000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T04:08:51Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T04:08:51Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3196a"
+    },
+    "date": "3/6/2026",
+    "transactionId": "6834929",
+    "voucherId": "14792982",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 200000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-03T05:26:19Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T05:26:19Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3196d"
+    },
+    "date": "3/6/2026",
+    "transactionId": "6834926",
+    "voucherId": "14792981",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-03T05:25:09Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T05:25:09Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31977"
+    },
+    "date": "2/6/2026",
+    "transactionId": "6834916",
+    "voucherId": "14792977",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-02T03:11:16Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-02T03:11:16Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31982"
+    },
+    "date": "27/5/2026",
+    "transactionId": "6834905",
+    "voucherId": "14792972",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 2360000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-27T09:02:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-27T09:02:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31984"
+    },
+    "date": "27/5/2026",
+    "transactionId": "6834903",
+    "voucherId": "14792972",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-27T09:02:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-27T09:02:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31985"
+    },
+    "date": "27/5/2026",
+    "transactionId": "6834902",
+    "voucherId": "14792971",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-27T09:01:02Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-27T09:01:02Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31986"
+    },
+    "date": "26/5/2026",
+    "transactionId": "6834901",
+    "voucherId": "14792970",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 8909100,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-26T08:42:39Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-26T08:42:39Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3198a"
+    },
+    "date": "25/5/2026",
+    "transactionId": "6834897",
+    "voucherId": "14792969",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 4260000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-25T03:00:31Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-25T03:00:31Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31991"
+    },
+    "date": "24/5/2026",
+    "transactionId": "6834890",
+    "voucherId": "14792967",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-24T06:55:38Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-24T06:55:38Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31992"
+    },
+    "date": "23/5/2026",
+    "transactionId": "6834889",
+    "voucherId": "14792966",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 2499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-23T06:10:48Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-23T06:10:48Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31993"
+    },
+    "date": "23/5/2026",
+    "transactionId": "6834888",
+    "voucherId": "14792966",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 2499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-23T06:10:48Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-23T06:10:48Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31996"
+    },
+    "date": "23/5/2026",
+    "transactionId": "6834885",
+    "voucherId": "14792964",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-23T04:45:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-23T04:45:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31998"
+    },
+    "date": "21/5/2026",
+    "transactionId": "6834883",
+    "voucherId": "14792963",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 2500000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-21T04:34:23Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-21T04:34:23Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31999"
+    },
+    "date": "21/5/2026",
+    "transactionId": "6834882",
+    "voucherId": "14792963",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-21T04:34:23Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-21T04:34:23Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3199a"
+    },
+    "date": "20/5/2026",
+    "transactionId": "6834881",
+    "voucherId": "14792962",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 3299000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-20T07:33:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-20T07:33:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319aa"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834865",
+    "voucherId": "14792955",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 5980000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T04:43:32Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T04:43:32Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319ab"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834864",
+    "voucherId": "14792955",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 5980000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T04:43:32Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T04:43:32Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3193e"
+    },
+    "date": "17/6/2026",
+    "transactionId": "6834973",
+    "voucherId": "14793002",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-17T02:32:05Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T02:32:05Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31944"
+    },
+    "date": "15/6/2026",
+    "transactionId": "6834967",
+    "voucherId": "14793000",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-15T06:58:19Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-15T06:58:19Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31945"
+    },
+    "date": "15/6/2026",
+    "transactionId": "6834966",
+    "voucherId": "14792997",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-15T04:01:27Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-15T04:01:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31947"
+    },
+    "date": "14/6/2026",
+    "transactionId": "6834964",
+    "voucherId": "14792995",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 3119200,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-14T11:30:11Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-14T11:30:11Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31948"
+    },
+    "date": "14/6/2026",
+    "transactionId": "6834963",
+    "voucherId": "14792995",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3119200,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-14T11:30:11Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-14T11:30:11Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3194d"
+    },
+    "date": "13/6/2026",
+    "transactionId": "6834958",
+    "voucherId": "14792993",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-13T09:54:53Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-13T09:54:53Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3194e"
+    },
+    "date": "13/6/2026",
+    "transactionId": "6834957",
+    "voucherId": "14792993",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-13T09:54:53Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-13T09:54:53Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31959"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834946",
+    "voucherId": "14792989",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 3000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T09:53:04Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T09:53:04Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3195b"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834944",
+    "voucherId": "14792989",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T09:53:04Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T09:53:04Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3195e"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834941",
+    "voucherId": "14792988",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T04:58:08Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T04:58:08Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31965"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834934",
+    "voucherId": "14792984",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 4482000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T04:08:51Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T04:08:51Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3196e"
+    },
+    "date": "3/6/2026",
+    "transactionId": "6834925",
+    "voucherId": "14792980",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 3499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-03T03:30:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T03:30:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3197d"
+    },
+    "date": "28/5/2026",
+    "transactionId": "6834910",
+    "voucherId": "14792974",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 4158000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-28T08:17:58Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-28T08:17:58Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31983"
+    },
+    "date": "27/5/2026",
+    "transactionId": "6834904",
+    "voucherId": "14792972",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 2360000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-27T09:02:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-27T09:02:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3198b"
+    },
+    "date": "25/5/2026",
+    "transactionId": "6834896",
+    "voucherId": "14792969",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-25T03:00:31Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-25T03:00:31Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3198c"
+    },
+    "date": "24/5/2026",
+    "transactionId": "6834895",
+    "voucherId": "14792968",
+    "account": "11211",
+    "contraAccount": "131",
+    "debit": 8900000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-24T08:36:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-24T08:36:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3198e"
+    },
+    "date": "24/5/2026",
+    "transactionId": "6834893",
+    "voucherId": "14792968",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-24T08:36:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-24T08:36:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31990"
+    },
+    "date": "24/5/2026",
+    "transactionId": "6834891",
+    "voucherId": "14792967",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-24T06:55:38Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-24T06:55:38Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31995"
+    },
+    "date": "23/5/2026",
+    "transactionId": "6834886",
+    "voucherId": "14792965",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-23T04:46:10Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-23T04:46:10Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3199c"
+    },
+    "date": "20/5/2026",
+    "transactionId": "6834879",
+    "voucherId": "14792962",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-20T07:33:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-20T07:33:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3199e"
+    },
+    "date": "18/5/2026",
+    "transactionId": "6834877",
+    "voucherId": "14792960",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 11899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a1"
+    },
+    "date": "18/5/2026",
+    "transactionId": "6834874",
+    "voucherId": "14792959",
+    "account": "5213",
+    "contraAccount": "131",
+    "debit": 6499000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a2"
+    },
+    "date": "18/5/2026",
+    "transactionId": "6834873",
+    "voucherId": "14792959",
+    "account": "1561",
+    "contraAccount": "632",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a9"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834866",
+    "voucherId": "14792956",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T05:48:17Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T05:48:17Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3193c"
+    },
+    "date": "17/6/2026",
+    "transactionId": "6834975",
+    "voucherId": "14793002",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 4233000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-17T02:32:05Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T02:32:05Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3193d"
+    },
+    "date": "17/6/2026",
+    "transactionId": "6834974",
+    "voucherId": "14793002",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 4233000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-17T02:32:05Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-17T02:32:05Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31946"
+    },
+    "date": "15/6/2026",
+    "transactionId": "6834965",
+    "voucherId": "14792996",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-15T03:31:03Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-15T03:31:03Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3194c"
+    },
+    "date": "14/6/2026",
+    "transactionId": "6834959",
+    "voucherId": "14792994",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-14T10:42:44Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-14T10:42:44Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31950"
+    },
+    "date": "13/6/2026",
+    "transactionId": "6834955",
+    "voucherId": "14792992",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 7000000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-13T08:53:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-13T08:53:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31952"
+    },
+    "date": "13/6/2026",
+    "transactionId": "6834953",
+    "voucherId": "14792992",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-13T08:53:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-13T08:53:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31954"
+    },
+    "date": "12/6/2026",
+    "transactionId": "6834951",
+    "voucherId": "14792991",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 3781000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-12T03:46:57Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-12T03:46:57Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3195f"
+    },
+    "date": "6/6/2026",
+    "transactionId": "6834940",
+    "voucherId": "14792987",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-06T03:58:05Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-06T03:58:05Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31963"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834936",
+    "voucherId": "14792985",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T06:31:59Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T06:31:59Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31966"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834933",
+    "voucherId": "14792984",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T04:08:51Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T04:08:51Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31969"
+    },
+    "date": "5/6/2026",
+    "transactionId": "6834930",
+    "voucherId": "14792983",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-05T03:11:49Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-05T03:11:49Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3196b"
+    },
+    "date": "3/6/2026",
+    "transactionId": "6834928",
+    "voucherId": "14792982",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 200000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-03T05:26:19Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-03T05:26:19Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31971"
+    },
+    "date": "2/6/2026",
+    "transactionId": "6834922",
+    "voucherId": "14792979",
+    "account": "1561",
+    "contraAccount": "",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-02T10:40:40Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-02T10:40:40Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31972"
+    },
+    "date": "2/6/2026",
+    "transactionId": "6834921",
+    "voucherId": "14792978",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 9899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-02T03:43:35Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-02T03:43:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31973"
+    },
+    "date": "2/6/2026",
+    "transactionId": "6834920",
+    "voucherId": "14792978",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 9899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-06-02T03:43:35Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-02T03:43:35Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31979"
+    },
+    "date": "30/5/2026",
+    "transactionId": "6834914",
+    "voucherId": "14792976",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 16599000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-30T10:06:01Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-30T10:06:01Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3197c"
+    },
+    "date": "28/5/2026",
+    "transactionId": "6834911",
+    "voucherId": "14792974",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 4158000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-28T08:17:58Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-28T08:17:58Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31980"
+    },
+    "date": "28/5/2026",
+    "transactionId": "6834907",
+    "voucherId": "14792973",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 5899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-28T04:22:45Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-28T04:22:45Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3198d"
+    },
+    "date": "24/5/2026",
+    "transactionId": "6834894",
+    "voucherId": "14792968",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 8900000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-24T08:36:36Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-24T08:36:36Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3198f"
+    },
+    "date": "24/5/2026",
+    "transactionId": "6834892",
+    "voucherId": "14792967",
+    "account": "11212",
+    "contraAccount": "131",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-24T06:55:38Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-24T06:55:38Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31994"
+    },
+    "date": "23/5/2026",
+    "transactionId": "6834887",
+    "voucherId": "14792966",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-23T06:10:48Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-23T06:10:48Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3199d"
+    },
+    "date": "18/5/2026",
+    "transactionId": "6834878",
+    "voucherId": "14792960",
+    "account": "11111",
+    "contraAccount": "131",
+    "debit": 11899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3199f"
+    },
+    "date": "18/5/2026",
+    "transactionId": "6834876",
+    "voucherId": "14792960",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a5"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834870",
+    "voucherId": "14792957",
+    "account": "131",
+    "contraAccount": "5111",
+    "debit": 2400000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T09:01:03Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T09:01:03Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319a7"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834868",
+    "voucherId": "14792956",
+    "account": "11211",
+    "contraAccount": "131",
+    "debit": 3899000,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T05:48:17Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T05:48:17Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b319ac"
+    },
+    "date": "17/5/2026",
+    "transactionId": "6834863",
+    "voucherId": "14792955",
+    "account": "632",
+    "contraAccount": "1561",
+    "debit": 0,
+    "credit": null,
+    "createdAt": {
+      "$date": "2026-05-17T04:43:32Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-17T04:43:32Z"
+    },
+    "__v": 0
+  }
+]

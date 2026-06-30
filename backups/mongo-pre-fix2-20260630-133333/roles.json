@@ -1,0 +1,38 @@
+[
+  {
+    "_id": {
+      "$oid": "69fc9e1e3899e11829d2b4c7"
+    },
+    "name": "Admin",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-05-07T14:13:49.013Z"
+    },
+    "description": "Toàn quyền",
+    "isSystem": true,
+    "permissions": [
+      "products.index",
+      "products.stock.index",
+      "products.price-setting",
+      "products.sale-channel",
+      "products.delivery-partner",
+      "sales.payment.index",
+      "sales.payment.refund",
+      "sales.print",
+      "customers.index",
+      "customers.groups",
+      "accountings.index",
+      "accountings.payments",
+      "accountings.refunds",
+      "accountings.invoices",
+      "projects.index",
+      "projects.create",
+      "tasks.index",
+      "tasks.create",
+      "print-forms.forms.index"
+    ],
+    "updatedAt": {
+      "$date": "2026-06-18T19:57:54.415Z"
+    }
+  }
+]

@@ -1,4 +1,4 @@
-﻿import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+﻿import { useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Boxes, Clock3 } from 'lucide-react';
 import { ProductList } from './components/ProductList';
@@ -22,10 +22,6 @@ export function ProductMainPage() {
   useLayoutEffect(() => {
     setSlotReady(true);
   }, []);
-
-  useEffect(() => {
-    document.title = activeTab === 'history' ? 'Lịch sử sửa/xóa sản phẩm' : 'Sản phẩm';
-  }, [activeTab]);
 
   const handleTabChange = (tab: ProductTab) => {
     setSearchParams(tab === 'products' ? {} : { tab }, { replace: true });

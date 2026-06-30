@@ -40,6 +40,8 @@ import {
   type ProductWarehouseStock,
 } from '../../../core/api/product.api';
 import { http } from '../../../core/api/http';
+import { isAdminRole } from '../../../core/auth/access';
+import { listBranches, type BranchRecord } from '../../../core/api/branch.api';
 import { Pagination } from '../../../core/components/Pagination';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import type { ICategory, IProduct } from '../../../types/product.type';
@@ -1111,8 +1113,10 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
 function ImportModal({
   onClose,
   onSuccess,
+  canUpdateExisting,
 }: {
   onClose: () => void;
+  canUpdateExisting: boolean;
   onSuccess: (result: {
     created: number;
     updated: number;
@@ -1217,7 +1221,7 @@ function ImportModal({
     if (selectedBranch.code) {
       formData.append('branchCode', selectedBranch.code);
     }
-    formData.append('importMode', importMode);
+    formData.append('importMode', canUpdateExisting ? importMode : 'Thêm mới');
 
     try {
       const response = await http.post('/products/products/import', formData, {
@@ -2161,8 +2165,10 @@ export function ProductList({
   const [draftSearch, setDraftSearch] = useState('');
   const productListSearchRef = useRef<HTMLInputElement>(null);
   const [draftStatus, setDraftStatus] = useState('');
+  const [draftWarehouseId, setDraftWarehouseId] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('');
+  const [appliedWarehouseId, setAppliedWarehouseId] = useState('');
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
@@ -2188,6 +2194,10 @@ export function ProductList({
   const [bulkLoading, setBulkLoading] = useState(false);
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [warehouseOptions, setWarehouseOptions] = useState<BranchRecord[]>([]);
+  const [loadingWarehouses, setLoadingWarehouses] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const canManageProducts = isAdminRole(currentUser?.role);
   const [importResult, setImportResult] = useState<{
     created: number;
     updated: number;
@@ -2219,6 +2229,21 @@ export function ProductList({
     [],
   );
 
+  useEffect(() => {
+    let mounted = true;
+    http.get('/auth/me')
+      .then((response) => {
+        if (mounted) setCurrentUser(response.data?.user || response.data || null);
+      })
+      .catch(() => {
+        if (mounted) setCurrentUser(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const selectedProducts = useMemo(
     () => items.filter((item) => selectedIds.has(item._id)),
     [items, selectedIds],
@@ -2231,6 +2256,26 @@ export function ProductList({
     });
     return Array.from(values);
   }, [items]);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoadingWarehouses(true);
+    listBranches({ page: 1, limit: 1000 })
+      .then((response) => {
+        if (!mounted) return;
+        setWarehouseOptions((response.items || []).filter((branch) => branch.isActive !== false));
+      })
+      .catch((error) => {
+        console.error('Lỗi tải kho hàng:', error);
+      })
+      .finally(() => {
+        if (mounted) setLoadingWarehouses(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const allCurrentPageSelected = items.length > 0 && items.every((item) => selectedIds.has(item._id));
 
@@ -2284,6 +2329,7 @@ export function ProductList({
         limit,
         q: appliedSearch || undefined,
         status: appliedStatus || undefined,
+        branchId: appliedWarehouseId || undefined,
         sort: sortField,
         order: sortOrder,
       });
@@ -2301,20 +2347,23 @@ export function ProductList({
 
   useEffect(() => {
     void load();
-  }, [page, appliedSearch, appliedStatus, sortField, sortOrder, refreshKey]);
+  }, [page, appliedSearch, appliedStatus, appliedWarehouseId, sortField, sortOrder, refreshKey]);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPage(1);
     setAppliedSearch(draftSearch.trim());
     setAppliedStatus(draftStatus);
+    setAppliedWarehouseId(draftWarehouseId);
   };
 
   const resetFiltersAndLoad = () => {
     setDraftSearch('');
     setDraftStatus('');
+    setDraftWarehouseId('');
     setAppliedSearch('');
     setAppliedStatus('');
+    setAppliedWarehouseId('');
     setSortField('createdAt');
     setSortOrder('desc');
     setPage(1);
@@ -2327,6 +2376,7 @@ export function ProductList({
     setDraftSearch(query);
     setAppliedSearch(query);
     setAppliedStatus('');
+    setAppliedWarehouseId(draftWarehouseId);
     setPage(1);
     window.setTimeout(() => productListSearchRef.current?.focus(), 0);
   };
@@ -2354,6 +2404,10 @@ export function ProductList({
 
     try {
       if (editItem?._id) {
+        if (!canManageProducts) {
+          setSaveError('Chỉ tài khoản admin mới được sửa sản phẩm.');
+          return;
+        }
         await productApi.updateProduct(editItem._id, payload);
       } else {
         await productApi.createProduct(payload);
@@ -2371,6 +2425,10 @@ export function ProductList({
 
   const handleDelete = async () => {
     if (!deleteItem) return;
+    if (!canManageProducts) {
+      alert('Chỉ tài khoản admin mới được xóa sản phẩm.');
+      return;
+    }
 
     try {
       await productApi.deleteProduct(deleteItem._id);
@@ -2383,6 +2441,10 @@ export function ProductList({
   };
 
   const handleBulkStatus = async (status: string) => {
+    if (!canManageProducts) {
+      alert('Chỉ tài khoản admin mới được sửa sản phẩm.');
+      return;
+    }
     if (!requireSelection()) return;
     setBulkLoading(true);
     try {
@@ -2400,6 +2462,10 @@ export function ProductList({
   };
 
   const handleBulkCategory = async (category: ICategory) => {
+    if (!canManageProducts) {
+      alert('Chỉ tài khoản admin mới được sửa sản phẩm.');
+      return;
+    }
     if (!requireSelection()) return;
     setBulkLoading(true);
     try {
@@ -2416,6 +2482,10 @@ export function ProductList({
   };
 
   const handleBulkDelete = async () => {
+    if (!canManageProducts) {
+      alert('Chỉ tài khoản admin mới được xóa sản phẩm.');
+      return;
+    }
     if (!requireSelection()) return;
     const ok = window.confirm(`Bạn có chắc muốn xóa ${selectedIds.size.toLocaleString('vi-VN')} sản phẩm đã chọn không?`);
     if (!ok) return;
@@ -2472,6 +2542,7 @@ export function ProductList({
           limit: pageSize,
           q: appliedSearch || undefined,
           status: appliedStatus || undefined,
+          branchId: appliedWarehouseId || undefined,
           sort: sortField,
           order: sortOrder,
         });
@@ -2487,6 +2558,7 @@ export function ProductList({
                 limit: pageSize,
                 q: appliedSearch || undefined,
                 status: appliedStatus || undefined,
+                branchId: appliedWarehouseId || undefined,
                 sort: sortField,
                 order: sortOrder,
               }),
@@ -2593,36 +2665,42 @@ export function ProductList({
                           <Printer size={15} />
                           <span>In mã vạch</span>
                         </button>
-                        <div className="products-dropdown-group">
-                          <button className="products-dropdown-item" type="button" onClick={() => {
-                            if (!requireSelection()) return;
-                            setOpenBulkStatusMenu((current) => !current);
-                          }}>
-                            <RefreshCw size={15} />
-                            <span>Đổi trạng thái sản phẩm</span>
-                            <ChevronDown size={14} />
-                          </button>
-                          {openBulkStatusMenu ? (
-                            <div className="products-sub-dropdown">
-                              {statusOptions.map((status) => (
-                                <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
-                                  {status}
+                        {canManageProducts ? (
+                          <div className="products-dropdown-group">
+                            <button className="products-dropdown-item" type="button" onClick={() => {
+                              if (!requireSelection()) return;
+                              setOpenBulkStatusMenu((current) => !current);
+                            }}>
+                              <RefreshCw size={15} />
+                              <span>Đổi trạng thái sản phẩm</span>
+                              <ChevronDown size={14} />
+                            </button>
+                            {openBulkStatusMenu ? (
+                              <div className="products-sub-dropdown">
+                                {statusOptions.map((status) => (
+                                  <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
+                                    {status}
+                                  </button>
+                                ))}
+                                <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
+                                  Tùy chọn khác...
                                 </button>
-                              ))}
-                              <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
-                                Tùy chọn khác...
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                        <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
-                          <Trash2 size={15} />
-                          <span>Xóa các dòng đã chọn</span>
-                        </button>
-                        <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
-                          <CheckSquare size={15} />
-                          <span>Cập nhật danh mục</span>
-                        </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {canManageProducts ? (
+                          <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
+                            <Trash2 size={15} />
+                            <span>Xóa các dòng đã chọn</span>
+                          </button>
+                        ) : null}
+                        {canManageProducts ? (
+                          <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
+                            <CheckSquare size={15} />
+                            <span>Cập nhật danh mục</span>
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -2666,6 +2744,23 @@ export function ProductList({
               </div>
             </label>
 
+            <label className="products-inline-field">
+              <span>Kho hàng</span>
+              <div className="products-inline-control">
+                <select
+                  value={draftWarehouseId}
+                  onChange={(event) => setDraftWarehouseId(event.target.value)}
+                  disabled={loadingWarehouses}
+                >
+                  <option value="">Tất cả kho</option>
+                  {warehouseOptions.map((warehouse) => (
+                    <option key={warehouse._id} value={warehouse._id}>
+                      {warehouse.name}{warehouse.code ? ` (${warehouse.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </label>
             <button className="btn btn-primary products-filter-submit" type="submit">
               <Search size={15} />
               Lọc
@@ -2838,14 +2933,18 @@ export function ProductList({
                                 <Eye size={15} />
                                 Chi tiết
                               </button>
-                              <button type="button" onClick={() => { setSaveError(''); setEditItem(item); setOpenRowActionId(null); }}>
-                                <Pencil size={15} />
-                                Sửa
-                              </button>
-                              <button className="danger" type="button" onClick={() => { setDeleteItem(item); setOpenRowActionId(null); }}>
-                                <Trash2 size={15} />
-                                Xóa
-                              </button>
+                              {canManageProducts ? (
+                                <button type="button" onClick={() => { setSaveError(''); setEditItem(item); setOpenRowActionId(null); }}>
+                                  <Pencil size={15} />
+                                  Sửa
+                                </button>
+                              ) : null}
+                              {canManageProducts ? (
+                                <button className="danger" type="button" onClick={() => { setDeleteItem(item); setOpenRowActionId(null); }}>
+                                  <Trash2 size={15} />
+                                  Xóa
+                                </button>
+                              ) : null}
                             </div>
                           ) : null}
                         </div>
@@ -2877,6 +2976,7 @@ export function ProductList({
       {showImport ? (
         <ImportModal
           onClose={() => setShowImport(false)}
+          canUpdateExisting={canManageProducts}
           onSuccess={(result) => {
             setShowImport(false);
             setImportResult(result);

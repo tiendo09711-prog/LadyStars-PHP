@@ -1,0 +1,19 @@
+[
+  {
+    "_id": {
+      "$oid": "6a43526f128caa7df6512e50"
+    },
+    "name": "Bán tại cửa hàng",
+    "description": "Kênh bán trực tiếp tại cửa hàng",
+    "sortOrder": 1,
+    "isActive": true,
+    "isDefault": true,
+    "createdAt": {
+      "$date": "2026-06-30T05:21:51.401Z"
+    },
+    "updatedAt": {
+      "$date": "2026-06-30T05:21:51.401Z"
+    },
+    "__v": 0
+  }
+]

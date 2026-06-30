@@ -1,0 +1,117 @@
+[
+  {
+    "_id": {
+      "$oid": "6a4352a3128caa7df651489f"
+    },
+    "code": "423",
+    "customerCode": "",
+    "customerName": "cô DUNG",
+    "customerPhone": "0986846668",
+    "details": "Trừ điểm: - 65",
+    "reason": "Thu hồi điểm tích lũy - Đơn trả hàng",
+    "description": "Thu hồi từ đơn trả hàng 14792959",
+    "creator": "LÊ SỸ BÁCH",
+    "recordDate": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "createdAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "updatedAt": {
+      "$date": "2026-05-18T10:57:52Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4352a3128caa7df65148a0"
+    },
+    "code": "422",
+    "customerCode": "",
+    "customerName": "cô THỦY",
+    "customerPhone": "0364116467",
+    "details": "Trừ điểm: - 50",
+    "reason": "Thu hồi điểm tích lũy - Đơn trả hàng",
+    "description": "Thu hồi từ đơn trả hàng 14792769",
+    "creator": "LÊ SỸ BÁCH",
+    "recordDate": {
+      "$date": "2026-03-02T02:26:28Z"
+    },
+    "createdAt": {
+      "$date": "2026-03-02T02:26:28Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-02T02:26:28Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4352a3128caa7df65148a1"
+    },
+    "code": "421",
+    "customerCode": "",
+    "customerName": "cô Oanh",
+    "customerPhone": "0978859669",
+    "details": "Trừ điểm: - 39",
+    "reason": "Thu hồi điểm tích lũy - Đơn trả hàng",
+    "description": "Thu hồi từ đơn trả hàng 14792761",
+    "creator": "LÊ SỸ BÁCH",
+    "recordDate": {
+      "$date": "2026-02-25T07:58:32Z"
+    },
+    "createdAt": {
+      "$date": "2026-02-25T07:58:32Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-25T07:58:32Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4352a3128caa7df65148a2"
+    },
+    "code": "3",
+    "customerCode": "",
+    "customerName": "Chị LỆ",
+    "customerPhone": "0917193068",
+    "details": "Trừ điểm: - 79",
+    "reason": "Thu hồi điểm tích lũy - Đơn trả hàng",
+    "description": "Thu hồi từ đơn trả hàng 14791225",
+    "creator": "LÊ SỸ BÁCH",
+    "recordDate": {
+      "$date": "2024-02-27T05:37:12Z"
+    },
+    "createdAt": {
+      "$date": "2024-02-27T05:37:12Z"
+    },
+    "updatedAt": {
+      "$date": "2024-02-27T05:37:12Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a4352a3128caa7df65148a3"
+    },
+    "code": "1",
+    "customerCode": "",
+    "customerName": "Chị Huệ",
+    "customerPhone": "0367100929",
+    "details": "Trừ điểm: - 39",
+    "reason": "Thu hồi điểm tích lũy - Đơn trả hàng",
+    "description": "Thu hồi từ đơn trả hàng 14791002",
+    "creator": "LÊ SỸ BÁCH",
+    "recordDate": {
+      "$date": "2023-10-24T09:53:58Z"
+    },
+    "createdAt": {
+      "$date": "2023-10-24T09:53:58Z"
+    },
+    "updatedAt": {
+      "$date": "2023-10-24T09:53:58Z"
+    },
+    "__v": 0
+  }
+]

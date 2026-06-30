@@ -1,0 +1,4304 @@
+[
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31830"
+    },
+    "id": "11097",
+    "code": "1111",
+    "name": "Tiền Việt Nam",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31831"
+    },
+    "id": "11824",
+    "code": "11111",
+    "name": "Tiền mặt Hà Nội",
+    "warehouse": "Kho Hà Nội",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-11T02:49:39Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-11T02:49:39Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3183d"
+    },
+    "id": "11106",
+    "code": "1132",
+    "name": "Ngoại tệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3183f"
+    },
+    "id": "11108",
+    "code": "1211",
+    "name": "Cổ phiếu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3184a"
+    },
+    "id": "11119",
+    "code": "1332",
+    "name": "Thuế GTGT được khấu trừ của TSCĐ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31852"
+    },
+    "id": "11127",
+    "code": "1385",
+    "name": "Phải thu về cổ phần hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31856"
+    },
+    "id": "11131",
+    "code": "152",
+    "name": "Nguyên liệu, vật liệu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31857"
+    },
+    "id": "11132",
+    "code": "153",
+    "name": "Công cụ, dụng cụ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3185b"
+    },
+    "id": "11136",
+    "code": "1534",
+    "name": "Thiết bị, phụ tùng thay thế",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31862"
+    },
+    "id": "11143",
+    "code": "1562",
+    "name": "Chi phí thu mua hàng hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31867"
+    },
+    "id": "11148",
+    "code": "1611",
+    "name": "Chi sự nghiệp năm trước",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31873"
+    },
+    "id": "11160",
+    "code": "2122",
+    "name": "TSCĐ vô hình thuê tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31875"
+    },
+    "id": "11162",
+    "code": "2131",
+    "name": "Quyền sử dụng đất",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3187d"
+    },
+    "id": "11170",
+    "code": "2141",
+    "name": "Hao mòn tài sản cố định hữu hình",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31880"
+    },
+    "id": "11173",
+    "code": "2147",
+    "name": "Hao mòn bất động sản đầu tư",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31889"
+    },
+    "id": "11182",
+    "code": "2292",
+    "name": "Dự phòng tổn thất đầu tư vào đơn vị khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3188c"
+    },
+    "id": "11185",
+    "code": "241",
+    "name": "Xây dựng cơ bản dở dang",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31892"
+    },
+    "id": "11191",
+    "code": "244",
+    "name": "Cầm cố, thế chấp, ký quỹ, ký cược",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31895"
+    },
+    "id": "11194",
+    "code": "3331",
+    "name": "Thuế GTGT phải nộp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31898"
+    },
+    "id": "11197",
+    "code": "3332",
+    "name": "Thuế tiêu thụ đặc biệt",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31899"
+    },
+    "id": "11198",
+    "code": "3333",
+    "name": "Thuế xuất nhập khẩu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3189f"
+    },
+    "id": "11204",
+    "code": "33381",
+    "name": "Thuế bảo vệ môi trường",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a2"
+    },
+    "id": "11207",
+    "code": "334",
+    "name": "Phải trả người lao động",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a3"
+    },
+    "id": "11208",
+    "code": "3341",
+    "name": "Phải trả công nhân viên",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a4"
+    },
+    "id": "11209",
+    "code": "3348",
+    "name": "Phải trả người lao động khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a6"
+    },
+    "id": "11211",
+    "code": "336",
+    "name": "Phải trả nội bộ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a7"
+    },
+    "id": "11212",
+    "code": "3361",
+    "name": "Phải trả nội bộ về vốn kinh doanh",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b3"
+    },
+    "id": "11224",
+    "code": "3387",
+    "name": "Doanh thu chưa thực hiện",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b5"
+    },
+    "id": "11226",
+    "code": "341",
+    "name": "Vay và nợ thuê tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318bb"
+    },
+    "id": "11232",
+    "code": "34312",
+    "name": "Chiết khấu trái phiếu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318bf"
+    },
+    "id": "11236",
+    "code": "347",
+    "name": "Thuế thu nhập hoãn lại phải trả",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ca"
+    },
+    "id": "11247",
+    "code": "356",
+    "name": "Quỹ phát triển khoa học và công nghệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318cd"
+    },
+    "id": "11250",
+    "code": "357",
+    "name": "Quỹ bình ổn giá",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d9"
+    },
+    "id": "11262",
+    "code": "414",
+    "name": "Quỹ đầu tư phát triển",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318da"
+    },
+    "id": "11263",
+    "code": "417",
+    "name": "Quỹ hỗ trợ sắp xếp doanh nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e0"
+    },
+    "id": "11269",
+    "code": "441",
+    "name": "Nguồn vốn đầu tư xây dựng cơ bản",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e1"
+    },
+    "id": "11270",
+    "code": "461",
+    "name": "Nguồn kinh phí sự nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e2"
+    },
+    "id": "11271",
+    "code": "4611",
+    "name": "Nguồn kinh phí sự nghiệp năm trước",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e4"
+    },
+    "id": "11273",
+    "code": "466",
+    "name": "Nguồn kinh phí đã hình thành TSCĐ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e7"
+    },
+    "id": "11276",
+    "code": "5112",
+    "name": "Doanh thu bán các thành phẩm",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e8"
+    },
+    "id": "11277",
+    "code": "5113",
+    "name": "Doanh thu cung cấp dịch vụ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ea"
+    },
+    "id": "11279",
+    "code": "5117",
+    "name": "Doanh thu kinh doanh bất động sản đầu tư",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f5"
+    },
+    "id": "11290",
+    "code": "622",
+    "name": "Chi phí nhân công trực tiêp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f7"
+    },
+    "id": "11292",
+    "code": "6231",
+    "name": "Chi phí nhân công",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f8"
+    },
+    "id": "11293",
+    "code": "6232",
+    "name": "Chi phí nguyên, vật liệu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f9"
+    },
+    "id": "11294",
+    "code": "6233",
+    "name": "Chi phí dụng cụ sản xuất",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31904"
+    },
+    "id": "11305",
+    "code": "631",
+    "name": "Giá thành sản xuất",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31905"
+    },
+    "id": "11306",
+    "code": "632",
+    "name": "Giá vốn hàng bán",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31906"
+    },
+    "id": "11307",
+    "code": "635",
+    "name": "Chi phí tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31907"
+    },
+    "id": "11308",
+    "code": "641",
+    "name": "Chi phí bán hàng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3190c"
+    },
+    "id": "11313",
+    "code": "6415",
+    "name": "Chi phí bảo hành",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31916"
+    },
+    "id": "11323",
+    "code": "6427",
+    "name": "Chi phí dịch vụ mua ngoài",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31919"
+    },
+    "id": "11326",
+    "code": "811",
+    "name": "Chi phí khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3191a"
+    },
+    "id": "11327",
+    "code": "821",
+    "name": "Chi phí thuế Thu nhập doanh nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3183a"
+    },
+    "id": "11103",
+    "code": "1123",
+    "name": "Vàng tiền tệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31841"
+    },
+    "id": "11110",
+    "code": "1218",
+    "name": "Chứng khoán và công cụ tài chính khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31848"
+    },
+    "id": "11117",
+    "code": "133",
+    "name": "Thuế GTGT được khấu trừ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31849"
+    },
+    "id": "11118",
+    "code": "1331",
+    "name": "Thuế GTGT được khấu trừ của hàng hóa, dịch vụ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3184b"
+    },
+    "id": "11120",
+    "code": "136",
+    "name": "Phải thu nội bộ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3184e"
+    },
+    "id": "11123",
+    "code": "1363",
+    "name": "Phải thu nội bộ về chi phí đi vay đủ điều kiện vốn hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3184f"
+    },
+    "id": "11124",
+    "code": "1368",
+    "name": "Phải thu nội bộ khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31850"
+    },
+    "id": "11125",
+    "code": "138",
+    "name": "Phải thu khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31851"
+    },
+    "id": "11126",
+    "code": "1381",
+    "name": "Tài sản thiếu chờ xử lý",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31853"
+    },
+    "id": "11128",
+    "code": "1388",
+    "name": "Phải thu khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31855"
+    },
+    "id": "11130",
+    "code": "151",
+    "name": "Hàng mua đang đi đường",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3185e"
+    },
+    "id": "11139",
+    "code": "1551",
+    "name": "Thành phẩm nhập kho",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3185f"
+    },
+    "id": "11140",
+    "code": "1557",
+    "name": "Thành phẩm bất động sản",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31860"
+    },
+    "id": "11141",
+    "code": "156",
+    "name": "Hàng hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31866"
+    },
+    "id": "11147",
+    "code": "161",
+    "name": "Chi sự nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3186a"
+    },
+    "id": "11151",
+    "code": "211",
+    "name": "Tài sản cố định hữu hình",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3186b"
+    },
+    "id": "11152",
+    "code": "2111",
+    "name": "Nhà cửa, vật kiến trúc",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31870"
+    },
+    "id": "11157",
+    "code": "2118",
+    "name": "Tài sản cố định khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31871"
+    },
+    "id": "11158",
+    "code": "212",
+    "name": "Tài sản cố định thuê tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31872"
+    },
+    "id": "11159",
+    "code": "2121",
+    "name": "TSCĐ hữu hình thuê tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31874"
+    },
+    "id": "11161",
+    "code": "213",
+    "name": "Tài sản cố định vô hình",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3187a"
+    },
+    "id": "11167",
+    "code": "2136",
+    "name": "Giấy phép và giấy phép nhượng quyền",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3187e"
+    },
+    "id": "11171",
+    "code": "2142",
+    "name": "Hao mòn tài sản cố định thuê tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31884"
+    },
+    "id": "11177",
+    "code": "228",
+    "name": "Đầu tư dài hạn khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31886"
+    },
+    "id": "11179",
+    "code": "2288",
+    "name": "Đầu tư dài hạn khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3188d"
+    },
+    "id": "11186",
+    "code": "2411",
+    "name": "Mua sắm tài sản cố định",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3188f"
+    },
+    "id": "11188",
+    "code": "2413",
+    "name": "Sửa chữa lớn tài sản cố định",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31891"
+    },
+    "id": "11190",
+    "code": "243",
+    "name": "Tài sản thuế thu nhập hoãn lại",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3189c"
+    },
+    "id": "11201",
+    "code": "3336",
+    "name": "Thuế tài nguyên",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3189e"
+    },
+    "id": "11203",
+    "code": "3338",
+    "name": "Thuế bảo vệ môi trường và các loại thuế khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a0"
+    },
+    "id": "11205",
+    "code": "33382",
+    "name": "Các loại thuế khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a9"
+    },
+    "id": "11214",
+    "code": "3363",
+    "name": "Phải trả nội bộ về chi phí đi vay đủ điều kiện để vốn hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ae"
+    },
+    "id": "11219",
+    "code": "3382",
+    "name": "Kinh phí công đoàn",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b1"
+    },
+    "id": "11222",
+    "code": "3385",
+    "name": "Phải trả cổ phần hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b7"
+    },
+    "id": "11228",
+    "code": "3412",
+    "name": "Nợ thuê tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b8"
+    },
+    "id": "11229",
+    "code": "343",
+    "name": "Trái phiếu phát hành",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318bc"
+    },
+    "id": "11233",
+    "code": "34313",
+    "name": "Phụ trội trái phiếu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c1"
+    },
+    "id": "11238",
+    "code": "3521",
+    "name": "Dự phòng bảo hành sản phẩm hàng hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c3"
+    },
+    "id": "11240",
+    "code": "3523",
+    "name": "Dự phòng tái cơ cấu doanh nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c4"
+    },
+    "id": "11241",
+    "code": "3524",
+    "name": "Dự phòng phải trả khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c6"
+    },
+    "id": "11243",
+    "code": "3531",
+    "name": "Quỹ khen thưởng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318cb"
+    },
+    "id": "11248",
+    "code": "3561",
+    "name": "Quỹ phát triển khoa học và công nghệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318cc"
+    },
+    "id": "11249",
+    "code": "3562",
+    "name": "Quỹ phát triển khoa học và công nghệ đã hình thành TSCĐ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d0"
+    },
+    "id": "11253",
+    "code": "41111",
+    "name": "Cổ phiếu phổ thông có quyền biểu quyêt",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d2"
+    },
+    "id": "11255",
+    "code": "4112",
+    "name": "Thặng dư vốn cổ phần",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d3"
+    },
+    "id": "11256",
+    "code": "4113",
+    "name": "Quyền chọn chuyển đổi trái phiếu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d8"
+    },
+    "id": "11261",
+    "code": "4132",
+    "name": "Chênh lệch tỷ giá hối đoái trong giai đoạn trước hoạt động",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318dc"
+    },
+    "id": "11265",
+    "code": "419",
+    "name": "Cổ phiếu quỹ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318dd"
+    },
+    "id": "11266",
+    "code": "421",
+    "name": "Lợi nhuận chưa phân phối",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318de"
+    },
+    "id": "11267",
+    "code": "4211",
+    "name": "Lợi nhuận chưa phân phối năm trước",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e5"
+    },
+    "id": "11274",
+    "code": "511",
+    "name": "Doanh thu bán hàng và cung cấp dịch vụ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e9"
+    },
+    "id": "11278",
+    "code": "5114",
+    "name": "Doanh thu trợ cấp, trợ giá",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f2"
+    },
+    "id": "11287",
+    "code": "6111",
+    "name": "Mua nguyên liệu, vật liệu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318fa"
+    },
+    "id": "11295",
+    "code": "6234",
+    "name": "Chi phí khấu hao máy thi công",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318fb"
+    },
+    "id": "11296",
+    "code": "6237",
+    "name": "Chi phí dịch vụ mua ngoài",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318fe"
+    },
+    "id": "11299",
+    "code": "6271",
+    "name": "Chi phí nhân viên phân xưởng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31903"
+    },
+    "id": "11304",
+    "code": "6278",
+    "name": "Chi phí bằng tiền khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3190d"
+    },
+    "id": "11314",
+    "code": "6417",
+    "name": "Chi phí dịch vụ mua ngoài",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3190e"
+    },
+    "id": "11315",
+    "code": "6418",
+    "name": "Chi phí bằng tiền khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31910"
+    },
+    "id": "11317",
+    "code": "6421",
+    "name": "Chi phí nhân viên quản lý",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31911"
+    },
+    "id": "11318",
+    "code": "6422",
+    "name": "Chi phí vật liệu quản lý",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31912"
+    },
+    "id": "11319",
+    "code": "6423",
+    "name": "Chi phí đồ dùng văn phòng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31913"
+    },
+    "id": "11320",
+    "code": "6424",
+    "name": "Chi phí khấu hao TSCĐ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31832"
+    },
+    "id": "11825",
+    "code": "11112",
+    "name": "Tiền mặt HCM",
+    "warehouse": "Kho HCM",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-11T02:50:01Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-11T02:50:01Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31834"
+    },
+    "id": "11099",
+    "code": "1113",
+    "name": "Vàng tiền tệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31838"
+    },
+    "id": "11827",
+    "code": "11212",
+    "name": "Tiền chuyển khoản HCM",
+    "warehouse": "Kho HCM",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-11T02:50:57Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-11T02:50:57Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31839"
+    },
+    "id": "11102",
+    "code": "1122",
+    "name": "Ngoại tệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3183b"
+    },
+    "id": "11104",
+    "code": "113",
+    "name": "Tiền đang chuyển",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3183c"
+    },
+    "id": "11105",
+    "code": "1131",
+    "name": "Tiền Việt Nam",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3183e"
+    },
+    "id": "11107",
+    "code": "121",
+    "name": "Chứng khoán kinh doanh",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31840"
+    },
+    "id": "11109",
+    "code": "1212",
+    "name": "Trái phiếu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31844"
+    },
+    "id": "11113",
+    "code": "1282",
+    "name": "Trái phiếu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31846"
+    },
+    "id": "11115",
+    "code": "1288",
+    "name": "Các khoản đầu tư khác nắm giữ đến ngày đáo hạn",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31847"
+    },
+    "id": "11116",
+    "code": "131",
+    "name": "Phải thu khách hàng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3184c"
+    },
+    "id": "11121",
+    "code": "1361",
+    "name": "Vốn kinh doanh ở các đơn vị trực thuộc",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3184d"
+    },
+    "id": "11122",
+    "code": "1362",
+    "name": "Phải thu nội bộ về chênh lệch tỷ giá",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31854"
+    },
+    "id": "11129",
+    "code": "141",
+    "name": "Tạm ứng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3185a"
+    },
+    "id": "11135",
+    "code": "1533",
+    "name": "Đồ dùng cho thuê",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3185c"
+    },
+    "id": "11137",
+    "code": "154",
+    "name": "Chi phí sản xuất kinh doanh dở dang",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3185d"
+    },
+    "id": "11138",
+    "code": "155",
+    "name": "Thành phẩm",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31863"
+    },
+    "id": "11144",
+    "code": "1567",
+    "name": "Hàng hóa bất động sản",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31864"
+    },
+    "id": "11145",
+    "code": "157",
+    "name": "Hàng gởi đi bán",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31869"
+    },
+    "id": "11150",
+    "code": "171",
+    "name": "Giao dịch mua bán lại trái phiếu chính phủ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3186c"
+    },
+    "id": "11153",
+    "code": "2112",
+    "name": "Máy móc, thiết bị",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3186d"
+    },
+    "id": "11154",
+    "code": "2113",
+    "name": "Phương tiện vận tải, truyền dẫn",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3186f"
+    },
+    "id": "11156",
+    "code": "2115",
+    "name": "Cây lâu năm, súc vật làm việc và cho sản phẩm",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31877"
+    },
+    "id": "11164",
+    "code": "2133",
+    "name": "Bản quyền, bằng sáng chế",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3187f"
+    },
+    "id": "11172",
+    "code": "2143",
+    "name": "Hao mòn tài sản cố định vô hình",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31885"
+    },
+    "id": "11178",
+    "code": "2281",
+    "name": "Đầu tư góp vốn vào đơn vị khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31887"
+    },
+    "id": "11180",
+    "code": "229",
+    "name": "Dự phòng tổn thất tài sản",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31888"
+    },
+    "id": "11181",
+    "code": "2291",
+    "name": "Dự phòng giảm giá chứng khoán kinh doanh",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3188e"
+    },
+    "id": "11187",
+    "code": "2412",
+    "name": "Xây dựng cơ bản",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31893"
+    },
+    "id": "11192",
+    "code": "331",
+    "name": "Phải trả cho người bán",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31896"
+    },
+    "id": "11195",
+    "code": "33311",
+    "name": "Thuế GTGT đầu ra",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a1"
+    },
+    "id": "11206",
+    "code": "3339",
+    "name": "Phí, lệ phí và các khoản phải nộp khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a8"
+    },
+    "id": "11213",
+    "code": "3362",
+    "name": "Phải trả nội bộ về chênh lệch tỷ giá",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318aa"
+    },
+    "id": "11215",
+    "code": "3368",
+    "name": "Phải trả nội bộ khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ab"
+    },
+    "id": "11216",
+    "code": "337",
+    "name": "Thanh toán theo tiến độ kế hoạch hợp đồng xây dựng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ac"
+    },
+    "id": "11217",
+    "code": "338",
+    "name": "Phải trả, phải nộp khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b0"
+    },
+    "id": "11221",
+    "code": "3384",
+    "name": "Bảo hiểm y tế",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b2"
+    },
+    "id": "11223",
+    "code": "3386",
+    "name": "Bảo hiểm thất nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b4"
+    },
+    "id": "11225",
+    "code": "3388",
+    "name": "Phải trả, phải nộp khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ba"
+    },
+    "id": "11231",
+    "code": "34311",
+    "name": "Mệnh giá",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318be"
+    },
+    "id": "11235",
+    "code": "344",
+    "name": "Nhận ký quỹ, ký cược",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c2"
+    },
+    "id": "11239",
+    "code": "3522",
+    "name": "Dự phòng bảo hành chi phí xây dựng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c5"
+    },
+    "id": "11242",
+    "code": "353",
+    "name": "Quỹ khen thưởng, phúc lợi",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c7"
+    },
+    "id": "11244",
+    "code": "3532",
+    "name": "Quỹ phúc lợi",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ce"
+    },
+    "id": "11251",
+    "code": "411",
+    "name": "Vốn đầu tư của chủ sở hữu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d5"
+    },
+    "id": "11258",
+    "code": "412",
+    "name": "Chênh lệch đánh giá lại tài sản",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d7"
+    },
+    "id": "11260",
+    "code": "4131",
+    "name": "Chênh lệch tỷ giá do đánh giá lại các khoản mục tiền tệ có gốc ngoại tệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318df"
+    },
+    "id": "11268",
+    "code": "4212",
+    "name": "Lợi nhuận chưa phân phối năm nay",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e6"
+    },
+    "id": "11275",
+    "code": "5111",
+    "name": "Doanh thu bán hàng hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ec"
+    },
+    "id": "11281",
+    "code": "515",
+    "name": "Doanh thu hoạt động tài chính",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ed"
+    },
+    "id": "11282",
+    "code": "521",
+    "name": "Các khoản giảm trừ doanh thu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ef"
+    },
+    "id": "11284",
+    "code": "5212",
+    "name": "Hàng bán bị trả lại",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f0"
+    },
+    "id": "11285",
+    "code": "5213",
+    "name": "Giảm giá hàng bán",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f3"
+    },
+    "id": "11288",
+    "code": "6112",
+    "name": "Mua hàng hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f6"
+    },
+    "id": "11291",
+    "code": "623",
+    "name": "Chi phí sử dụng máy thi công",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31909"
+    },
+    "id": "11310",
+    "code": "6412",
+    "name": "Chi phí nguyên vật liệu, bao bì",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3190b"
+    },
+    "id": "11312",
+    "code": "6414",
+    "name": "Chi phí khấu hao TSCĐ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31914"
+    },
+    "id": "11321",
+    "code": "6425",
+    "name": "Thuế, phí và lệ phí",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3191b"
+    },
+    "id": "11328",
+    "code": "8211",
+    "name": "Chi phí thuế Thu nhập doanh nghiệp hiện hành",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3191d"
+    },
+    "id": "11330",
+    "code": "911",
+    "name": "Xác định kết quả kinh doanh",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3182f"
+    },
+    "id": "11096",
+    "code": "111",
+    "name": "Tiền mặt",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31833"
+    },
+    "id": "11098",
+    "code": "1112",
+    "name": "Ngoại tệ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31835"
+    },
+    "id": "11100",
+    "code": "112",
+    "name": "Tiền gửi ngân hàng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31836"
+    },
+    "id": "11101",
+    "code": "1121",
+    "name": "Tiền Việt Nam",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31837"
+    },
+    "id": "11826",
+    "code": "11211",
+    "name": "Tiền chuyển khoản HN",
+    "warehouse": "Kho Hà Nội",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-11T02:50:33Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-11T02:50:33Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31842"
+    },
+    "id": "11111",
+    "code": "128",
+    "name": "Đầu tư nắm giữ đến ngày đáo hạn",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31843"
+    },
+    "id": "11112",
+    "code": "1281",
+    "name": "Tiền gởi có kỳ hạn",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31845"
+    },
+    "id": "11114",
+    "code": "1283",
+    "name": "Cho vay",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31858"
+    },
+    "id": "11133",
+    "code": "1531",
+    "name": "Công cụ, dụng cụ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31859"
+    },
+    "id": "11134",
+    "code": "1532",
+    "name": "Bao bì luân chuyển",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31861"
+    },
+    "id": "11142",
+    "code": "1561",
+    "name": "Giá mua hàng hóa",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31865"
+    },
+    "id": "11146",
+    "code": "158",
+    "name": "Hàng hóa kho bảo thuế",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31868"
+    },
+    "id": "11149",
+    "code": "1612",
+    "name": "Chi sự nghiệp năm nay",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3186e"
+    },
+    "id": "11155",
+    "code": "2114",
+    "name": "Thiết bị, dụng cụ quản lý",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31876"
+    },
+    "id": "11163",
+    "code": "2132",
+    "name": "Quyền phát hành",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31878"
+    },
+    "id": "11165",
+    "code": "2134",
+    "name": "Nhãn hiệu, tên thương mại",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31879"
+    },
+    "id": "11166",
+    "code": "2135",
+    "name": "Chương trình phần mềm",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3187b"
+    },
+    "id": "11168",
+    "code": "2138",
+    "name": "Tài sản cố định vô hình khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3187c"
+    },
+    "id": "11169",
+    "code": "214",
+    "name": "Hao mòn tài sản cố định",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31881"
+    },
+    "id": "11174",
+    "code": "217",
+    "name": "Bất động sản đầu tư",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31882"
+    },
+    "id": "11175",
+    "code": "221",
+    "name": "Đầu tư vào công ty con",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31883"
+    },
+    "id": "11176",
+    "code": "222",
+    "name": "Góp vốn liên doanh, liên kết",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3188a"
+    },
+    "id": "11183",
+    "code": "2293",
+    "name": "Dự phòng phải thu khó đòi",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3188b"
+    },
+    "id": "11184",
+    "code": "2294",
+    "name": "Dự phòng giảm giá hàng tồn kho",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31890"
+    },
+    "id": "11189",
+    "code": "242",
+    "name": "Chi phí trả trước",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31894"
+    },
+    "id": "11193",
+    "code": "333",
+    "name": "Thuế và các khoản phải nộp nhà nước",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31897"
+    },
+    "id": "11196",
+    "code": "33312",
+    "name": "Thuế GTGT hàng nhập khẩu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3189a"
+    },
+    "id": "11199",
+    "code": "3334",
+    "name": "Thuế thu nhập doanh nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3189b"
+    },
+    "id": "11200",
+    "code": "3335",
+    "name": "Thuế thu nhập các nhân",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3189d"
+    },
+    "id": "11202",
+    "code": "3337",
+    "name": "Thuế nhà đất, tiền thuê đất",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318a5"
+    },
+    "id": "11210",
+    "code": "335",
+    "name": "Chi phí phải trả",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ad"
+    },
+    "id": "11218",
+    "code": "3381",
+    "name": "Tài sản thừa chờ giải quyết",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318af"
+    },
+    "id": "11220",
+    "code": "3383",
+    "name": "Bảo hiểm xã hội",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b6"
+    },
+    "id": "11227",
+    "code": "3411",
+    "name": "Các khoản đi vay",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318b9"
+    },
+    "id": "11230",
+    "code": "3431",
+    "name": "Trái phiếu thường",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318bd"
+    },
+    "id": "11234",
+    "code": "3432",
+    "name": "Trái phiếu chuyển đổi",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c0"
+    },
+    "id": "11237",
+    "code": "352",
+    "name": "Dự phòng phải trả",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c8"
+    },
+    "id": "11245",
+    "code": "3533",
+    "name": "Quỹ phúc lợi đã hình thành TSCĐ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318c9"
+    },
+    "id": "11246",
+    "code": "3534",
+    "name": "Quỹ thưởng ban quản lý, điều hành công ty",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318cf"
+    },
+    "id": "11252",
+    "code": "4111",
+    "name": "Vốn góp của chủ sở hữu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d1"
+    },
+    "id": "11254",
+    "code": "41112",
+    "name": "Cổ phiếu ưu đãi",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d4"
+    },
+    "id": "11257",
+    "code": "4118",
+    "name": "Vốn khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318d6"
+    },
+    "id": "11259",
+    "code": "413",
+    "name": "Chênh lệch tỷ giá hối đoái",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318db"
+    },
+    "id": "11264",
+    "code": "418",
+    "name": "Các quỹ khác thuộc vốn chủ sở hữu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318e3"
+    },
+    "id": "11272",
+    "code": "4612",
+    "name": "Nguồn kinh phí sự nghiệp năm nay",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318eb"
+    },
+    "id": "11280",
+    "code": "5118",
+    "name": "Doanh thu khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ee"
+    },
+    "id": "11283",
+    "code": "5211",
+    "name": "Chiết khấu thương mại",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f1"
+    },
+    "id": "11286",
+    "code": "611",
+    "name": "Mua hàng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318f4"
+    },
+    "id": "11289",
+    "code": "621",
+    "name": "Chi phí nguyên vật liệu trực tiếp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318fc"
+    },
+    "id": "11297",
+    "code": "6238",
+    "name": "Chi phí bằng tiền khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318fd"
+    },
+    "id": "11298",
+    "code": "627",
+    "name": "Chi phí sản xuất chung",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b318ff"
+    },
+    "id": "11300",
+    "code": "6272",
+    "name": "Chi phí nguyên, vật liệu",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31900"
+    },
+    "id": "11301",
+    "code": "6273",
+    "name": "Chi phí dụng cụ sản xuất",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31901"
+    },
+    "id": "11302",
+    "code": "6274",
+    "name": "Chi phí khấu hao TSCĐ",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31902"
+    },
+    "id": "11303",
+    "code": "6277",
+    "name": "Chi phí dịch vụ mua ngoài",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31908"
+    },
+    "id": "11309",
+    "code": "6411",
+    "name": "Chi phí nhân viên",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3190a"
+    },
+    "id": "11311",
+    "code": "6413",
+    "name": "Chi phí dụng cụ, đồ dùng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3190f"
+    },
+    "id": "11316",
+    "code": "642",
+    "name": "Chi phí quản lý doanh nghiệp",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31915"
+    },
+    "id": "11322",
+    "code": "6426",
+    "name": "Chi phí dự phòng",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31917"
+    },
+    "id": "11324",
+    "code": "6428",
+    "name": "Chi phí bằng tiền khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b31918"
+    },
+    "id": "11325",
+    "code": "711",
+    "name": "Thu nhập khác",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a32228edee7933920b3191c"
+    },
+    "id": "11329",
+    "code": "8212",
+    "name": "Chi phí thuế Thu nhập doanh nghiệp hoãn lại",
+    "warehouse": "",
+    "status": "Kích hoạt",
+    "creator": "LÊ SỸ BÁCH",
+    "createdAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "updatedAt": {
+      "$date": "2022-06-09T04:30:27Z"
+    },
+    "__v": 0
+  }
+]
