@@ -411,9 +411,9 @@ export function RefundInvoiceCreatePage() {
     const totalPurchases = tempPurchasesSubtotal + tempPurchasesVat + tempPurchasesWarranty;
     const discountValue = Math.max(Number(form.discount) || 0, 0);
     const orderDiscount = form.discountType === 'percent'
-      ? Math.min(totalReturns, totalReturns * Math.min(discountValue, 100) / 100)
-      : Math.min(totalReturns, discountValue);
-    const netTotal = totalReturns - totalPurchases - orderDiscount;
+      ? Math.min(totalPurchases, totalPurchases * Math.min(discountValue, 100) / 100)
+      : Math.min(totalPurchases, discountValue);
+    const netTotal = totalReturns - Math.max(totalPurchases - orderDiscount, 0);
 
     setForm(prev => {
       const calculatedRefundAmount = netTotal > 0 ? netTotal : 0;
@@ -753,7 +753,7 @@ export function RefundInvoiceCreatePage() {
             },
           ],
           summary: [
-            { label: 'Chiết khấu', value: form.discountType === 'percent' ? `${Math.min(Math.max(Number(form.discount) || 0, 0), 100)}%` : receiptMoney(form.discount) },
+            { label: 'Chiết khấu hàng mua mới', value: form.discountType === 'percent' ? `${Math.min(Math.max(Number(form.discount) || 0, 0), 100)}%` : receiptMoney(form.discount) },
             { label: 'Tổng', value: receiptMoney(Math.abs(amountDelta)), strong: true },
             { label: amountDelta < 0 ? 'Khách cần thanh toán thêm' : 'Tiền trả khách hàng', value: receiptMoney(Math.abs(amountDelta)), strong: true },
           ],
@@ -1788,7 +1788,7 @@ export function RefundInvoiceCreatePage() {
 
               {/* Order discount */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                <span style={{ color: '#64748b' }}>Chiết khấu đơn:</span>
+                <span style={{ color: '#64748b' }}>Chiết khấu hàng mua mới:</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <input
                     type="number"

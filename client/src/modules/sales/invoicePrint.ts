@@ -189,11 +189,11 @@ export function buildReceiptHtml(options: ReceiptHtmlOptions) {
     <meta charset="utf-8" />
     <title>${escapeReceiptHtml(effectiveTitle)}</title>
     <style>
-      @page { size: A4; margin: 12mm; }
+      @page { size: A4 portrait; margin: 10mm; }
       * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      html, body { width: 210mm; min-height: 297mm; margin: 0; padding: 0; }
       body { font-family: Arial, Helvetica, sans-serif; color: #111; font-size: ${bodySize}px; line-height: 1.45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .receipt { width: 100%; max-width: 196mm; margin: 0 auto; padding: 0; }
+      .receipt { width: 100%; max-width: 190mm; margin: 0 auto; padding: 0; }
       .iv-header { text-align: center; overflow-wrap: anywhere; }
       .iv-logo { margin: 0 0 4px; }
       .iv-logo img { max-width: 200px; max-height: 56px; object-fit: contain; }
@@ -208,13 +208,13 @@ export function buildReceiptHtml(options: ReceiptHtmlOptions) {
       .iv-customer { margin: 6px 0 2px; overflow-wrap: anywhere; }
       .iv-cashier { margin: 2px 0; }
       .iv-section-title { font-weight: 700; margin: 8px 0 4px; }
-      .iv-table { width: 100%; border-collapse: collapse; margin: 4px 0; }
+      .iv-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 4px 0; }
       .iv-table th, .iv-table td { border: 1px solid #000; padding: 4px 6px; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
       .iv-table th { font-weight: 700; text-align: left; background: #f4f4f4; }
       .iv-c-code { width: 12%; }
       .iv-c-price { width: 18%; text-align: center; }
       .iv-c-qty { width: 8%; text-align: center; }
-      .iv-c-total { width: 22%; text-align: right; white-space: nowrap; }
+      .iv-c-total { width: 22%; text-align: right; overflow-wrap: anywhere; }
       .iv-table td.iv-c-price { text-align: center; }
       .iv-table td.iv-c-qty { text-align: center; }
       .iv-table td.iv-c-total { text-align: right; }
@@ -222,11 +222,11 @@ export function buildReceiptHtml(options: ReceiptHtmlOptions) {
       .iv-summary { width: 100%; margin-top: 6px; }
       .iv-summary td { padding: 3px 0; }
       .iv-sum-label { text-align: right; padding-right: 12px; }
-      .iv-sum-value { text-align: right; white-space: nowrap; width: 40%; }
+      .iv-sum-value { text-align: right; overflow-wrap: anywhere; width: 40%; }
       .iv-summary tr.iv-strong td { font-weight: 700; }
       .iv-foot-dash { border-top: 1px dashed #000; margin: 12px 0 6px; }
       .iv-footer { text-align: center; margin-top: 4px; overflow-wrap: anywhere; }
-      @media print { .receipt { max-width: 100%; } .iv-table th { background: #f4f4f4 !important; } }
+      @media print { html, body { width: 210mm; } .receipt { max-width: 190mm; } .iv-table th { background: #f4f4f4 !important; } }
     </style>
   </head>
   <body>

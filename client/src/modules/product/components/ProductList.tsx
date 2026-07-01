@@ -1497,7 +1497,7 @@ function buildPrintDocument({
     <style>
       @page { size: ${paper.pageWidthMm}mm ${paper.pageHeightMm}mm; margin: 0; }
       * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
+      html, body { width: ${paper.pageWidthMm}mm; min-height: ${paper.pageHeightMm}mm; margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; color: #111827; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .print-page { width: ${paper.pageWidthMm}mm; height: ${paper.pageHeightMm}mm; padding: ${safeMarginTop}mm 0 0 ${safeMarginLeft}mm; overflow: hidden; break-after: page; page-break-after: always; background: #fff; }
       .print-page:last-child { break-after: auto; page-break-after: auto; }
@@ -1513,7 +1513,7 @@ function buildPrintDocument({
       .print-name.three { max-height: ${Math.max(9, paper.labelHeightMm * 0.32)}mm; }
       .print-price { font-size: ${metrics.priceFontPx}px; font-weight: 900; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .print-old-price { font-size: ${Math.max(7, metrics.priceFontPx - 2)}px; text-decoration: line-through; color: #6b7280; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      @media print { html, body { width: ${paper.pageWidthMm}mm; } .print-page { margin: 0; } }
+      @media print { html, body { width: ${paper.pageWidthMm}mm; min-height: ${paper.pageHeightMm}mm; } .print-page { margin: 0; } }
     </style></head><body>${pagesHtml}</body></html>`;
 }
 

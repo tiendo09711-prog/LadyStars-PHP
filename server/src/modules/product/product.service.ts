@@ -779,8 +779,6 @@ export async function createReturnExchange(saleId: string, payload: any) {
       const rawRefundPayments = await normalizePaymentLines(payload.refundPayments, session);
       const discountValue = toNumber(payload.discountValue);
       const discountType = payload.discountType === 'percent' ? 'percent' : 'number';
-      const orderDiscount = lineDiscount(returnedValue, discountValue, discountType);
-      const discountedReturnedValue = Math.max(returnedValue - orderDiscount, 0);
 
       let settlementValue = 0;
       let replacementPayload: any = null;
@@ -794,22 +792,22 @@ export async function createReturnExchange(saleId: string, payload: any) {
           status: 'completed',
           valuePayment: payload.salePayments?.reduce((sum: number, line: any) => sum + toNumber(line?.amount), 0) ?? 0,
           typePayment: payload.salePayments || [],
-          discountValue: 0,
-          discountType: 'number',
+          discountValue,
+          discountType,
           settlementValue: 0,
           items: payload.replacementItems,
           userId: payload.userId || sale.userId,
           authorId: payload.userId || sale.authorId || sale.userId,
         }, { session, stockAllowanceByProduct });
 
-        settlementValue = Math.min(discountedReturnedValue, replacementPayload.value);
+        settlementValue = Math.min(returnedValue, replacementPayload.value);
         const saleCashDue = Math.max(replacementPayload.value - settlementValue, 0);
         if (Math.abs(replacementPayload.valuePayment - saleCashDue) > MONEY_TOLERANCE) {
           throw new ProductFlowError('Replacement sale payments must equal the amount the customer still has to pay');
         }
       }
 
-      const refundCashDue = Math.max(discountedReturnedValue - settlementValue, 0);
+      const refundCashDue = Math.max(returnedValue - settlementValue, 0);
       if (Math.abs(sumPaymentLines(rawRefundPayments) - refundCashDue) > MONEY_TOLERANCE) {
         throw new ProductFlowError('Refund payments must equal the amount returned to the customer');
       }
@@ -817,8 +815,8 @@ export async function createReturnExchange(saleId: string, payload: any) {
       const [createdRefund] = await ProductRefund.create([{
         paymentId: sale._id,
         code: payload.code || buildNextCode('THB'),
-        discountValue,
-        discountType,
+        discountValue: 0,
+        discountType: 'number',
         refundFee: 0,
         refundFeeType: 'number',
         amount: returnedAmount,
