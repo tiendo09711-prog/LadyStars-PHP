@@ -17,7 +17,7 @@
     "recharts": "^2.15.3",
     "typescript": "^5.7.2",
     "vite": "latest",
-    "xlsx": "^0.18.5"
+    "xlsx": "npm:@e965/xlsx@0.20.3"
   },
   "devDependencies": {
     "@types/react": "^19.0.2",

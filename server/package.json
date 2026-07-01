@@ -28,7 +28,7 @@
     "morgan": "^1.10.0",
     "multer": "^2.2.0",
     "redis": "^6.0.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "npm:@e965/xlsx@0.20.3",
     "zod": "^3.24.1"
   },
   "devDependencies": {
