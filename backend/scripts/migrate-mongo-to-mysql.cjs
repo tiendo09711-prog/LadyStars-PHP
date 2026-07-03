@@ -239,6 +239,8 @@ function operationalRows(collection, docs, maps = {}) {
       old_value: str(doc.oldValue),
       new_value: str(doc.newValue || doc.logAction),
       created_by: str(doc.createdBy),
+      log_type: str(doc.logType),
+      log_action: str(doc.logAction),
     });
     if (collection === 'inventoryvouchers') return mirrorRow(doc, {
       branch_id: localId(maps.branchMap, doc.branchId || doc.warehouseId),

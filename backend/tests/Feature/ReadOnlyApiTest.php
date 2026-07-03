@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -163,6 +164,147 @@ class ReadOnlyApiTest extends TestCase
 
         $inventories = $this->getJson('/api/products/inventories?branchId='.$this->branch->id.'&perPage=10');
         $inventories->assertOk()->assertJsonPath('data.0.product.code', 'SP001');
+    }
+
+    public function test_mirror_alias_routes_return_node_compatible_shapes(): void
+    {
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale000000000000000001',
+            'code' => 'HD001',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'customer_mongo_id' => $this->customer->mongo_id,
+            'customer_id' => $this->customer->id,
+            'amount_products' => 1,
+            'value' => 100000,
+            'value_payment' => 100000,
+            'business_date' => now(),
+            'completed_at' => now(),
+            'items' => [['productCode' => $this->product->code]],
+            'payment_lines' => [['method' => 'cash']],
+            'payload' => ['code' => 'HD001'],
+        ]);
+
+        $response = $this->getJson('/api/products/payments?q=HD001&limit=5');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'items' => [
+                    '*' => ['id', 'code', 'status', 'branch_id', 'customer_id'],
+                ],
+                'data',
+                'total',
+                'page',
+                'limit',
+            ])
+            ->assertJsonPath('items.0.code', 'HD001')
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('limit', 5);
+
+        $salesAlias = $this->getJson('/api/products/sales?invoiceCode=HD001&limit=5');
+        $salesAlias->assertOk()
+            ->assertJsonPath('items.0.code', 'HD001')
+            ->assertJsonPath('total', 1);
+    }
+
+    public function test_warehouse_and_customer_mirror_aliases_are_readable(): void
+    {
+        (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()->create([
+            'mongo_id' => 'voucher000000000000001',
+            'code' => 'PX001',
+            'voucher_code' => 'PX001',
+            'warehouse_name' => 'Kho Hà Nội',
+            'import_export_type' => 'Xuất bán lẻ',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'qty' => 1,
+            'total_amount' => 100000,
+            'business_date' => now(),
+            'payload' => ['voucherId' => 'PX001'],
+        ]);
+
+        (new MirrorRecord())->forTable('customer_cares')->newQuery()->create([
+            'mongo_id' => 'care00000000000000001',
+            'code' => 'CSKH001',
+            'customer_name' => 'Nguyễn Thị A',
+            'customer_phone' => '0912345678',
+            'details' => 'Gọi chăm sóc',
+            'reason' => 'Sau bán hàng',
+            'creator' => 'Admin',
+            'record_date' => now(),
+            'business_date' => now(),
+            'payload' => ['code' => 'CSKH001'],
+        ]);
+
+        $voucher = $this->getJson('/api/warehouse/vouchers?q=PX001&limit=10');
+        $voucher->assertOk()
+            ->assertJsonPath('items.0.voucher_code', 'PX001')
+            ->assertJsonPath('items.0.branch_id', $this->branch->id);
+
+        $care = $this->getJson('/api/customers/care?q=0912345678&limit=10');
+        $care->assertOk()
+            ->assertJsonPath('items.0.customer_phone', '0912345678')
+            ->assertJsonPath('total', 1);
+
+        $careMeta = $this->getJson('/api/customers/care/meta');
+        $careMeta->assertOk()
+            ->assertJsonPath('reasons.0', 'Sau bán hàng')
+            ->assertJsonPath('creators.0', 'Admin');
+    }
+
+    public function test_product_edit_logs_include_frontend_meta(): void
+    {
+        (new MirrorRecord())->forTable('product_edit_logs')->newQuery()->create([
+            'mongo_id' => 'editlog000000000000001',
+            'code' => 'LOG001',
+            'product_mongo_id' => $this->product->mongo_id,
+            'product_id' => $this->product->id,
+            'product_code' => $this->product->code,
+            'product_name' => $this->product->name,
+            'field_name' => 'price',
+            'old_value' => '90000',
+            'new_value' => '100000',
+            'log_type' => 'Cập nhật',
+            'log_action' => 'update',
+            'created_by' => 'Admin',
+            'business_date' => now(),
+            'payload' => ['productCode' => $this->product->code],
+        ]);
+
+        $response = $this->getJson('/api/products/edit-logs?q=SP001&limit=10');
+
+        $response->assertOk()
+            ->assertJsonPath('items.0.product_code', 'SP001')
+            ->assertJsonPath('meta.logTypes.0', 'Cập nhật')
+            ->assertJsonPath('meta.logActions.0', 'update')
+            ->assertJsonPath('meta.editors.0', 'Admin')
+            ->assertJsonPath('meta.toneByLogType.Cập nhật', 'warning');
+    }
+
+    public function test_warehouse_transfer_meta_matches_frontend_contract(): void
+    {
+        $response = $this->getJson('/api/warehouse/transfers/meta');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'role',
+                'userWarehouseIds',
+                'warehouses' => [
+                    '*' => ['value', 'label', 'code'],
+                ],
+                'destinationWarehouses' => [
+                    '*' => ['value', 'label', 'code'],
+                ],
+                'statuses' => [
+                    '*' => ['value', 'label'],
+                ],
+            ])
+            ->assertJsonPath('role', 'ADMIN')
+            ->assertJsonPath('warehouses.0.value', $this->branch->mongo_id)
+            ->assertJsonPath('destinationWarehouses.0.value', $this->branch->mongo_id)
+            ->assertJsonPath('statuses.0.value', 'DRAFT');
     }
 
     public function test_placeholder_products_endpoint_is_available(): void

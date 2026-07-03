@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Customer extends Model
 {
@@ -61,5 +62,10 @@ class Customer extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(CustomerGroup::class, 'customer_customer_group')->withTimestamps();
     }
 }
