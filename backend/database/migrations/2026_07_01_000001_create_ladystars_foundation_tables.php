@@ -1,18 +1,29 @@
-﻿<?php
+<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private function binaryString(Blueprint $table, string $column, ?int $length = null)
+    {
+        $definition = $length === null ? $table->string($column) : $table->string($column, $length);
+
+        if (DB::connection()->getDriverName() === 'mysql') {
+            $definition->collation('utf8mb4_bin');
+        }
+
+        return $definition;
+    }
     public function up(): void
     {
         Schema::create('branches', function (Blueprint $table) {
             $table->id();
             $table->string('mongo_id', 24)->nullable()->unique();
             $table->string('name');
-            $table->string('code')->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'code')->unique();
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
             $table->boolean('is_active')->default(true);
@@ -40,7 +51,7 @@ return new class extends Migration
         Schema::create('customer_groups', function (Blueprint $table) {
             $table->id();
             $table->string('mongo_id', 24)->nullable()->unique();
-            $table->string('name')->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'name')->unique();
             $table->string('type')->default('1');
             $table->text('note')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
@@ -52,7 +63,7 @@ return new class extends Migration
             $table->string('mongo_id', 24)->nullable()->unique();
             $table->enum('type', ['person', 'company'])->default('person');
             $table->string('name');
-            $table->string('code')->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'code')->unique();
             $table->string('phone')->nullable();
             $table->string('phone2')->nullable();
             $table->string('card_id')->nullable();
@@ -101,9 +112,9 @@ return new class extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
             $table->string('mongo_id', 24)->nullable()->unique();
-            $table->string('external_id')->nullable()->collation('utf8mb4_bin')->unique();
-            $table->string('name')->collation('utf8mb4_bin')->unique();
-            $table->string('code')->nullable()->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'external_id')->nullable()->unique();
+            $this->binaryString($table, 'name')->unique();
+            $this->binaryString($table, 'code')->nullable()->unique();
             $table->foreignId('parent_id')->nullable()->constrained('categories')->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->boolean('is_active')->default(true);
@@ -118,7 +129,7 @@ return new class extends Migration
         Schema::create('trademarks', function (Blueprint $table) {
             $table->id();
             $table->string('mongo_id', 24)->nullable()->unique();
-            $table->string('name')->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'name')->unique();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
@@ -126,7 +137,7 @@ return new class extends Migration
         Schema::create('shelves', function (Blueprint $table) {
             $table->id();
             $table->string('mongo_id', 24)->nullable()->unique();
-            $table->string('name')->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'name')->unique();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
@@ -134,9 +145,9 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('mongo_id', 24)->nullable()->unique();
-            $table->string('external_id')->nullable()->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'external_id')->nullable()->unique();
             $table->string('name');
-            $table->string('code')->collation('utf8mb4_bin')->unique();
+            $this->binaryString($table, 'code')->unique();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('trademark_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('shelf_id')->nullable()->constrained()->nullOnDelete();
@@ -160,7 +171,7 @@ return new class extends Migration
             $table->json('units')->nullable();
             $table->json('elements')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('status')->default('Má»›i');
+            $table->string('status')->default('MÃ¡Â»â€ºi');
             $table->string('category_name')->nullable();
             $table->string('trademark_name')->nullable();
             $table->string('supplier_name')->nullable();
@@ -215,4 +226,3 @@ return new class extends Migration
         Schema::dropIfExists('branches');
     }
 };
-

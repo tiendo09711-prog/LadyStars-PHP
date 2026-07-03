@@ -15,7 +15,8 @@
     "live:preflight": "node e2e/run-live-guarded.mjs --preflight",
     "live:test": "node e2e/run-live-guarded.mjs",
     "live:report": "node e2e/run-live-guarded.mjs --latest-report",
-    "migrate:mongo-mysql": "node backend/scripts/migrate-mongo-to-mysql.cjs"
+    "migrate:mongo-mysql": "node backend/scripts/migrate-mongo-to-mysql.cjs",
+    "audit:mongo-mysql": "node backend/scripts/audit-mongo-mysql-sync.cjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
