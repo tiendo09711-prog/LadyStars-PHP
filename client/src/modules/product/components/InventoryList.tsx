@@ -9,6 +9,7 @@ import { listBranches } from '../../../core/api/branch.api';
 import type { BranchRecord } from '../../../core/api/branch.api';
 import type { IInventory } from '../../../types/product.type';
 import { ColumnOption, ExportExcelModal } from './ExportExcelModal';
+import { getInventoryBranchStock } from './inventoryStock';
 
 export function InventoryList() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export function InventoryList() {
         q: nextSearch || undefined,
         branchId: filterWarehouse || undefined,
         stockStatus: filterStockStatus || undefined,
-        sort: sortField,
+        sort: sortField.startsWith('stock_') ? 'totalStock' : sortField,
         order: sortOrder,
       });
       setItems(res.items);
@@ -62,16 +63,7 @@ export function InventoryList() {
     load();
   }, [page, filterWarehouse, filterStockStatus, sortField, sortOrder, refreshKey]);
 
-  const getBranchStock = (item: IInventory, branch: BranchRecord) => {
-    const byId = item.stockByBranchId?.[branch._id];
-    if (typeof byId === 'number') return byId;
-    const byCode = item.stockByBranchCode?.[branch.code];
-    if (typeof byCode === 'number') return byCode;
-    if (branch.code === 'HN') return item.stockHanoi ?? 0;
-    if (branch.code === 'HCM') return item.stockHCM ?? 0;
-    if (branch.code === 'CN001') return item.stockCN ?? 0;
-    return 0;
-  };
+  const getBranchStock = (item: IInventory, branch: BranchRecord) => getInventoryBranchStock(item, branch);
 
   const exportColumns: ColumnOption[] = useMemo(
     () => {
@@ -87,10 +79,6 @@ export function InventoryList() {
           const branchKey = `stock_${branch.code}`;
           base.push({ label: branch.name, key: branchKey, getValue: (item: IInventory) => getBranchStock(item, branch) });
         }
-      } else {
-        // Fallback to legacy labels
-        base.push({ label: 'Kho Hà Nội', key: 'stockHanoi', getValue: (item: IInventory) => item.stockHanoi ?? 0 });
-        base.push({ label: 'Kho HCM', key: 'stockHCM', getValue: (item: IInventory) => item.stockHCM ?? 0 });
       }
       base.push({ label: 'Tổng tồn', key: 'totalStock', getValue: (item: IInventory) => item.totalStock ?? 0 });
       base.push({ label: 'Trạng thái', key: 'status', getValue: (item: IInventory) => item.status || '' });
@@ -175,8 +163,11 @@ export function InventoryList() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1);
-    load();
+    if (page === 1) {
+      void load({ page: 1 });
+    } else {
+      setPage(1);
+    }
   };
 
   const searchRef = useRef<HTMLInputElement>(null);
@@ -394,7 +385,7 @@ export function InventoryList() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="empty-cell">
+                  <td colSpan={5 + branches.length} className="empty-cell">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
@@ -402,7 +393,7 @@ export function InventoryList() {
 
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="empty-cell">
+                  <td colSpan={5 + branches.length} className="empty-cell">
                     Chưa có dữ liệu.
                   </td>
                 </tr>

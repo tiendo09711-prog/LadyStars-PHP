@@ -334,6 +334,11 @@ export function WarehouseTransactionPage() {
     setAppliedFilters((current) => ({ ...current, [activeTab]: nextFilters }));
   };
 
+  const refreshData = () => {
+    setOpenMenu(null);
+    void load();
+  };
+
   const changeTab = (tab: TabKey) => {
     setActiveTab(tab);
     setPage(1);
@@ -608,7 +613,7 @@ export function WarehouseTransactionPage() {
             <span className="wr-count">
               {total ? `${(page - 1) * LIMIT + 1} - ${Math.min(page * LIMIT, total)} / ${total}` : '0 bản ghi'}
             </span>
-            <button className="wr-icon-button" type="button" title="Làm mới" aria-label="Làm mới" onClick={resetFilters}>
+            <button className="wr-icon-button" type="button" title="Làm mới" aria-label="Làm mới" onClick={refreshData}>
               <RefreshCw size={15} />
             </button>
             <button className="wr-icon-button" type="button" title="Tùy chỉnh cột" aria-label="Tùy chỉnh cột" onClick={openColumnModal}>

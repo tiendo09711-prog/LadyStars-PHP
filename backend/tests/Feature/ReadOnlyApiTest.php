@@ -139,11 +139,13 @@ class ReadOnlyApiTest extends TestCase
         $response->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    '*' => ['id', 'qty', 'product', 'branch'],
+                    '*' => ['id', 'code', 'name', 'totalStock', 'stockByBranchId', 'stockByBranchCode'],
                 ],
             ])
-            ->assertJsonPath('data.0.branch.id', $this->branch->id)
-            ->assertJsonPath('data.0.product.code', 'SP001');
+            ->assertJsonPath('data.0.code', 'SP001')
+            ->assertJsonPath('data.0.totalStock', 12)
+            ->assertJsonPath('data.0.stockByBranchId.'.$this->branch->id, 12)
+            ->assertJsonPath('data.0.stockByBranchCode.HN', 12);
     }
 
     public function test_frontend_compatible_product_routes_return_expected_shapes(): void
@@ -163,7 +165,10 @@ class ReadOnlyApiTest extends TestCase
         $customers->assertOk()->assertJsonPath('data.0.code', 'KH001');
 
         $inventories = $this->getJson('/api/products/inventories?branchId='.$this->branch->id.'&perPage=10');
-        $inventories->assertOk()->assertJsonPath('data.0.product.code', 'SP001');
+        $inventories->assertOk()
+            ->assertJsonPath('data.0.code', 'SP001')
+            ->assertJsonPath('data.0.stockByBranchId.'.$this->branch->id, 12)
+            ->assertJsonPath('data.0.totalStock', 12);
     }
 
     public function test_mirror_alias_routes_return_node_compatible_shapes(): void

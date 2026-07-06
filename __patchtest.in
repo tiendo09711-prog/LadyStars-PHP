@@ -1,6 +1,0 @@
-*** Begin Patch
-*** Update File: __patchtest.txt
-@@
--hello world
-+hello patch
-*** End Patch

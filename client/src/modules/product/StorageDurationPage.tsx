@@ -67,6 +67,7 @@ export function StorageDurationPage() {
   // Action Dialogs
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
@@ -83,6 +84,28 @@ export function StorageDurationPage() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  // Close action menu on click-outside or Escape
+  useEffect(() => {
+    if (!openActionMenu) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      const root = actionMenuRef.current;
+      if (root && event.target instanceof Node && !root.contains(event.target)) {
+        setOpenActionMenu(null);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenActionMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openActionMenu]);
 
   // Load Categories and Branches on mount
   useEffect(() => {
@@ -723,7 +746,7 @@ export function StorageDurationPage() {
                     <span style={{ margin: '0 6px', color: '#cbd5e1' }}>|</span>
                     <strong style={{ color: '#0f172a' }}>{formatMoney(item.price)}</strong>
                     {item.clearanceActive && item.clearancePrice ? (
-                      <small style={{ display: 'block', color: '#c2410c', fontWeight: 700, fontSize: '11px' }}>Xáº£: {formatMoney(item.clearancePrice)}</small>
+                      <small style={{ display: 'block', color: '#c2410c', fontWeight: 700, fontSize: '11px' }}>Xả: {formatMoney(item.clearancePrice)}</small>
                     ) : null}
                   </td>
                   <td>
@@ -762,7 +785,7 @@ export function StorageDurationPage() {
                     )}
                   </td>
                   <td className="action-cell storage-action-cell">
-                    <div className="storage-action-menu">
+                    <div className="storage-action-menu" ref={openActionMenu === item._id ? actionMenuRef : undefined}>
                       <button
                         className="storage-action-trigger"
                         type="button"

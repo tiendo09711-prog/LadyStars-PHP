@@ -9,9 +9,11 @@ echo ===== CLIENT BUILD =====
 call npm.cmd run build -w client
 if errorlevel 1 exit /b 1
 
-echo ===== SERVER BUILD =====
-call npm.cmd run build -w server
+echo ===== LARAVEL TESTS =====
+cd backend
+call php artisan test
 if errorlevel 1 exit /b 1
+cd ..
 
 echo ===== DIFF CHECK =====
 git diff --check

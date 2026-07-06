@@ -318,7 +318,22 @@ export function WarehouseAuditCreatePage() {
       const response = await http.get('/products/inventories', {
         params: { branchId: selectedWarehouseId, limit: 5000 },
       });
-      setInventoryOptions(response.data.items || []);
+      const raw: any[] = response.data.items || [];
+      const mapped: InventoryOption[] = raw.map((stock: any) => {
+        const product = stock?.product ?? {};
+        return {
+          _id: String(stock?._id ?? stock?.id ?? ' '),
+          code: product.code ?? '',
+          name: product.name ?? '',
+          barcode: product.barcode ?? undefined,
+          unit: product.unit ?? undefined,
+          cost: Number(product.cost ?? 0),
+          price: Number(product.price ?? 0),
+          selectedStock: Number(stock?.quantity ?? stock?.qty ?? 0),
+          totalStock: Number(product.qty ?? stock?.quantity ?? stock?.qty ?? 0),
+        };
+      });
+      setInventoryOptions(mapped);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Không tải được sản phẩm tồn kho.');
     } finally {

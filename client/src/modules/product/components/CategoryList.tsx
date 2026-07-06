@@ -24,6 +24,7 @@ import { listBranches } from '../../../core/api/branch.api';
 import type { BranchRecord } from '../../../core/api/branch.api';
 import type { ICategory, IInventory } from '../../../types/product.type';
 import { ColumnOption, ExportExcelModal } from './ExportExcelModal';
+import { getInventoryBranchStock } from './inventoryStock';
 
 type EditorMode = 'create' | 'edit' | null;
 type ImportMode = 'create' | 'update';
@@ -1090,7 +1091,7 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
                       <td className="categories-modal-money categories-modal-price">{formatMoney(item.price)}</td>
                       {branches.map(b => (
                         <td key={b._id} className="categories-modal-stock">
-                          {Number(b.code === 'HN' ? item.stockHanoi : b.code === 'HCM' ? item.stockHCM : 0).toLocaleString('vi-VN')}
+                          {Number(getInventoryBranchStock(item, b)).toLocaleString('vi-VN')}
                         </td>
                       ))}
                       <td className="categories-modal-stock categories-modal-total">

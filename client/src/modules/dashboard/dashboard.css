@@ -366,7 +366,8 @@
   grid-template-areas:
     "chart recent"
     "top top"
-    "inv inv";
+    "inv inv"
+    "storage storage";
   grid-template-columns: minmax(0, 1.62fr) minmax(300px, 0.9fr);
   gap: 16px;
   margin-top: 16px;
@@ -376,6 +377,7 @@
 .dv-card-top { grid-area: top; min-width: 0; }
 .dv-card-inventory { grid-area: inv; min-width: 0; }
 .dv-card-recent { grid-area: recent; display: flex; flex-direction: column; min-width: 0; }
+.dv-card-storage { grid-area: storage; min-width: 0; }
 .dv-surface {
   margin-bottom: 16px;
   overflow: visible;
@@ -653,7 +655,8 @@
       "chart"
       "recent"
       "top"
-      "inv";
+      "inv"
+      "storage";
   }
 }
 @media (max-width: 720px) {

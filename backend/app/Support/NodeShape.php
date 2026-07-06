@@ -104,6 +104,7 @@ class NodeShape
 
     public static function product(Product $product): array
     {
+
         return [
             '_id' => (string) $product->id,
             'id' => $product->id,
@@ -173,6 +174,72 @@ class NodeShape
             'branch' => $branch ? self::branch($branch) : null,
             'createdAt' => optional($stock->created_at)->toISOString(),
             'updatedAt' => optional($stock->updated_at)->toISOString(),
+        ];
+    }
+
+    public static function inventory(Product $product): array
+    {
+        $stocks = $product->relationLoaded('stocks') ? $product->stocks : collect();
+
+        $stockByBranchId = [];
+        $stockByBranchCode = [];
+        $totalStock = 0.0;
+        $legacyHanoi = 0.0;
+        $legacyHcm = 0.0;
+        $legacyCenter = 0.0;
+
+        foreach ($stocks as $stock) {
+            $branchId = (string) $stock->branch_id;
+            $qty = (float) $stock->qty;
+            $branch = $stock->relationLoaded('branch') ? $stock->branch : null;
+
+            if (isset($stockByBranchId[$branchId])) {
+                $stockByBranchId[$branchId] += $qty;
+            } else {
+                $stockByBranchId[$branchId] = $qty;
+            }
+
+            if ($branch) {
+                $code = (string) $branch->code;
+                if (isset($stockByBranchCode[$code])) {
+                    $stockByBranchCode[$code] += $qty;
+                } else {
+                    $stockByBranchCode[$code] = $qty;
+                }
+                if ($code === 'HN') $legacyHanoi += $qty;
+                if ($code === 'HCM') $legacyHcm += $qty;
+                if ($code === 'CN001') $legacyCenter += $qty;
+            }
+
+            $totalStock += $qty;
+        }
+
+        $primaryStock = $stocks->first();
+        $primaryBranch = $primaryStock && $primaryStock->relationLoaded('branch') ? $primaryStock->branch : null;
+
+        return [
+            '_id' => (string) $product->id,
+            'id' => $product->id,
+            'mongoId' => $product->mongo_id,
+            'barcode' => $product->barcode,
+            'code' => $product->code,
+            'name' => $product->name,
+            'cost' => (float) $product->cost,
+            'price' => (float) $product->price,
+            'wholesalePrice' => (float) $product->wholesale_price,
+            'status' => $product->status,
+            'stockByBranchId' => $stockByBranchId,
+            'stockByBranchCode' => $stockByBranchCode,
+            'stockHanoi' => $legacyHanoi,
+            'stockHCM' => $legacyHcm,
+            'stockCN' => $legacyCenter,
+            'totalStock' => $totalStock,
+            'qty' => $primaryStock ? (float) $primaryStock->qty : $totalStock,
+            'quantity' => $primaryStock ? (float) $primaryStock->qty : $totalStock,
+            'product' => self::product($product),
+            'branch' => $primaryBranch ? self::branch($primaryBranch) : null,
+            'createdAt' => optional($product->created_at)->toISOString(),
+            'updatedAt' => optional($product->updated_at)->toISOString(),
         ];
     }
 }

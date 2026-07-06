@@ -1202,7 +1202,7 @@ function ImportModal({
 
   const handleImport = async () => {
     if (!file) {
-      setMessage('Vui lòng chọn file Excel để nhập.');
+      setMessage('Vui lòng chọn file CSV để nhập.');
       return;
     }
 
@@ -1245,7 +1245,7 @@ function ImportModal({
         <div className="modal-header">
           <div>
             <h2>Nhập dữ liệu sản phẩm</h2>
-            <p>Nhập file Excel để thêm mới hoặc cập nhật danh sách sản phẩm.</p>
+            <p>Nhập file CSV để thêm mới hoặc cập nhật danh sách sản phẩm.</p>
           </div>
           <button className="icon-button" type="button" onClick={onClose} disabled={loading}>
             <X size={18} />
@@ -1304,13 +1304,13 @@ function ImportModal({
             }}
           >
             <UploadCloud size={34} />
-            <strong>{file ? file.name : 'Chọn file Excel (.xlsx, .xls, .csv)'}</strong>
+            <strong>{file ? file.name : 'Chọn file CSV (.csv)'}</strong>
             <span style={{ fontSize: 13 }}>Nhấn để chọn file cần import</span>
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx,.xls,.csv"
+            accept=".csv"
             style={{ display: 'none' }}
             onChange={(event) => setFile(event.target.files?.[0] || null)}
           />
@@ -2187,6 +2187,7 @@ export function ProductList({
   const [openBulkMenu, setOpenBulkMenu] = useState(false);
   const [openBulkStatusMenu, setOpenBulkStatusMenu] = useState(false);
   const [openRowActionId, setOpenRowActionId] = useState<string | null>(null);
+  const toolbarActionsRef = useRef<HTMLDivElement | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [showBarcodePrint, setShowBarcodePrint] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
@@ -2241,6 +2242,33 @@ export function ProductList({
 
     return () => {
       mounted = false;
+    };
+  }, []);
+  useEffect(() => {
+    const closeAllMenus = () => {
+      setOpenAddMenu(false);
+      setOpenBulkMenu(false);
+      setOpenBulkStatusMenu(false);
+      setOpenRowActionId(null);
+    };
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      const withinToolbar = toolbarActionsRef.current?.contains(target);
+      const rowMenu = target instanceof Element ? target.closest('.products-row-action-menu') != null : false;
+      const rowMenuButton = target instanceof Element ? target.closest('.products-row-menu-button') != null : false;
+      if (!withinToolbar && !rowMenu && !rowMenuButton) {
+        closeAllMenus();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeAllMenus();
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -2630,7 +2658,7 @@ export function ProductList({
 
         {actionSlot?.current
           ? createPortal(
-              <div className="products-action-row">
+              <div className="products-action-row" ref={toolbarActionsRef}>
                 <div className="products-primary-actions">
                   <div className="products-split-add products-floating-menu">
                     <button className="btn products-add-button" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>

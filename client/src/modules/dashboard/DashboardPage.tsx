@@ -404,7 +404,7 @@ export function DashboardPage() {
             </div>
           </section>
 
-          <section className="dv-surface dv-card-inventory dv-storage-alert-card">
+          <section className="dv-surface dv-card-storage dv-storage-alert-card">
             <div className="dv-surface-head"><div><h2>Cảnh báo tồn kho</h2><p>Hàng chưa bán hoặc bán chậm trên {storageSummary?.thresholdDays || 30} ngày.</p></div><Link className="dv-head-tag" to="/products/storage-duration">Xem tất cả</Link></div>
             {storageLoading && !storageSummary ? <div className="dv-empty">Đang tải cảnh báo tồn kho...</div> : null}
             {storageError ? <div className="dv-empty">{storageError}</div> : null}
