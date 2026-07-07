@@ -40,7 +40,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasColumn('inventory_products', 'inventory_voucher_mongo_id')) {
+        if (!Schema::hasColumn('inventory_products', 'branch_id')) {
             Schema::table('inventory_products', function (Blueprint $table) {
             $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete()->after('inventory_voucher_mongo_id');
             $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete()->after('product_mongo_id');

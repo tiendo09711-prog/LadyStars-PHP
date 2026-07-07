@@ -72,18 +72,32 @@ return new class extends Migration
         });
 
         $this->addColumns('inventory_products', 'product_code', function (Blueprint $table) {
-            $table->string('warehouse_name')->nullable()->index()->after('branch_id');
-            $table->string('product_code')->nullable()->index()->after('product_id');
-            $table->string('product_name')->nullable()->index()->after('product_code');
-            $table->string('barcode')->nullable()->index()->after('product_name');
-            $table->decimal('import_qty', 18, 3)->nullable()->after('qty');
-            $table->decimal('export_qty', 18, 3)->nullable()->after('import_qty');
-            $table->decimal('cost', 18, 2)->nullable()->after('unit_price');
-            $table->decimal('discount', 18, 2)->nullable()->after('cost');
-            $table->decimal('total_amount', 18, 2)->nullable()->after('discount');
-            $table->string('creator')->nullable()->index()->after('total_amount');
-            $table->string('customer_name')->nullable()->index()->after('creator');
-            $table->string('parent_code')->nullable()->index()->after('customer_name');
+            // Add prerequisite columns if the prior migration did not (defensive)
+            if (!Schema::hasColumn('inventory_products', 'branch_id')) {
+                $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
+            }
+            if (!Schema::hasColumn('inventory_products', 'product_id')) {
+                $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete();
+            }
+            if (!Schema::hasColumn('inventory_products', 'qty')) {
+                $table->decimal('qty', 18, 3)->nullable();
+            }
+            if (!Schema::hasColumn('inventory_products', 'unit_price')) {
+                $table->decimal('unit_price', 18, 2)->nullable();
+            }
+            // now the rest
+            $table->string('warehouse_name')->nullable()->index();
+            $table->string('product_code')->nullable()->index();
+            $table->string('product_name')->nullable()->index();
+            $table->string('barcode')->nullable()->index();
+            $table->decimal('import_qty', 18, 3)->nullable();
+            $table->decimal('export_qty', 18, 3)->nullable();
+            $table->decimal('cost', 18, 2)->nullable();
+            $table->decimal('discount', 18, 2)->nullable();
+            $table->decimal('total_amount', 18, 2)->nullable();
+            $table->string('creator')->nullable()->index();
+            $table->string('customer_name')->nullable()->index();
+            $table->string('parent_code')->nullable()->index();
             $table->index(['product_code', 'business_date']);
         });
 
