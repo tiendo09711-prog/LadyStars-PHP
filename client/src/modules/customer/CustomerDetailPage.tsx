@@ -72,41 +72,41 @@ function formatDate(value?: string | null) {
 function activityProducts(activity: CustomerActivity) {
   const items = activity.items || [];
   if (!items.length) return '?';
-  return items.map((item) => `${item.name || item.code || 'S?n ph?m'} x${item.quantity || 0}`).join(', ');
+  return items.map((item) => `${item.name || item.code || 'Sản phẩm'} x${item.quantity || 0}`).join(', ');
 }
 
 function ActivityTable({ title, rows, emptyText }: { title: string; rows: CustomerActivity[]; emptyText: string }) {
   return (
-    <section className="customer-table-card customer-detail-section">
-      <div className="customer-table-header">
+    <div className="data-card customer-activity-card">
+      <div className="data-card-header">
         <div>
           <h2>{title}</h2>
-          <p>Hi?n th? t?i ?a 100 giao d?ch g?n nh?t li?n quan ??n kh?ch h?ng.</p>
+          <p className="card-subtitle">Hiển thị tối đa 100 giao dịch gần nhất liên quan đến khách hàng.</p>
         </div>
       </div>
-      <div className="customer-table-scroll">
-        <table className="customer-table customer-detail-table">
+      <div className="table-scroll">
+        <table className="data-table customer-detail-table">
           <thead>
             <tr>
-              <th>M? phi?u</th>
-              <th>Ng?y</th>
-              <th>S?n ph?m</th>
+              <th>Mã phiếu</th>
+              <th>Ngày</th>
+              <th>Sản phẩm</th>
               <th>SL</th>
-              <th className="align-right">Gi? tr?</th>
-              <th>Tr?ng th?i</th>
-              <th>Ghi ch?</th>
+              <th className="align-right">Giá trị</th>
+              <th>Trạng thái</th>
+              <th>Ghi chú</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={7} className="customer-empty-cell">{emptyText}</td></tr>
+              <tr><td colSpan={7} className="empty-cell">{emptyText}</td></tr>
             ) : rows.map((row) => (
               <tr key={row._id}>
                 <td>{row.code || '?'}</td>
                 <td>{formatDate(row.date)}</td>
                 <td>{activityProducts(row)}</td>
                 <td>{row.quantity || 0}</td>
-                <td className="align-right">{formatMoney(row.value)} ?</td>
+                <td className="align-right">{formatMoney(row.value)} đ</td>
                 <td>{row.status || '?'}</td>
                 <td>{row.note || '?'}</td>
               </tr>
@@ -114,7 +114,7 @@ function ActivityTable({ title, rows, emptyText }: { title: string; rows: Custom
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -133,7 +133,7 @@ export function CustomerDetailPage() {
         const response = await http.get<DetailResponse>(`/customers/customers/${id}/detail`);
         if (!ignore) setData(response.data);
       } catch (err: any) {
-        if (!ignore) setError(err.response?.data?.message || 'Kh?ng t?i ???c chi ti?t kh?ch h?ng.');
+        if (!ignore) setError(err.response?.data?.message || 'Không tải được chi tiết khách hàng.');
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -150,47 +150,121 @@ export function CustomerDetailPage() {
     return '?';
   }, [customer]);
 
-  if (loading) return <div className="customer-page"><section className="customer-table-card customer-detail-loading">?ang t?i chi ti?t kh?ch h?ng...</section></div>;
-  if (error || !data || !customer) return <div className="customer-page"><section className="customer-table-card customer-detail-loading">{error || 'Kh?ng t?m th?y kh?ch h?ng.'}</section></div>;
+  if (loading) {
+    return (
+      <div className="customer-page customer-detail-page">
+        <div className="data-card customer-detail-loading">
+          Đang tải chi tiết khách hàng...
+        </div>
+      </div>
+    );
+  }
+  if (error || !data || !customer) {
+    return (
+      <div className="customer-page customer-detail-page">
+        <div className="data-card customer-detail-loading error">
+          {error || 'Không tìm thấy khách hàng.'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="customer-page customer-detail-page">
+      {/* Header */}
       <div className="customer-detail-header">
-        <Link className="secondary-button" to="/customers/list"><ArrowLeft size={16} /> Quay l?i danh s?ch</Link>
-        <div>
-          <h1>{customer.name || 'Kh?ch h?ng'}</h1>
-          <p>{customer.code || '?'} ? {customer.phone || 'Ch?a c? S?T'}</p>
+        <Link to="/customers/list" className="btn btn-outline">
+          <ArrowLeft size={16} /> Quay lại danh sách
+        </Link>
+        <div className="customer-detail-title">
+          <h1>{customer.name || 'Khách hàng'}</h1>
+          <p className="subtitle">{customer.code || '?'} • {customer.phone || 'Chưa có SĐT'}</p>
         </div>
       </div>
 
-      <section className="customer-detail-hero">
+      {/* Profile + Info Card */}
+      <div className="data-card customer-detail-hero">
         <div className="customer-detail-profile">
-          <span className="customer-detail-avatar"><UserRound size={28} /></span>
-          <div>
+          <div className="customer-detail-avatar">
+            <UserRound size={28} />
+          </div>
+          <div className="customer-detail-profile-text">
             <h2>{customer.name || '?'}</h2>
-            <p>{customer.type === 'company' ? 'C?ng ty' : 'C? nh?n'} ? {customer.customerLevel || 'Ch?a c? c?p ??'}</p>
+            <div className="customer-type-badge">
+              <span className="type-pill">{customer.type === 'company' ? 'Công ty' : 'Cá nhân'}</span>
+              <span className="level-pill">{customer.customerLevel || 'Chưa có cấp độ'}</span>
+            </div>
           </div>
         </div>
+
         <div className="customer-detail-info-grid">
-          <div><span>S? ?i?n tho?i</span><strong>{customer.phone || '?'}</strong></div>
-          <div><span>Email</span><strong>{customer.email || '?'}</strong></div>
-          <div><span>M? th?</span><strong>{customer.cardId || '?'}</strong></div>
-          <div><span>Nh?m</span><strong>{groupText}</strong></div>
-          <div><span>Khu v?c</span><strong>{customer.addressLocation || '?'}</strong></div>
-          <div><span>??a ch?</span><strong>{customer.address || '?'}</strong></div>
+          <div className="info-item">
+            <span className="info-label">Số điện thoại</span>
+            <strong>{customer.phone || '?'}</strong>
+          </div>
+          <div className="info-item">
+            <span className="info-label">Email</span>
+            <strong>{customer.email || '?'}</strong>
+          </div>
+          <div className="info-item">
+            <span className="info-label">Mã thẻ</span>
+            <strong>{customer.cardId || '?'}</strong>
+          </div>
+          <div className="info-item">
+            <span className="info-label">Nhóm</span>
+            <strong>{groupText}</strong>
+          </div>
+          <div className="info-item">
+            <span className="info-label">Khu vực</span>
+            <strong>{customer.addressLocation || '?'}</strong>
+          </div>
+          <div className="info-item">
+            <span className="info-label">Địa chỉ</span>
+            <strong>{customer.address || '?'}</strong>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="customer-detail-stats">
-        <div><ShoppingBag size={18} /><span>S?n ph?m ?? mua</span><strong>{data.summary.productQuantityPurchased}</strong><small>{formatMoney(data.summary.totalPurchased)} ?</small></div>
-        <div><RefreshCcw size={18} /><span>S?n ph?m ?? tr?</span><strong>{data.summary.productQuantityReturned}</strong><small>{formatMoney(data.summary.totalReturned)} ?</small></div>
-        <div><PackageCheck size={18} /><span>??n mua</span><strong>{data.summary.purchaseCount}</strong><small>h?a ??n</small></div>
-        <div><ShieldCheck size={18} /><span>B?o h?nh</span><strong>{data.summary.warrantyCount}</strong><small>phi?u li?n quan</small></div>
-      </section>
+      {/* Stats */}
+      <div className="customer-detail-stats">
+        <div className="stat-card">
+          <div className="stat-icon purchase"><ShoppingBag size={18} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Sản phẩm đã mua</span>
+            <strong className="stat-value">{data.summary.productQuantityPurchased}</strong>
+            <small className="stat-sub">{formatMoney(data.summary.totalPurchased)} đ</small>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon return"><RefreshCcw size={18} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Sản phẩm đã trả</span>
+            <strong className="stat-value">{data.summary.productQuantityReturned}</strong>
+            <small className="stat-sub">{formatMoney(data.summary.totalReturned)} đ</small>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon order"><PackageCheck size={18} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Đơn mua</span>
+            <strong className="stat-value">{data.summary.purchaseCount}</strong>
+            <small className="stat-sub">hóa đơn</small>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon warranty"><ShieldCheck size={18} /></div>
+          <div className="stat-body">
+            <span className="stat-label">Bảo hành</span>
+            <strong className="stat-value">{data.summary.warrantyCount}</strong>
+            <small className="stat-sub">phiếu liên quan</small>
+          </div>
+        </div>
+      </div>
 
-      <ActivityTable title="S?n ph?m kh?ch mua" rows={data.purchases} emptyText="Ch?a c? d? li?u mua h?ng cho kh?ch n?y." />
-      <ActivityTable title="Kh?ch tr? h?ng" rows={data.returns} emptyText="Ch?a c? d? li?u tr? h?ng cho kh?ch n?y." />
-      <ActivityTable title="Kh?ch b?o h?nh" rows={data.warranties} emptyText="Ch?a c? phi?u tr? h?ng/b?o h?nh li?n quan." />
+      {/* Activity Tables */}
+      <ActivityTable title="Sản phẩm khách mua" rows={data.purchases} emptyText="Chưa có dữ liệu mua hàng cho khách này." />
+      <ActivityTable title="Khách trả hàng" rows={data.returns} emptyText="Chưa có dữ liệu trả hàng cho khách này." />
+      <ActivityTable title="Khách bảo hành" rows={data.warranties} emptyText="Chưa có phiếu trả hàng/bảo hành liên quan." />
     </div>
   );
 }

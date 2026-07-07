@@ -1143,7 +1143,7 @@ export function CustomerListPage() {
                       <button
                         className="icon-button"
                         type="button"
-                        title="Thao t?c"
+                        title="Thao tác"
                         aria-haspopup="menu"
                         aria-expanded={openActionId === customer._id}
                         onClick={() => setOpenActionId((current) => current === customer._id ? null : customer._id)}
@@ -1153,10 +1153,10 @@ export function CustomerListPage() {
                       {openActionId === customer._id && (
                         <div className="customer-actions-dropdown" role="menu">
                           <button type="button" role="menuitem" onClick={() => { setOpenActionId(null); openEditModal(customer); }}>
-                            <Pencil size={15} /> S?a
+                            <Pencil size={15} /> Sửa
                           </button>
                           <Link role="menuitem" to={`/customers/list/${customer._id}`} onClick={() => setOpenActionId(null)}>
-                            <Users size={15} /> Xem chi ti?t
+                            <Users size={15} /> Xem chi tiết
                           </Link>
                           <button
                             className="danger"
@@ -1165,7 +1165,7 @@ export function CustomerListPage() {
                             onClick={() => { setOpenActionId(null); void handleDeleteCustomer(customer); }}
                             disabled={deletingId === customer._id}
                           >
-                            <Trash2 size={15} /> X?a
+                            <Trash2 size={15} /> Xóa
                           </button>
                         </div>
                       )}

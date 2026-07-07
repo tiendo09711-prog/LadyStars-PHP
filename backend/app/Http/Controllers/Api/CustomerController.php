@@ -86,8 +86,8 @@ class CustomerController extends Controller
     {
         return response()->json([
             'customerTypes' => [
-                ['value' => 'person', 'label' => 'C? nh?n'],
-                ['value' => 'company', 'label' => 'C?ng ty'],
+                ['value' => 'person', 'label' => 'Cá nhân'],
+                ['value' => 'company', 'label' => 'Công ty'],
             ],
             'levels' => Customer::query()->whereNotNull('customer_level')->where('customer_level', '<>', '')->distinct()->orderBy('customer_level')->pluck('customer_level')->values(),
             'groups' => CustomerGroup::query()->orderBy('name')->get(['id', 'name', 'type'])->map(fn (CustomerGroup $group): array => [
