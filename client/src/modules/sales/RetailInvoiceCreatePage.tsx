@@ -309,7 +309,7 @@ export function RetailInvoiceCreatePage() {
       setCustomerSuggestions([]);
       return;
     }
-    const keyword = form.customerName.trim();
+    const keyword = (form.customerName || form.phone).trim();
     if (!keyword) {
       setCustomerSuggestions([]);
       return;
@@ -327,7 +327,7 @@ export function RetailInvoiceCreatePage() {
         .catch(() => setCustomerSuggestions([]));
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [form.customerName, showCustomerDropdown]);
+  }, [form.customerName, form.phone, showCustomerDropdown]);
 
   const addProduct = (product: any) => {
     const stock = getAvailableStock(product);

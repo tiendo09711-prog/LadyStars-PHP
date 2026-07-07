@@ -148,6 +148,62 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('data.0.stockByBranchCode.HN', 12);
     }
 
+    public function test_inventories_endpoint_sorts_by_branch_stock(): void
+    {
+        $secondBranch = Branch::create([
+            'mongo_id' => 'branch000000000000000002',
+            'name' => 'Kho HCM',
+            'code' => 'HCM',
+            'is_active' => true,
+        ]);
+
+        $productWithHigherTotalButLowerHanoiStock = Product::create([
+            'mongo_id' => 'product000000000000002',
+            'name' => 'Mai gia sort test',
+            'code' => 'SP002',
+            'category_id' => $this->product->category_id,
+            'price' => 120000,
+            'cost' => 60000,
+            'qty' => 55,
+            'allows_sale' => true,
+            'unit' => 'cai',
+            'status' => 'Moi',
+            'category_name' => $this->product->category_name,
+        ]);
+
+        ProductBranchStock::create([
+            'mongo_id' => 'stock00000000000000002',
+            'product_id' => $productWithHigherTotalButLowerHanoiStock->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 5,
+            'locked_quantity' => 0,
+            'min_quantity' => 0,
+            'max_quantity' => 999999999,
+        ]);
+
+        ProductBranchStock::create([
+            'mongo_id' => 'stock00000000000000003',
+            'product_id' => $productWithHigherTotalButLowerHanoiStock->id,
+            'branch_id' => $secondBranch->id,
+            'qty' => 50,
+            'locked_quantity' => 0,
+            'min_quantity' => 0,
+            'max_quantity' => 999999999,
+        ]);
+
+        $hanoiSort = $this->getJson('/api/products/inventories?sort=stock_'.$this->branch->id.'&order=desc&perPage=10');
+        $hanoiSort->assertOk()
+            ->assertJsonPath('data.0.code', 'SP001')
+            ->assertJsonPath('data.1.code', 'SP002')
+            ->assertJsonPath('data.0.stockByBranchId.'.$this->branch->id, 12)
+            ->assertJsonPath('data.1.stockByBranchId.'.$this->branch->id, 5);
+
+        $hcmSort = $this->getJson('/api/products/inventories?sort=stock_'.$secondBranch->id.'&order=desc&perPage=10');
+        $hcmSort->assertOk()
+            ->assertJsonPath('data.0.code', 'SP002')
+            ->assertJsonPath('data.0.stockByBranchId.'.$secondBranch->id, 50);
+    }
+
     public function test_frontend_compatible_product_routes_return_expected_shapes(): void
     {
         $list = $this->getJson('/api/products/products?search=SP001&perPage=10');
@@ -286,6 +342,69 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('meta.logActions.0', 'update')
             ->assertJsonPath('meta.editors.0', 'Admin')
             ->assertJsonPath('meta.toneByLogType.Cập nhật', 'warning');
+    }
+
+
+    public function test_storage_duration_ignores_cancelled_last_sale_and_uses_inventory_product_fallbacks(): void
+    {
+        $olderSaleDate = now()->subDays(40)->setMicrosecond(0);
+        $cancelledSaleDate = now()->subDays(5)->setMicrosecond(0);
+        $firstInventoryDate = now()->subDays(90)->setMicrosecond(0);
+        $lastInventoryDate = now()->subDays(20)->setMicrosecond(0);
+
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'saleold000000000000001',
+            'code' => 'HD-OLD',
+            'status' => 'completed',
+            'completed_at' => $olderSaleDate,
+            'business_date' => $olderSaleDate,
+            'items' => [['productId' => $this->product->mongo_id, 'productCode' => $this->product->code]],
+            'payload' => ['code' => 'HD-OLD'],
+        ]);
+
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'salecan000000000000001',
+            'code' => 'HD-CANCEL',
+            'status' => 'completed',
+            'completed_at' => $cancelledSaleDate,
+            'business_date' => $cancelledSaleDate,
+            'items' => [['productId' => $this->product->mongo_id, 'productCode' => $this->product->code]],
+            'payload' => ['code' => 'HD-CANCEL'],
+        ]);
+
+        (new MirrorRecord())->forTable('product_logs')->newQuery()->create([
+            'mongo_id' => 'logcancel0000000000001',
+            'product_id' => $this->product->id,
+            'product_mongo_id' => $this->product->mongo_id,
+            'source_type' => 'SalePaymentCancel',
+            'source_mongo_id' => 'salecan000000000000001',
+            'business_date' => now()->subDays(4),
+            'payload' => ['sourceType' => 'SalePaymentCancel'],
+        ]);
+
+        (new MirrorRecord())->forTable('inventory_products')->newQuery()->create([
+            'mongo_id' => 'invfirst00000000000001',
+            'product_mongo_id' => $this->product->mongo_id,
+            'product_code' => $this->product->code,
+            'business_date' => $firstInventoryDate,
+            'payload' => ['productCode' => $this->product->code],
+        ]);
+
+        (new MirrorRecord())->forTable('inventory_products')->newQuery()->create([
+            'mongo_id' => 'invlast000000000000001',
+            'product_code' => $this->product->code,
+            'business_date' => $lastInventoryDate,
+            'payload' => ['productCode' => $this->product->code],
+        ]);
+
+        $response = $this->getJson('/api/products/storage-duration?q=SP001&limit=10&thresholdDays=30');
+
+        $response->assertOk()
+            ->assertJsonPath('items.0.code', 'SP001')
+            ->assertJsonPath('items.0.firstTransactionDate', $firstInventoryDate->toISOString())
+            ->assertJsonPath('items.0.lastTransactionDate', $lastInventoryDate->toISOString())
+            ->assertJsonPath('items.0.lastSoldDate', $olderSaleDate->toIso8601String())
+            ->assertJsonPath('items.0.daysFromLastSold', 40);
     }
 
     public function test_warehouse_transfer_meta_matches_frontend_contract(): void

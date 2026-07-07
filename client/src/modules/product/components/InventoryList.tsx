@@ -45,7 +45,7 @@ export function InventoryList() {
         q: nextSearch || undefined,
         branchId: filterWarehouse || undefined,
         stockStatus: filterStockStatus || undefined,
-        sort: sortField.startsWith('stock_') ? 'totalStock' : sortField,
+        sort: sortField,
         order: sortOrder,
       });
       setItems(res.items);

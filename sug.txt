@@ -1,1 +1,0 @@
-{"items":[{"productId":"1917","productCode":"DDV 901","productName":"\u0110\u1ea7u \u0111\u1ed9i si\u00eau da \u0111\u1ea7u Silk Base 901","currentStock":-1,"lastVarianceQuantity":1,"lastAuditAt":"2022-08-10T05:00:00.000Z","reasons":["T?ng ch\u00eanh l?ch"]}]}

@@ -17,28 +17,28 @@ class InventoryAuditController extends Controller
 
     private const AUDIT_TYPES = [
         ['value' => 'FULL', 'label' => 'Toàn kho'],
-        ['value' => 'BY_PRODUCT', 'label' => 'Theo s?n ph?m'],
+        ['value' => 'BY_PRODUCT', 'label' => 'Theo sản phẩm'],
     ];
 
     private const STATUSES = [
         ['value' => 'DRAFT', 'label' => 'Nháp'],
-        ['value' => 'COUNTING', 'label' => 'Ðang ki?m'],
-        ['value' => 'RECONCILED', 'label' => 'Ðã bù tr?'],
-        ['value' => 'CANCELLED', 'label' => 'Ðã h?y'],
+        ['value' => 'COUNTING', 'label' => 'Đang kiểm'],
+        ['value' => 'RECONCILED', 'label' => 'Đã bù trừ'],
+        ['value' => 'CANCELLED', 'label' => 'Đã hủy'],
     ];
 
     private const RECONCILIATION_STATUSES = [
-        ['value' => 'PENDING', 'label' => 'Chua bù tr?'],
-        ['value' => 'RECONCILED', 'label' => 'Ðã bù tr?'],
-        ['value' => 'REVERSED', 'label' => 'Ðã d?o bù tr?'],
+        ['value' => 'PENDING', 'label' => 'Chưa bù trừ'],
+        ['value' => 'RECONCILED', 'label' => 'Đã bù trừ'],
+        ['value' => 'REVERSED', 'label' => 'Đã đảo bù trừ'],
     ];
 
     private const VARIANCE_REASONS = [
-        ['value' => 'BROKEN', 'label' => 'H?ng/v?'],
-        ['value' => 'EXPIRED', 'label' => 'H?t h?n'],
-        ['value' => 'LOSS', 'label' => 'Th?t thoát'],
-        ['value' => 'FOUND', 'label' => 'Tìm th?y/th?a th?c t?'],
-        ['value' => 'DATA_ERROR', 'label' => 'Sai d? li?u tru?c dó'],
+        ['value' => 'BROKEN', 'label' => 'Hỏng/vỡ'],
+        ['value' => 'EXPIRED', 'label' => 'Hết hạn'],
+        ['value' => 'LOSS', 'label' => 'Thất thoát'],
+        ['value' => 'FOUND', 'label' => 'Tìm thấy/thừa thực tế'],
+        ['value' => 'DATA_ERROR', 'label' => 'Sai dữ liệu trước đó'],
         ['value' => 'OTHER', 'label' => 'Khác'],
     ];
 
@@ -179,7 +179,7 @@ class InventoryAuditController extends Controller
                 'currentStock' => (float) ($payload['stock'] ?? 0),
                 'lastVarianceQuantity' => $variance,
                 'lastAuditAt' => $payload['createdAt'] ?? optional($record->created_at)->toISOString(),
-                'reasons' => $variance !== 0 ? ['T?ng chênh l?ch'] : [],
+                'reasons' => $variance !== 0 ? ['Từng chênh lệch'] : [],
             ];
         })->all();
 
@@ -212,7 +212,7 @@ class InventoryAuditController extends Controller
 
     public function export(Request $request): \Symfony\Component\HttpFoundation\Response
     {
-        $kind = trim((string) $request->query('kind', 'audits'));
+        $kind = trim((string) $request->query('kind', $request->route('kind', 'audits')));
         $rows = $kind === 'items'
             ? $this->itemQuery($request)->limit(5000)->get()->map(fn (MirrorRecord $record) => $this->itemRow($record))->all()
             : $this->auditQuery($request)->limit(5000)->get()->map(fn (MirrorRecord $record) => $this->auditRow($record))->all();
@@ -220,8 +220,8 @@ class InventoryAuditController extends Controller
         return response()->streamDownload(function () use ($kind, $rows): void {
             $out = fopen('php://output', 'w');
             $headers = $kind === 'items'
-                ? ['Mã phi?u', 'Ngày', 'Kho', 'Mã SP', 'Tên SP', 'Mã v?ch', 'T?n h? th?ng', 'Th?c t?', 'Chênh l?ch', 'Ngu?i d?m']
-                : ['Mã phi?u', 'Kho', 'Lo?i', 'Tr?ng thái', 'Ngày t?o', 'Ngu?i t?o', 'S? SP', 'Chênh l?ch'];
+                ? ['Mã phiếu', 'Ngày', 'Kho', 'Mã SP', 'Tên SP', 'Mã vạch', 'Tồn hệ thống', 'Thực tế', 'Chênh lệch', 'Người đếm']
+                : ['Mã phiếu', 'Kho', 'Loại', 'Trạng thái', 'Ngày tạo', 'Người tạo', 'Số SP', 'Chênh lệch'];
             fputcsv($out, $headers);
             foreach ($rows as $row) {
                 if ($kind === 'items') {
@@ -291,7 +291,19 @@ class InventoryAuditController extends Controller
         }
         if ($auditId = trim((string) $request->query('auditId', ''))) {
             $audit = $this->findAudit($auditId);
-            $query->where('code', $audit->code)->orWhere('mongo_id', $audit->mongo_id);
+            $query->where(function ($builder) use ($audit): void {
+                $builder->where('code', $audit->code);
+                if ($audit->mongo_id) {
+                    $builder->orWhere('mongo_id', $audit->mongo_id);
+                }
+                if ($audit->branch_id && $audit->business_date) {
+                    $builder->orWhere(function ($legacy) use ($audit): void {
+                        $legacy->where('branch_id', $audit->branch_id)
+                            ->whereDate('business_date', $audit->business_date->toDateString())
+                            ->where(fn ($emptyCode) => $emptyCode->whereNull('code')->orWhere('code', ''));
+                    });
+                }
+            });
         }
         if ($productKeyword = trim((string) $request->query('productKeyword', ''))) {
             $query->where(fn ($builder) => $builder
@@ -325,7 +337,7 @@ class InventoryAuditController extends Controller
         $record = ctype_digit($id)
             ? $query->where('id', (int) $id)->orWhere('code', $id)->first()
             : $query->where('mongo_id', $id)->orWhere('code', $id)->first();
-        abort_if(!$record, 404, 'Không tìm th?y phi?u ki?m kho.');
+        abort_if(!$record, 404, 'Không tìm thấy phiếu kiểm kho.');
 
         return $record;
     }
@@ -340,11 +352,69 @@ class InventoryAuditController extends Controller
             return $payload['lines'];
         }
 
-        return (new MirrorRecord())->forTable('inventory_check_products')->newQuery()
-            ->where('code', $audit->code)
+        return $this->auditProductQuery($audit)
             ->get()
-            ->map(fn (MirrorRecord $record): array => is_array($record->payload) ? $record->payload : [])
+            ->map(fn (MirrorRecord $record): array => $this->itemPayloadFromRecord($record))
             ->all();
+    }
+
+    private function itemPayloadFromRecord(MirrorRecord $record): array
+    {
+        $payload = is_array($record->payload) ? $record->payload : [];
+
+        return array_merge($payload, [
+            'product_id' => $payload['product_id'] ?? $payload['productId'] ?? $record->product_id,
+            'product_code' => $payload['product_code'] ?? $payload['productCode'] ?? $record->product_code,
+            'product_name' => $payload['product_name'] ?? $payload['productName'] ?? $record->product_name,
+            'barcode' => $payload['barcode'] ?? $record->barcode,
+            'cost' => $payload['cost'] ?? $record->cost,
+            'price' => $payload['price'] ?? $record->price,
+            'stock' => $payload['stock'] ?? $record->stock,
+            'transferring' => $payload['transferring'] ?? $record->transferring,
+            'actualStock' => $payload['actualStock'] ?? $payload['actual_stock'] ?? $record->actual_stock,
+            'difference' => $payload['difference'] ?? $record->difference,
+            'description' => $payload['description'] ?? $record->description,
+            'warehouse' => $payload['warehouse'] ?? $record->warehouse_name,
+        ]);
+    }
+
+    private function auditProductQuery(MirrorRecord $audit)
+    {
+        return (new MirrorRecord())->forTable('inventory_check_products')->newQuery()
+            ->where(function ($query) use ($audit): void {
+                $query->where('code', $audit->code);
+                if ($audit->mongo_id) {
+                    $query->orWhere('mongo_id', $audit->mongo_id);
+                }
+                if ($audit->branch_id && $audit->business_date) {
+                    $query->orWhere(function ($legacy) use ($audit): void {
+                        $legacy->where('branch_id', $audit->branch_id)
+                            ->whereDate('business_date', $audit->business_date->toDateString())
+                            ->where(fn ($emptyCode) => $emptyCode->whereNull('code')->orWhere('code', ''));
+                    });
+                }
+            });
+    }
+
+    private function legacyAuditForItem(MirrorRecord $record): ?MirrorRecord
+    {
+        if ($record->code) {
+            $direct = (new MirrorRecord())->forTable('inventory_checks')->newQuery()
+                ->where('code', $record->code)
+                ->first();
+            if ($direct) {
+                return $direct;
+            }
+        }
+        if (!$record->branch_id || !$record->business_date) {
+            return null;
+        }
+
+        return (new MirrorRecord())->forTable('inventory_checks')->newQuery()
+            ->where('branch_id', $record->branch_id)
+            ->whereDate('business_date', $record->business_date->toDateString())
+            ->orderByDesc('id')
+            ->first();
     }
 
     private function auditStatus(MirrorRecord $record, array $payload): string
@@ -408,11 +478,12 @@ class InventoryAuditController extends Controller
     {
         $payload = is_array($record->payload) ? $record->payload : [];
         $physical = $payload['actualStock'] ?? $payload['actual_stock'] ?? $record->actual_stock ?? null;
+        $audit = $this->legacyAuditForItem($record);
 
         return [
             '_id' => (string) ($record->mongo_id ?: $record->id),
-            'auditId' => (string) ($payload['auditId'] ?? ''),
-            'auditCode' => (string) ($record->code ?? ''),
+            'auditId' => (string) ($payload['auditId'] ?? ($audit?->mongo_id ?: $audit?->id ?: '')),
+            'auditCode' => (string) ($record->code ?: $audit?->code ?: ''),
             'warehouseId' => (string) ($payload['warehouseId'] ?? $record->branch_id ?? ''),
             'warehouseName' => (string) ($payload['warehouse'] ?? $payload['warehouseName'] ?? $record->warehouse_name ?? ''),
             'createdAt' => $payload['createdAt'] ?? optional($record->business_date)->toISOString() ?? optional($record->created_at)->toISOString(),
@@ -504,17 +575,17 @@ class InventoryAuditController extends Controller
 
         $actions = [];
         if (in_array($status, ['DRAFT', 'COUNTING'], true)) {
-            $actions[] = ['action' => 'submit', 'label' => 'N?p ki?m'];
-            $actions[] = ['action' => 'cancel', 'label' => 'H?y phi?u', 'needsReason' => true, 'danger' => true];
+            $actions[] = ['action' => 'submit', 'label' => 'Nộp kiểm'];
+            $actions[] = ['action' => 'cancel', 'label' => 'Hủy phiếu', 'needsReason' => true, 'danger' => true];
         }
         if (in_array($status, ['COUNTING'], true)) {
-            $actions[] = ['action' => 'resnapshot', 'label' => 'Ch?p l?i snapshot'];
+            $actions[] = ['action' => 'resnapshot', 'label' => 'Chụp lại snapshot'];
         }
         if (in_array($status, ['COUNTING', 'RECONCILED'], true)) {
-            $actions[] = ['action' => 'reconcile', 'label' => 'Bù tr? ki?m kho'];
+            $actions[] = ['action' => 'reconcile', 'label' => 'Bù trừ kiểm kho'];
         }
         if ($status === 'RECONCILED') {
-            $actions[] = ['action' => 'reverse-reconcile', 'label' => 'Ð?o bù tr?', 'needsReason' => true, 'danger' => true];
+            $actions[] = ['action' => 'reverse-reconcile', 'label' => 'Đảo bù trừ', 'needsReason' => true, 'danger' => true];
         }
         if ($status === 'DRAFT') {
             $actions[] = ['action' => 'delete', 'label' => 'Xóa nháp', 'danger' => true];

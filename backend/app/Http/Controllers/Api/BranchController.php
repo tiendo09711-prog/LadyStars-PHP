@@ -32,8 +32,13 @@ class BranchController extends Controller
         return response()->json($payload);
     }
 
-    public function show(Branch $branch): JsonResponse
+    public function show(string $branch): JsonResponse
     {
+        $branch = Branch::query()
+            ->where('id', $branch)
+            ->orWhere('mongo_id', $branch)
+            ->firstOrFail();
+
         return response()->json(NodeShape::branch($branch));
     }
 }

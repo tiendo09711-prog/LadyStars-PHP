@@ -4,6 +4,7 @@ import {
   ArrowUpDown,
   Check,
   ChevronDown,
+  MoreVertical,
   Pencil,
   Plus,
   RefreshCw,
@@ -15,7 +16,7 @@ import {
   FileDown,
   X,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
 import { Pagination } from '../../core/components/Pagination';
 import './customer-list-page.css';
@@ -436,6 +437,7 @@ export function CustomerListPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [syncingMetrics, setSyncingMetrics] = useState(false);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
 
   const filters = useMemo(() => parseFiltersFromParams(searchParams), [searchParams]);
   const page = useMemo(() => parsePageFromParams(searchParams), [searchParams]);
@@ -472,6 +474,23 @@ export function CustomerListPage() {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [advancedOpen]);
+
+  useEffect(() => {
+    if (!openActionId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.customer-actions-menu')) setOpenActionId(null);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenActionId(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openActionId]);
 
   const activeAdvancedCount = useMemo(() => countActiveAdvancedFilters(filters), [filters]);
 
@@ -1120,19 +1139,36 @@ export function CustomerListPage() {
                   <td className="align-right">{formatNumber(customer.purchaseProductQuantity)}</td>
                   <td className="align-right">{formatCycleDays(customer.purchaseCycleDays)}</td>
                   <td className="action-col">
-                    <div className="customer-row-actions">
-                      <button className="icon-button" type="button" title="Sửa" onClick={() => openEditModal(customer)}>
-                        <Pencil size={16} />
-                      </button>
+                    <div className="customer-actions-menu">
                       <button
-                        className="icon-button danger"
+                        className="icon-button"
                         type="button"
-                        title="Xóa"
-                        onClick={() => void handleDeleteCustomer(customer)}
-                        disabled={deletingId === customer._id}
+                        title="Thao t?c"
+                        aria-haspopup="menu"
+                        aria-expanded={openActionId === customer._id}
+                        onClick={() => setOpenActionId((current) => current === customer._id ? null : customer._id)}
                       >
-                        <Trash2 size={16} />
+                        <MoreVertical size={16} />
                       </button>
+                      {openActionId === customer._id && (
+                        <div className="customer-actions-dropdown" role="menu">
+                          <button type="button" role="menuitem" onClick={() => { setOpenActionId(null); openEditModal(customer); }}>
+                            <Pencil size={15} /> S?a
+                          </button>
+                          <Link role="menuitem" to={`/customers/list/${customer._id}`} onClick={() => setOpenActionId(null)}>
+                            <Users size={15} /> Xem chi ti?t
+                          </Link>
+                          <button
+                            className="danger"
+                            type="button"
+                            role="menuitem"
+                            onClick={() => { setOpenActionId(null); void handleDeleteCustomer(customer); }}
+                            disabled={deletingId === customer._id}
+                          >
+                            <Trash2 size={15} /> X?a
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>

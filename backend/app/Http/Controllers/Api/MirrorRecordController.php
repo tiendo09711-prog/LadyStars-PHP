@@ -84,8 +84,82 @@ class MirrorRecordController extends Controller
         return match ($resource) {
             'product-refunds' => $this->enrichRefund($serialized),
             'sale-payments' => $this->enrichSalePayment($serialized),
+            'warehouse-transfers' => $this->enrichWarehouseTransfer($serialized),
             default => $serialized,
         };
+    }
+
+    private function normalizeStatus(?string $status): string
+    {
+        return strtoupper(trim((string) $status));
+    }
+
+    private function transferStatusLabel(string $status): string
+    {
+        return self::PUBLIC_TRANSFER_STATUSES[$status] ?? $status;
+    }
+
+    private function transferStatusTone(string $status): string
+    {
+        return match ($status) {
+            'DRAFT' => 'adjustment',
+            'IN_TRANSIT' => 'transfer',
+            'RETURN_IN_PROGRESS', 'RETURNED' => 'refund',
+            'COMPLETED' => 'import',
+            'CANCELLED' => 'export',
+            default => 'adjustment',
+        };
+    }
+
+    private function normalizeTransferLine(array $line): array
+    {
+        $quantity = (float) ($line['requestedQuantity'] ?? $line['quantity'] ?? $line['amount'] ?? 0);
+
+        return array_merge($line, [
+            'productId' => $line['productId'] ?? $line['product_id'] ?? null,
+            'productCode' => $line['productCode'] ?? $line['product_code'] ?? null,
+            'productName' => $line['productName'] ?? $line['product_name'] ?? null,
+            'unit' => $line['unit'] ?? '',
+            'requestedQuantity' => (float) ($line['requestedQuantity'] ?? $quantity),
+            'dispatchedQuantity' => (float) ($line['dispatchedQuantity'] ?? $line['dispatched_quantity'] ?? $quantity),
+            'receivedQuantity' => (float) ($line['receivedQuantity'] ?? $line['received_quantity'] ?? $quantity),
+            'lockedQuantity' => (float) ($line['lockedQuantity'] ?? $line['locked_quantity'] ?? $quantity),
+            'note' => $line['note'] ?? '',
+        ]);
+    }
+
+    private function enrichWarehouseTransfer(array $serialized): array
+    {
+        $status = $this->normalizeStatus((string) ($serialized['status'] ?? ''));
+        $rawKind = strtoupper((string) ($serialized['kind'] ?? $serialized['type'] ?? 'NORMAL_TRANSFER'));
+        $kind = in_array($rawKind, ['RETURN', 'RETURN_OF_TRANSFER'], true) ? 'RETURN_OF_TRANSFER' : 'NORMAL_TRANSFER';
+        $lines = is_array($serialized['lines'] ?? null) ? $serialized['lines'] : [];
+        $lines = array_values(array_map(fn ($line): array => $this->normalizeTransferLine(is_array($line) ? $line : []), $lines));
+        $qty = array_sum(array_map(fn (array $line): float => (float) ($line['requestedQuantity'] ?? 0), $lines));
+
+        $serialized['status'] = $status;
+        $serialized['statusLabel'] = $this->transferStatusLabel($status);
+        $serialized['statusTone'] = $this->transferStatusTone($status);
+        $serialized['kind'] = $kind;
+        $serialized['lines'] = $lines;
+        $serialized['spCount'] = (int) ($serialized['spCount'] ?? $serialized['sp_count'] ?? count($lines));
+        $serialized['qty'] = (float) ($serialized['qty'] ?? $qty);
+        $serialized['lockedQuantity'] = (float) ($serialized['lockedQuantity'] ?? array_sum(array_map(fn (array $line): float => (float) ($line['lockedQuantity'] ?? 0), $lines)));
+        $serialized['sourceWarehouseId'] = $serialized['sourceWarehouseId'] ?? $serialized['from_branch_mongo_id'] ?? null;
+        $serialized['destinationWarehouseId'] = $serialized['destinationWarehouseId'] ?? $serialized['to_branch_mongo_id'] ?? null;
+        $serialized['sourceWarehouseName'] = $serialized['sourceWarehouseName'] ?? $serialized['source_warehouse_name'] ?? null;
+        $serialized['destinationWarehouseName'] = $serialized['destinationWarehouseName'] ?? $serialized['destination_warehouse_name'] ?? null;
+        $serialized['sourceExportBillId'] = $serialized['sourceExportBillId'] ?? $serialized['source_export_bill_mongo_id'] ?? null;
+        $serialized['destinationImportBillId'] = $serialized['destinationImportBillId'] ?? $serialized['destination_import_bill_mongo_id'] ?? null;
+        $serialized['canEdit'] = $status === 'DRAFT';
+        $serialized['canCancel'] = $status === 'DRAFT';
+        $serialized['canConfirmSource'] = $status === 'DRAFT';
+        $serialized['canConfirmDestination'] = $status === 'IN_TRANSIT';
+        $serialized['canReturn'] = $status === 'IN_TRANSIT' && $kind !== 'RETURN_OF_TRANSFER';
+        $serialized['canPrint'] = $status === 'COMPLETED' || $status === 'RETURN_IN_PROGRESS' || $status === 'IN_TRANSIT';
+        $serialized['audits'] = $serialized['audits'] ?? [];
+
+        return $serialized;
     }
 
     private function mirrorRecord(string $table, ?string $mongoId): ?array
@@ -217,6 +291,8 @@ class MirrorRecordController extends Controller
         $search = trim((string) $request->query('q', $request->query('search', $request->query('keyword', ''))));
         if ($resource === 'sale-payments') {
             $search = trim((string) $request->query('invoiceCode', $request->query('code', $search)));
+        } elseif ($resource === 'warehouse-transfers') {
+            $search = trim((string) $request->query('id', $request->query('code', $search)));
         }
         if ($search !== '') {
             $query->where(function ($builder) use ($search, $columns): void {
@@ -250,6 +326,8 @@ class MirrorRecordController extends Controller
 
         if ($resource === 'sale-payments') {
             $this->applySalePaymentExtraFilters($request, $query, $columns);
+        } elseif ($resource === 'warehouse-transfers') {
+            $this->applyWarehouseTransferFilters($request, $query, $columns);
         }
 
         $sort = (string) $request->query('sort', 'business_date');
@@ -354,8 +432,55 @@ class MirrorRecordController extends Controller
             );
         }
     }
-    public function show(string $resource, string $id): JsonResponse
+    private function applyWarehouseTransferFilters(Request $request, \Illuminate\Database\Eloquent\Builder $query, \Illuminate\Support\Collection $columns): void
     {
+        $tab = (string) $request->query('tab', 'all');
+        if ($tab === 'draft') {
+            $query->whereIn(DB::raw('UPPER(status)'), ['DRAFT']);
+        } elseif (in_array($tab, ['outgoing', 'incoming'], true)) {
+            $query->whereIn(DB::raw('UPPER(status)'), ['IN_TRANSIT', 'RETURN_IN_PROGRESS']);
+        }
+
+        $this->applyTransferWarehouseFilter($query, $columns, 'sourceWarehouseId', 'from_branch_mongo_id', 'from_branch_id', $request->query('sourceWarehouseId'));
+        $this->applyTransferWarehouseFilter($query, $columns, 'destinationWarehouseId', 'to_branch_mongo_id', 'to_branch_id', $request->query('destinationWarehouseId'));
+
+        $dateColumn = $columns->has('business_date') ? 'business_date' : ($columns->has('created_at') ? 'created_at' : null);
+        if ($dateColumn) {
+            if ($fromDate = trim((string) $request->query('fromDate', ''))) {
+                $query->whereDate($dateColumn, '>=', $fromDate);
+            }
+            if ($toDate = trim((string) $request->query('toDate', ''))) {
+                $query->whereDate($dateColumn, '<=', $toDate);
+            }
+        }
+    }
+
+    private function applyTransferWarehouseFilter(\Illuminate\Database\Eloquent\Builder $query, \Illuminate\Support\Collection $columns, string $requestField, string $mongoColumn, string $localColumn, mixed $value): void
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return;
+        }
+
+        $branch = Branch::query()
+            ->where('id', $value)
+            ->orWhere('mongo_id', $value)
+            ->first();
+
+        $query->where(function ($builder) use ($columns, $mongoColumn, $localColumn, $value, $branch): void {
+            if ($columns->has($mongoColumn)) {
+                $builder->orWhere($mongoColumn, $branch?->mongo_id ?? $value);
+            }
+            if ($columns->has($localColumn) && $branch) {
+                $builder->orWhere($localColumn, $branch->id);
+            }
+        });
+    }
+
+    public function show(Request $request): JsonResponse
+    {
+        $resource = (string) $request->route('resource');
+        $id = (string) $request->route('id');
         $table = MirrorRecord::TABLES[$resource] ?? null;
 
         abort_if($table === null, 404, 'Unknown mirror resource.');

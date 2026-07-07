@@ -1,4 +1,4 @@
-﻿import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight, Plus, Search, Shuffle, Trash2 } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
@@ -6,12 +6,30 @@ import { useProductScanTarget } from '../../core/hooks/productScanner';
 import './warehouseRecords.css';
 
 type Warehouse = { value: string; label: string; code?: string };
-type Product = { _id: string; code: string; name: string; barcode?: string; unit?: string; cost?: number; qty?: number; selectedStock?: number; lockedQuantity?: number; availableStock?: number };
+type Product = { _id: string; id?: string | number; code: string; name: string; barcode?: string; unit?: string; cost?: number; qty?: number; selectedStock?: number; lockedQuantity?: number; availableStock?: number };
+type InventoryStockItem = Product & { product?: Partial<Product> & { id?: string | number }; productId?: string; quantity?: number };
 type Line = { productId: string; quantity: number; unit: string; batchCode: string; imei: string; note: string };
 
 function stockOf(product?: Product) { return Number(product?.availableStock ?? product?.selectedStock ?? product?.qty ?? 0); }
 function totalStockOf(product?: Product) { return Number(product?.selectedStock ?? product?.qty ?? 0); }
 function lockedOf(product?: Product) { return Number(product?.lockedQuantity || 0); }
+function normalizeInventoryProduct(item: InventoryStockItem): Product {
+  const source = item.product || item;
+  const totalStock = Number(item.selectedStock ?? item.quantity ?? item.qty ?? 0);
+  const lockedQuantity = Number(item.lockedQuantity || 0);
+  return {
+    _id: String(source._id || source.id || item.productId || item._id),
+    code: String(source.code || item.code || ''),
+    name: String(source.name || item.name || ''),
+    barcode: source.barcode || item.barcode,
+    unit: source.unit || item.unit,
+    cost: Number(source.cost ?? item.cost ?? 0),
+    qty: totalStock,
+    selectedStock: totalStock,
+    lockedQuantity,
+    availableStock: Number(item.availableStock ?? Math.max(0, totalStock - lockedQuantity)),
+  };
+}
 
 export function WarehouseTransferCreatePage() {
   const navigate = useNavigate();
@@ -98,7 +116,7 @@ export function WarehouseTransferCreatePage() {
       .then((response) => {
         if (!active) return;
         const items = (response.data?.items || [])
-          .map((item: Product) => ({ ...item, qty: stockOf(item) }))
+          .map((item: InventoryStockItem) => normalizeInventoryProduct(item))
           .filter((item: Product) => stockOf(item) > 0);
         setProducts(items);
       })

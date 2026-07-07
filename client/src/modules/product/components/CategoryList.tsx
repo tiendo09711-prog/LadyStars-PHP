@@ -66,6 +66,11 @@ function generateCategoryCode(items: ICategory[]) {
   return `DM-${String(maxNumber + 1).padStart(4, '0')}`;
 }
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const apiError = error as { response?: { data?: { message?: string } }; message?: string };
+  return apiError.response?.data?.message || apiError.message || fallback;
+}
+
 function parseTemplateBoolean(value: string, fallback: boolean) {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) return fallback;
@@ -288,13 +293,21 @@ export function CategoryList() {
     }
     setActionLoading(true);
     try {
-      await Promise.all(selectedIds.map((id) => productApi.updateCategory(id, { isActive })));
+      const targetIds = [...selectedIds];
+      const results = await Promise.allSettled(targetIds.map((id) => productApi.updateCategory(id, { isActive })));
+      const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
       setOpenBulkMenu(false);
       setOpenBulkStatusMenu(false);
+      if (failed.length === 0) {
+        alert(`Đã cập nhật trạng thái ${targetIds.length} danh mục.`);
+      } else {
+        const firstMessage = getApiErrorMessage(failed[0].reason, 'Một số danh mục cập nhật thất bại.');
+        alert(`Đã cập nhật ${targetIds.length - failed.length}/${targetIds.length} danh mục. Thất bại ${failed.length}: ${firstMessage}`);
+      }
       await load();
     } catch (err) {
       console.error(err);
-      alert('\u0110\u1ed5i tr\u1ea1ng th\u00e1i danh m\u1ee5c th\u1ea5t b\u1ea1i.');
+      alert(getApiErrorMessage(err, '\u0110\u1ed5i tr\u1ea1ng th\u00e1i danh m\u1ee5c th\u1ea5t b\u1ea1i.'));
     } finally {
       setActionLoading(false);
     }
@@ -309,13 +322,24 @@ export function CategoryList() {
     if (!confirmed) return;
     setActionLoading(true);
     try {
-      await Promise.all(selectedIds.map((id) => productApi.deleteCategory(id)));
-      setSelectedIds([]);
+      const targetIds = [...selectedIds];
+      const results = await Promise.allSettled(targetIds.map((id) => productApi.deleteCategory(id)));
+      const failedIds = results
+        .map((result, index) => ({ result, id: targetIds[index] }))
+        .filter((entry): entry is { result: PromiseRejectedResult; id: string } => entry.result.status === 'rejected');
+      const failedIdSet = new Set(failedIds.map((entry) => entry.id));
+      setSelectedIds(targetIds.filter((id) => failedIdSet.has(id)));
       setOpenBulkMenu(false);
+      if (failedIds.length === 0) {
+        alert(`Đã xóa ${targetIds.length} danh mục.`);
+      } else {
+        const firstMessage = getApiErrorMessage(failedIds[0].result.reason, 'Một số danh mục không thể xóa.');
+        alert(`Đã xóa ${targetIds.length - failedIds.length}/${targetIds.length} danh mục. Thất bại ${failedIds.length}: ${firstMessage}`);
+      }
       await load();
     } catch (err) {
       console.error(err);
-      alert('X\u00f3a c\u00e1c d\u00f2ng \u0111\u00e3 ch\u1ecdn th\u1ea5t b\u1ea1i.');
+      alert(getApiErrorMessage(err, 'X\u00f3a c\u00e1c d\u00f2ng \u0111\u00e3 ch\u1ecdn th\u1ea5t b\u1ea1i.'));
     } finally {
       setActionLoading(false);
     }

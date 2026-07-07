@@ -148,6 +148,8 @@ export function RefundInvoiceCreatePage() {
 
   // Refunded Products state
   const [products, setProducts] = useState<RefundProduct[]>([]);
+  const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   
   // New Purchased Products state
   const [newProducts, setNewProducts] = useState<RefundProduct[]>([]);
@@ -448,33 +450,41 @@ export function RefundInvoiceCreatePage() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const selectCustomer = (c: any) => {
+    setForm(prev => ({
+      ...prev,
+      customerPhone: c.phone || prev.customerPhone,
+      customerName: c.name || '',
+      email: c.email || '',
+      address: c.address || '',
+      gender: c.gender || 'N?',
+      facebook: c.facebook || '',
+      birthday: c.birthday || '',
+      customerLevel: c.customerLevel || '??ng',
+      cardId: c.cardId || '',
+      labels: c.labels || '',
+      companyAddress: c.companyAddress || '',
+      companyName: c.companyName || c.company || '',
+      taxId: c.taxId || c.vat || '',
+      note: c.note || '',
+    }));
+    setShowCustomerDropdown(false);
+  };
+
   // Look up customer by phone
   const lookupCustomer = async (phoneStr: string) => {
-    if (!phoneStr.trim()) return;
+    const keyword = phoneStr.trim();
+    if (!keyword) {
+      setCustomerSuggestions([]);
+      return;
+    }
     try {
-      const res = await http.get(`/customers/customers?phone=${phoneStr.trim()}`);
-      const list = res.data.items ?? [];
-      if (list.length > 0) {
-        const c = list[0];
-        setForm(prev => ({
-          ...prev,
-          customerName: c.name || '',
-          email: c.email || '',
-          address: c.address || '',
-          gender: c.gender || 'Nữ',
-          facebook: c.facebook || '',
-          birthday: c.birthday || '',
-          customerLevel: c.customerLevel || 'Đồng',
-          cardId: c.cardId || '',
-          labels: c.labels || '',
-          companyAddress: c.companyAddress || '',
-          companyName: c.companyName || '',
-          taxId: c.taxId || '',
-          note: c.note || '',
-        }));
-      }
+      const res = await http.get('/customers/customers', { params: { phone: keyword, keyword, limit: 20, sort: 'lastPurchaseDate', order: 'desc' } });
+      setCustomerSuggestions(res.data.items ?? []);
+      setShowCustomerDropdown(true);
     } catch (err) {
-      console.error("Lỗi tìm kiếm khách hàng:", err);
+      console.error("L???i t??m ki???m kh??ch h??ng:", err);
+      setCustomerSuggestions([]);
     }
   };
 
@@ -1491,7 +1501,7 @@ export function RefundInvoiceCreatePage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {/* SDT Search */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Số điện thoại (F4)</span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', flex: 1, background: '#ffffff' }}>
@@ -1501,7 +1511,12 @@ export function RefundInvoiceCreatePage() {
                       id="customer-phone-input"
                       placeholder="Gõ SĐT tìm nhanh..."
                       value={form.customerPhone}
-                      onChange={(e) => handleChange('customerPhone', e.target.value)}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                      onChange={(e) => {
+                        handleChange('customerPhone', e.target.value);
+                        lookupCustomer(e.target.value);
+                      }}
                       style={{ border: 'none', background: 'transparent', outline: 'none', padding: '8px 0', width: '100%', fontSize: '13px', color: '#1e293b' }}
                     />
                   </div>
@@ -1513,6 +1528,16 @@ export function RefundInvoiceCreatePage() {
                     Tìm
                   </button>
                 </div>
+                {showCustomerDropdown && form.customerPhone.trim().length > 0 && customerSuggestions.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 8px 16px rgba(15,23,42,0.12)', maxHeight: '220px', overflowY: 'auto' }}>
+                    {customerSuggestions.map(c => (
+                      <div key={c._id} onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{c.name || 'Kh?ch h?ng'}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>{c.phone || '?'} ? {c.code || c.cardId || ''}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Name & Member Card ID */}

@@ -11,6 +11,7 @@ import { CategoriesPage } from './modules/product/CategoriesPage';
 import { SalesPage } from './modules/product/SalesPage';
 import { CustomerPage } from './modules/customer/CustomerPage';
 import { CustomerListPage } from './modules/customer/CustomerListPage';
+import { CustomerDetailPage } from './modules/customer/CustomerDetailPage';
 import { CustomerCarePage } from './modules/customer/CustomerCarePage';
 import { CustomerLevelPage } from './modules/customer/CustomerLevelPage';
 import { CustomerGroupPage } from './modules/customer/CustomerGroupPage';
@@ -104,6 +105,7 @@ const router = createBrowserRouter([
       { path: 'sales', element: <SalesPage /> },
       { path: 'customers', element: <CustomerPage /> },
       { path: 'customers/list', element: <CustomerListPage /> },
+      { path: 'customers/list/:id', element: <CustomerDetailPage /> },
       { path: 'customers/care', element: <CustomerCarePage /> },
       { path: 'vendors', element: <Navigate to="/products" replace /> },
 

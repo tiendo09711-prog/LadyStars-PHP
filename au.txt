@@ -1,1 +1,0 @@
-{"items":[{"value":"2","label":"Admin","code":"admin@myerp.local"},{"value":"1","label":"Admin E2E","code":"admin@gmail.com"},{"value":"3","label":"H\u00e0 N\u1ed9i","code":"hanoi@gmail.com"}]}

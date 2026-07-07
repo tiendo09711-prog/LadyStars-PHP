@@ -332,7 +332,7 @@ export function WholesaleInvoiceCreatePage() {
       setCustomerSuggestions([]);
       return;
     }
-    const keyword = form.customerName.trim();
+    const keyword = (form.customerName || form.customerPhone).trim();
     if (!keyword) {
       setCustomerSuggestions([]);
       return;
@@ -350,29 +350,38 @@ export function WholesaleInvoiceCreatePage() {
         .catch(() => setCustomerSuggestions([]));
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [form.customerName, showCustomerDropdown]);
+  }, [form.customerName, form.customerPhone, showCustomerDropdown]);
+
+  const selectCustomer = (c: any) => {
+    setForm(prev => ({
+      ...prev,
+      customerName: c.name || '',
+      customerPhone: c.phone || '',
+      customerCode: c.cardId || c.code || '',
+      email: c.email || '',
+      dob: c.birthday ? new Date(c.birthday).toISOString().split('T')[0] : (c.dob || ''),
+      addressLocation: c.addressLocation || '',
+      address: c.address || '',
+      companyName: c.company || '',
+      taxId: c.vat || '',
+    }));
+    setShowCustomerDropdown(false);
+  };
 
   // Look up customer by phone
   const lookupCustomer = async (phoneStr: string) => {
-    if (!phoneStr.trim()) return;
+    const keyword = phoneStr.trim();
+    if (!keyword) {
+      setCustomerSuggestions([]);
+      return;
+    }
     try {
-      const res = await http.get(`/customers/customers?phone=${phoneStr.trim()}`);
-      const list = res.data.items ?? [];
-      if (list.length > 0) {
-        const c = list[0];
-        setForm(prev => ({
-          ...prev,
-          customerName: c.name || '',
-          customerCode: c.code || '',
-          email: c.email || '',
-          dob: c.birthday ? new Date(c.birthday).toISOString().split('T')[0] : '',
-          address: c.address || '',
-          companyName: c.company || '',
-          taxId: c.vat || '',
-        }));
-      }
+      const res = await http.get('/customers/customers', { params: { phone: keyword, keyword, limit: 20, sort: 'lastPurchaseDate', order: 'desc' } });
+      setCustomerSuggestions(res.data.items ?? []);
+      setShowCustomerDropdown(true);
     } catch (err) {
-      console.error("Lỗi tìm kiếm khách hàng:", err);
+      console.error("L???i t??m ki???m kh??ch h??ng:", err);
+      setCustomerSuggestions([]);
     }
   };
 
@@ -1074,6 +1083,8 @@ export function WholesaleInvoiceCreatePage() {
                     id="customer-phone-input"
                     placeholder="Nhập SĐT tìm kiếm..." 
                     value={form.customerPhone} 
+                    onFocus={() => setShowCustomerDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                     onChange={(e) => {
                       handleChange('customerPhone', e.target.value);
                       lookupCustomer(e.target.value);
@@ -1100,25 +1111,10 @@ export function WholesaleInvoiceCreatePage() {
                     }} 
                     style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
                   />
-                  {showCustomerDropdown && form.customerName.trim().length > 0 && customerSuggestions.length > 0 && (
+                  {showCustomerDropdown && (form.customerName.trim().length > 0 || form.customerPhone.trim().length > 0) && customerSuggestions.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
                       {customerSuggestions.map(c => (
-                        <div key={c._id} onMouseDown={(e) => {
-                          e.preventDefault();
-                          setForm(prev => ({
-                            ...prev, 
-                            customerName: c.name || '', 
-                            customerPhone: c.phone || '', 
-                            email: c.email || '', 
-                            dob: c.birthday ? new Date(c.birthday).toISOString().split('T')[0] : (c.dob || ''), 
-                            customerCode: c.cardId || c.code || '', 
-                            addressLocation: c.addressLocation || '', 
-                            address: c.address || '',
-                            companyName: c.company || '',
-                            taxId: c.vat || '',
-                          }));
-                          setShowCustomerDropdown(false);
-                        }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                        <div key={c._id} onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
                           <div style={{ fontWeight: '600', fontSize: '13px' }}>{c.name} - {c.phone}</div>
                         </div>
                       ))}

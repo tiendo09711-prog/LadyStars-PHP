@@ -87,7 +87,19 @@ class LocalWriteController extends Controller
     {
         $resource = (string) $request->route('resource');
         $id = (string) $request->route('id');
-        $record = $this->findRecord($this->table($resource), $id);
+        $table = $this->table($resource);
+        $record = $this->findRecord($table, $id);
+
+        if ($resource === 'warehouse-transfers') {
+            $payload = is_array($record->payload) ? $record->payload : [];
+            $payload['status'] = 'CANCELLED';
+            $payload['cancelledAt'] = now()->toISOString();
+            if ($request->filled('reason')) $payload['cancelReason'] = $request->input('reason');
+            $record->forceFill(['status' => 'CANCELLED', 'payload' => $payload])->save();
+
+            return response()->json($this->serialize($record));
+        }
+
         $record->delete();
 
         return response()->json(['ok' => true, 'message' => 'Deleted locally.']);
@@ -102,10 +114,11 @@ class LocalWriteController extends Controller
         $record = $this->findRecord($table, $id);
         $payload = is_array($record->payload) ? $record->payload : [];
         $status = match ($action) {
-            'complete', 'confirm-destination', 'reconcile' => 'completed',
-            'cancel' => 'cancelled',
+            'confirm-destination' => 'COMPLETED',
+            'complete', 'reconcile' => 'completed',
+            'cancel' => $resource === 'warehouse-transfers' ? 'CANCELLED' : 'cancelled',
             'submit', 'confirm-source' => 'IN_TRANSIT',
-            'return' => 'RETURNED',
+            'return' => $resource === 'warehouse-transfers' ? 'RETURN_IN_PROGRESS' : 'RETURNED',
             'resnapshot' => $record->status,
             'reverse-reconcile' => 'COUNTING',
             default => $record->status,
@@ -151,7 +164,7 @@ class LocalWriteController extends Controller
     {
         $nowCode = $this->prefix($resource).$this->nextSuffix();
         $code = (string) ($payload['code'] ?? $payload['voucherId'] ?? $payload['id'] ?? $record?->code ?? $nowCode);
-        $status = (string) ($payload['status'] ?? $record?->status ?? 'draft');
+        $status = (string) ($payload['status'] ?? $record?->status ?? ($resource === 'warehouse-transfers' ? 'DRAFT' : 'draft'));
         $businessDate = $payload['businessDate'] ?? $payload['date'] ?? $payload['recordDate'] ?? now();
         $branchId = $payload['branchId'] ?? $payload['warehouseId'] ?? $payload['warehouse'] ?? $payload['sourceWarehouseId'] ?? null;
         $branch = $this->branch($branchId);

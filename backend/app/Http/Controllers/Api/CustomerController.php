@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
+use App\Models\MirrorRecord;
 use App\Support\ApiPagination;
 use App\Support\NodeShape;
 use Illuminate\Database\QueryException;
@@ -123,6 +124,61 @@ class CustomerController extends Controller
         return response()->json(NodeShape::customer($customer->load(['branch', 'groups'])));
     }
 
+    public function detail(Customer $customer): JsonResponse
+    {
+        $customer->load(['branch', 'groups']);
+        $phone = trim((string) $customer->phone);
+        $saleQuery = (new MirrorRecord())->forTable('sale_payments')->newQuery()
+            ->where(function ($query) use ($customer, $phone): void {
+                $query->where('customer_id', $customer->id);
+                if ($customer->mongo_id) {
+                    $query->orWhere('customer_mongo_id', $customer->mongo_id);
+                }
+                if ($phone !== '') {
+                    $query->orWhere('payload->customerPhone', $phone)
+                        ->orWhere('payload->phone', $phone);
+                }
+            });
+
+        $sales = $saleQuery->orderByDesc('business_date')->orderByDesc('created_at')->limit(100)->get();
+        $saleMongoIds = $sales->pluck('mongo_id')->filter()->values()->all();
+        $saleCodes = $sales->pluck('code')->filter()->values()->all();
+        $refunds = (new MirrorRecord())->forTable('product_refunds')->newQuery()
+            ->when(count($saleMongoIds) > 0 || count($saleCodes) > 0, function ($query) use ($saleMongoIds, $saleCodes): void {
+                $query->where(function ($inner) use ($saleMongoIds, $saleCodes): void {
+                    if (count($saleMongoIds) > 0) {
+                        $inner->whereIn('payment_mongo_id', $saleMongoIds)
+                            ->orWhereIn('payload->paymentId', $saleMongoIds);
+                    }
+                    if (count($saleCodes) > 0) {
+                        $inner->orWhereIn('payload->paymentCode', $saleCodes)
+                            ->orWhereIn('payload->invoiceCode', $saleCodes);
+                    }
+                });
+            }, fn ($query) => $query->whereRaw('1 = 0'))
+            ->orderByDesc('business_date')->orderByDesc('created_at')->limit(100)->get();
+
+        $purchases = $sales->map(fn (MirrorRecord $sale): array => $this->serializeCustomerActivity($sale, 'purchase'))->values();
+        $returns = $refunds->map(fn (MirrorRecord $refund): array => $this->serializeCustomerActivity($refund, 'return'))->values();
+        $warranties = $returns->filter(fn (array $row): bool => str_contains(mb_strtolower((string) ($row['note'] ?? '')), 'bảo hành') || str_contains(mb_strtolower((string) ($row['type'] ?? '')), 'bảo hành'))->values();
+
+        return response()->json([
+            'customer' => NodeShape::customer($customer),
+            'summary' => [
+                'purchaseCount' => $purchases->count(),
+                'returnCount' => $returns->count(),
+                'warrantyCount' => $warranties->count(),
+                'totalPurchased' => $purchases->sum(fn (array $row): float => (float) ($row['value'] ?? 0)),
+                'totalReturned' => $returns->sum(fn (array $row): float => (float) ($row['value'] ?? 0)),
+                'productQuantityPurchased' => $purchases->sum(fn (array $row): float => (float) ($row['quantity'] ?? 0)),
+                'productQuantityReturned' => $returns->sum(fn (array $row): float => (float) ($row['quantity'] ?? 0)),
+            ],
+            'purchases' => $purchases,
+            'returns' => $returns,
+            'warranties' => $warranties,
+        ]);
+    }
+
     public function update(Request $request, Customer $customer): JsonResponse
     {
         $payload = $this->validatedPayload($request, $customer);
@@ -197,6 +253,34 @@ class CustomerController extends Controller
             'note' => $data['note'] ?? null,
             'status' => $data['status'] ?? 'active',
             'groups' => $data['groups'] ?? [],
+        ];
+    }
+
+    private function serializeCustomerActivity(MirrorRecord $record, string $kind): array
+    {
+        $payload = is_array($record->payload) ? $record->payload : [];
+        $items = is_array($record->items) ? $record->items : ($payload['items'] ?? []);
+        if (!is_array($items)) $items = [];
+
+        return [
+            '_id' => (string) ($record->mongo_id ?: $record->id),
+            'id' => $record->id,
+            'kind' => $kind,
+            'code' => $record->code ?? ($payload['code'] ?? ''),
+            'status' => $record->status ?? ($payload['status'] ?? ''),
+            'type' => $record->type ?? ($payload['type'] ?? ''),
+            'date' => optional($record->business_date ?? $record->completed_at ?? $record->created_at)->toISOString(),
+            'value' => (float) ($record->value ?? $record->total ?? $record->value_payment ?? $payload['value'] ?? $payload['totalAmount'] ?? $payload['valuePayment'] ?? 0),
+            'quantity' => collect($items)->sum(fn ($item): float => (float) ($item['amount'] ?? $item['quantity'] ?? $item['qty'] ?? 0)),
+            'note' => $record->note ?? ($payload['note'] ?? ''),
+            'items' => collect($items)->map(fn ($item): array => [
+                'productId' => (string) ($item['productId'] ?? $item['product_id'] ?? $item['productMongoId'] ?? ''),
+                'code' => $item['productCode'] ?? $item['code'] ?? $item['sku'] ?? '',
+                'name' => $item['productName'] ?? $item['name'] ?? ($item['product']['name'] ?? ''),
+                'quantity' => (float) ($item['amount'] ?? $item['quantity'] ?? $item['qty'] ?? 0),
+                'price' => (float) ($item['value'] ?? $item['price'] ?? $item['unitPrice'] ?? 0),
+                'total' => (float) ($item['total'] ?? $item['value'] ?? 0),
+            ])->values(),
         ];
     }
 

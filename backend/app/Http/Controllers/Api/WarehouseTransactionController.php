@@ -14,6 +14,8 @@ class WarehouseTransactionController extends Controller
     private const LIMIT = 20;
     private const MAX_LIMIT = 5000;
 
+    private array $voucherMongoIdCache = [];
+
     private function warehouseMap(): array
     {
         return Branch::query()
@@ -94,7 +96,7 @@ class WarehouseTransactionController extends Controller
             ->map(fn ($row) => $this->billRowFromTransfer($row, $warehouses));
 
         return $vouchers->concat($transfers)
-            ->sortByDesc('date')
+            ->sortByDesc(fn (array $row): int => $this->sortTimestamp($row['date'] ?? null))
             ->values();
     }
 
@@ -107,7 +109,7 @@ class WarehouseTransactionController extends Controller
             ->flatMap(fn ($row) => $this->itemRowsFromTransfer($row, $warehouses));
 
         return $products->concat($transferLines)
-            ->sortByDesc('date')
+            ->sortByDesc(fn (array $row): int => $this->sortTimestamp($row['date'] ?? null))
             ->values();
     }
 
@@ -147,7 +149,7 @@ class WarehouseTransactionController extends Controller
         }
         try {
             return Carbon::parse($value);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return null;
         }
     }
@@ -157,13 +159,17 @@ class WarehouseTransactionController extends Controller
         $query = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery();
         $this->applyDateFilter($query, $filters);
 
+        if ($filters['type'] === 'TRANSFER' || $filters['kind'] === 'TRANSFER') {
+            return collect();
+        }
+
         if ($filters['warehouseId'] !== '') {
             $query->where('warehouse_mongo_id', $filters['warehouseId']);
         }
         if ($filters['billId'] !== '') {
             $keyword = $filters['billId'];
-            $query->where(function ($q) use ($keyword): void {
-                $q->where('voucher_code', 'like', "%{$keyword}%")
+            $query->where(function ($builder) use ($keyword): void {
+                $builder->where('voucher_code', 'like', "%{$keyword}%")
                     ->orWhere('code', 'like', "%{$keyword}%")
                     ->orWhere('mongo_id', $keyword);
             });
@@ -172,8 +178,8 @@ class WarehouseTransactionController extends Controller
             $query->where('import_export_type', 'like', $this->typeKeyword($filters['type']));
         }
         if ($filters['kind'] !== '' && $filters['kind'] !== 'TRANSFER') {
-            $query->where(function ($q) use ($filters): void {
-                $q->where('type', $filters['kind'])
+            $query->where(function ($builder) use ($filters): void {
+                $builder->where('type', $filters['kind'])
                     ->orWhere('import_export_type', $filters['kind']);
             });
         }
@@ -188,25 +194,21 @@ class WarehouseTransactionController extends Controller
 
         if ($filters['warehouseId'] !== '') {
             $warehouseId = $filters['warehouseId'];
-            $query->where(function ($q) use ($warehouseId): void {
-                $q->where('from_branch_mongo_id', $warehouseId)
+            $query->where(function ($builder) use ($warehouseId): void {
+                $builder->where('from_branch_mongo_id', $warehouseId)
                     ->orWhere('to_branch_mongo_id', $warehouseId);
             });
         }
         if ($filters['billId'] !== '') {
             $keyword = $filters['billId'];
-            $query->where(function ($q) use ($keyword): void {
-                $q->where('code', 'like', "%{$keyword}%")
+            $query->where(function ($builder) use ($keyword): void {
+                $builder->where('code', 'like', "%{$keyword}%")
                     ->orWhere('mongo_id', $keyword);
             });
         }
-        if ($filters['type'] !== '' && $filters['type'] !== 'IMPORT' && $filters['type'] !== 'EXPORT') {
-            // TRANSFER filter leaves transfers in scope.
-        } else {
-            // No voucher-specific type filter excludes transfers only if type/kind set to voucher values.
-            if ($filters['type'] !== '' || $filters['kind'] !== '') {
-                $query->whereRaw('1=0');
-            }
+        if (($filters['type'] !== '' && $filters['type'] !== 'TRANSFER')
+            || ($filters['kind'] !== '' && $filters['kind'] !== 'TRANSFER')) {
+            $query->whereRaw('1=0');
         }
 
         return $query->orderByDesc('business_date')->get();
@@ -217,13 +219,17 @@ class WarehouseTransactionController extends Controller
         $query = (new MirrorRecord())->forTable('inventory_products')->newQuery();
         $this->applyDateFilter($query, $filters);
 
+        if ($filters['type'] === 'TRANSFER' || $filters['kind'] === 'TRANSFER') {
+            return collect();
+        }
+
         if ($filters['warehouseId'] !== '') {
             $query->where('branch_mongo_id', $filters['warehouseId']);
         }
         if ($filters['productKeyword'] !== '') {
             $keyword = $filters['productKeyword'];
-            $query->where(function ($q) use ($keyword): void {
-                $q->where('product_name', 'like', "%{$keyword}%")
+            $query->where(function ($builder) use ($keyword): void {
+                $builder->where('product_name', 'like', "%{$keyword}%")
                     ->orWhere('product_code', 'like', "%{$keyword}%")
                     ->orWhere('barcode', 'like', "%{$keyword}%");
             });
@@ -236,8 +242,8 @@ class WarehouseTransactionController extends Controller
         }
         if ($filters['billId'] !== '') {
             $keyword = $filters['billId'];
-            $query->where(function ($q) use ($keyword): void {
-                $q->where('inventory_voucher_mongo_id', $keyword)
+            $query->where(function ($builder) use ($keyword): void {
+                $builder->where('inventory_voucher_mongo_id', $keyword)
                     ->orWhere('refer_code', 'like', "%{$keyword}%");
             });
         }
@@ -258,21 +264,22 @@ class WarehouseTransactionController extends Controller
     {
         $payload = is_array($record->payload) ? $record->payload : [];
         $type = $this->detectVoucherType($payload, $record);
-        $warehouseName = $payload['warehouse_name'] ?? $record->name ?? null;
-        $warehouseId = $payload['warehouse_mongo_id'] ?? $record->warehouse_mongo_id ?? null;
+        $voucherCode = $record->voucher_code ?: ($payload['voucher_code'] ?? $payload['code'] ?? $record->code ?? $record->mongo_id);
+        $warehouseId = $record->warehouse_mongo_id ?: ($payload['warehouse_mongo_id'] ?? null);
+        $warehouseName = $payload['warehouse_name'] ?? ($warehouses[$warehouseId] ?? null)?->name ?? $record->name ?? null;
 
         return [
             'rowKey' => 'inventory-voucher:' . $record->mongo_id,
             'source' => 'inventory-voucher',
             'sourceId' => $record->mongo_id,
-            'code' => $payload['voucher_code'] ?? $payload['code'] ?? $record->code ?? null,
-            'billCode' => $payload['voucher_code'] ?? null,
+            'code' => $voucherCode,
+            'billCode' => $voucherCode,
             'date' => $this->dateValue($payload, $record),
             'warehouseId' => $warehouseId,
             'warehouseName' => $warehouseName,
-            'totalProductLines' => (int) ($payload['sp_count'] ?? $payload['spCount'] ?? 0),
-            'totalQuantity' => (int) ($payload['qty'] ?? 0),
-            'totalAmount' => $this->amountValue($payload['total_amount'] ?? $payload['totalAmount'] ?? $record->total_amount ?? $payload['total'] ?? null),
+            'totalProductLines' => (int) ($record->sp_count ?? $payload['sp_count'] ?? $payload['spCount'] ?? 0),
+            'totalQuantity' => (int) $this->amountValue($record->qty ?? $payload['qty'] ?? 0, true),
+            'totalAmount' => $this->amountValue($record->total_amount ?? $payload['total_amount'] ?? $payload['totalAmount'] ?? $payload['total'] ?? null),
             'type' => $type,
             'kind' => $type,
             'kindLabel' => $payload['type'] ?? $payload['import_export_type'] ?? $record->type ?? 'Phiếu xuất nhập',
@@ -313,7 +320,7 @@ class WarehouseTransactionController extends Controller
             'kind' => 'TRANSFER',
             'kindLabel' => $payload['type'] ?? 'Chuyển kho',
             'sourceModule' => 'warehouse-transfer',
-            'createdByName' => $payload['creator'] ?? null,
+            'createdByName' => $record->creator ?? ($payload['creator'] ?? null),
             'note' => $payload['note'] ?? '',
             'status' => $record->status,
             'directionLabel' => 'Chuyển kho',
@@ -326,14 +333,16 @@ class WarehouseTransactionController extends Controller
     {
         $payload = is_array($record->payload) ? $record->payload : [];
         $type = $this->detectVoucherType($payload, $record);
+        $voucherCode = $record->inventory_voucher_mongo_id ?: ($payload['inventory_voucher_mongo_id'] ?? $payload['voucherId'] ?? null);
+        $voucherMongoId = $this->voucherMongoIdForCode($voucherCode) ?? $voucherCode;
 
         return [
             'rowKey' => 'inventory-product:' . $record->mongo_id,
             'source' => 'inventory-voucher',
-            'sourceId' => $record->inventory_voucher_mongo_id ?: ($payload['inventory_voucher_mongo_id'] ?? null),
+            'sourceId' => $voucherMongoId,
             'itemSourceId' => $record->mongo_id,
-            'code' => $record->inventory_voucher_mongo_id ?: ($payload['voucherId'] ?? null),
-            'billCode' => $record->inventory_voucher_mongo_id ?: ($payload['refer_code'] ?? null),
+            'code' => $voucherCode,
+            'billCode' => $voucherCode ?: ($payload['refer_code'] ?? null),
             'date' => $this->dateValue($payload, $record),
             'warehouseId' => $record->branch_mongo_id ?: ($payload['warehouse_mongo_id'] ?? null),
             'warehouseName' => $payload['warehouse_name'] ?? $payload['warehouse'] ?? ($warehouses[$record->branch_mongo_id] ?? null)?->name,
@@ -446,6 +455,54 @@ class WarehouseTransactionController extends Controller
         return $asNumber ? $numeric : (int) round($numeric);
     }
 
+    private function sortTimestamp(?string $date): int
+    {
+        $date = trim((string) $date);
+        if ($date === '') {
+            return 0;
+        }
+
+        foreach (['d/m/Y', 'Y-m-d', 'd-m-Y'] as $format) {
+            try {
+                $parsed = Carbon::createFromFormat($format, $date);
+                if ($parsed) {
+                    return $parsed->startOfDay()->getTimestamp();
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        try {
+            return Carbon::parse($date)->getTimestamp();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function voucherMongoIdForCode($voucherCode): ?string
+    {
+        $voucherCode = trim((string) $voucherCode);
+        if ($voucherCode === '') {
+            return null;
+        }
+
+        if (array_key_exists($voucherCode, $this->voucherMongoIdCache)) {
+            return $this->voucherMongoIdCache[$voucherCode];
+        }
+
+        $voucher = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()
+            ->where(function ($builder) use ($voucherCode): void {
+                $builder->where('voucher_code', $voucherCode)
+                    ->orWhere('code', $voucherCode)
+                    ->orWhere('mongo_id', $voucherCode);
+            })
+            ->first(['mongo_id']);
+
+        $this->voucherMongoIdCache[$voucherCode] = $voucher?->mongo_id;
+
+        return $this->voucherMongoIdCache[$voucherCode];
+    }
+
     public function show(string $source, string $sourceId): JsonResponse
     {
         if ($source === 'warehouse-transfer') {
@@ -457,7 +514,11 @@ class WarehouseTransactionController extends Controller
         }
 
         $record = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()
-            ->where('mongo_id', $sourceId)
+            ->where(function ($builder) use ($sourceId): void {
+                $builder->where('mongo_id', $sourceId)
+                    ->orWhere('voucher_code', $sourceId)
+                    ->orWhere('code', $sourceId);
+            })
             ->firstOrFail();
 
         return response()->json($this->voucherDetail($record));
@@ -468,10 +529,10 @@ class WarehouseTransactionController extends Controller
         $warehouses = $this->warehouseMap();
         $row = $this->billRowFromVoucher($record, $warehouses);
         $payload = is_array($record->payload) ? $record->payload : [];
-        $voucherCode = $payload['voucher_code'] ?? $payload['voucherId'] ?? $record->code ?? $record->mongo_id;
+        $voucherCode = $record->voucher_code ?: ($payload['voucher_code'] ?? $payload['voucherId'] ?? $record->code ?? $record->mongo_id);
         $items = (new MirrorRecord())->forTable('inventory_products')->newQuery()
-            ->where(function ($q) use ($voucherCode, $record): void {
-                $q->where('inventory_voucher_mongo_id', $voucherCode)
+            ->where(function ($builder) use ($voucherCode, $record): void {
+                $builder->where('inventory_voucher_mongo_id', $voucherCode)
                     ->orWhere('inventory_voucher_mongo_id', $record->mongo_id)
                     ->orWhere('refer_code', $voucherCode);
             })

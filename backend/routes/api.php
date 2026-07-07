@@ -55,6 +55,7 @@ Route::get('/customers', [CustomerController::class, 'index']);
 Route::get('/customers/customers', [CustomerController::class, 'index']);
 Route::get('/customers/customers/meta', [CustomerController::class, 'meta']);
 Route::post('/customers/customers', [CustomerController::class, 'store']);
+Route::get('/customers/customers/{customer}/detail', [CustomerController::class, 'detail']);
 Route::get('/customers/customers/{customer}', [CustomerController::class, 'show']);
 Route::patch('/customers/customers/{customer}', [CustomerController::class, 'update']);
 Route::delete('/customers/customers/{customer}', [CustomerController::class, 'destroy']);

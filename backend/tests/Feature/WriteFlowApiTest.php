@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\ProductBranchStock;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class WriteFlowApiTest extends TestCase
@@ -153,6 +154,68 @@ class WriteFlowApiTest extends TestCase
 
         $deleted = $this->deleteJson('/api/products/products/'.$productId);
         $deleted->assertOk()->assertJsonPath('ok', true);
+    }
+
+
+    public function test_category_partial_status_update_keeps_existing_fields(): void
+    {
+        $parent = Category::create([
+            'mongo_id' => 'categoryparent0000001',
+            'name' => 'Parent category',
+            'code' => 'CAT-PARENT',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+        $category = Category::create([
+            'mongo_id' => 'categorychild00000001',
+            'name' => 'Child category',
+            'code' => 'CAT-CHILD',
+            'parent_id' => $parent->id,
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+
+        $response = $this->patchJson('/api/products/categories/'.$category->id, [
+            'isActive' => false,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('code', 'CAT-CHILD')
+            ->assertJsonPath('parentId', (string) $parent->id)
+            ->assertJsonPath('isActive', false);
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'code' => 'CAT-CHILD',
+            'parent_id' => $parent->id,
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_product_import_update_mode_updates_existing_product(): void
+    {
+        $csv = "code;name;qty;price\nSP001;Imported product name;3;123456\n";
+        $file = UploadedFile::fake()->createWithContent('products.csv', $csv);
+
+        $response = $this->post('/api/products/products/import', [
+            'file' => $file,
+            'branchId' => $this->branch->id,
+            'importMode' => 'Cập nhật thông tin',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('summary.updated', 1)
+            ->assertJsonPath('summary.created', 0)
+            ->assertJsonPath('summary.skipped', 0);
+
+        $this->product->refresh();
+        $this->assertSame('Imported product name', $this->product->name);
+        $this->assertSame(123456.0, (float) $this->product->price);
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 15,
+        ]);
     }
 
     public function test_product_delete_is_blocked_when_stock_or_business_logs_exist(): void
