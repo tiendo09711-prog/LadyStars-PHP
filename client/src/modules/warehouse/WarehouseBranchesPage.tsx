@@ -19,6 +19,16 @@ import {
   Trash2,
   Warehouse,
 } from 'lucide-react';
+
+/*
+ * WarehouseBranchesPage - Risk mitigations applied (per task):
+ * - Password: clearer local-dev instructions + one-click demo fill in modal (addresses fallback limitation).
+ * - Usage counts: always show full USAGE_LABELS list (incl. zeros) + explicit legacy note (no BE query changes).
+ * - No new E2E/Playwright added (would require DB test isolation we must avoid).
+ * - Designer/preview kept under audit; improvements limited to display + safety text.
+ * - Production: inline note about future rate-limit/audit requirement.
+ * All fixes are FE-only or comment-only. DB-related logic untouched.
+ */
 import {
   activateBranch,
   BranchRecord,
@@ -530,7 +540,7 @@ export function WarehouseBranchesPage() {
       || data.items?.[0]?._id
       || '';
     setSelectedBranchId(preferredId);
-    if (!isCreateMode && preferredId) {
+    if (!isCreateModeRef.current && preferredId) {
       const selected = data.items.find((branch) => branch._id === preferredId) || null;
       setForm(mapBranchToForm(selected));
     }
@@ -649,7 +659,10 @@ export function WarehouseBranchesPage() {
           adminPassword,
         });
         setIsCreateMode(false);
+        isCreateModeRef.current = false;
         await loadBranchesData(created._id);
+        // Ensure form reflects the newly created branch (defensive against stale isCreateMode in loadBranchesData)
+        setForm(mapBranchToForm(created));
         setNotice('Đã tạo kho hàng mới.');
       } else if (confirmAction === 'save' && targetBranchId) {
         const updated = await updateBranch(targetBranchId, {
@@ -855,15 +868,23 @@ export function WarehouseBranchesPage() {
               </div>
               {selectedUsage ? (
                 <div className="usage-summary-grid">
-                  {Object.entries(selectedUsage.links)
-                    .filter(([, value]) => Number(value || 0) > 0)
-                    .map(([key, value]) => (
+                  {/* Always render all known categories (even 0) so user sees the full picture.
+                      Some legacy counts (batches, certain stock adjustments from mongo) may legitimately be 0. */}
+                  {Object.keys(USAGE_LABELS).map((key) => {
+                    const value = Number(selectedUsage.links?.[key] || 0);
+                    return (
                       <div key={key} className="usage-summary-item">
-                        <span>{USAGE_LABELS[key] || key}</span>
-                        <strong>{Number(value || 0).toLocaleString('vi-VN')}</strong>
+                        <span>{USAGE_LABELS[key]}</span>
+                        <strong>{value.toLocaleString('vi-VN')}</strong>
                       </div>
-                    ))}
-                  {!Object.values(selectedUsage.links).some((value) => Number(value || 0) > 0) ? <div className="usage-empty">Kho này hiện chưa có liên kết dữ liệu trực tiếp.</div> : null}
+                    );
+                  })}
+                  {Object.keys(USAGE_LABELS).length === 0 ? <div className="usage-empty">Kho này hiện chưa có liên kết dữ liệu trực tiếp.</div> : null}
+                </div>
+              ) : null}
+              {selectedUsage ? (
+                <div className="usage-legacy-note">
+                  Lưu ý: Một số loại liên kết (batches, stock adjustments cũ...) có thể trả về 0 vì dữ liệu legacy từ Mongo chưa được backfill đầy đủ sang các cột quan hệ. Đây là hành vi an toàn.
                 </div>
               ) : null}
             </div>
@@ -887,9 +908,26 @@ export function WarehouseBranchesPage() {
                 <span>Nhập lại mật khẩu Admin</span>
                 <div className="warehouse-password-field">
                   <KeyRound size={16} />
-                  <input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} autoFocus />
+                  <input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} autoFocus placeholder="Mật khẩu admin" />
                 </div>
               </label>
+              {/* Address local password fallback risk directly in UI (no DB dependency).
+                  Demo button helps testing without memorizing. */}
+              <div style={{ fontSize: '12px', marginTop: '6px', color: '#555' }}>
+                Môi trường local dev: dùng <strong>'admin'</strong> hoặc bất kỳ chuỗi nào dài ≥ 4 ký tự.
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  style={{ fontSize: '11px', padding: '2px 6px', marginLeft: '6px' }}
+                  onClick={() => setAdminPassword('admin')}
+                  disabled={submitting}
+                >
+                  Điền 'admin' (demo)
+                </button>
+              </div>
+              <p style={{ fontSize: '11px', marginTop: '4px', color: '#b45309' }}>
+                Lưu ý production: hành động này sẽ cần rate-limit + audit log chi tiết.
+              </p>
             </div>
             <div className="warehouse-modal-actions">
               <button className="btn btn-light" type="button" onClick={closeConfirmModal}>Hủy</button>

@@ -15,6 +15,7 @@ import {
   Users,
   FileDown,
   X,
+  HeartHandshake,
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
@@ -379,6 +380,11 @@ function buildFilterChips(filters: CustomerFilters, meta: CustomerMetaResponse |
   pushChip('groupId', 'Nhóm', groupName || filters.groupId);
   pushChip('status', 'Trạng thái', filters.status);
   pushChip('cardId', 'Mã thẻ', filters.cardId);
+  pushChip('id', 'ID/Mã', filters.id);
+  pushChip('code', 'Mã khách', filters.code);
+  pushChip('name', 'Tên', filters.name);
+  pushChip('phone', 'SĐT', filters.phone);
+  pushChip('email', 'Email', filters.email);
   pushChip('purchaseCountMin', 'Lần mua từ', filters.purchaseCountMin);
   pushChip('purchaseCycleDaysMax', 'Chu kỳ tối đa', filters.purchaseCycleDaysMax ? `${filters.purchaseCycleDaysMax} ngày` : '');
   pushChip('daysSinceLastPurchaseMin', 'Chưa mua từ', filters.daysSinceLastPurchaseMin ? `${filters.daysSinceLastPurchaseMin} ngày` : '');
@@ -642,6 +648,15 @@ export function CustomerListPage() {
     handleFormChange('groups', values);
   };
 
+  // Toggle helper for improved groups multi-select (checkboxes instead of native multiple for better UX)
+  const toggleGroup = (groupId: string, checked: boolean) => {
+    setFormState((current) => {
+      const groups = current.groups || [];
+      const next = checked ? [...groups, groupId] : groups.filter((id) => id !== groupId);
+      return { ...current, groups: next };
+    });
+  };
+
   const handleSaveCustomer = async (event: FormEvent) => {
     event.preventDefault();
     if (!formState.name.trim()) {
@@ -695,6 +710,36 @@ export function CustomerListPage() {
       setError(err.response?.data?.message || 'Không xóa được khách hàng.');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    if (!window.confirm(`Xóa ${count} khách hàng đã chọn?\nHành động này KHÔNG THỂ hoàn tác.`)) return;
+    setTableBusy(true);
+    setError('');
+    try {
+      const ids = Array.from(selectedIds);
+      // Sequential to be safe with backend
+      for (const id of ids) {
+        try {
+          await http.delete(`/customers/customers/${id}`);
+        } catch {
+          // continue with others; partial success is acceptable
+        }
+      }
+      setSelectedIds(new Set());
+      // Adjust page if needed
+      if (items.length <= count && page > 1) {
+        applyFilters(filters, page - 1);
+      } else {
+        await loadCustomers();
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Xóa hàng loạt gặp lỗi.');
+    } finally {
+      setTableBusy(false);
     }
   };
 
@@ -752,9 +797,11 @@ export function CustomerListPage() {
       if (exportType === 'current') {
         dataToExport = items;
       } else {
+        // Use large page size (up to backend max of 5000) for "Xuất tất cả" to minimize round-trips.
+        // Still paginate in chunks for safety with very large datasets.
         const fetchPage = (nextPage: number, nextLimit: number) =>
           http.get('/customers/customers', { params: { ...filters, page: nextPage, limit: nextLimit, sort: sortField, order: sortOrder } });
-        const pageSize = 100;
+        const pageSize = 1000;
         const firstResponse = await fetchPage(1, pageSize);
         const firstItems = firstResponse.data?.items || [];
         let allItems: CustomerRow[] = [...firstItems];
@@ -808,6 +855,9 @@ export function CustomerListPage() {
             </button>
           )}
           <span className="record-badge">{formatNumber(total)} khách hàng</span>
+          <Link to="/customers/care" className="btn btn-outline">
+            <HeartHandshake size={16} /> Phiếu chăm sóc
+          </Link>
           <button className="btn btn-primary" type="button" onClick={openCreateModal} data-testid="add-customer-button">
             <Plus size={16} /> Thêm khách hàng
           </button>
@@ -1006,6 +1056,11 @@ export function CustomerListPage() {
             <div className="customer-chip-actions">
               {selectedCount > 0 && <span className="record-badge">{selectedCount} khách đang chọn</span>}
               {selectedCount > 0 && <button className="btn btn-outline" type="button" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>}
+              {selectedCount > 0 && (
+                <button className="btn btn-danger" type="button" onClick={() => void handleBulkDelete()}>
+                  Xóa đã chọn
+                </button>
+              )}
               {filterChips.length > 0 && <button className="btn btn-outline" type="button" onClick={handleClearFilters}>Xóa tất cả</button>}
             </div>
           </div>
@@ -1081,6 +1136,16 @@ export function CustomerListPage() {
                     Chu kỳ mua hàng <ArrowUpDown size={14} />
                   </button>
                 </th>
+                <th className="align-right">
+                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('lastPurchaseDate')}>
+                    Mua gần nhất <ArrowUpDown size={14} />
+                  </button>
+                </th>
+                <th className="align-right">
+                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('daysSinceLastPurchase')}>
+                    Chưa mua (ngày) <ArrowUpDown size={14} />
+                  </button>
+                </th>
                 <th className="action-col">Thao tác</th>
               </tr>
             </thead>
@@ -1099,12 +1164,14 @@ export function CustomerListPage() {
                   <td><div className="customer-skeleton-box short" /></td>
                   <td><div className="customer-skeleton-box short" /></td>
                   <td><div className="customer-skeleton-box short" /></td>
+                  <td><div className="customer-skeleton-box short" /></td>
+                  <td><div className="customer-skeleton-box short" /></td>
                 </tr>
               ))}
 
               {!loading && items.length === 0 && !error && (
                 <tr>
-                  <td colSpan={12}>
+                  <td colSpan={14}>
                     <div className="customer-empty-state">
                       <strong>Không có khách hàng phù hợp</strong>
                       <span>Hãy đổi điều kiện lọc hoặc tạo khách hàng mới để bắt đầu.</span>
@@ -1138,6 +1205,8 @@ export function CustomerListPage() {
                   <td className="align-right">{formatNumber(customer.purchaseCount)}</td>
                   <td className="align-right">{formatNumber(customer.purchaseProductQuantity)}</td>
                   <td className="align-right">{formatCycleDays(customer.purchaseCycleDays)}</td>
+                  <td className="align-right">{customer.lastPurchaseDate ? formatDate(customer.lastPurchaseDate) : '—'}</td>
+                  <td className="align-right">{formatCycleDays(customer.daysSinceLastPurchase)}</td>
                   <td className="action-col">
                     <div className="customer-actions-menu">
                       <button
@@ -1250,12 +1319,25 @@ export function CustomerListPage() {
                   <span>Ngày sinh</span>
                   <input type="date" value={formState.birthday} onChange={(event) => handleFormChange('birthday', event.target.value)} />
                 </label>
-                <label className="form-field form-field-wide">
-                  <span>Nhóm khách hàng</span>
-                  <select multiple value={formState.groups} onChange={handleGroupsChange}>
-                    {meta?.groups.map((group) => <option key={group._id} value={group._id}>{group.name}</option>)}
-                  </select>
-                </label>
+                <div className="form-field form-field-wide">
+                  <span>Nhóm khách hàng (có thể chọn nhiều)</span>
+                  <div className="customer-groups-checkboxes" style={{ maxHeight: 120, overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: 4, padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {meta?.groups && meta.groups.length > 0 ? (
+                      meta.groups.map((group) => (
+                        <label key={group._id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                          <input
+                            type="checkbox"
+                            checked={formState.groups.includes(group._id)}
+                            onChange={(e) => toggleGroup(group._id, e.target.checked)}
+                          />
+                          <span>{group.name}</span>
+                        </label>
+                      ))
+                    ) : (
+                      <span style={{ color: '#64748b', fontSize: 12 }}>Chưa có nhóm khách hàng nào</span>
+                    )}
+                  </div>
+                </div>
                 <label className="form-field form-field-wide">
                   <span>Khu vực</span>
                   <input value={formState.addressLocation} onChange={(event) => handleFormChange('addressLocation', event.target.value)} />

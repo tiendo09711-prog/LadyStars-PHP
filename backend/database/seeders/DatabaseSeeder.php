@@ -21,5 +21,19 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Default admin account for local/dev (password 123456)
+        User::updateOrCreate(
+            ['email' => 'admin@gmail.com'],
+            [
+                'name' => 'Admin',
+                'password' => '123456',
+                'role' => 'ADMIN',
+                'status' => 'ACTIVE',
+                'is_root_owner' => true,
+                'is_active' => true,
+                'phone' => null,
+            ]
+        );
     }
 }

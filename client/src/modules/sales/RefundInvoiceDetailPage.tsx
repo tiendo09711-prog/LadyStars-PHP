@@ -41,8 +41,9 @@ function customerText(refund: RefundDetail) {
 }
 
 function branchName(refund: RefundDetail) {
-  const branch = refund?.paymentId?.branchId;
-  return (branch && typeof branch === 'object' ? branch.name : '') || '—';
+  const b = refund?.branchId || refund?.warehouseId || refund?.paymentId?.branchId;
+  if (b && typeof b === 'object') return b.name || '';
+  return (typeof b === 'string' ? b : '') || '—';
 }
 
 export function RefundInvoiceDetailPage() {

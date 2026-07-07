@@ -81,12 +81,18 @@ class MirrorRecordController extends Controller
 
     private function enrich(array $serialized, string $resource, string $table): array
     {
-        return match ($resource) {
+        $serialized = match ($resource) {
             'product-refunds' => $this->enrichRefund($serialized),
             'sale-payments' => $this->enrichSalePayment($serialized),
             'warehouse-transfers' => $this->enrichWarehouseTransfer($serialized),
             default => $serialized,
         };
+
+        if ($resource === 'customer-cares') {
+            $serialized = $this->enrichCustomerCare($serialized);
+        }
+
+        return $serialized;
     }
 
     private function normalizeStatus(?string $status): string
@@ -227,18 +233,11 @@ class MirrorRecordController extends Controller
 
     private function enrichSalePayment(array $serialized): array
     {
-        $branchMongoId = $serialized['branch_mongo_id'] ?? null;
-        if ($branchMongoId) {
-            $branch = $this->mirrorRecord('branches', $branchMongoId);
+        $branchIdRaw = $serialized['branch_mongo_id'] ?? $serialized['branchId'] ?? null;
+        if ($branchIdRaw && !is_array($branchIdRaw)) {
+            $branch = $this->lookupBranchForSale((string) $branchIdRaw);
             if ($branch) {
-                $serialized['branchId'] = [
-                    '_id' => $branch['_id'] ?? $branchMongoId,
-                    'name' => $branch['name'] ?? null,
-                    'code' => $branch['code'] ?? null,
-                    'address' => $branch['address'] ?? null,
-                    'phone' => $branch['phone'] ?? null,
-                    'invoiceProfile' => $branch['invoiceProfile'] ?? $branch['invoice_profile'] ?? null,
-                ];
+                $serialized['branchId'] = $branch;
             }
         }
 
@@ -274,8 +273,122 @@ class MirrorRecordController extends Controller
             $serialized['items'] = $items;
         }
 
+        // Compute refund linkage so Retail list + guards (refundStatus, remaining, activeCount) stay in sync
+        $refundInfo = $this->computeSaleRefundSummary($serialized);
+        $serialized = array_merge($serialized, $refundInfo);
+
         return $serialized;
     }
+
+    private function lookupBranchForSale(?string $identifier): ?array
+    {
+        if (!$identifier) return null;
+
+        // Prefer direct Branch model (source of truth post branches integration)
+        $b = Branch::query()
+            ->where('id', $identifier)
+            ->orWhere('mongo_id', $identifier)
+            ->orWhere('code', $identifier)
+            ->first();
+        if ($b) {
+            return [
+                '_id' => $b->mongo_id ?: (string) $b->id,
+                'id' => $b->id,
+                'name' => $b->name,
+                'code' => $b->code,
+                'address' => $b->address,
+                'phone' => $b->phone,
+                'invoiceProfile' => $b->invoice_profile ?? null,
+            ];
+        }
+
+        // Fallback to mirror record if branches were stored via mirror
+        $record = $this->mirrorRecord('branches', $identifier);
+        if ($record) {
+            return [
+                '_id' => $record['_id'] ?? $identifier,
+                'name' => $record['name'] ?? null,
+                'code' => $record['code'] ?? null,
+                'address' => $record['address'] ?? null,
+                'phone' => $record['phone'] ?? null,
+                'invoiceProfile' => $record['invoiceProfile'] ?? $record['invoice_profile'] ?? null,
+            ];
+        }
+        return null;
+    }
+
+    private function computeSaleRefundSummary(array $serialized): array
+    {
+        $saleId = (string) ($serialized['_id'] ?? $serialized['id'] ?? $serialized['mongoId'] ?? '');
+        $saleMongo = (string) ($serialized['mongoId'] ?? $serialized['_id'] ?? '');
+        if (!$saleId && !$saleMongo) {
+            return ['refundStatus' => 'none', 'refund_status' => 'none', 'remainingReturnableQuantity' => 0, 'activeRefundCount' => 0];
+        }
+
+        // Targeted query (use payment_mongo_id column + json fallback) instead of full table scan + php filter
+        $possibleIds = array_values(array_unique(array_filter([
+            $saleId,
+            $saleMongo,
+            (string) ($serialized['localId'] ?? ''),
+        ])));
+
+        $refundQuery = (new MirrorRecord())->forTable('product_refunds')->newQuery();
+        $refundQuery->where(function ($q) use ($possibleIds) {
+            if (!empty($possibleIds)) {
+                $q->whereIn('payment_mongo_id', $possibleIds);
+            }
+            foreach ($possibleIds as $pid) {
+                if ($pid !== '') {
+                    $q->orWhereRaw("JSON_EXTRACT(payload, '$.paymentId') = ?", [$pid]);
+                    $q->orWhereRaw("JSON_EXTRACT(payload, '$.payment_mongo_id') = ?", [$pid]);
+                    $q->orWhereRaw("JSON_EXTRACT(payload, '$.payment_id') = ?", [$pid]);
+                }
+            }
+        });
+
+        $linked = $refundQuery->get();
+
+        $active = $linked->filter(fn ($r) => strtoupper((string) ($r->status ?? '')) !== 'CANCELLED');
+        $activeCount = $active->count();
+
+        $returnedQty = 0.0;
+        $returnedByProduct = [];
+        foreach ($linked as $r) {
+            $its = is_array($r->payload['items'] ?? null)
+                ? $r->payload['items']
+                : (is_array($r->getAttribute('items')) ? $r->getAttribute('items') : []);
+            foreach ($its as $it) {
+                $q = (float) ($it['amount'] ?? $it['quantity'] ?? $it['qty'] ?? 0);
+                $pidRaw = $it['productId'] ?? $it['product_id'] ?? '';
+                $pid = is_array($pidRaw) ? ($pidRaw['_id'] ?? $pidRaw['id'] ?? '') : $pidRaw;
+                if ($pid) {
+                    $returnedByProduct[$pid] = ($returnedByProduct[$pid] ?? 0) + $q;
+                }
+                $returnedQty += $q;
+            }
+        }
+
+        $soldQty = 0.0;
+        $saleItems = is_array($serialized['items'] ?? null) ? $serialized['items'] : [];
+        foreach ($saleItems as $it) {
+            $soldQty += (float) ($it['amount'] ?? $it['quantity'] ?? $it['qty'] ?? 0);
+        }
+
+        $remaining = max(0, $soldQty - $returnedQty);
+        $rStatus = 'none';
+        if ($activeCount > 0 || $returnedQty > 0) {
+            $rStatus = $remaining <= 0 ? 'full' : 'partial';
+        }
+
+        return [
+            'refundStatus' => $rStatus,
+            'refund_status' => $rStatus,
+            'remainingReturnableQuantity' => $remaining,
+            'activeRefundCount' => $activeCount,
+            'returnedQuantityByProduct' => $returnedByProduct,
+        ];
+    }
+
     public function index(Request $request, string $resource): JsonResponse
     {
         $table = MirrorRecord::TABLES[$resource] ?? null;
@@ -324,6 +437,16 @@ class MirrorRecordController extends Controller
             }
         }
 
+        // Support reason/creator filters for customer cares (columns not in generic FILTER_COLUMNS)
+        if ($resource === 'customer-cares') {
+            if ($request->filled('reason') && $columns->has('reason')) {
+                $query->where('reason', $request->query('reason'));
+            }
+            if ($request->filled('creator') && $columns->has('creator')) {
+                $query->where('creator', $request->query('creator'));
+            }
+        }
+
         if ($resource === 'sale-payments') {
             $this->applySalePaymentExtraFilters($request, $query, $columns);
         } elseif ($resource === 'warehouse-transfers') {
@@ -359,6 +482,18 @@ class MirrorRecordController extends Controller
             fn (MirrorRecord $record): array => $this->enrich($this->serialize($record), $resource, $table),
             $records->all(),
         );
+
+        // Support channel filter passed by FE (e.g. /products/sales?channel=store) without over-filtering records that lack channel in payload yet.
+        // Main retail filtering is still driven by storeId/branchId. This makes the passed channel param effective when data carries it.
+        if ($resource === 'sale-payments') {
+            $ch = trim((string) $request->query('channel', ''));
+            if ($ch !== '') {
+                $items = array_values(array_filter($items, function ($rec) use ($ch) {
+                    $c = $rec['channel'] ?? $rec['orderSource'] ?? $rec['saleChannel'] ?? null;
+                    return $c === null || (string) $c === $ch;
+                }));
+            }
+        }
 
         $response = [
             'items' => $items,
@@ -406,29 +541,43 @@ class MirrorRecordController extends Controller
 
         $productKeyword = trim((string) $request->query('productKeyword', ''));
         if ($productKeyword !== '' && $columns->has('items')) {
-            $matchingProductMongoIds = Product::query()
+            // Support both mongo (24char) and local numeric product ids (for local sqlite mirror)
+            $matchingProductIds = Product::query()
                 ->where(function ($builder) use ($productKeyword): void {
                     $builder->where('name', 'like', "%{$productKeyword}%")
                         ->orWhere('code', 'like', "%{$productKeyword}%")
                         ->orWhere('barcode', 'like', "%{$productKeyword}%");
                 })
-                ->whereNotNull('mongo_id')
                 ->pluck('mongo_id')
                 ->map(fn ($id): string => (string) $id)
                 ->filter()
+                ->merge(
+                    Product::query()
+                        ->where(function ($builder) use ($productKeyword): void {
+                            $builder->where('name', 'like', "%{$productKeyword}%")
+                                ->orWhere('code', 'like', "%{$productKeyword}%")
+                                ->orWhere('barcode', 'like', "%{$productKeyword}%");
+                        })
+                        ->pluck('id')
+                        ->map(fn ($id): string => (string) $id)
+                        ->filter()
+                )
+                ->unique()
+                ->values()
                 ->all();
 
-            if (empty($matchingProductMongoIds)) {
+            if (empty($matchingProductIds)) {
                 $query->whereRaw('1 = 0');
                 return;
             }
 
-            $jsonValues = collect($matchingProductMongoIds)
+            $jsonValues = collect($matchingProductIds)
                 ->map(fn ($id): string => DB::getPdo()->quote($id))
                 ->implode(',');
 
+            // Support variable length ids (mongo or local numeric strings)
             $query->whereRaw(
-                'EXISTS (SELECT 1 FROM JSON_TABLE(items, "$[*]" COLUMNS(productId VARCHAR(24) PATH "$.productId")) AS jt WHERE jt.productId IN ('.$jsonValues.'))'
+                'EXISTS (SELECT 1 FROM JSON_TABLE(items, "$[*]" COLUMNS(productId VARCHAR(255) PATH "$.productId")) AS jt WHERE jt.productId IN ('.$jsonValues.'))'
             );
         }
     }
@@ -528,6 +677,49 @@ class MirrorRecordController extends Controller
             'reasons' => $this->distinctSorted('customer_cares', 'reason'),
             'creators' => $this->distinctSorted('customer_cares', 'creator'),
         ]);
+    }
+
+    private function enrichCustomerCare(array $serialized): array
+    {
+        // Ensure customerId is present for linking in FE (works for old + new records)
+        $cid = $serialized['customerId'] ?? $serialized['customer_id'] ?? $serialized['customer_mongo_id'] ?? null;
+
+        if (!$cid) {
+            $code = $serialized['customerCode'] ?? $serialized['customer_code'] ?? null;
+            $phone = $serialized['customerPhone'] ?? $serialized['customer_phone'] ?? null;
+            $name = $serialized['customerName'] ?? $serialized['customer_name'] ?? null;
+
+            if ($code || $phone) {
+                $q = Customer::query();
+                if ($code) {
+                    $q->where('code', $code);
+                } elseif ($phone) {
+                    $q->where(function ($b) use ($phone) {
+                        $b->where('phone', $phone)->orWhere('phone2', $phone);
+                    });
+                }
+                $cust = $q->first();
+                if ($cust) {
+                    $serialized['customerId'] = (string) $cust->id;
+                    $serialized['customer_id'] = $cust->id;
+                    $serialized['customer_mongo_id'] = $cust->mongo_id;
+                    if (empty($serialized['customerCode'] ?? null) && empty($serialized['customer_code'] ?? null)) {
+                        $serialized['customerCode'] = $cust->code;
+                    }
+                    if (empty($serialized['customerName'] ?? null) && empty($serialized['customer_name'] ?? null)) {
+                        $serialized['customerName'] = $cust->name;
+                    }
+                    if (empty($serialized['customerPhone'] ?? null) && empty($serialized['customer_phone'] ?? null)) {
+                        $serialized['customerPhone'] = $cust->phone;
+                    }
+                }
+            }
+        } elseif (is_numeric($cid) || (is_string($cid) && ctype_digit($cid))) {
+            // If we only have numeric id but want consistent string for FE routes
+            $serialized['customerId'] = (string) $cid;
+        }
+
+        return $serialized;
     }
 
     private function productEditLogMeta(): array

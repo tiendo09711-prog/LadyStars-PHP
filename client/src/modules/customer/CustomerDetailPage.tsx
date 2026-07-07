@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, PackageCheck, RefreshCcw, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react';
+import { ArrowLeft, HeartHandshake, PackageCheck, RefreshCcw, ShieldCheck, ShoppingBag, UserRound } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
 import './customer-list-page.css';
@@ -175,6 +175,12 @@ export function CustomerDetailPage() {
       <div className="customer-detail-header">
         <Link to="/customers/list" className="btn btn-outline">
           <ArrowLeft size={16} /> Quay lại danh sách
+        </Link>
+        <Link
+          to={`/customers/care?customerId=${encodeURIComponent(customer._id || '')}&customerCode=${encodeURIComponent(customer.code || '')}&customerName=${encodeURIComponent(customer.name || '')}&customerPhone=${encodeURIComponent(customer.phone || '')}`}
+          className="btn btn-outline"
+        >
+          <HeartHandshake size={16} /> Ghi phiếu chăm sóc
         </Link>
         <div className="customer-detail-title">
           <h1>{customer.name || 'Khách hàng'}</h1>

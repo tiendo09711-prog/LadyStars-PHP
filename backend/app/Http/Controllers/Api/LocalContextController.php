@@ -11,6 +11,30 @@ class LocalContextController extends Controller
 {
     public function me(): JsonResponse
     {
+        // Support real logged-in user from login token suffix (local-laravel-token-123)
+        $authHeader = request()->header('Authorization', '');
+        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            $loggedId = (int) $matches[1];
+            $user = User::find($loggedId);
+            if ($user) {
+                return response()->json([
+                    '_id' => (string) $user->id,
+                    'id' => $user->id,
+                    'mongoId' => $user->mongo_id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'status' => $user->status,
+                    'branchId' => $user->branch_id ? (string) $user->branch_id : null,
+                    'defaultWarehouseId' => $user->default_warehouse_id ? (string) $user->default_warehouse_id : null,
+                    'isRootOwner' => (bool) $user->is_root_owner,
+                    'isActive' => (bool) $user->is_active,
+                ]);
+            }
+        }
+
+        // Fallback to previous ADMIN/root preference (for old tokens or direct calls)
         $user = User::query()
             ->where(function ($query): void {
                 $query->where('role', 'ADMIN')->orWhere('is_root_owner', true);

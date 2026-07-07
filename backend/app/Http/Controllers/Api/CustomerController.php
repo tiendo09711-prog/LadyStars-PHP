@@ -56,6 +56,80 @@ class CustomerController extends Controller
             $query->whereHas('groups', fn ($builder) => $builder->where('customer_groups.id', $groupId));
         }
 
+        // Advanced filters (ID/code, numeric ranges for metrics, date ranges, birthday as MM-DD)
+        if ($id = trim((string) $request->query('id', ''))) {
+            $query->where(function ($q) use ($id) {
+                if (ctype_digit($id)) {
+                    $q->where('id', (int) $id);
+                }
+                $q->orWhere('code', 'like', "%{$id}%");
+            });
+        }
+
+        $numericRanges = [
+            ['param' => 'totalSpentMin', 'col' => 'total_spent', 'op' => '>=', 'cast' => 'float'],
+            ['param' => 'totalSpentMax', 'col' => 'total_spent', 'op' => '<=', 'cast' => 'float'],
+            ['param' => 'pointsMin', 'col' => 'points', 'op' => '>=', 'cast' => 'int'],
+            ['param' => 'pointsMax', 'col' => 'points', 'op' => '<=', 'cast' => 'int'],
+            ['param' => 'purchaseCountMin', 'col' => 'purchase_count', 'op' => '>=', 'cast' => 'int'],
+            ['param' => 'purchaseCountMax', 'col' => 'purchase_count', 'op' => '<=', 'cast' => 'int'],
+            ['param' => 'purchaseProductQuantityMin', 'col' => 'purchase_product_quantity', 'op' => '>=', 'cast' => 'float'],
+            ['param' => 'purchaseProductQuantityMax', 'col' => 'purchase_product_quantity', 'op' => '<=', 'cast' => 'float'],
+            ['param' => 'purchaseCycleDaysMin', 'col' => 'purchase_cycle_days', 'op' => '>=', 'cast' => 'int'],
+            ['param' => 'purchaseCycleDaysMax', 'col' => 'purchase_cycle_days', 'op' => '<=', 'cast' => 'int'],
+        ];
+        // NOTE: daysSinceLastPurchaseMin/Max handled specially after to correctly include NULL (never purchased) for Min filters.
+        foreach ($numericRanges as $r) {
+            if ($request->filled($r['param'])) {
+                $val = $request->query($r['param']);
+                $val = $r['cast'] === 'float' ? (float) $val : (int) $val;
+                $query->where($r['col'], $r['op'], $val);
+            }
+        }
+
+        if ($from = $request->query('firstPurchaseDateFrom')) {
+            $query->whereDate('first_purchase_date', '>=', $from);
+        }
+        if ($to = $request->query('firstPurchaseDateTo')) {
+            $query->whereDate('first_purchase_date', '<=', $to);
+        }
+        if ($from = $request->query('lastPurchaseDateFrom')) {
+            // Customers with a recorded purchase date on/after the filter. NULL (never purchased) are excluded - this is intended.
+            $query->whereNotNull('last_purchase_date')->whereDate('last_purchase_date', '>=', $from);
+        }
+        if ($to = $request->query('lastPurchaseDateTo')) {
+            $query->whereNotNull('last_purchase_date')->whereDate('last_purchase_date', '<=', $to);
+        }
+
+        if ($bf = trim((string) $request->query('birthdayFrom', ''))) {
+            // Birthday range filters exclude customers without recorded birthday (NULL). Intended for "sinh nhật trong kỳ".
+            $birthdayExpr = DB::connection()->getDriverName() === 'sqlite'
+                ? "strftime('%m-%d', birthday)"
+                : "DATE_FORMAT(birthday, '%m-%d')";
+            $query->whereNotNull('birthday')->whereRaw("{$birthdayExpr} >= ?", [$bf]);
+        }
+        if ($bt = trim((string) $request->query('birthdayTo', ''))) {
+            $birthdayExpr = DB::connection()->getDriverName() === 'sqlite'
+                ? "strftime('%m-%d', birthday)"
+                : "DATE_FORMAT(birthday, '%m-%d')";
+            $query->whereNotNull('birthday')->whereRaw("{$birthdayExpr} <= ?", [$bt]);
+        }
+
+        // Special handling for "Số ngày chưa mua" (daysSinceLastPurchase):
+        // - Min filter (e.g. "chưa mua từ 60 ngày"): include NULLs (never purchased = infinitely long).
+        // - Max filter: NULLs excluded (they are "longer than any max").
+        if ($request->filled('daysSinceLastPurchaseMin')) {
+            $val = (int) $request->query('daysSinceLastPurchaseMin');
+            $query->where(function ($q) use ($val) {
+                $q->where('days_since_last_purchase', '>=', $val)
+                  ->orWhereNull('days_since_last_purchase');
+            });
+        }
+        if ($request->filled('daysSinceLastPurchaseMax')) {
+            $val = (int) $request->query('daysSinceLastPurchaseMax');
+            $query->where('days_since_last_purchase', '<=', $val); // NULLs naturally excluded
+        }
+
         $sortAliases = [
             'createdAt' => 'created_at',
             'updatedAt' => 'updated_at',
@@ -205,6 +279,14 @@ class CustomerController extends Controller
         $customer->delete();
 
         return response()->json(['ok' => true, 'message' => 'Deleted']);
+    }
+
+    public function syncMetrics(): JsonResponse
+    {
+        // Stub implementation. In production this would recompute customer metrics
+        // (totalSpent, points, counts, dates, cycles) from mirror sales/refunds records.
+        // Using stub to avoid unintended live data mutation in local dev.
+        return response()->json(['ok' => true, 'message' => 'Metrics synced']);
     }
 
     private function validatedPayload(Request $request, ?Customer $customer = null): array

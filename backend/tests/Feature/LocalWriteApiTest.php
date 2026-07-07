@@ -84,12 +84,79 @@ class LocalWriteApiTest extends TestCase
     {
         $response = $this->postJson('/api/auth/login', [
             'email' => 'admin.local@example.test',
-            'password' => 'anything',
+            'password' => 'secret',
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('token', 'local-laravel-token')
             ->assertJsonPath('user.email', 'admin.local@example.test');
+        // Token is now per-user suffixed for correct /auth/me mapping
+        $this->assertStringStartsWith('local-laravel-token-', $response->json('token'));
+    }
+
+    public function test_admin_gmail_login_works_with_correct_password(): void
+    {
+        // Simulate the requested admin account (as seeded in DatabaseSeeder)
+        \App\Models\User::create([
+            'name' => 'Admin',
+            'email' => 'admin@gmail.com',
+            'password' => '123456',
+            'role' => 'ADMIN',
+            'status' => 'ACTIVE',
+            'is_root_owner' => true,
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson('/api/auth/login', [
+            'email' => 'admin@gmail.com',
+            'password' => '123456',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('user.email', 'admin@gmail.com')
+            ->assertJsonPath('user.role', 'ADMIN');
+
+        $this->assertStringStartsWith('local-laravel-token-', $response->json('token'));
+
+        // Verify /auth/me with the returned token resolves to the exact logged-in admin
+        $token = $response->json('token');
+        $me = $this->withHeaders(['Authorization' => 'Bearer ' . $token])->getJson('/api/auth/me');
+        $me->assertOk()
+            ->assertJsonPath('email', 'admin@gmail.com')
+            ->assertJsonPath('role', 'ADMIN');
+
+        // Wrong password must fail
+        $bad = $this->postJson('/api/auth/login', [
+            'email' => 'admin@gmail.com',
+            'password' => 'wrong',
+        ]);
+        $bad->assertStatus(401);
+    }
+
+    public function test_login_supports_legacy_plain_text_password_and_upgrades_it(): void
+    {
+        // Simulate legacy data where password was stored as plain text (common from mongo imports)
+        // This would previously cause "This password does not use the Bcrypt algorithm."
+        $legacyUser = \App\Models\User::create([
+            'name' => 'Legacy Admin',
+            'email' => 'legacy-admin@gmail.com',
+            'password' => '123456',  // deliberately plain, not hashed
+            'role' => 'ADMIN',
+            'status' => 'ACTIVE',
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
+
+        // Should succeed even though stored plain (fallback path)
+        $response = $this->postJson('/api/auth/login', [
+            'email' => 'legacy-admin@gmail.com',
+            'password' => '123456',
+        ]);
+        $response->assertOk()->assertJsonPath('user.email', 'legacy-admin@gmail.com');
+
+        // After successful login, the password should have been upgraded to bcrypt hash
+        $legacyUser->refresh();
+        $this->assertNotEquals('123456', $legacyUser->password);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('123456', $legacyUser->password));
     }
 
     public function test_customer_care_local_crud_works(): void

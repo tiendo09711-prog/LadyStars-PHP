@@ -189,9 +189,16 @@ export function WholesaleInvoiceCreatePage() {
       if (editId) {
         http.get(`/products/sales/${editId}`).then(res => {
           const sale = res.data;
+          // Derive branchId from sale for edit flow (edit URL may omit ?branchId=)
+          const braw = sale.branchId || sale.warehouseId || sale.warehouse;
+          const bid = typeof braw === 'string' ? braw : (braw && (braw._id || braw.id)) || '';
+          if (bid) {
+            setActiveBranchId(bid);
+          }
+
           setForm(prev => ({
             ...prev,
-            id: sale.code + '-S',
+            id: sale.code || prev.id,
             customerName: sale.customerId?.name || sale.customerName || '',
             customerPhone: sale.customerId?.phone || sale.customerPhone || '',
             customerCode: sale.customerId?.code || sale.customerId?.cardId || '',

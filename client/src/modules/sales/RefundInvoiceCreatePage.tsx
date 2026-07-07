@@ -250,24 +250,30 @@ export function RefundInvoiceCreatePage() {
           }));
           
           if (sale.items && Array.isArray(sale.items)) {
-            const sourceItems = sale.items.map((item: any) => ({
-              _id: item.productId?._id,
-              code: item.productId?.code || '',
-              name: item.productId?.name || '',
-              stock: item.productId?.qty || 0,
-              qty: Math.max((Number(item.amount) || 0) - Number(returnedQuantityByProduct[item.productId?._id || item.productId] || 0), 0),
-              maxQty: Math.max((Number(item.amount) || 0) - Number(returnedQuantityByProduct[item.productId?._id || item.productId] || 0), 0),
-              returnedQty: Number(returnedQuantityByProduct[item.productId?._id || item.productId] || 0),
-              price: item.value,
-              cost: item.productId?.cost || 0,
-              unit: item.productId?.unit || 'Cái',
-              barcode: item.productId?.barcode || '',
-              vat: 0,
-              refundFee: 0,
-              extendedWarrantyFee: 0,
-              giftCost: 0,
-              total: item.total || (item.value * item.amount)
-            })).filter((item: RefundProduct) => Number(item.maxQty || 0) > 0);
+            const sourceItems = sale.items.map((item: any) => {
+              const pidRaw = item.productId;
+              const pid = (pidRaw && typeof pidRaw === 'object') ? (pidRaw._id || pidRaw.id || '') : (pidRaw || '');
+              const retForPid = Number(returnedQuantityByProduct[pid] || 0);
+              const maxRet = Math.max((Number(item.amount) || 0) - retForPid, 0);
+              return {
+                _id: (pidRaw && typeof pidRaw === 'object') ? pidRaw._id : pidRaw,
+                code: (pidRaw && typeof pidRaw === 'object' ? pidRaw.code : '') || '',
+                name: (pidRaw && typeof pidRaw === 'object' ? pidRaw.name : '') || '',
+                stock: (pidRaw && typeof pidRaw === 'object' ? pidRaw.qty : 0) || 0,
+                qty: maxRet,
+                maxQty: maxRet,
+                returnedQty: retForPid,
+                price: item.value,
+                cost: (pidRaw && typeof pidRaw === 'object' ? pidRaw.cost : 0) || 0,
+                unit: (pidRaw && typeof pidRaw === 'object' ? pidRaw.unit : 'Cái') || 'Cái',
+                barcode: (pidRaw && typeof pidRaw === 'object' ? pidRaw.barcode : '') || '',
+                vat: 0,
+                refundFee: 0,
+                extendedWarrantyFee: 0,
+                giftCost: 0,
+                total: item.total || (item.value * item.amount)
+              };
+            }).filter((item: RefundProduct) => Number(item.maxQty || 0) > 0);
             setReturnableProducts(sourceItems);
             setProducts(sourceItems);
           }
@@ -722,6 +728,7 @@ export function RefundInvoiceCreatePage() {
       const exchangeResponse = await http.post(`/products/sales/${saleId}/return-exchange`, {
         code: form.id,
         branchId: resolvedBranchId,
+        channel, // propagate channel so the created product-refund and sale payload carry it
         note: [form.description, form.newDescription].filter(Boolean).join('\n'),
         discountValue: Math.max(Number(form.discount) || 0, 0),
         discountType: form.discountType === 'percent' ? 'percent' : 'number',

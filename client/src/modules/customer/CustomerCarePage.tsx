@@ -13,7 +13,9 @@ import {
   HeartHandshake,
   FileDown,
   X,
+  Users,
 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
 import { Pagination } from '../../core/components/Pagination';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
@@ -60,6 +62,7 @@ type CareRow = {
   customerCode?: string;
   customerName?: string;
   customerPhone?: string;
+  customerId?: string;
   details?: string;
   reason?: string;
   description?: string;
@@ -114,6 +117,7 @@ function buildCreateDefaults(creatorName: string) {
     customerCode: '',
     customerName: '',
     customerPhone: '',
+    customerId: '',
     details: '',
     reason: '',
     description: '',
@@ -127,6 +131,7 @@ const EMPTY_FORM: Record<string, string> = {
   customerCode: '',
   customerName: '',
   customerPhone: '',
+  customerId: '',
   details: '',
   reason: '',
   description: '',
@@ -159,6 +164,8 @@ export function CustomerCarePage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const actionsList: CareActionType[] = [
     'Tặng điểm', 'Trừ điểm', 'Tặng tiền tích lũy', 'Trừ tiền tích lũy',
@@ -210,6 +217,33 @@ export function CustomerCarePage() {
     void Promise.all([loadMeta(), loadCare()]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Support prefill from other pages (e.g. CustomerDetail "Ghi phiếu chăm sóc")
+  useEffect(() => {
+    const cid = searchParams.get('customerId') || '';
+    const ccode = searchParams.get('customerCode') || '';
+    const cname = searchParams.get('customerName') || '';
+    const cphone = searchParams.get('customerPhone') || '';
+
+    if ((cid || ccode || cname || cphone) && !modalOpen && !editingItem) {
+      setForm((prev) => ({
+        ...buildCreateDefaults(creatorName || prev.creator || ''),
+        customerId: cid,
+        customerCode: ccode || prev.customerCode,
+        customerName: cname || prev.customerName,
+        customerPhone: cphone || prev.customerPhone,
+      }));
+      setFormError('');
+      setModalOpen(true);
+
+      // Clean the query params after consuming (avoid re-trigger on reload)
+      // Use replace to not add history entry
+      const next = new URLSearchParams(searchParams);
+      ['customerId', 'customerCode', 'customerName', 'customerPhone'].forEach(k => next.delete(k));
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, creatorName]);
 
   useEffect(() => {
     void loadCare();
@@ -293,6 +327,7 @@ export function CustomerCarePage() {
       customerCode: item.customerCode || '',
       customerName: item.customerName || '',
       customerPhone: item.customerPhone || '',
+      customerId: item.customerId || '',
       details: item.details || '',
       reason: item.reason || '',
       description: item.description || '',
@@ -306,20 +341,45 @@ export function CustomerCarePage() {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const lookupCustomerByCode = async (code: string) => {
+    const ccode = code.trim();
+    if (!ccode) return;
+    try {
+      const res = await http.get('/customers/customers', { params: { code: ccode, limit: 1 } });
+      const items = res.data?.items || res.data?.data || [];
+      const c = items[0];
+      if (c) {
+        setForm((f) => ({
+          ...f,
+          customerName: f.customerName?.trim() ? f.customerName : (c.name || ''),
+          customerPhone: f.customerPhone?.trim() ? f.customerPhone : (c.phone || ''),
+          customerId: (c._id || c.id || '').toString() || f.customerId,
+        }));
+      }
+    } catch { /* ignore */ }
+  };
+
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
-    if (!String(form.code || '').trim()) {
+    const codeTrim = String(form.code || '').trim();
+    if (!codeTrim) {
       setFormError('Vui lòng nhập ID phiếu.');
+      return;
+    }
+    const hasCustomer = !!(form.customerName.trim() || form.customerPhone.trim() || form.customerCode.trim());
+    if (!hasCustomer) {
+      setFormError('Vui lòng nhập ít nhất một thông tin khách hàng (Tên / SĐT / Mã KH).');
       return;
     }
     setSaving(true);
     setFormError('');
     try {
       const payload = {
-        code: form.code.trim(),
+        code: codeTrim,
         customerCode: form.customerCode.trim() || undefined,
         customerName: form.customerName.trim() || undefined,
         customerPhone: form.customerPhone.trim() || undefined,
+        customerId: form.customerId || undefined,
         details: form.details.trim() || undefined,
         reason: form.reason.trim() || undefined,
         description: form.description.trim() || undefined,
@@ -449,6 +509,9 @@ export function CustomerCarePage() {
         </div>
         <div className="page-actions customer-care-actions">
           <span className="record-badge">{formatNumber(total)} bản ghi</span>
+          <Link to="/customers/list" className="btn btn-outline">
+            <Users size={16} /> Danh sách KH
+          </Link>
           <button className="btn btn-outline" type="button" onClick={() => setShowExportModal(true)}>
             <FileDown size={16} /> Xuất Excel
           </button>
@@ -680,7 +743,19 @@ export function CustomerCarePage() {
                       <span>{item.customerCode || item._id}</span>
                     </button>
                   </td>
-                  <td className="customer-groups-cell">{item.customerName || '—'}</td>
+                  <td className="customer-groups-cell">
+                    {item.customerName ? (
+                      item.customerId ? (
+                        <Link to={`/customers/list/${item.customerId}`} title="Xem chi tiết khách hàng">
+                          {item.customerName}
+                        </Link>
+                      ) : (
+                        <Link to={`/customers/list?keyword=${encodeURIComponent(item.customerName)}`} title="Tìm khách hàng trong danh sách">
+                          {item.customerName}
+                        </Link>
+                      )
+                    ) : '—'}
+                  </td>
                   <td>{item.customerPhone || '—'}</td>
                   <td>{item.details || '—'}</td>
                   <td>{item.reason || '—'}</td>
@@ -741,6 +816,9 @@ export function CustomerCarePage() {
                         required={field.required}
                         value={String(form[field.key] ?? '')}
                         onChange={(event) => handleFormChange(field.key, event.target.value)}
+                        onBlur={(e) => {
+                          if (field.key === 'customerCode') lookupCustomerByCode(e.target.value);
+                        }}
                       />
                     )}
                   </label>

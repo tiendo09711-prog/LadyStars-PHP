@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -19,28 +20,86 @@ class LocalWriteController extends Controller
 {
     public function login(Request $request): JsonResponse
     {
-        $email = trim((string) $request->input('email', 'local@ladystars.test'));
-        $user = User::query()->where('email', $email)->first()
-            ?? User::query()->where(fn ($q) => $q->where('role', 'ADMIN')->orWhere('is_root_owner', true))->first()
-            ?? User::query()->first();
+        $email = trim((string) $request->input('email', ''));
+        $password = (string) $request->input('password', '');
 
-        $shape = $user ? [
-            '_id' => (string) $user->id,
-            'id' => $user->id,
-            'email' => $user->email,
-            'name' => $user->name,
-            'role' => $user->role,
-        ] : [
-            '_id' => 'local',
-            'email' => $email,
-            'name' => 'Laravel Local Tester',
-            'role' => 'ADMIN',
-        ];
+        if ($email === '' || $password === '') {
+            return response()->json(['message' => 'Email và mật khẩu là bắt buộc.'], 422);
+        }
 
-        return response()->json([
-            'token' => 'local-laravel-token',
-            'user' => $shape,
-        ]);
+        $user = User::query()->where('email', $email)->first();
+
+        // Bootstrap the documented default admin account on first use of these exact credentials
+        // (helps when DB not seeded or after fresh migrate without seed)
+        if (!$user && $email === 'admin@gmail.com' && $password === '123456') {
+            try {
+                $user = User::create([
+                    'name' => 'Admin',
+                    'email' => 'admin@gmail.com',
+                    'password' => '123456',
+                    'role' => 'ADMIN',
+                    'status' => 'ACTIVE',
+                    'is_root_owner' => true,
+                    'is_active' => true,
+                ]);
+            } catch (\Throwable $e) {
+                // will fall through to 401 if create fails (e.g. incomplete schema)
+            }
+        }
+
+        if ($user) {
+            $isLocked = ($user->status === 'LOCKED') || ($user->is_active === false);
+
+            $pwOk = false;
+            if (!empty($user->password)) {
+                try {
+                    $pwOk = Hash::check($password, $user->password);
+                } catch (\Throwable $e) {
+                    // Legacy support: password may be stored in plain text or non-bcrypt format
+                    // (from previous mongo data, old imports, or direct inserts).
+                    // Accept if matches literally, and upgrade to proper bcrypt hash on success.
+                    if (hash_equals((string) $user->password, $password)) {
+                        $pwOk = true;
+                        // Upgrade hash so future logins use bcrypt
+                        try {
+                            $user->password = $password; // cast will bcrypt it
+                            $user->save();
+                        } catch (\Throwable $e2) {
+                            // ignore upgrade failure
+                        }
+                    }
+                }
+            }
+
+            if ($isLocked) {
+                return response()->json(['message' => 'Tài khoản đã bị khóa hoặc không hoạt động.'], 403);
+            }
+            if (!$pwOk) {
+                return response()->json(['message' => 'Email hoặc mật khẩu không đúng.'], 401);
+            }
+
+            $shape = [
+                '_id' => (string) $user->id,
+                'id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'role' => $user->role,
+                'status' => $user->status,
+                'phone' => $user->phone,
+                'defaultWarehouseId' => $user->default_warehouse_id ? (string) $user->default_warehouse_id : null,
+                'isActive' => (bool) $user->is_active,
+                'isRootOwner' => (bool) $user->is_root_owner,
+            ];
+
+            $token = 'local-laravel-token-' . $user->id;
+
+            return response()->json([
+                'token' => $token,
+                'user' => $shape,
+            ]);
+        }
+
+        return response()->json(['message' => 'Email hoặc mật khẩu không đúng.'], 401);
     }
 
     public function updateStore(Request $request): JsonResponse
@@ -66,6 +125,16 @@ class LocalWriteController extends Controller
         $resource = (string) $request->route('resource');
         $table = $this->table($resource);
         $payload = $request->all();
+
+        // Ensure channel (from sales-channels routing) is captured even if not in body
+        // This fixes sales created from /sales-channels/{channel}/... not having 'channel' in payload
+        if (empty($payload['channel'])) {
+            $ch = $request->query('channel') ?? $request->input('channel') ?? $request->input('orderSource');
+            if ($ch) {
+                $payload['channel'] = $ch;
+            }
+        }
+
         $record = DB::transaction(fn () => $this->createRecord($table, $payload, $resource));
 
         return response()->json($this->serialize($record), 201);
@@ -78,6 +147,15 @@ class LocalWriteController extends Controller
         $table = $this->table($resource);
         $record = $this->findRecord($table, $id);
         $payload = array_merge(is_array($record->payload) ? $record->payload : [], $request->all());
+
+        // Capture channel on update/edit too
+        if (empty($payload['channel'])) {
+            $ch = $request->query('channel') ?? $request->input('channel') ?? $request->input('orderSource');
+            if ($ch) {
+                $payload['channel'] = $ch;
+            }
+        }
+
         $record->forceFill($this->attributes($table, $payload, $resource, $record))->save();
 
         return response()->json($this->serialize($record));
@@ -113,6 +191,7 @@ class LocalWriteController extends Controller
         $table = $this->table($resource);
         $record = $this->findRecord($table, $id);
         $payload = is_array($record->payload) ? $record->payload : [];
+        $originalStatus = $record->status;
         $status = match ($action) {
             'confirm-destination' => 'COMPLETED',
             'complete', 'reconcile' => 'completed',
@@ -124,11 +203,113 @@ class LocalWriteController extends Controller
             default => $record->status,
         };
 
+        if ($resource === 'sale-payments' && in_array($action, ['return', 'return-exchange'], true)) {
+            $status = $originalStatus; // do not pollute sale status; refunds tracked separately
+        }
+
         if ($action === 'complete' && $resource === 'sale-payments' && $record->status !== 'completed') {
             $this->applySaleStock($payload, -1);
         }
         if ($action === 'cancel' && $resource === 'sale-payments' && $record->status === 'completed') {
             $this->applySaleStock($payload, 1);
+        }
+        if ($action === 'complete' && $resource === 'product-refunds' && $record->status !== 'completed') {
+            $this->applySaleStock($payload, 1); // refund complete restores stock to branch
+        }
+        $body = $request->all();
+
+        if ($resource === 'sale-payments' && in_array($action, ['return', 'return-exchange'], true)) {
+            // exchange/return from retail: +stock for returned items, -stock for replacements
+            // Use body from POST (return-exchange) with fallback to payload
+            $retItems = $body['returnedItems'] ?? $payload['returnedItems'] ?? [];
+            $repItems = $body['replacementItems'] ?? $payload['replacementItems'] ?? [];
+            if (!empty($retItems)) {
+                $this->applySaleStock(array_merge($payload, ['items' => $retItems]), 1);
+            }
+            if (!empty($repItems)) {
+                $this->applySaleStock(array_merge($payload, ['items' => $repItems]), -1);
+            }
+        }
+
+        // For return-exchange (used by retail "Đổi trả hàng"), also create a standard product-refund record.
+        // This ensures /products/refunds list and enrich links pick it up (in addition to stock + sale state already handled).
+        $replacementSale = null;
+        if ($resource === 'sale-payments' && $action === 'return-exchange' && !empty($body['returnedItems'] ?? $payload['returnedItems'] ?? null)) {
+            $retItemsForRefund = $body['returnedItems'] ?? $payload['returnedItems'] ?? [];
+            $refundPayments = $body['refundPayments'] ?? [];
+            $salePayments = $body['salePayments'] ?? [];
+            $amountDelta = (float)($body['totalAmount'] ?? $body['refundAmount'] ?? 0);
+
+            $refundPayload = [
+                'paymentId' => $id,
+                'items' => $retItemsForRefund,
+                'note' => $body['note'] ?? $payload['note'] ?? ($payload['reason'] ?? ''),
+                'branchId' => $body['branchId'] ?? $payload['branchId'] ?? $payload['warehouseId'] ?? null,
+                'channel' => $body['channel'] ?? $payload['channel'] ?? null,
+                'value' => collect($retItemsForRefund)->sum(function ($i) {
+                    return (float)($i['amount'] ?? $i['quantity'] ?? 0) * (float)($i['value'] ?? $i['price'] ?? 0);
+                }),
+                'status' => 'completed',
+                'amount' => collect($retItemsForRefund)->sum(function ($i) {
+                    return (float)($i['amount'] ?? $i['quantity'] ?? 0);
+                }),
+                'totalPayableAmount' => abs($amountDelta),
+                'refundPayments' => $refundPayments,
+                'salePayments' => $salePayments,
+                'amountDelta' => $amountDelta,
+            ];
+            try {
+                $this->createRecord($this->table('product-refunds'), $refundPayload, 'product-refunds');
+            } catch (\Throwable $e) {
+                // non-fatal: main sale status/stock already processed
+            }
+
+            // Create a proper sale invoice for the "mua mới / replacement" part of exchange.
+            // This makes the replacement a first-class completed sale (visible in retail/wholesale lists, reports, etc).
+            // Stock was already adjusted above; we create only the record here.
+            $repItems = $body['replacementItems'] ?? $payload['replacementItems'] ?? [];
+            if (!empty($repItems)) {
+                $origPayload = is_array($record->payload) ? $record->payload : [];
+                $repPayload = [
+                    'code' => ($body['code'] ?? 'HD') . '-EX' . substr($this->nextSuffix(), -4),
+                    'customerId' => $origPayload['customerId'] ?? $body['customerId'] ?? null,
+                    'branchId' => $body['branchId'] ?? $payload['branchId'] ?? $origPayload['branchId'] ?? null,
+                    'items' => $repItems,
+                    'note' => 'Phần mua mới từ đổi trả (exchange) của HĐ ' . ($origPayload['code'] ?? $id),
+                    'status' => 'completed',
+                    'value' => collect($repItems)->sum(function ($i) {
+                        return (float)($i['amount'] ?? $i['quantity'] ?? 0) * (float)($i['value'] ?? $i['price'] ?? 0);
+                    }),
+                    'amountProducts' => collect($repItems)->sum(function ($i) {
+                        return (float)($i['amount'] ?? $i['quantity'] ?? 0);
+                    }),
+                    'typePayment' => $salePayments, // when customer pays extra (delta < 0)
+                    'paymentLines' => $salePayments,
+                    'settlementValue' => $amountDelta < 0 ? abs($amountDelta) : 0,
+                    'isExchangeReplacement' => true,
+                    'originalSaleId' => $id,
+                    'exchangeSource' => 'return-exchange',
+                ];
+                try {
+                    $replacementSaleRecord = $this->createRecord($this->table('sale-payments'), $repPayload, 'sale-payments');
+                    $replacementSale = $this->serialize($replacementSaleRecord);
+                } catch (\Throwable $e) {
+                    // non-fatal
+                }
+            }
+
+            // Make the sale payload immediately carry refund linkage info (in addition to dynamic enrich compute on reads).
+            // This reduces the "special flow" gap between return-exchange and pure /products/refunds.
+            try {
+                $saleRec = $this->findRecord($table, $id);
+                $sp = is_array($saleRec->payload) ? $saleRec->payload : [];
+                $sp['refundStatus'] = 'partial'; // will be recomputed accurately on next load via enrich
+                $sp['activeRefundCount'] = (int)($sp['activeRefundCount'] ?? 0) + 1;
+                $sp['lastRefundAt'] = now()->toISOString();
+                $saleRec->forceFill(['payload' => $sp])->save();
+            } catch (\Throwable $e) {
+                // non-fatal
+            }
         }
 
         $payload['status'] = $status;
@@ -152,7 +333,11 @@ class LocalWriteController extends Controller
             return response()->json(['ok' => true, 'returnTransfer' => $this->serialize($return)]);
         }
 
-        return response()->json($this->serialize($record));
+        $base = $this->serialize($record);
+        if ($replacementSale) {
+            $base['replacementSale'] = $replacementSale;
+        }
+        return response()->json($base);
     }
 
     private function createRecord(string $table, array $payload, string $resource): MirrorRecord
@@ -215,6 +400,7 @@ class LocalWriteController extends Controller
                 'author_id' => User::query()->value('id'),
                 'payment_lines' => $payload['typePayment'] ?? $payload['paymentLines'] ?? [],
                 'items' => $items ?? [],
+                'channel' => $payload['channel'] ?? $payload['orderSource'] ?? null,
             ],
             'product_refunds' => [
                 'payment_mongo_id' => $payload['paymentId'] ?? null,
@@ -225,6 +411,7 @@ class LocalWriteController extends Controller
                 'note' => $payload['note'] ?? null,
                 'items' => $items ?? [],
                 'payment_lines' => $payload['paymentLines'] ?? [],
+                'channel' => $payload['channel'] ?? null,
             ],
             'inventory_vouchers' => [
                 'import_export_type' => $payload['importExportType'] ?? $payload['type'] ?? null,
@@ -302,14 +489,23 @@ class LocalWriteController extends Controller
 
     private function applySaleStock(array $payload, int $direction): void
     {
-        $branch = $this->branch($payload['branchId'] ?? null) ?? Branch::query()->first();
+        $branchIdRaw = $payload['branchId'] ?? $payload['warehouseId'] ?? $payload['branch_id'] ?? null;
+        $branch = $this->branch($branchIdRaw) ?? Branch::query()->first();
         if (!$branch) return;
-        foreach (($payload['items'] ?? []) as $line) {
-            $product = $this->product($line['productId'] ?? null);
+        // Support items, returnedItems (refund/exchange), replacementItems
+        $items = $payload['items'] ?? $payload['returnedItems'] ?? $payload['replacementItems'] ?? [];
+        foreach ($items as $line) {
+            $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+            $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+            $product = $this->product($pid);
             if (!$product || $product->type === 'service') continue;
-            $qty = (float) ($line['amount'] ?? $line['quantity'] ?? 0) * $direction;
-            $stock = ProductBranchStock::query()->firstOrCreate(['product_id' => $product->id, 'branch_id' => $branch->id], ['qty' => 0, 'locked_quantity' => 0]);
-            $stock->forceFill(['qty' => max(0, (float) $stock->qty + $qty)])->save();
+            $qty = (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0) * $direction;
+            $stock = ProductBranchStock::query()->firstOrCreate(
+                ['product_id' => $product->id, 'branch_id' => $branch->id],
+                ['qty' => 0, 'locked_quantity' => 0]
+            );
+            $newQty = max(0, (float) $stock->qty + $qty);
+            $stock->forceFill(['qty' => $newQty])->save();
             $product->forceFill(['qty' => (float) $product->stocks()->sum('qty')])->save();
         }
     }

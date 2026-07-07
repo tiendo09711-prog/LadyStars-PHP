@@ -37,6 +37,19 @@ import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/
 import { buildReceiptHtml } from './invoicePrint';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
+import {
+  productLines,
+  productName,
+  productCode,
+  totalQuantity,
+  grossValue,
+  discountMoneyAmount,
+  statusMeta,
+  hasGiftItems,
+  refundActionState,
+  editActionState,
+  deleteActionState,
+} from './invoiceHelpers';
 
 type WholesaleInvoicePageProps = {
   channel: string;
@@ -109,107 +122,7 @@ function safeDate(value: unknown) {
       });
 }
 
-function productLines(invoice: Invoice) {
-  return Array.isArray(invoice.items) ? invoice.items : [];
-}
-
-function productName(item: any) {
-  return item?.productId?.name || item?.productName || item?.productId?.code || 'Sản phẩm chưa có tên';
-}
-
-function productCode(item: any) {
-  return item?.productId?.code || item?.productCode || '';
-}
-
-function totalQuantity(invoice: Invoice) {
-  return productLines(invoice).reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
-}
-
-function grossValue(invoice: Invoice) {
-  return productLines(invoice).reduce(
-    (sum, item) => sum + (Number(item?.value) || 0) * (Number(item?.amount) || 0),
-    0,
-  );
-}
-function discountMoneyAmount(invoice: Invoice) {
-  return Math.max(0, grossValue(invoice) - (Number(invoice.value) || 0));
-}
-
-function statusMeta(status: unknown, refundStatus?: unknown) {
-  const refund = String(refundStatus || '').toLowerCase();
-  const value = String(status || '').toLowerCase();
-  if (value === 'completed' && refund === 'full') return { label: 'Đã hoàn', tone: 'neutral' };
-  if (value === 'completed' && refund === 'partial') return { label: 'Đã hoàn một phần', tone: 'warning' };
-  if (value === 'completed') return { label: 'Hoàn tất', tone: 'success' };
-  if (value === 'cancelled') return { label: 'Đã hủy', tone: 'danger' };
-  if (value === 'draft') return { label: 'Nháp', tone: 'warning' };
-  return { label: status ? String(status) : '—', tone: 'neutral' };
-}
-
-function hasGiftItems(invoice: Invoice) {
-  if (invoice?.hasGiftItems === true) return true;
-  return productLines(invoice).some((item) => item?.isGift === true || item?.gift === true || item?.giftForProductId);
-}
-
-function refundActionState(invoice: Invoice) {
-  const status = String(invoice?.status || '').toLowerCase();
-  const refundStatus = String(invoice?.refundStatus || 'none').toLowerCase();
-  const remainingReturnableQuantity = Number(invoice?.remainingReturnableQuantity || 0);
-
-  if (status === 'cancelled') {
-    return { enabled: false, title: 'Hóa đơn đã hủy nên không thể đổi trả.' };
-  }
-  if (status !== 'completed') {
-    return { enabled: false, title: 'Chỉ hóa đơn đã hoàn tất mới được đổi trả.' };
-  }
-  if (refundStatus === 'full' || remainingReturnableQuantity <= 0) {
-    return { enabled: false, title: 'Hóa đơn đã hoàn toàn bộ nên không thể đổi trả thêm.' };
-  }
-  return { enabled: true, title: 'Tạo chứng từ đổi trả cho phần hàng còn lại.' };
-}
-
-function editActionState(invoice: Invoice) {
-  const status = String(invoice?.status || '').toLowerCase();
-  const refundStatus = String(invoice?.refundStatus || 'none').toLowerCase();
-  const activeRefundCount = Number(invoice?.activeRefundCount || 0);
-
-  if (status === 'cancelled') {
-    return { enabled: false, title: 'Hóa đơn đã hủy nên không thể sửa.' };
-  }
-  if (status !== 'completed') {
-    return { enabled: false, title: 'Chỉ hóa đơn đã hoàn tất mới được sửa.' };
-  }
-  if (refundStatus === 'full') {
-    return { enabled: false, title: 'Hóa đơn đã hoàn toàn bộ nên không thể sửa.' };
-  }
-  if (refundStatus === 'partial' || activeRefundCount > 0) {
-    return { enabled: false, title: 'Hóa đơn đã phát sinh đổi trả nên không thể sửa.' };
-  }
-  return { enabled: true, title: 'Sửa hóa đơn hoàn tất khi chưa phát sinh đổi trả.' };
-}
-
-function deleteActionState(invoice: Invoice) {
-  const status = String(invoice?.status || '').toLowerCase();
-  const refundStatus = String(invoice?.refundStatus || 'none').toLowerCase();
-  const activeRefundCount = Number(invoice?.activeRefundCount || 0);
-  if (status === 'cancelled' && activeRefundCount > 0) {
-    return { enabled: false, title: 'Không thể xóa hóa đơn đã hủy vì đã phát sinh chứng từ đổi trả.' };
-  }
-  if (refundStatus === 'full') {
-    return { enabled: false, title: 'Hóa đơn đã hoàn toàn bộ nên không thể xóa hoặc hủy.' };
-  }
-  if (refundStatus === 'partial' || activeRefundCount > 0) {
-    return { enabled: false, title: 'Hóa đơn đã phát sinh đổi trả nên không thể xóa hoặc hủy.' };
-  }
-  if (activeRefundCount > 0) {
-    return { enabled: false, title: 'Không thể xóa hoặc hủy vì hóa đơn đã phát sinh chứng từ đổi trả.' };
-  }
-  if (status === 'draft') return { enabled: true, title: 'Xóa vĩnh viễn hóa đơn nháp.' };
-  if (status === 'cancelled') return { enabled: true, title: 'Xóa vĩnh viễn hóa đơn đã hủy.' };
-  if (status === 'completed') return { enabled: true, title: 'Hủy hóa đơn và hoàn tồn kho.' };
-  return { enabled: false, title: 'Hóa đơn không ở trạng thái cho phép xóa.' };
-}
-
+// paymentRows, matchesTab, matchesInvoiceCode are wholesale-specific (kept local).
 function paymentRows(invoice: Invoice) {
   const rows = Array.isArray(invoice.typePayment)
     ? invoice.typePayment
@@ -282,11 +195,8 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   const [detailError, setDetailError] = useState('');
   const [actionBusyId, setActionBusyId] = useState('');
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const rangeEnd = Math.min(page * PAGE_SIZE, total);
-
   const handleTabChange = (tab: WholesaleTab) => {
+    setPage(1);
     setSearchParams(tab === 'all' ? {} : { tab }, { replace: true });
   };
 
@@ -338,8 +248,10 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     try {
       const qs = new URLSearchParams();
       qs.set('code', 'BHS');
-      qs.set('page', String(page));
-      qs.set('limit', String(PAGE_SIZE));
+      // High limit so client-side tab (discount/debt) + invoiceCode filter + paging see complete matching set.
+      // Avoids "empty page" when debt invoices are not in the current server page slice.
+      qs.set('page', '1');
+      qs.set('limit', '500');
       if (appliedFilters.storeId) qs.set('storeId', appliedFilters.storeId);
       if (appliedFilters.dateFrom) qs.set('dateFrom', appliedFilters.dateFrom);
       if (appliedFilters.dateTo) qs.set('dateTo', appliedFilters.dateTo);
@@ -365,7 +277,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     const controller = new AbortController();
     void loadInvoices(controller.signal);
     return () => controller.abort();
-  }, [appliedFilters, channel, page, activeTab]);
+  }, [appliedFilters, channel, page]);
 
   useEffect(() => {
     if (!rowActionOpen && !showToolsDropdown) return;
@@ -405,7 +317,20 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     return rows;
   }, [invoices, activeTab, appliedFilters.invoiceCode]);
 
-  const selectedAll = visibleInvoices.length > 0 && visibleInvoices.every((invoice) => selectedIds.has(invoice._id));
+  // Client-side paged view of the (tab + code) filtered results.
+  // Ensures tabs work correctly with filters + pagination even when matching records span server pages.
+  const pagedInvoices = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return visibleInvoices.slice(start, start + PAGE_SIZE);
+  }, [visibleInvoices, page]);
+
+  // Pager and range now based on client filtered (tab+code) for correct behavior across tabs.
+  const filteredTotal = visibleInvoices.length;
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / PAGE_SIZE));
+  const rangeStart = filteredTotal === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, filteredTotal);
+
+  const selectedAll = pagedInvoices.length > 0 && pagedInvoices.every((invoice) => selectedIds.has(invoice._id));
 
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
@@ -678,7 +603,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   };
 
   const toggleAll = (checked: boolean) => {
-    setSelectedIds(checked ? new Set(visibleInvoices.map((invoice) => invoice._id)) : new Set());
+    setSelectedIds(checked ? new Set(pagedInvoices.map((invoice) => invoice._id)) : new Set());
   };
 
   const toggleOne = (id: string, checked: boolean) => {
@@ -896,9 +821,9 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                 <span className="ws-filter-chip"><Store size={13} /> {branchName}</span>
               )}
               {activeTab === 'all' ? (
-                <span>Hiển thị {rangeStart.toLocaleString('vi-VN')} - {rangeEnd.toLocaleString('vi-VN')} / {total.toLocaleString('vi-VN')}</span>
+                <span>Hiển thị {rangeStart.toLocaleString('vi-VN')} - {rangeEnd.toLocaleString('vi-VN')} / {filteredTotal.toLocaleString('vi-VN')}</span>
               ) : (
-                <span>{visibleInvoices.length.toLocaleString('vi-VN')} phù hợp · {total.toLocaleString('vi-VN')} hóa đơn sỉ</span>
+                <span>{visibleInvoices.length.toLocaleString('vi-VN')} phù hợp · {filteredTotal.toLocaleString('vi-VN')} hóa đơn sỉ (lọc)</span>
               )}
               <div className="ws-tools" ref={showToolsDropdown ? toolsMenuRef : null}>
                 <button
@@ -1000,7 +925,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                     </tr>
                   )}
 
-                  {!loading && !error && visibleInvoices.map((invoice) => {
+                  {!loading && !error && pagedInvoices.map((invoice) => {
                     const items = productLines(invoice);
                     const firstItem = items[0];
                     const customer = invoice.customerId;
@@ -1102,7 +1027,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
             </div>
 
             <div className="ws-pagination">
-              <span>Hiển thị {rangeStart.toLocaleString('vi-VN')} - {rangeEnd.toLocaleString('vi-VN')} / {total.toLocaleString('vi-VN')}</span>
+              <span>Hiển thị {rangeStart.toLocaleString('vi-VN')} - {rangeEnd.toLocaleString('vi-VN')} / {filteredTotal.toLocaleString('vi-VN')}</span>
               <div>
                 <button type="button" disabled={page <= 1 || loading} onClick={() => setPage((current) => current - 1)} aria-label="Trang trước"><ChevronLeft size={16} /></button>
                 <strong>Trang {page} / {totalPages}</strong>

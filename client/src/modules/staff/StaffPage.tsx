@@ -1,6 +1,6 @@
 import { FormEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit3, KeyRound, Lock, MoreHorizontal, RefreshCw, ShieldCheck, Trash2, Unlock, UserCog, Users, WalletCards } from 'lucide-react';
 import { http } from '../../core/api/http';
 import { isAdminRole } from '../../core/auth/access';
@@ -89,13 +89,24 @@ function warehouseLabel(warehouse: WarehouseOption) {
 }
 
 function assignedWarehouseIds(item: StaffAccount) {
-  return (item.assignedWarehouseIds || []).map((warehouse) => String(warehouse._id || '')).filter(Boolean);
+  const arr = item.assignedWarehouseIds || [];
+  return arr.map((w: any) => {
+    if (!w) return '';
+    if (typeof w === 'string' || typeof w === 'number') return String(w);
+    return String(w._id || w.id || '');
+  }).filter(Boolean);
 }
 
 function assignedWarehouseText(item: StaffAccount) {
-  const names = item.warehouseNames?.length
-    ? item.warehouseNames
-    : (item.assignedWarehouseIds || []).map((warehouse) => warehouseLabel(warehouse));
+  if (item.warehouseNames?.length) {
+    return item.warehouseNames.filter(Boolean).join(', ') || '-';
+  }
+  const arr = item.assignedWarehouseIds || [];
+  const names = arr.map((w: any) => {
+    if (!w) return '';
+    if (typeof w === 'string' || typeof w === 'number') return String(w);
+    return warehouseLabel(w);
+  });
   return names.filter(Boolean).join(', ') || '-';
 }
 
@@ -113,6 +124,7 @@ function apiMessage(error: unknown, fallback: string) {
 export function StaffPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const tab = useMemo(() => {
     if (location.pathname.endsWith('/create')) return 'create';
     if (location.pathname.endsWith('/stats')) return 'stats';
@@ -124,13 +136,16 @@ export function StaffPage() {
   const [saving, setSaving] = useState(false);
   const [staff, setStaff] = useState<StaffAccount[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
-  const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [selectedStaffId, setSelectedStaffId] = useState(() => searchParams.get('staff') || '');
   const [stats, setStats] = useState<any>(null);
   const [activity, setActivity] = useState<any[]>([]);
   const [message, setMessage] = useState('');
   const [form, setForm] = useState<StaffForm>(emptyForm);
   const [filters, setFilters] = useState<AccountFilters>({ keyword: '', warehouseId: '', status: '' });
-  const [statsFilters, setStatsFilters] = useState({ from: '', to: '' });
+  const [statsFilters, setStatsFilters] = useState(() => ({
+    from: searchParams.get('from') || '',
+    to: searchParams.get('to') || '',
+  }));
   const [editing, setEditing] = useState<StaffAccount | null>(null);
   const [editForm, setEditForm] = useState<Omit<StaffForm, 'password' | 'confirmPassword'>>(emptyForm);
   const [resetTarget, setResetTarget] = useState<StaffAccount | null>(null);
@@ -184,10 +199,11 @@ export function StaffPage() {
       }
       const activeWarehouses = (branchRes.data.items || []).filter((item: WarehouseOption) => item.isActive !== false);
       setWarehouses(activeWarehouses);
+      const firstWh = activeWarehouses[0]?._id || '';
       setForm((current) => ({
         ...current,
-        assignedWarehouseIds: current.assignedWarehouseIds.length ? current.assignedWarehouseIds : activeWarehouses[0]?._id ? [activeWarehouses[0]._id] : [],
-        defaultWarehouseId: current.defaultWarehouseId || activeWarehouses[0]?._id || '',
+        assignedWarehouseIds: current.assignedWarehouseIds.length ? current.assignedWarehouseIds : (firstWh ? [firstWh] : []),
+        defaultWarehouseId: current.defaultWarehouseId || firstWh,
       }));
       setReady(true);
     } catch (error) {
@@ -248,8 +264,9 @@ export function StaffPage() {
       setMessage('Mật khẩu xác nhận không khớp.');
       return;
     }
-    if (form.assignedWarehouseIds.length === 0) {
-      setMessage('Phải chọn ít nhất một kho active cho nhân viên.');
+    // Relaxed: warehouse optional (fix "cần kho trước" risk). Only enforce if warehouses exist.
+    if (warehouses.length > 0 && form.assignedWarehouseIds.length === 0) {
+      setMessage('Phải chọn ít nhất một kho active cho nhân viên (hoặc tạo kho trước).');
       return;
     }
     setSaving(true);
@@ -261,7 +278,7 @@ export function StaffPage() {
         phone: form.phone.trim(),
         status: form.status,
         assignedWarehouseIds: form.assignedWarehouseIds,
-        defaultWarehouseId: form.defaultWarehouseId || form.assignedWarehouseIds[0],
+        defaultWarehouseId: form.defaultWarehouseId || (form.assignedWarehouseIds[0] ?? null),
       });
       setMessage('Đã tạo tài khoản nhân viên.');
       setForm({ ...emptyForm, assignedWarehouseIds: form.assignedWarehouseIds, defaultWarehouseId: form.defaultWarehouseId });
@@ -285,7 +302,7 @@ export function StaffPage() {
       email: item.email || '',
       phone: item.phone || '',
       status: item.status === 'LOCKED' ? 'LOCKED' : 'ACTIVE',
-      assignedWarehouseIds: defaultId ? [defaultId] : ids.slice(0, 1),
+      assignedWarehouseIds: ids.length ? ids : (defaultId ? [defaultId] : []),
       defaultWarehouseId: defaultId,
     });
   };
@@ -293,8 +310,9 @@ export function StaffPage() {
   const updateStaff = async (event: FormEvent) => {
     event.preventDefault();
     if (!editing || saving) return;
-    if (editForm.assignedWarehouseIds.length === 0) {
-      setMessage('Phải chọn ít nhất một kho active cho nhân viên.');
+    // Relaxed for no-warehouse case
+    if (warehouses.length > 0 && editForm.assignedWarehouseIds.length === 0) {
+      setMessage('Phải chọn ít nhất một kho active cho nhân viên (hoặc tạo kho trước).');
       return;
     }
     setSaving(true);
@@ -305,7 +323,7 @@ export function StaffPage() {
         phone: editForm.phone.trim(),
         status: editForm.status,
         assignedWarehouseIds: editForm.assignedWarehouseIds,
-        defaultWarehouseId: editForm.defaultWarehouseId || editForm.assignedWarehouseIds[0],
+        defaultWarehouseId: editForm.defaultWarehouseId || (editForm.assignedWarehouseIds[0] ?? null),
       });
       setMessage('Đã cập nhật tài khoản nhân viên.');
       setEditing(null);
@@ -390,7 +408,13 @@ export function StaffPage() {
   };
 
   const loadStats = async () => {
-    if (!selectedStaffId) return;
+    if (!selectedStaffId) {
+      setStats(null);
+      setActivity([]);
+      return;
+    }
+    setStats(null);
+    setActivity([]);
     setLoading(true);
     try {
       const params = Object.fromEntries(Object.entries(statsFilters).filter(([, value]) => value));
@@ -410,6 +434,31 @@ export function StaffPage() {
   useEffect(() => {
     if (ready && tab === 'stats') void loadStats();
   }, [ready, tab, selectedStaffId]);
+
+  // URL sync for stats tab: persist selected + date filters so hard refresh keeps state
+  useEffect(() => {
+    if (tab !== 'stats') return;
+    const next = new URLSearchParams(searchParams);
+    if (selectedStaffId) {
+      next.set('staff', selectedStaffId);
+    } else {
+      next.delete('staff');
+    }
+    if (statsFilters.from) next.set('from', statsFilters.from); else next.delete('from');
+    if (statsFilters.to) next.set('to', statsFilters.to); else next.delete('to');
+    // Only update if different to avoid loops
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [tab, selectedStaffId, statsFilters.from, statsFilters.to]);
+
+  // When staff list loads in stats tab and no selection from URL, pick first (avoid loop by length)
+  useEffect(() => {
+    if (tab === 'stats' && ready && staff.length > 0 && !selectedStaffId) {
+      const first = getId(staff[0]);
+      if (first) setSelectedStaffId(first);
+    }
+  }, [tab, ready, staff.length]);
 
   if (!ready) return <div className="workspace-page">Đang tải quản lý nhân viên...</div>;
 
@@ -462,7 +511,12 @@ export function StaffPage() {
             <label className="form-field"><span>Xác nhận mật khẩu *</span><input required minLength={6} type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))} /></label>
             <label className="form-field"><span>Số điện thoại</span><input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} /></label>
             <label className="form-field"><span>Trạng thái</span><select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as Status }))}><option value="ACTIVE">ACTIVE</option><option value="LOCKED">LOCKED</option></select></label>
-            <WarehousePicker warehouses={warehouses} selectedId={form.defaultWarehouseId} onSelect={(id) => setForm((current) => ({ ...current, assignedWarehouseIds: [id], defaultWarehouseId: id }))} />
+            <WarehousePicker
+              warehouses={warehouses}
+              selectedIds={form.assignedWarehouseIds}
+              defaultId={form.defaultWarehouseId}
+              onChange={(ids, def) => setForm((current) => ({ ...current, assignedWarehouseIds: ids, defaultWarehouseId: def }))}
+            />
           </div>
           <div className="modal-footer">
             <button className="btn btn-light" type="button" onClick={() => setForm(emptyForm)}>Xóa form</button>
@@ -577,7 +631,12 @@ export function StaffPage() {
               <label className="form-field"><span>Email *</span><input required type="email" value={editForm.email} onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))} /></label>
               <label className="form-field"><span>Số điện thoại</span><input value={editForm.phone} onChange={(event) => setEditForm((current) => ({ ...current, phone: event.target.value }))} /></label>
               <label className="form-field"><span>Trạng thái</span><select value={editForm.status} onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value as Status }))}><option value="ACTIVE">ACTIVE</option><option value="LOCKED">LOCKED</option></select></label>
-              <WarehousePicker warehouses={warehouses} selectedId={editForm.defaultWarehouseId} onSelect={(id) => setEditForm((current) => ({ ...current, assignedWarehouseIds: [id], defaultWarehouseId: id }))} />
+              <WarehousePicker
+                warehouses={warehouses}
+                selectedIds={editForm.assignedWarehouseIds}
+                defaultId={editForm.defaultWarehouseId}
+                onChange={(ids, def) => setEditForm((current) => ({ ...current, assignedWarehouseIds: ids, defaultWarehouseId: def }))}
+              />
             </div>
             <div className="modal-footer"><button className="btn btn-light" type="button" onClick={() => setEditing(null)}>Hủy</button><button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</button></div>
           </form>
@@ -626,26 +685,54 @@ export function StaffPage() {
   );
 }
 
-function WarehousePicker({ warehouses, selectedId, onSelect }: {
+function WarehousePicker({ warehouses, selectedIds, defaultId, onChange }: {
   warehouses: WarehouseOption[];
-  selectedId: string;
-  onSelect: (id: string) => void;
+  selectedIds: string[];
+  defaultId: string;
+  onChange: (ids: string[], def: string) => void;
 }) {
+  const ids = selectedIds || [];
+  const currentDefault = defaultId || ids[0] || '';
+
+  const toggle = (id: string) => {
+    let next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+    let nextDef = currentDefault;
+    if (!next.includes(nextDef)) {
+      nextDef = next[0] || '';
+    }
+    onChange(next, nextDef);
+  };
+
+  const setDefault = (id: string) => {
+    const next = ids.includes(id) ? ids : [...ids, id];
+    onChange(next, id);
+  };
+
   return (
     <div className="form-field wide">
-      <span>Kho được phân công *</span>
+      <span>Kho được gán (hỗ trợ nhiều kho, không bắt buộc)</span>
       <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
         {warehouses.map((warehouse) => {
-          const selected = selectedId === warehouse._id;
+          const isAssigned = ids.includes(warehouse._id);
+          const isDefault = currentDefault === warehouse._id;
           return (
-            <label key={warehouse._id} style={{ border: `1px solid ${selected ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 8, padding: 10, display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer', background: selected ? 'var(--primary-soft)' : '#fff' }}>
-              <input type="radio" name="defaultWarehouse" checked={selected} onChange={() => onSelect(warehouse._id)} title="Chọn kho mặc định" />
-              <span style={{ flex: 1, color: '#1e293b' }}>{warehouseLabel(warehouse)}</span>
-            </label>
+            <div key={warehouse._id} style={{ border: `1px solid ${isAssigned ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 8, padding: 8, background: isAssigned ? 'var(--primary-soft)' : '#fff' }}>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
+                <input type="checkbox" checked={isAssigned} onChange={() => toggle(warehouse._id)} />
+                <span style={{ flex: 1, color: '#1e293b' }}>{warehouseLabel(warehouse)}</span>
+              </label>
+              {isAssigned && (
+                <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4, fontSize: 12, cursor: 'pointer' }}>
+                  <input type="radio" name="staff-default-warehouse" checked={isDefault} onChange={() => setDefault(warehouse._id)} />
+                  <span>Mặc định</span>
+                </label>
+              )}
+            </div>
           );
         })}
         {warehouses.length === 0 && <p className="muted-copy">Không có kho active để gán cho nhân viên.</p>}
       </div>
+      <small style={{ color: '#64748b' }}>Chọn một hoặc nhiều kho. Đánh dấu "Mặc định" cho kho chính.</small>
     </div>
   );
 }

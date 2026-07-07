@@ -273,7 +273,7 @@ function refundOriginalCode(refund: Record<string, any>): string {
 }
 
 export function buildRefundReceiptHtml(refund: Record<string, any>) {
-  const branch = refund?.paymentId?.branchId;
+  const branch = refund?.branchId || refund?.warehouseId || refund?.paymentId?.branchId;
   const profile = buildInvoiceProfile(branch && typeof branch === 'object' ? branch : undefined);
   const items = Array.isArray(refund?.items) ? refund.items : [];
   const originalCode = refundOriginalCode(refund);
