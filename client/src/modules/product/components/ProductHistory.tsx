@@ -39,6 +39,12 @@ function defaultHistoryFilters(): HistoryFilters {
   };
 }
 
+function safeFormatDate(value: any): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString('vi-VN');
+}
+
 export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HTMLDivElement | null> } = {}) {
   const [items, setItems] = useState<IProductHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +77,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
       {
         label: 'Thời gian',
         key: 'createdAt',
-        getValue: (item: IProductHistory) => new Date(item.createdAt).toLocaleString('vi-VN'),
+        getValue: (item: IProductHistory) => safeFormatDate(item.createdAt),
       },
     ],
     [],
@@ -417,7 +423,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
                       <td>{item.logAction || '-'}</td>
                       <td>{item.createdBy || '-'}</td>
                       <td className="products-history-time">
-                        {new Date(item.createdAt).toLocaleString('vi-VN')}
+                        {safeFormatDate(item.createdAt)}
                       </td>
                     </tr>
                   ))

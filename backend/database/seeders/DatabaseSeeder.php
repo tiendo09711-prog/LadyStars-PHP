@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // NOTE: For full real data, prefer: php artisan migrate:fresh && php artisan import:legacy-data --force
+        // This seeder only provides minimal demo when no legacy data.
         // Default admin account for local/dev (password 123456)
         $admin = User::updateOrCreate(
             ['email' => 'admin@gmail.com'],

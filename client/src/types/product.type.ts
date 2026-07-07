@@ -121,6 +121,7 @@ export interface IStorageDuration {
   clearanceNote?: string;
   qty?: number;
   globalQty?: number;
+  branchQty?: number;
   firstTransactionDate?: string;
   lastTransactionDate?: string;
   lastSoldDate?: string;

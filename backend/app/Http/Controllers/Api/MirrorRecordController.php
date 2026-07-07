@@ -437,6 +437,33 @@ class MirrorRecordController extends Controller
             }
         }
 
+        // Support camelCase aliases from FE (e.g. logType) and date filters for product-edit-logs
+        if ($resource === 'product-edit-logs') {
+            $logAliases = [
+                'logType' => 'log_type',
+                'logAction' => 'log_action',
+                'createdBy' => 'created_by',
+            ];
+            foreach ($logAliases as $camel => $snake) {
+                if ($columns->has($snake)) {
+                    $val = $request->query($camel, $request->query($snake));
+                    if ($val !== null && $val !== '') {
+                        $query->where($snake, $val);
+                    }
+                }
+            }
+            // Ưu tiên business_date (nghiệp vụ) cho filter ngày lịch sử, fallback created_at
+            $dateCol = $columns->has('business_date') ? 'business_date' : ($columns->has('created_at') ? 'created_at' : null);
+            if ($dateCol) {
+                if ($from = trim((string) $request->query('fromDate', ''))) {
+                    $query->whereDate($dateCol, '>=', $from);
+                }
+                if ($to = trim((string) $request->query('toDate', ''))) {
+                    $query->whereDate($dateCol, '<=', $to);
+                }
+            }
+        }
+
         // Support reason/creator filters for customer cares (columns not in generic FILTER_COLUMNS)
         if ($resource === 'customer-cares') {
             if ($request->filled('reason') && $columns->has('reason')) {
@@ -453,7 +480,7 @@ class MirrorRecordController extends Controller
             $this->applyWarehouseTransferFilters($request, $query, $columns);
         }
 
-        $sort = (string) $request->query('sort', 'business_date');
+        $sortInput = (string) $request->query('sort', 'business_date');
         $sortAliases = [
             'createdAt' => 'created_at',
             'updatedAt' => 'updated_at',
@@ -464,9 +491,20 @@ class MirrorRecordController extends Controller
             'logAction' => 'log_action',
             'createdBy' => 'created_by',
         ];
-        $sort = $sortAliases[$sort] ?? $sort;
-        if (!$columns->has($sort)) {
-            $sort = $columns->has('business_date') ? 'business_date' : 'created_at';
+        $sort = $sortAliases[$sortInput] ?? $sortInput;
+
+        if ($resource === 'product-edit-logs') {
+            // Ưu tiên business_date cho sort thời gian log, createdAt alias sang business_date
+            if ($sort === 'created_at' || $sortInput === 'createdAt') {
+                $sort = 'business_date';
+            }
+            if (!$columns->has($sort)) {
+                $sort = $columns->has('business_date') ? 'business_date' : 'created_at';
+            }
+        } else {
+            if (!$columns->has($sort)) {
+                $sort = $columns->has('business_date') ? 'business_date' : 'created_at';
+            }
         }
         $order = $request->query('order') === 'asc' ? 'asc' : 'desc';
 
@@ -493,6 +531,43 @@ class MirrorRecordController extends Controller
                     return $c === null || (string) $c === $ch;
                 }));
             }
+        }
+
+        // Normalize product-edit-logs to provide camelCase fields expected by frontend (productCode, productName, logType, etc.)
+        // Backend stores snake_case (product_code, ...) from legacy + columns; ensure both for compat.
+        if ($resource === 'product-edit-logs') {
+            $items = array_map(function (array $rec): array {
+                $rec['productCode'] = $rec['productCode'] ?? $rec['product_code'] ?? $rec['code'] ?? $rec['product_id'] ?? '';
+                $rec['productName'] = $rec['productName'] ?? $rec['product_name'] ?? $rec['name'] ?? '';
+                $rec['logType'] = $rec['logType'] ?? $rec['log_type'] ?? '';
+                $rec['logAction'] = $rec['logAction'] ?? $rec['log_action'] ?? '';
+                $rec['createdBy'] = $rec['createdBy'] ?? $rec['created_by'] ?? $rec['creator'] ?? '';
+                // Ưu tiên business_date (nghiệp vụ log) cho createdAt, fallback created_at
+                $rec['createdAt'] = $rec['createdAt'] ?? $rec['business_date'] ?? $rec['created_at'] ?? null;
+                if (!isset($rec['business_date']) || $rec['business_date'] === null) {
+                    $rec['business_date'] = $rec['createdAt'];
+                }
+                // ensure snake too
+                if (!isset($rec['product_code']) || $rec['product_code'] === '') {
+                    $rec['product_code'] = $rec['productCode'];
+                }
+                if (!isset($rec['product_name']) || $rec['product_name'] === '') {
+                    $rec['product_name'] = $rec['productName'];
+                }
+                if (!isset($rec['log_type']) || $rec['log_type'] === '') {
+                    $rec['log_type'] = $rec['logType'];
+                }
+                if (!isset($rec['log_action']) || $rec['log_action'] === '') {
+                    $rec['log_action'] = $rec['logAction'];
+                }
+                if (!isset($rec['created_by']) || $rec['created_by'] === '') {
+                    $rec['created_by'] = $rec['createdBy'];
+                }
+                if (!isset($rec['created_at']) || $rec['created_at'] === null) {
+                    $rec['created_at'] = $rec['createdAt'];
+                }
+                return $rec;
+            }, $items);
         }
 
         $response = [

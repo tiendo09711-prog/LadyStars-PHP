@@ -171,6 +171,7 @@ export function StorageDurationPage() {
         q: search || undefined,
         categoryId: selectedCategory || undefined,
         tab: activeTab,
+        thresholdDays: STORAGE_ALERT_DAYS,
         minStartDays: minStartDays ? Number(minStartDays) : undefined,
         minSoldDays: minSoldDays ? Number(minSoldDays) : undefined,
         minStock: minStock ? Number(minStock) : undefined,
@@ -335,6 +336,7 @@ export function StorageDurationPage() {
         q: search || undefined,
         categoryId: selectedCategory || undefined,
         tab: activeTab,
+        thresholdDays: STORAGE_ALERT_DAYS,
         minStartDays: minStartDays ? Number(minStartDays) : undefined,
         minSoldDays: minSoldDays ? Number(minSoldDays) : undefined,
         minStock: minStock ? Number(minStock) : undefined,
@@ -397,15 +399,21 @@ export function StorageDurationPage() {
   };
 
   const getDaysStartBadgeClass = (days: number) => {
-    if (days >= 90) return 'danger';
-    if (days >= 30) return 'warning';
+    if (days >= STORAGE_ALERT_DAYS * 3) return 'danger';
+    if (days >= STORAGE_ALERT_DAYS) return 'warning';
     return 'success';
   };
 
   const getStorageStatusLabel = (item: IStorageDuration) => {
-    if (item.statusLabel) return item.statusLabel;
-    if (item.daysFromStart >= STORAGE_ALERT_DAYS && item.daysFromLastSold === null) return 'Nhập lâu - chưa bán';
-    if (item.daysFromLastSold !== null && item.daysFromLastSold >= STORAGE_ALERT_DAYS) return 'Bán chậm';
+    // Prefer backend computed status (source of truth) for consistent classification with threshold used in API
+    if (item.status === 'unsold_long') return 'Nhập lâu - chưa bán';
+    if (item.status === 'slow_selling') return 'Bán chậm';
+    if (item.status === 'normal') return 'Bình thường';
+    // Fallback to label or local calc using configured threshold (in case status missing)
+    if (item.statusLabel && !/^[A-Za-z ]+$/.test(item.statusLabel)) return item.statusLabel;
+    const thr = STORAGE_ALERT_DAYS;
+    if (item.daysFromStart >= thr && item.daysFromLastSold === null) return 'Nhập lâu - chưa bán';
+    if (item.daysFromLastSold !== null && item.daysFromLastSold >= thr) return 'Bán chậm';
     return 'Bình thường';
   };
 
@@ -417,7 +425,7 @@ export function StorageDurationPage() {
       { label: 'Nhà cung cấp', key: 'supplierName', getValue: (item: IStorageDuration) => item.supplierName || '' },
       { label: 'Giá vốn', key: 'cost', getValue: (item: IStorageDuration) => item.cost || 0 },
       { label: 'Giá bán', key: 'price', getValue: (item: IStorageDuration) => item.price || 0 },
-      { label: 'Tổng tồn', key: 'qty', getValue: (item: IStorageDuration) => item.qty || 0 },
+      { label: 'Tồn kho', key: 'qty', getValue: (item: IStorageDuration) => item.qty || 0 },
       { label: 'Chi nhánh', key: 'branchName', getValue: (item: IStorageDuration) => item.branchName || (branches.find((b: any) => b._id === selectedBranch)?.name || '') },
       { label: 'Ngày nhập đầu', key: 'firstTransactionDate', getValue: (item: IStorageDuration) => item.firstTransactionDate ? new Date(item.firstTransactionDate).toLocaleDateString('vi-VN') : '—' },
       { label: 'Ngày XNK cuối', key: 'lastTransactionDate', getValue: (item: IStorageDuration) => item.lastTransactionDate ? new Date(item.lastTransactionDate).toLocaleDateString('vi-VN') : '—' },
@@ -450,6 +458,7 @@ export function StorageDurationPage() {
             q: search || undefined,
             categoryId: selectedCategory || undefined,
             tab: activeTab,
+            thresholdDays: STORAGE_ALERT_DAYS,
             minStartDays: minStartDays ? Number(minStartDays) : undefined,
             minSoldDays: minSoldDays ? Number(minSoldDays) : undefined,
             minStock: minStock ? Number(minStock) : undefined,
@@ -697,16 +706,16 @@ export function StorageDurationPage() {
         <div className="products-table-wrap">
           <table className="data-table products-data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '18%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '7%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '20%' }} />
               <col style={{ width: '11%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '8%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '6%' }} />
               <col style={{ width: '10%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '8%' }} />
               <col style={{ width: '4%' }} />
             </colgroup>
             <thead>
@@ -777,7 +786,7 @@ export function StorageDurationPage() {
                     ) : (
                       <span style={{
                         fontWeight: 600,
-                        color: item.daysFromLastSold >= 30 ? 'var(--danger)' : '#475569',
+                        color: item.daysFromLastSold >= STORAGE_ALERT_DAYS ? 'var(--danger)' : '#475569',
                         fontSize: '13px'
                       }}>
                         {item.daysFromLastSold} ngày

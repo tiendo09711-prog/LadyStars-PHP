@@ -207,7 +207,9 @@ class ReadOnlyApiTest extends TestCase
     public function test_frontend_compatible_product_routes_return_expected_shapes(): void
     {
         $list = $this->getJson('/api/products/products?search=SP001&perPage=10');
-        $list->assertOk()->assertJsonPath('data.0.code', 'SP001');
+        $list->assertOk()
+            ->assertJsonPath('data.0.code', 'SP001')
+            ->assertJsonStructure(['meta' => ['statuses']]);
 
         $stocks = $this->getJson('/api/products/products/'.$this->product->id.'/stocks');
         $stocks->assertOk()
@@ -225,6 +227,34 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('data.0.code', 'SP001')
             ->assertJsonPath('data.0.stockByBranchId.'.$this->branch->id, 12)
             ->assertJsonPath('data.0.totalStock', 12);
+    }
+
+    public function test_inventories_branch_filter_returns_full_stockBy_and_total_is_full(): void
+    {
+        $b2 = Branch::create(['mongo_id' => 'br2', 'name' => 'B2', 'code' => 'B2', 'is_active' => true]);
+        $p = Product::create([
+            'mongo_id' => 'pmb', 'name' => 'MultiB', 'code' => 'MB01', 'price' => 1, 'cost' => 1, 'allows_sale' => true,
+        ]);
+        ProductBranchStock::create(['product_id' => $p->id, 'branch_id' => $this->branch->id, 'qty' => 4, 'locked_quantity' => 1]);
+        ProductBranchStock::create(['product_id' => $p->id, 'branch_id' => $b2->id, 'qty' => 9, 'locked_quantity' => 0]);
+
+        $r = $this->getJson('/api/products/inventories?branchId='.$this->branch->id.'&perPage=5');
+        $r->assertOk()
+            ->assertJsonPath('data.0.code', 'MB01')
+            ->assertJsonPath('data.0.stockByBranchId.'.$this->branch->id, 4)
+            ->assertJsonPath('data.0.stockByBranchId.'.$b2->id, 9)
+            ->assertJsonPath('data.0.totalStock', 13);
+    }
+
+    public function test_inventories_sellable_respects_locked_and_branch(): void
+    {
+        $b2 = Branch::create(['mongo_id' => 'br3', 'name' => 'B3', 'code' => 'B3', 'is_active' => true]);
+        $p = Product::create(['mongo_id' => 'psl', 'name' => 'SL', 'code' => 'SL01', 'price' => 1, 'cost' => 1, 'allows_sale' => true]);
+        ProductBranchStock::create(['product_id' => $p->id, 'branch_id' => $b2->id, 'qty' => 3, 'locked_quantity' => 3]); // sell=0
+
+        $r = $this->getJson('/api/products/inventories?branchId='.$b2->id.'&stockStatus=sellable&perPage=5');
+        $codes = collect($r->json('data') ?? [])->pluck('code')->all();
+        $this->assertNotContains('SL01', $codes);
     }
 
     public function test_mirror_alias_routes_return_node_compatible_shapes(): void
@@ -338,10 +368,15 @@ class ReadOnlyApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('items.0.product_code', 'SP001')
+            ->assertJsonPath('items.0.productCode', 'SP001')
+            ->assertJsonPath('items.0.productName', $this->product->name)
             ->assertJsonPath('meta.logTypes.0', 'Cập nhật')
             ->assertJsonPath('meta.logActions.0', 'update')
             ->assertJsonPath('meta.editors.0', 'Admin')
             ->assertJsonPath('meta.toneByLogType.Cập nhật', 'warning');
+        // createdAt phải ưu tiên business_date (đã set trong fixture)
+        $respCreatedAt = $response->json('items.0.createdAt');
+        $this->assertNotNull($respCreatedAt);
     }
 
 
@@ -405,6 +440,16 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('items.0.lastTransactionDate', $lastInventoryDate->toISOString())
             ->assertJsonPath('items.0.lastSoldDate', $olderSaleDate->toIso8601String())
             ->assertJsonPath('items.0.daysFromLastSold', 40);
+
+        // Additional coverage: branch filter should return scoped qty/globalQty/branchQty and not break shape
+        $responseBranch = $this->getJson('/api/products/storage-duration?limit=5&branchId=' . $this->branch->id);
+        $responseBranch->assertOk()
+            ->assertJsonStructure([
+                'items' => [
+                    '*' => ['id', 'code', 'qty', 'globalQty', 'branchQty', 'branchName', 'status'],
+                ],
+                'kpis',
+            ]);
     }
 
     public function test_warehouse_transfer_meta_matches_frontend_contract(): void

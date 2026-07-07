@@ -47,6 +47,21 @@ npm.cmd run build
 npm.cmd run test:backend
 ```
 
+## Legacy data import (from Excel exports)
+
+See `docs/legacy_import_mapping.md` for full details + column mapping.
+
+```powershell
+cd backend
+php artisan migrate:fresh          # WARNING: wipes DB
+php artisan import:legacy-data --dry-run --limit=20
+php artisan import:legacy-data --force   # after manual backup
+php artisan import:legacy-data --verify
+```
+
+Only keeps `admin@gmail.com` / `123456`. Uses phpspreadsheet for reading.
+```
+
 ## Kiểm tra static
 
 ```powershell

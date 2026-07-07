@@ -16,6 +16,9 @@ export function InventoryList() {
   const [items, setItems] = useState<IInventory[]>([]);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [branchesLoading, setBranchesLoading] = useState(true);
+  const [branchesError, setBranchesError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [filterStockStatus, setFilterStockStatus] = useState('');
@@ -28,16 +31,27 @@ export function InventoryList() {
 
   const limit = 15;
 
+  // Branches load riêng, có error state rõ ràng (không nuốt lỗi)
   useEffect(() => {
-    listBranches({ page: 1, limit: 200 }).then(data => {
-      setBranches((data.items || []).filter(b => b.isActive !== false));
-    }).catch(() => {});
+    setBranchesLoading(true);
+    setBranchesError(null);
+    listBranches({ page: 1, limit: 200 })
+      .then(data => {
+        setBranches((data.items || []).filter(b => b.isActive !== false));
+      })
+      .catch((e) => {
+        console.error('Branch load error', e);
+        setBranchesError('Không tải được danh sách kho. Một số cột kho có thể không hiển thị.');
+        setBranches([]);
+      })
+      .finally(() => setBranchesLoading(false));
   }, []);
 
   const load = async (overrides?: { search?: string; page?: number }) => {
     const nextSearch = overrides?.search ?? search;
     const nextPage = overrides?.page ?? page;
     setLoading(true);
+    setError(null);
     try {
       const res = await productApi.getInventories({
         page: nextPage,
@@ -51,7 +65,10 @@ export function InventoryList() {
       setItems(res.items);
       setTotal(res.total);
     } catch (err) {
-      console.error(err);
+      console.error('Inventory load error', err);
+      setError('Không tải được dữ liệu tồn kho. Vui lòng thử Làm mới hoặc kiểm tra kết nối.');
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -65,6 +82,8 @@ export function InventoryList() {
 
   const getBranchStock = (item: IInventory, branch: BranchRecord) => getInventoryBranchStock(item, branch);
 
+  // Export columns dùng key nhất quán với sort (stock_<id>) để tránh nhầm lẫn.
+  // totalStock = tổng toàn hệ thống (full) — không phụ thuộc filter kho.
   const exportColumns: ColumnOption[] = useMemo(
     () => {
       const base: ColumnOption[] = [
@@ -73,10 +92,10 @@ export function InventoryList() {
         { label: 'Giá nhập (Vốn)', key: 'cost', getValue: (item: IInventory) => item.cost ?? 0 },
         { label: 'Giá bán', key: 'price', getValue: (item: IInventory) => item.price ?? 0 },
       ];
-      // Add dynamic branch columns from API
+      // Dynamic branch columns — key dùng id (khớp BE sort stock_<id> và getInventoryBranchStock)
       if (branches.length > 0) {
         for (const branch of branches) {
-          const branchKey = `stock_${branch.code}`;
+          const branchKey = `stock_${branch._id}`;
           base.push({ label: branch.name, key: branchKey, getValue: (item: IInventory) => getBranchStock(item, branch) });
         }
       }
@@ -144,8 +163,8 @@ export function InventoryList() {
       XLSX.writeFile(wb, `${filename}.xlsx`);
       setShowExportModal(false);
     } catch (err) {
-      console.error(err);
-      alert('Xuất file thất bại!');
+      console.error('Export error', err);
+      alert('Xuất file thất bại! Vui lòng thử lại.');
     } finally {
       setExportLoading(false);
     }
@@ -158,6 +177,8 @@ export function InventoryList() {
     setSortField('createdAt');
     setSortOrder('desc');
     setPage(1);
+    setError(null);
+    setBranchesError(null);
     setRefreshKey((value) => value + 1);
   };
 
@@ -213,11 +234,11 @@ export function InventoryList() {
           <div className="inventory-hero-copy">
             <span className="inventory-hero-eyebrow">Inventory Overview</span>
             <h2>Tồn kho theo kho hàng</h2>
-            <p>Giữ nguyên dữ liệu và API hiện tại, tập trung hiển thị rõ số lượng tồn và thao tác lọc nhanh hơn.</p>
+            <p>Lọc sản phẩm theo kho (hàng có record tại kho được chọn). Cột kho + Tổng tồn luôn hiển thị tổng toàn hệ thống. Dữ liệu lấy trực tiếp từ MySQL qua API.</p>
           </div>
           <div className="inventory-hero-stats">
             <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">Kho</span>
+              <span className="inventory-hero-stat-label">Lọc kho</span>
               <strong>{warehouseFilterLabel}</strong>
             </div>
             <div className="inventory-hero-stat">
@@ -241,7 +262,7 @@ export function InventoryList() {
           </div>
 
           <div className="inventory-filter-field">
-            <label className="inventory-filter-label">Kho hiển thị</label>
+            <label className="inventory-filter-label">Lọc theo kho</label>
             <select
               className="form-control inventory-select"
               value={filterWarehouse}
@@ -288,6 +309,15 @@ export function InventoryList() {
             </button>
           </div>
         </form>
+
+        {/* Error states rõ ràng cho branch và inventory (không nuốt lỗi) */}
+        {(branchesError || error) && (
+          <div className="inventory-error-bar" style={{ padding: '8px 12px', background: '#fff3cd', color: '#664d03', borderRadius: 4, marginBottom: 8, fontSize: 13 }}>
+            {branchesError && <div>⚠ {branchesError}</div>}
+            {error && <div>⚠ {error}</div>}
+            <button className="btn btn-light" style={{ marginTop: 4 }} onClick={handleRefresh}>Thử lại</button>
+          </div>
+        )}
 
         <div className="inventory-quick-row">
           <div className="quick-filter-list inventory-quick-filter-list">
@@ -385,16 +415,24 @@ export function InventoryList() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={5 + branches.length} className="empty-cell">
-                    Đang tải dữ liệu...
+                  <td colSpan={5 + (branches.length || 0)} className="empty-cell">
+                    Đang tải dữ liệu tồn kho...
                   </td>
                 </tr>
               )}
 
-              {!loading && items.length === 0 && (
+              {!loading && branchesLoading && (
                 <tr>
-                  <td colSpan={5 + branches.length} className="empty-cell">
-                    Chưa có dữ liệu.
+                  <td colSpan={5 + (branches.length || 0)} className="empty-cell">
+                    Đang tải danh sách kho...
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !branchesLoading && items.length === 0 && !error && (
+                <tr>
+                  <td colSpan={5 + (branches.length || 0)} className="empty-cell">
+                    Chưa có dữ liệu (có thể do filter hoặc kho chưa có sản phẩm).
                   </td>
                 </tr>
               )}

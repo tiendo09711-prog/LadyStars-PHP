@@ -60,6 +60,19 @@ class ProductController extends Controller
         $payload['items'] = $items;
         $payload['data'] = $items;
 
+        // Trả meta.statuses để frontend không hardcode, lấy distinct từ DB (kèm default)
+        $statuses = Product::query()
+            ->select('status')
+            ->distinct()
+            ->pluck('status')
+            ->map(fn ($s) => trim((string) $s))
+            ->filter(fn ($s) => $s !== '')
+            ->unique()
+            ->sort(SORT_NATURAL)
+            ->values()
+            ->all();
+        $payload['meta'] = ['statuses' => $statuses];
+
         return response()->json($payload);
     }
 
@@ -339,20 +352,30 @@ class ProductController extends Controller
         $isAsc = strtolower((string) $request->query('order', 'desc')) === 'asc';
         $order = $isAsc ? 'asc' : 'desc';
 
-        $stockSub = ProductBranchStock::query()
+        // === SEMANTICS (rõ ràng, thống nhất FE/BE) ===
+        // - branchId filter: lọc ROW (chỉ lấy sản phẩm có record stock ở kho đó). Dùng để "tập trung" vào kho.
+        // - totalStock + stockByBranch*: LUÔN là tổng TOÀN BỘ các kho (không bị ảnh hưởng bởi branch filter).
+        //   Lý do: UI luôn hiển thị cột tất cả kho + cột Tổng tồn.
+        // - stockStatus + branchId: aggregate TÍNH TRONG KHO được filter (in_stock: qty>0 tại kho; sellable: qty-locked >0 tại kho).
+        // - stockStatus không branch: aggregate TOÀN HỆ THỐNG.
+
+        $fullTotalStockSub = ProductBranchStock::query()
+            ->whereColumn('product_id', 'products.id')
+            ->selectRaw('COALESCE(SUM(qty), 0)');
+
+        // Các sub cho status filter (đã dùng whereExists an toàn)
+        $statusStockSub = ProductBranchStock::query()
             ->whereColumn('product_id', 'products.id')
             ->when($branchId, fn ($b) => $b->where('branch_id', $branchId))
             ->selectRaw('COALESCE(SUM(qty), 0)');
 
-        $lockedSub = ProductBranchStock::query()
+        $statusLockedSub = ProductBranchStock::query()
             ->whereColumn('product_id', 'products.id')
             ->when($branchId, fn ($b) => $b->where('branch_id', $branchId))
             ->selectRaw('COALESCE(SUM(locked_quantity), 0)');
 
         $query = Product::query()
-            ->with(['category', 'stocks' => function ($b) use ($branchId): void {
-                $b->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->orderBy('branch_id');
-            }, 'stocks.branch']);
+            ->with(['category', 'stocks.branch']);
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
@@ -364,15 +387,25 @@ class ProductController extends Controller
         if ($categoryId) $query->where('category_id', $categoryId);
         if ($branchId) $query->whereHas('stocks', fn ($builder) => $builder->where('branch_id', $branchId));
 
+        // Sử dụng whereExists + group having để filter aggregate stock an toàn (không toSql lỗi 1064)
         if ($stockStatus === 'in_stock') {
-            $query->whereRaw('(' . $stockSub->toSql() . ') > 0', $stockSub->getBindings());
+            $query->whereExists(function ($exists) use ($branchId) {
+                $exists->select(DB::raw('1'))
+                    ->from('product_branch_stocks as s')
+                    ->whereColumn('s.product_id', 'products.id')
+                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->groupBy('s.product_id')
+                    ->havingRaw('SUM(s.qty) > 0');
+            });
         } elseif ($stockStatus === 'sellable') {
-            $stockSql = $stockSub->toSql();
-            $lockedSql = $lockedSub->toSql();
-            $query->whereRaw(
-                '(' . $stockSql . ' - ' . $lockedSql . ') > 0',
-                array_merge($stockSub->getBindings(), $lockedSub->getBindings())
-            );
+            $query->whereExists(function ($exists) use ($branchId) {
+                $exists->select(DB::raw('1'))
+                    ->from('product_branch_stocks as s')
+                    ->whereColumn('s.product_id', 'products.id')
+                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->groupBy('s.product_id')
+                    ->havingRaw('SUM(s.qty) - SUM(s.locked_quantity) > 0');
+            });
         }
 
         $sortKey = strtolower($sort);
@@ -385,7 +418,8 @@ class ProductController extends Controller
             $query->orderByRaw('(' . $sortStockSub->toSql() . ') ' . $order, $sortStockSub->getBindings())
                 ->orderBy('id', $order);
         } elseif ($sortKey === 'totalstock') {
-            $query->orderByRaw('(' . $stockSub->toSql() . ') ' . $order, $stockSub->getBindings())
+            // totalStock sort LUÔN dùng full total (không bị ảnh hưởng branch filter)
+            $query->orderByRaw('(' . $fullTotalStockSub->toSql() . ') ' . $order, $fullTotalStockSub->getBindings())
                 ->orderBy('id', $order);
         } elseif ($sortKey === 'createdat') {
             $query->orderBy('created_at', $order)->orderBy('id', $order);
@@ -553,7 +587,7 @@ class ProductController extends Controller
     public function storageDuration(Request $request): JsonResponse
     {
         $perPage = min(max((int) $request->query('limit', $request->query('perPage', 20)), 1), 5000);
-        $thresholdDays = max((int) $request->query('thresholdDays', $request->query('alertDays', 90)), 1);
+        $thresholdDays = max((int) $request->query('thresholdDays', $request->query('alertDays', 30)), 1);
         $search = trim((string) $request->query('q', $request->query('search', '')));
         $tab = (string) $request->query('tab', 'all');
         $minStartDays = $request->filled('minStartDays') ? max((int) $request->query('minStartDays'), 0) : null;
@@ -586,9 +620,9 @@ class ProductController extends Controller
         $products = $query->get();
 
         // Build enriched maps once for the current scope to avoid N+1 queries.
-        $lastSoldMap = $this->lastSoldDatesByMongoId($products);
-        $txnMap = $this->inventoryTransactionDatesByProductId($products);
         $branchIdFilter = $request->query('branchId');
+        $lastSoldMap = $this->lastSoldDatesByMongoId($products, $branchIdFilter);
+        $txnMap = $this->inventoryTransactionDatesByProductId($products, $branchIdFilter);
 
         $shape = function (Product $product) use ($thresholdDays, $lastSoldMap, $txnMap, $branchIdFilter): array {
             return $this->storageDurationShape($product, $thresholdDays, $lastSoldMap, $txnMap, $branchIdFilter);
@@ -637,10 +671,11 @@ class ProductController extends Controller
             'totalProducts' => $itemsForKpi->count(),
             'unsoldLong' => $itemsForKpi->where('status', 'unsold_long')->count(),
             'slowSelling' => $itemsForKpi->where('status', 'slow_selling')->count(),
-            'totalValue' => (float) $itemsForKpi->sum(fn (array $item): float => (float) ($item['globalQty'] ?? 0) * (float) ($item['cost'] ?? 0)),
-            'oldStockValue' => (float) $itemsForKpi->whereIn('status', ['unsold_long', 'slow_selling'])->sum(fn (array $item): float => (float) ($item['globalQty'] ?? 0) * (float) ($item['cost'] ?? 0)),
-            'unsoldLongValue' => (float) $itemsForKpi->where('status', 'unsold_long')->sum(fn (array $item): float => (float) ($item['globalQty'] ?? 0) * (float) ($item['cost'] ?? 0)),
-            'slowSellingValue' => (float) $itemsForKpi->where('status', 'slow_selling')->sum(fn (array $item): float => (float) ($item['globalQty'] ?? 0) * (float) ($item['cost'] ?? 0)),
+            // Use 'qty' (which is branch-scoped when branchId filter active, else global) for value KPIs so they reflect the current filter scope
+            'totalValue' => (float) $itemsForKpi->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
+            'oldStockValue' => (float) $itemsForKpi->whereIn('status', ['unsold_long', 'slow_selling'])->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
+            'unsoldLongValue' => (float) $itemsForKpi->where('status', 'unsold_long')->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
+            'slowSellingValue' => (float) $itemsForKpi->where('status', 'slow_selling')->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
             'thresholdDays' => $thresholdDays,
             'lastRefreshedAt' => now()->toISOString(),
             'topUnsoldLong' => $itemsForKpi->where('status', 'unsold_long')->take(5)->values()->all(),
@@ -653,8 +688,9 @@ class ProductController extends Controller
     /**
      * Build a map of product mongo_id => last non-cancelled sale completed_at (Carbon instance).
      * Scans sale_payments.items JSON (each line carries productId = mongo_id).
+     * When $branchIdFilter, only sales from that branch_id (sale_payments has branch_id).
      */
-    private function lastSoldDatesByMongoId($products): array
+    private function lastSoldDatesByMongoId($products, $branchIdFilter = null): array
     {
         $mongoIds = $products->pluck('mongo_id')->filter()->unique()->values()->all();
         if (empty($mongoIds)) {
@@ -667,6 +703,7 @@ class ProductController extends Controller
             ->from('sale_payments')
             ->where('status', 'completed')
             ->whereNotNull('completed_at')
+            ->when($branchIdFilter, fn ($q) => $q->where('branch_id', $branchIdFilter))
             ->get(['mongo_id', 'items', 'completed_at']);
 
         foreach ($rows as $row) {
@@ -752,8 +789,9 @@ class ProductController extends Controller
 
     /**
      * Build a map of product_id => [first => Carbon, last => Carbon] from inventory_products.
+     * When $branchIdFilter provided, only consider transactions for that branch (using branch_id column).
      */
-    private function inventoryTransactionDatesByProductId($products): array
+    private function inventoryTransactionDatesByProductId($products, $branchIdFilter = null): array
     {
         $hasProductId = Schema::hasColumn('inventory_products', 'product_id');
         $hasProductMongoId = Schema::hasColumn('inventory_products', 'product_mongo_id');
@@ -792,10 +830,12 @@ class ProductController extends Controller
                 }
             })
             ->whereNotNull('business_date')
+            ->when($branchIdFilter, fn ($q) => $q->where('branch_id', $branchIdFilter))
             ->get(array_values(array_filter([
                 $hasProductId ? 'product_id' : null,
                 $hasProductMongoId ? 'product_mongo_id' : null,
                 $hasProductCode ? 'product_code' : null,
+                'branch_id',
                 'business_date',
             ])));
 
@@ -862,11 +902,17 @@ class ProductController extends Controller
         }
 
         $branchName = null;
+        $displayQty = (float) $product->qty;
+        $branchQty = null;
         if ($product->relationLoaded('stocks')) {
             $stocks = $product->stocks;
             if ($branchIdFilter !== null && $branchIdFilter !== '') {
                 $matched = $stocks->firstWhere('branch_id', (int) $branchIdFilter);
                 $branchName = $matched?->branch?->name;
+                if ($matched) {
+                    $branchQty = (float) $matched->qty;
+                    $displayQty = $branchQty;
+                }
             }
             $branchName = $branchName ?? $stocks->first()?->branch?->name;
         }
@@ -883,8 +929,9 @@ class ProductController extends Controller
             'clearancePrice' => (float) $product->clearance_price,
             'clearanceActive' => (bool) $product->clearance_active,
             'clearanceNote' => $product->clearance_note,
-            'qty' => (float) $product->qty,
+            'qty' => $displayQty,
             'globalQty' => (float) $product->qty,
+            'branchQty' => $branchQty,
             'firstTransactionDate' => optional($firstDate)->toISOString(),
             'lastTransactionDate' => optional($lastDate)->toISOString(),
             'lastSoldDate' => $lastSoldDate,
@@ -892,7 +939,7 @@ class ProductController extends Controller
             'daysFromLast' => $daysFromLast,
             'daysFromLastSold' => $daysFromLastSold,
             'status' => $status,
-            'statusLabel' => $status === 'unsold_long' ? 'Ton lau' : ($status === 'slow_selling' ? 'Ban cham' : 'Binh thuong'),
+            'statusLabel' => $status === 'unsold_long' ? 'Tồn lâu' : ($status === 'slow_selling' ? 'Bán chậm' : 'Bình thường'),
             'branchName' => $branchName,
         ];
     }

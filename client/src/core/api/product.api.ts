@@ -76,10 +76,12 @@ export const productApi = {
     return response.data;
   },
 
-  // Note: Backend might not have exact endpoints for inventories and logs matching these formats perfectly,
-  // but we build the interface as requested and target logical endpoint names. 
-  // In reality, getInventories might need to query branch-stocks or similar.
-  getInventories: async (params?: { page?: number; limit?: number; q?: string; branchId?: string; sort?: string; order?: 'asc' | 'desc';[key: string]: any }) => {
+  // Contract đồng bộ với BE ProductController::inventories + NodeShape::inventory
+  // - branchId: lọc row theo kho (có stock record)
+  // - stockStatus in_stock/sellable: aggregate đúng (kèm branchId thì tính theo kho)
+  // - sort stock_<id> hoặc totalStock: aggregate server
+  // - response: stockByBranchId (id string), stockByBranchCode, totalStock (full)
+  getInventories: async (params?: { page?: number; limit?: number; q?: string; branchId?: string; stockStatus?: string; sort?: string; order?: 'asc' | 'desc';[key: string]: any }) => {
     const response = await http.get<PaginatedResponse<IInventory>>('/products/inventories', { params });
     return response.data;
   },

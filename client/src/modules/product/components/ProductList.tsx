@@ -387,12 +387,12 @@ function DetailModal({ product, onClose }: { product: IProduct; onClose: () => v
     ['Đơn vị', product.unit || '—'],
     ['Giá vốn', formatMoney(product.cost)],
     ['Giá bán', formatMoney(product.price)],
-    ['Giá bán lẻ', formatMoney(product.branchPrice)],
-    ['Giá cũ', formatMoney(product.oldPrice)],
+    ['Giá bán lẻ', product.branchPrice != null ? formatMoney(product.branchPrice) : '—'],
+    ['Giá cũ', product.oldPrice != null ? formatMoney(product.oldPrice) : '—'],
     ['Giá sỉ', formatMoney(product.wholesalePrice)],
     ['VAT (%)', String(product.vat ?? '—')],
     ['Tổng tồn', String(product.qty ?? 0)],
-    ['Có thể bán', String(product.availableStock ?? 0)],
+    ['Có thể bán', product.availableStock != null ? String(product.availableStock) : '—'],
     ['Bảo hãnh (tháng)', String(product.warrantyMonths ?? '—')],
     ['Màu sắc', product.color || '—'],
     ['Kích cỡ', product.size || '—'],
@@ -514,6 +514,7 @@ interface ProductFormProps {
   onClose: () => void;
   saving: boolean;
   error?: string;
+  statusOptions?: string[];
 }
 
 interface FieldErrors {
@@ -548,11 +549,11 @@ function isValidNonNegativeNumber(value: string) {
   return Number.isFinite(number) && number >= 0;
 }
 
-function ProductForm({ product, onSave, onClose, saving, error }: ProductFormProps) {
+function ProductForm({ product, onSave, onClose, saving, error, statusOptions = PRODUCT_STATUS_OPTIONS }: ProductFormProps) {
   const isEdit = Boolean(product);
   const formRef = useRef<HTMLDivElement>(null);
   const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'product', status: 'Mới' });
+  const [form, setForm] = useState<Partial<IProduct>>(product ? { ...product } : { type: 'product', status: (statusOptions[0] || 'Mới') });
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
@@ -980,12 +981,12 @@ function ProductForm({ product, onSave, onClose, saving, error }: ProductFormPro
           <div className="form-field">
             <span>Trạng thái</span>
             <select
-              value={String(form.status ?? 'Mới')}
+              value={String(form.status ?? (statusOptions[0] || 'Mới'))}
               onChange={(event) => updateField('status', event.target.value)}
             >
-              <option value="Mới">Mới</option>
-              <option value="Đang giao">Đang giao</option>
-              <option value="Ngừng">Ngừng</option>
+              {statusOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
           </div>
 
@@ -2174,6 +2175,7 @@ export function ProductList({
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 15;
+  const [allStatuses, setAllStatuses] = useState<string[]>(PRODUCT_STATUS_OPTIONS);
 
   const [detailItem, setDetailItem] = useState<IProduct | null>(null);
   const [editItem, setEditItem] = useState<IProduct | null | undefined>(undefined);
@@ -2278,12 +2280,12 @@ export function ProductList({
   );
 
   const statusOptions = useMemo(() => {
-    const values = new Set(PRODUCT_STATUS_OPTIONS);
+    const values = new Set(allStatuses);
     items.forEach((item) => {
       if (item.status) values.add(item.status);
     });
     return Array.from(values);
-  }, [items]);
+  }, [allStatuses, items]);
 
   useEffect(() => {
     let mounted = true;
@@ -2362,8 +2364,15 @@ export function ProductList({
         order: sortOrder,
       });
 
-      setItems(response.items);
-      setTotal(response.total);
+      setItems(response.items || []);
+      setTotal(response.total || 0);
+
+      // Dùng meta.statuses từ backend làm nguồn chính (distinct toàn DB), fallback static
+      const metaStatuses = (response as any)?.meta?.statuses || [];
+      if (Array.isArray(metaStatuses) && metaStatuses.length > 0) {
+        const merged = Array.from(new Set([...PRODUCT_STATUS_OPTIONS, ...metaStatuses.filter(Boolean)]));
+        setAllStatuses(merged);
+      }
     } catch (error) {
       console.error('Lỗi tải sản phẩm:', error);
     } finally {
@@ -2765,9 +2774,9 @@ export function ProductList({
               <div className="products-inline-control">
                 <select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value)}>
                   <option value="">Tất cả trạng thái</option>
-                  <option value="Mới">Mới</option>
-                  <option value="Đang giao">Đang giao</option>
-                  <option value="Ngừng">Ngừng</option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
                 </select>
               </div>
             </label>
@@ -2996,6 +3005,7 @@ export function ProductList({
           onClose={() => setEditItem(undefined)}
           saving={saving}
           error={saveError}
+          statusOptions={statusOptions}
         />
       ) : null}
 
