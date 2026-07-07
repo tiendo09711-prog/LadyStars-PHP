@@ -797,11 +797,17 @@ export function CustomerListPage() {
       if (exportType === 'current') {
         dataToExport = items;
       } else {
-        // Use large page size (up to backend max of 5000) for "Xuất tất cả" to minimize round-trips.
-        // Still paginate in chunks for safety with very large datasets.
-        const fetchPage = (nextPage: number, nextLimit: number) =>
-          http.get('/customers/customers', { params: { ...filters, page: nextPage, limit: nextLimit, sort: sortField, order: sortOrder } });
-        const pageSize = 1000;
+        // FIX: Sử dụng buildApiParams(...) để đảm bảo query params (filter, sort, order) gửi cho export "all"
+        // giống hệt như khi load danh sách (không gửi các key rỗng '', tránh lệch filter với backend).
+        // Trước đây spread {...filters} đưa nhiều '' vào query string, có thể khiến backend trả items=[] dù list hiển thị đúng.
+        // Dùng buildApiParams + override limit để export được toàn bộ theo filter+sort hiện tại.
+        // Dùng pageSize=5000 (max backend cho phép) để giảm roundtrip khi <5000 records (trường hợp 1609 KH).
+        const pageSize = 5000;
+        const fetchPage = (nextPage: number, nextLimit: number) => {
+          const params = buildApiParams(filters, nextPage, sortField, sortOrder);
+          params.limit = nextLimit;
+          return http.get('/customers/customers', { params });
+        };
         const firstResponse = await fetchPage(1, pageSize);
         const firstItems = firstResponse.data?.items || [];
         let allItems: CustomerRow[] = [...firstItems];
