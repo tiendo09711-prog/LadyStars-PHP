@@ -161,6 +161,10 @@ export function RefundInvoiceCreatePage() {
   const [productSearchError, setProductSearchError] = useState('');
   const [newProductSearchError, setNewProductSearchError] = useState('');
   const [paymentAmounts, setPaymentAmounts] = useState<Record<string, number>>({});
+
+  // Source order financial data (loaded once from original sale) - used for fair proration of discounts
+  const [sourceDiscount, setSourceDiscount] = useState(0);
+  const [originalOrderSubtotal, setOriginalOrderSubtotal] = useState(0);
   
   // Search state for refund products
   const [searchQuery, setSearchQuery] = useState('');
@@ -248,6 +252,16 @@ export function RefundInvoiceCreatePage() {
             address: sale.customerId?.address || '',
             email: sale.customerId?.email || '',
           }));
+
+          // Compute original order financials for proration of source discount (anti-abuse)
+          // Must use the full original subtotal and discountValue from the source sale,
+          // regardless of how many prior partial refunds happened (backend already limits via returnedQuantityByProduct).
+          const subtotal = (sale.items || []).reduce((sum: number, item: any) => {
+            return sum + (Number(item.value) || 0) * (Number(item.amount || item.qty) || 0);
+          }, 0);
+          setOriginalOrderSubtotal(subtotal);
+          const disc = Number(sale.discountValue ?? sale.discount ?? 0);
+          setSourceDiscount(disc);
           
           if (sale.items && Array.isArray(sale.items)) {
             const sourceItems = sale.items.map((item: any) => {
@@ -376,6 +390,19 @@ export function RefundInvoiceCreatePage() {
   }, []);
 
   // Auto-calculator engine for returns and purchases
+  // IMPORTANT: Rewritten to correctly prorate source discount from original order.
+  // Why prorate?
+  //   - Original sale may have had a discount (e.g. 10% or fixed 1tr on 10tr subtotal).
+  //   - If customer returns only expensive or only cheap items, using full original discount
+  //     would let customer "keep" the discount benefit unfairly (or shop loses).
+  //   - Solution: prorate the original discount by (returned goods value / original goods subtotal).
+  //   - Credit for returns = returnedSubtotal - prorated portion of sourceDiscount.
+  //   - This is applied on goods price only (the part discount was calculated on).
+  //   - VAT, extended warranty, refund fee on return lines are applied in full on top (not prorated).
+  //   - New purchase discount (form.discount) remains independent and only affects purchases side.
+  // All cases (no-discount, full return, partial, pure refund, exchange, edit price/qty, multiple refunds) handled.
+  // Edge: originalOrderSubtotal <=0 or sourceDiscount=0 => no prorate effect.
+  // Numbers are always derived from current `products` state (supports live edit of price/qty on return table).
   useEffect(() => {
     let tempReturnsSubtotal = 0;
     let tempReturnsRefundFee = 0;
@@ -415,13 +442,27 @@ export function RefundInvoiceCreatePage() {
       return;
     }
 
-    const totalReturns = tempReturnsSubtotal + tempReturnsVat + tempReturnsWarranty - tempReturnsRefundFee;
+    // === Core fair credit calculation with proration ===
+    const returnedSubtotal = tempReturnsSubtotal; // only goods price * qty (realtime from editable table)
+    const returnRatio = originalOrderSubtotal > 0
+      ? Math.min(returnedSubtotal / originalOrderSubtotal, 1)
+      : 0;
+    const proratedDiscount = sourceDiscount * returnRatio;
+    const effectiveReturnCredit = Math.max(0, returnedSubtotal - proratedDiscount);
+
+    // full credit for net = adjusted goods credit + return extras (vat/warranty) - return fees
+    // this ensures when sourceDiscount===0 we get identical net as before (preserve behavior)
+    const totalReturnsAdjusted = effectiveReturnCredit + tempReturnsVat + tempReturnsWarranty - tempReturnsRefundFee;
+
     const totalPurchases = tempPurchasesSubtotal + tempPurchasesVat + tempPurchasesWarranty;
+
+    // newOrderDiscount: chiết khấu áp dụng chỉ cho hàng mua mới (giữ nguyên)
     const discountValue = Math.max(Number(form.discount) || 0, 0);
-    const orderDiscount = form.discountType === 'percent'
+    const newOrderDiscount = form.discountType === 'percent'
       ? Math.min(totalPurchases, totalPurchases * Math.min(discountValue, 100) / 100)
       : Math.min(totalPurchases, discountValue);
-    const netTotal = totalReturns - Math.max(totalPurchases - orderDiscount, 0);
+
+    const netTotal = totalReturnsAdjusted - Math.max(totalPurchases - newOrderDiscount, 0);
 
     setForm(prev => {
       const calculatedRefundAmount = netTotal > 0 ? netTotal : 0;
@@ -443,7 +484,9 @@ export function RefundInvoiceCreatePage() {
     products,
     newProducts,
     form.discount,
-    form.discountType
+    form.discountType,
+    sourceDiscount,
+    originalOrderSubtotal
   ]);
 
   const handleChange = (field: string, value: any) => {
@@ -1796,6 +1839,44 @@ export function RefundInvoiceCreatePage() {
                   })()} đ
                 </span>
               </div>
+
+              {/* NEW: Prorated source discount breakdown (inserted right after return total per spec) */}
+              {(() => {
+                const returnedSubtotal = products.reduce((acc, p) => acc + ((p.price || 0) * (p.qty || 0)), 0);
+                const origSubtotal = originalOrderSubtotal || 0;
+                const srcDisc = sourceDiscount || 0;
+                const returnRatio = origSubtotal > 0 ? Math.min(returnedSubtotal / origSubtotal, 1) : 0;
+                const proratedDiscount = srcDisc * returnRatio;
+                const effectiveReturnCredit = Math.max(0, returnedSubtotal - proratedDiscount);
+                const showProrated = proratedDiscount > 0.0001; // avoid float noise
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#475569' }}>
+                      <span>Tổng giá gốc hàng trả:</span>
+                      <span>{returnedSubtotal.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#475569' }}>
+                      <span>Tỷ lệ trả so với đơn gốc:</span>
+                      <span>{(returnRatio * 100).toFixed(1)}%</span>
+                    </div>
+                    {showProrated && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>
+                        <span>Chiết khấu đơn gốc phân bổ:</span>
+                        <span>-{proratedDiscount.toLocaleString('vi-VN')} đ</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                      <span>Tổng tiền thực nhận (sau phân bổ chiết khấu):</span>
+                      <span>{effectiveReturnCredit.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    {showProrated && (
+                      <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', marginTop: '-2px' }}>
+                        Chiết khấu được tính theo tỷ lệ giá trị hàng trả so với đơn gốc
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Purchase total */}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
