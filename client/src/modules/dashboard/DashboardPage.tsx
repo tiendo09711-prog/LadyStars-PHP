@@ -362,10 +362,10 @@ export function DashboardPage() {
         </div>
         <div className="dv-hero-actions">
           <div className="dv-store-picker" ref={storeMenuRef}>
-            <button type="button" className="dv-store-trigger" onClick={() => setStoreMenuOpen((value) => !value)} data-testid="store-filter-button">
-              <Filter size={16} />
+            <button type="button" className="dv-store-trigger" onClick={() => setStoreMenuOpen((value) => !value)} data-testid="store-filter-button" aria-expanded={storeMenuOpen} aria-haspopup="dialog">
+              <Filter size={16} aria-hidden="true" />
               <span>{selectedStoreLabel}</span>
-              <ChevronDown size={16} />
+              <ChevronDown size={16} aria-hidden="true" />
             </button>
             {storeMenuOpen && storePanelPos && createPortal(
               <div className={`dv-store-panel ${storePanelPos.dropUp ? "open-up" : ""}`} data-testid="store-filter-panel" style={{ position: 'fixed', top: storePanelPos.top, left: storePanelPos.left, width: storePanelPos.width }} onClick={(e) => e.stopPropagation()}>
@@ -386,10 +386,10 @@ export function DashboardPage() {
               document.body,
             )}
           </div>
-          <div className="dv-sync-card">
-            <span className={loading ? 'is-loading' : ''}><RefreshCw size={18} /></span>
+          <div className={`dv-sync-card${loading ? ' is-loading' : ''}`}>
+            <span aria-hidden="true"><RefreshCw size={18} /></span>
             <div className="dv-sync-text"><small>Trạng thái dữ liệu</small><strong>{loading ? 'Đang đồng bộ...' : 'Đã cập nhật'}</strong></div>
-            <button type="button" className="dv-sync-refresh" onClick={() => setRefreshKey((value) => value + 1)}><RefreshCw size={16} /> Làm mới</button>
+            <button type="button" className="dv-sync-refresh" onClick={() => setRefreshKey((value) => value + 1)} aria-label="Làm mới dữ liệu dashboard"><RefreshCw size={16} /> Làm mới</button>
           </div>
         </div>
       </section>
@@ -458,9 +458,9 @@ export function DashboardPage() {
                 <Dropdown value={String(topLimit)} options={TOP_LIMIT_OPTIONS.map((option) => ({ value: String(option), label: `Top ${option}` }))} onChange={(value) => setTopLimit(Number(value))} testId="top-limit-filter" />
               </div>
             </div>
-            <div className="dv-table-wrap">
+            <div className="dv-table-wrap" role="region" aria-label="Bảng sản phẩm bán chạy">
               <table className="dv-table">
-                <thead><tr><th>#</th><th>Tên sản phẩm</th><th>SL bán</th><th>SL trả</th><th>Doanh thu</th></tr></thead>
+                <thead><tr><th scope="col">#</th><th scope="col">Tên sản phẩm</th><th scope="col">SL bán</th><th scope="col">SL trả</th><th scope="col">Doanh thu</th></tr></thead>
                 <tbody>
                   {initialLoading && [0,1,2,3,4].map((i) => (<tr key={'psk'+i}><td colSpan={5}><span className="dv-skeleton-bar" /></td></tr>))}
                   {topProducts.map((product) => (
@@ -603,7 +603,7 @@ function Dropdown({ value, options, onChange, testId, wide = false, disabled = f
   }, [open, options.length, wide, disabled]);
   return (
     <div className={`dv-select-menu ${wide ? 'wide' : ''}`} ref={ref} data-testid={testId}>
-      <button type="button" className="dv-select-button" disabled={disabled} onClick={disabled ? undefined : () => setOpen((value) => !value)}><span>{label}</span><ChevronDown size={16} /></button>
+      <button type="button" className="dv-select-button" disabled={disabled} aria-expanded={open} aria-haspopup="listbox" onClick={disabled ? undefined : () => setOpen((value) => !value)}><span>{label}</span><ChevronDown size={16} aria-hidden="true" /></button>
       {open && pos && createPortal(
         <div className={`dv-select-options ${pos.dropUp ? 'open-up' : ''}`} style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }} onClick={() => setOpen(false)}>
           {options.map((option) => <button type="button" key={option.value} className={option.value === value ? 'active' : ''} onClick={(e) => { e.stopPropagation(); onChange(option.value); setOpen(false); }}>{option.label}</button>)}
