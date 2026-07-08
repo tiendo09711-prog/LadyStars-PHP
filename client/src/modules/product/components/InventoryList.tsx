@@ -238,150 +238,137 @@ export function InventoryList() {
   return (
     <div className="page-stack inventory-page-shell">
       <section className="data-card inventory-toolbar-card">
-        <div className="inventory-toolbar-top">
-          <div className="inventory-hero-copy">
-            <span className="inventory-hero-eyebrow">Inventory Overview</span>
-            <h2>Tồn kho theo kho hàng</h2>
-            <p>Lọc sản phẩm theo kho (hàng có record tại kho được chọn). Cột kho + Tổng tồn luôn hiển thị tổng toàn hệ thống. Dữ liệu lấy trực tiếp từ MySQL qua API.</p>
+        {/* Compact Header */}
+        <div className="inv-header">
+          <span className="inv-badge">INVENTORY OVERVIEW</span>
+          <h1 className="inv-title">Tồn kho theo kho hàng</h1>
+          <p className="inv-desc">Dữ liệu thực từ MySQL theo từng kho (giữ nguyên logic & API cũ).</p>
+        </div>
+
+        {/* Top KPI Metrics Row - compact horizontal (uses existing totals & labels) */}
+        <div className="inv-kpi-row">
+          <div className="inv-kpi-card">
+            <div className="inv-kpi-label">Tổng bản ghi</div>
+            <div className="inv-kpi-value">{total.toLocaleString('vi-VN')}</div>
+            <div className="inv-kpi-sub">Kho: {warehouseFilterLabel} | {stockStatusLabel}</div>
           </div>
-          <div className="inventory-hero-stats">
-            <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">KHO</span>
-              <strong>{warehouseFilterLabel}</strong>
-            </div>
-            <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">CÒN TỒN</span>
-              <strong>{stockStatusLabel}</strong>
-            </div>
-            <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">TỔNG BẢN GHI</span>
-              <strong>{total.toLocaleString('vi-VN')}</strong>
-            </div>
-            <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">TỔNG TỒN</span>
-              <strong>{totalStockQuantity.toLocaleString('vi-VN')}</strong>
-            </div>
-            <div className="inventory-hero-stat inventory-hero-stat--value">
-              <span className="inventory-hero-stat-label">TỔNG GIÁ TRỊ</span>
-              <strong>{formatMoney(totalInventoryValue)}</strong>
-              <span className="inventory-hero-stat-sublabel">Theo bộ lọc hiện tại</span>
-            </div>
+          <div className="inv-kpi-card">
+            <div className="inv-kpi-label">Tổng tồn</div>
+            <div className="inv-kpi-value">{totalStockQuantity.toLocaleString('vi-VN')}</div>
+          </div>
+          <div className="inv-kpi-card inv-kpi-card--value">
+            <div className="inv-kpi-label">Tổng trị giá</div>
+            <div className="inv-kpi-value">{formatMoney(totalInventoryValue)}</div>
+          </div>
+          <div className="inv-kpi-card">
+            <div className="inv-kpi-label">Bộ lọc</div>
+            <div className="inv-kpi-value" style={{fontSize:'13px', fontWeight:600}}>{warehouseFilterLabel}</div>
+            <div className="inv-kpi-sub">{stockStatusLabel}</div>
           </div>
         </div>
 
-        <form className="inventory-filter-bar" onSubmit={handleSearch}>
-          <div className="inventory-filter-field inventory-filter-field-search">
-            <label className="inventory-filter-label">Tìm kiếm sản phẩm</label>
-            <div className="search-box inventory-search-box">
-              <Search size={16} />
-              <input ref={searchRef} data-product-search-scan="true" data-product-search-primary="true" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên SP, mã SP..." />
-            </div>
+        {/* Compact horizontal filter bar - exact same handlers & state as before */}
+        <form className="inv-filter-bar" onSubmit={handleSearch}>
+          <div className="inv-search">
+            <Search size={15} />
+            <input
+              ref={searchRef}
+              data-product-search-scan="true"
+              data-product-search-primary="true"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tên SP, mã SP..."
+            />
           </div>
 
-          <div className="inventory-filter-field">
-            <label className="inventory-filter-label">Lọc theo kho</label>
-            <select
-              className="form-control inventory-select"
-              value={filterWarehouse}
-              onChange={(e) => {
-                setFilterWarehouse(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">Tất cả kho</option>
-              {branches.map(b => (
-                <option key={b._id} value={b._id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            className="inv-filter-select"
+            value={filterWarehouse}
+            onChange={(e) => {
+              setFilterWarehouse(e.target.value);
+              setPage(1);
+            }}
+            title="Lọc theo kho"
+          >
+            <option value="">Tất cả kho</option>
+            {branches.map(b => (
+              <option key={b._id} value={b._id}>{b.name}</option>
+            ))}
+          </select>
 
-          <div className="inventory-filter-field">
-            <label className="inventory-filter-label">Còn tồn</label>
-            <select
-              className="form-control inventory-select"
-              value={filterStockStatus}
-              onChange={(e) => {
-                setFilterStockStatus(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">Tất cả</option>
-              <option value="in_stock">Còn tồn</option>
-              <option value="sellable">Còn tồn có thể bán</option>
-            </select>
-          </div>
+          <select
+            className="inv-filter-select"
+            value={filterStockStatus}
+            onChange={(e) => {
+              setFilterStockStatus(e.target.value);
+              setPage(1);
+            }}
+            title="Còn tồn"
+          >
+            <option value="">Tất cả</option>
+            <option value="in_stock">Còn tồn</option>
+            <option value="sellable">Còn tồn có thể bán</option>
+          </select>
 
-          <div className="inventory-filter-actions">
-            <button className="btn inventory-btn inventory-btn-primary" type="submit">
-              <span className="inventory-btn-glow" />
-              <span>Lọc</span>
+          <div className="inv-filter-actions">
+            <button type="submit" className="inv-btn inv-btn-primary">Lọc</button>
+            <button type="button" className="inv-btn inv-btn-secondary" onClick={handleRefresh} title="Làm mới">
+              <RefreshCw size={14} /> Làm mới
             </button>
-            <button className="btn inventory-btn inventory-btn-secondary" type="button" onClick={handleRefresh} title="Làm mới">
-              <RefreshCw size={16} />
-              <span>Làm mới</span>
-            </button>
-            <button className="btn inventory-btn inventory-btn-accent" type="button" onClick={() => setShowExportModal(true)}>
-              <FileDown size={16} />
-              <span>Xuất dữ liệu</span>
+            <button type="button" className="inv-btn inv-btn-accent" onClick={() => setShowExportModal(true)}>
+              <FileDown size={14} /> Xuất dữ liệu
             </button>
           </div>
         </form>
 
-        {/* Error states rõ ràng cho branch và inventory (không nuốt lỗi) */}
+        {/* Error states (unchanged) */}
         {(branchesError || error) && (
-          <div className="inventory-error-bar" style={{ padding: '8px 12px', background: '#fff3cd', color: '#664d03', borderRadius: 4, marginBottom: 8, fontSize: 13 }}>
+          <div className="inventory-error-bar" style={{ padding: '6px 10px', background: '#fff3cd', color: '#664d03', borderRadius: 4, marginBottom: 6, fontSize: 12 }}>
             {branchesError && <div>⚠ {branchesError}</div>}
             {error && <div>⚠ {error}</div>}
-            <button className="btn btn-light" style={{ marginTop: 4 }} onClick={handleRefresh}>Thử lại</button>
+            <button className="btn btn-light" style={{ marginTop: 2, fontSize: 12 }} onClick={handleRefresh}>Thử lại</button>
           </div>
         )}
 
-        <div className="inventory-quick-row">
-          <div className="quick-filter-list inventory-quick-filter-list">
+        {/* Compact quick warehouse filter pills - exact same onClick logic */}
+        <div className="inv-quick-pills">
+          <button
+            type="button"
+            className={!filterWarehouse ? 'active' : ''}
+            onClick={() => {
+              setFilterWarehouse('');
+              setPage(1);
+            }}
+          >
+            Tất cả
+          </button>
+          {branches.map(b => (
             <button
+              key={b._id}
               type="button"
-              className={!filterWarehouse ? 'active' : ''}
+              className={filterWarehouse === b._id ? 'active' : ''}
               onClick={() => {
-                setFilterWarehouse('');
+                setFilterWarehouse(b._id);
                 setPage(1);
               }}
             >
-              Tất cả
+              {b.name}
             </button>
-            {branches.map(b => (
-              <button
-                key={b._id}
-                type="button"
-                className={filterWarehouse === b._id ? 'active' : ''}
-                onClick={() => {
-                  setFilterWarehouse(b._id);
-                  setPage(1);
-                }}
-              >
-                {b.name}
-              </button>
-            ))}
-          </div>
-
-          <div className="inventory-quick-summary">
-            <span className="inventory-summary-pill">{warehouseFilterLabel}</span>
-            <span className="inventory-summary-pill">{stockStatusLabel}</span>
-            <span className="record-badge">{total} bản ghi</span>
-            <button className="btn btn-light" type="button" onClick={() => navigate(`/products/storage-duration${filterWarehouse ? `?branchId=${filterWarehouse}` : ''}`)}>
-              Xem tuổi tồn kho
-            </button>
-          </div>
+          ))}
         </div>
       </section>
 
       <section className="data-card inventory-table-card">
-        <div className="data-card-header inventory-table-header">
+        <div className="data-card-header inventory-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2>Tồn kho chi tiết</h2>
-            <p className="inventory-table-subtitle">
-              Bảng chỉ còn chế độ xem, ưu tiên khả năng đọc nhanh, canh cột gọn và tương phản rõ hơn ở các ô số lượng.
+            <h2 style={{ margin: 0, fontSize: '16px' }}>Tồn kho chi tiết</h2>
+            <p className="inventory-table-subtitle" style={{ margin: '2px 0 0', fontSize: '12px' }}>
+              Bảng chỉ chế độ xem (giữ nguyên cột kho động + logic cũ).
             </p>
           </div>
+          <button className="btn btn-light" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => navigate(`/products/storage-duration${filterWarehouse ? `?branchId=${filterWarehouse}` : ''}`)}>
+            Xem tuổi tồn kho
+          </button>
         </div>
 
         <div className="table-scroll inventory-table-scroll">

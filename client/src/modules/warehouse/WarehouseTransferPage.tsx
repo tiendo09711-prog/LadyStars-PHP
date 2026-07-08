@@ -44,7 +44,7 @@ export function WarehouseTransferPage() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
-  const [meta, setMeta] = useState<{ role: string; warehouses: Option[]; statuses: Option[] }>({ role: 'EMPLOYEE', warehouses: [], statuses: [] });
+  const [meta, setMeta] = useState<{ role: string; warehouses: Option[]; statuses: Option[]; userWarehouseIds?: string[]; isRootOwner?: boolean }>({ role: 'EMPLOYEE', warehouses: [], statuses: [], userWarehouseIds: [], isRootOwner: false });
   const [rows, setRows] = useState<TransferRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);

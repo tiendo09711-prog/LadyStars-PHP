@@ -547,6 +547,7 @@ export function RetailInvoiceCreatePage() {
         salesperson: form.salesperson,
         orderSource: form.orderSource,
         channel, // ensure sales created via /sales-channels/{channel}/retail carry the channel for filtering
+        type: 'retail', // ensure correct separation retail vs wholesale in lists/reports
         discountValue: Math.max(0, Number(form.discount) || 0),
         discountType: form.discountType === 'percentage' ? 'percent' : 'number',
         valuePayment: paidAmount,

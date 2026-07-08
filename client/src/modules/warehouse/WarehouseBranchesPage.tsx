@@ -532,7 +532,10 @@ export function WarehouseBranchesPage() {
   };
 
   const loadBranchesData = async (nextSelectedId?: string) => {
-    const data = await listBranches({ page: 1, limit: 200, includeInactive: true });
+    // Use high limit matching backend max to avoid client-only truncation risk when many branches.
+    // Backend supports up to 5000 + server-side q/search/includeInactive.
+    // If total >> loaded in future, UI should be updated to server pagination; for now load all.
+    const data = await listBranches({ page: 1, limit: 5000, includeInactive: true });
     setBranches(data.items || []);
       // Open the first branch only for viewing the detail form.
     const preferredId = nextSelectedId
@@ -911,22 +914,24 @@ export function WarehouseBranchesPage() {
                   <input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} autoFocus placeholder="Mật khẩu admin" />
                 </div>
               </label>
-              {/* Address local password fallback risk directly in UI (no DB dependency).
-                  Demo button helps testing without memorizing. */}
-              <div style={{ fontSize: '12px', marginTop: '6px', color: '#555' }}>
-                Môi trường local dev: dùng <strong>'admin'</strong> hoặc bất kỳ chuỗi nào dài ≥ 4 ký tự.
-                <button
-                  type="button"
-                  className="btn btn-light"
-                  style={{ fontSize: '11px', padding: '2px 6px', marginLeft: '6px' }}
-                  onClick={() => setAdminPassword('admin')}
-                  disabled={submitting}
-                >
-                  Điền 'admin' (demo)
-                </button>
-              </div>
+              {/* Demo fill only in dev to avoid leaking easy default in production builds.
+                  Production must use real admin password (no 'admin' bypass if hash set). */}
+              {import.meta.env.DEV ? (
+                <div style={{ fontSize: '12px', marginTop: '6px', color: '#555' }}>
+                  Môi trường local dev: dùng <strong>'admin'</strong> hoặc bất kỳ chuỗi nào dài ≥ 4 ký tự.
+                  <button
+                    type="button"
+                    className="btn btn-light"
+                    style={{ fontSize: '11px', padding: '2px 6px', marginLeft: '6px' }}
+                    onClick={() => setAdminPassword('admin')}
+                    disabled={submitting}
+                  >
+                    Điền 'admin' (demo)
+                  </button>
+                </div>
+              ) : null}
               <p style={{ fontSize: '11px', marginTop: '4px', color: '#b45309' }}>
-                Lưu ý production: hành động này sẽ cần rate-limit + audit log chi tiết.
+                Lưu ý production: hành động này sẽ cần rate-limit + audit log chi tiết. Không dùng mật khẩu mặc định.
               </p>
             </div>
             <div className="warehouse-modal-actions">

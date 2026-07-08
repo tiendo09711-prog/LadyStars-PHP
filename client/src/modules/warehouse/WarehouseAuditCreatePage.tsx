@@ -258,7 +258,7 @@ export function WarehouseAuditCreatePage() {
   const [warehouses, setWarehouses] = useState<Option[]>([]);
   const [role, setRole] = useState('EMPLOYEE');
   const [warehouseId, setWarehouseId] = useState('');
-  const [auditType, setAuditType] = useState<'BY_PRODUCT' | 'FULL_WAREHOUSE'>('BY_PRODUCT');
+  const [auditType, setAuditType] = useState<'BY_PRODUCT' | 'FULL'>('BY_PRODUCT');
   const [note, setNote] = useState('');
   const [blindMode, setBlindMode] = useState(false);
   const [doubleCount, setDoubleCount] = useState(false);
@@ -303,7 +303,8 @@ export function WarehouseAuditCreatePage() {
     const data = response.data as AuditDetail;
     setAudit(data);
     setWarehouseId(data.warehouseId);
-    setAuditType(data.auditType as 'BY_PRODUCT' | 'FULL_WAREHOUSE');
+    const at = (data.auditType === 'FULL_WAREHOUSE' ? 'FULL' : data.auditType) as 'BY_PRODUCT' | 'FULL';
+    setAuditType(at || 'BY_PRODUCT');
     setNote(data.note || '');
     setStatus(data.status as any);
     setBlindMode(Boolean(data.blindMode));
@@ -715,7 +716,7 @@ export function WarehouseAuditCreatePage() {
           </div>
           <div>
             <span>Loại kiểm kho</span>
-            <strong>{auditType === 'FULL_WAREHOUSE' ? 'Toàn kho' : 'Theo sản phẩm'}</strong>
+            <strong>{auditType === 'FULL' ? 'Toàn kho' : 'Theo sản phẩm'}</strong>
           </div>
           <div>
             <span>Chế độ đếm</span>
@@ -792,13 +793,13 @@ export function WarehouseAuditCreatePage() {
                 <select
                   value={auditType}
                   onChange={(event) => {
-                    setAuditType(event.target.value as 'BY_PRODUCT' | 'FULL_WAREHOUSE');
+                    setAuditType(event.target.value as 'BY_PRODUCT' | 'FULL');
                     if (allowStructureEdit) setLines([]);
                   }}
                   disabled={!allowStructureEdit}
                 >
                   <option value="BY_PRODUCT">Theo sản phẩm</option>
-                  <option value="FULL_WAREHOUSE">Toàn kho</option>
+                  <option value="FULL">Toàn kho</option>
                 </select>
               </label>
               <label className="form-field wide">
@@ -856,7 +857,7 @@ export function WarehouseAuditCreatePage() {
               </div>
             ) : null}
 
-            {auditType === 'FULL_WAREHOUSE' && allowStructureEdit ? (
+            {auditType === 'FULL' && allowStructureEdit ? (
               <div className="audit-toolbar">
                 <button className="btn btn-light" type="button" disabled={inventoryLoading} onClick={loadFullWarehousePreview}>
                   <Plus size={15} /> {inventoryLoading ? 'Đang tải sản phẩm kho...' : 'Nạp sản phẩm từ kho'}
@@ -885,7 +886,7 @@ export function WarehouseAuditCreatePage() {
                   {!lines.length ? (
                     <tr>
                       <td className="wr-empty" colSpan={allowStructureEdit ? (doubleCount ? (blindMode ? 9 : 11) : (blindMode ? 8 : 10)) : (doubleCount ? (blindMode ? 8 : 10) : (blindMode ? 7 : 9))}>
-                        Chưa có sản phẩm kiểm kho. {auditType === 'FULL_WAREHOUSE' ? 'Bấm "Nạp sản phẩm từ kho" để xem preview hoặc lưu phiếu để backend snapshot toàn kho.' : 'Hãy thêm sản phẩm từ ô tìm kiếm.'}
+                        Chưa có sản phẩm kiểm kho. {auditType === 'FULL' ? 'Bấm "Nạp sản phẩm từ kho" để xem preview hoặc lưu phiếu để backend snapshot toàn kho.' : 'Hãy thêm sản phẩm từ ô tìm kiếm.'}
                       </td>
                     </tr>
                   ) : lines.map((line, index) => (

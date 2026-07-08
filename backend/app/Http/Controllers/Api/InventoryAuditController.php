@@ -161,10 +161,22 @@ class InventoryAuditController extends Controller
         $warehouseId = trim((string) $request->query('warehouseId', ''));
         $limit = (int) min(max((int) $request->query('limit', 6), 1), 50);
         $query = (new MirrorRecord())->forTable('inventory_check_products')->newQuery();
+        $columns = collect(Schema::getColumnListing('inventory_check_products'))->flip();
         if ($warehouseId !== '') {
             $branch = $this->branch($warehouseId);
             if ($branch) {
-                $query->where('branch_id', $branch->id);
+                if ($columns->has('branch_id')) {
+                    $query->where('branch_id', $branch->id);
+                } elseif ($columns->has('branch_mongo_id')) {
+                    $query->where('branch_mongo_id', $branch->mongo_id);
+                } else {
+                    $query->where(function ($q) use ($branch) {
+                        $q->where('payload->warehouseId', (string) $branch->id)
+                          ->orWhere('payload->warehouseId', $branch->mongo_id)
+                          ->orWhere('payload->warehouse', $branch->name)
+                          ->orWhere('payload->warehouseName', $branch->name);
+                    });
+                }
             }
         }
         $rows = $query->orderByDesc('business_date')->orderByDesc('id')->limit($limit)->get();
@@ -251,7 +263,28 @@ class InventoryAuditController extends Controller
         if ($warehouseId = trim((string) $request->query('warehouseId', ''))) {
             $branch = $this->branch($warehouseId);
             if ($branch) {
-                $query->where('branch_id', $branch->id);
+                if ($columns->has('branch_id')) {
+                    $query->where('branch_id', $branch->id);
+                } elseif ($columns->has('branch_mongo_id')) {
+                    $query->where('branch_mongo_id', $branch->mongo_id);
+                } else {
+                    $query->where(function ($q) use ($branch) {
+                        $q->where('payload->warehouseId', (string) $branch->id)
+                          ->orWhere('payload->warehouseId', $branch->mongo_id)
+                          ->orWhere('payload->warehouse', $branch->name)
+                          ->orWhere('payload->warehouseName', $branch->name);
+                    });
+                }
+            }
+        }
+        if ($reco = trim((string) $request->query('reconciliationStatus', ''))) {
+            $upper = strtoupper($reco);
+            if ($upper === 'RECONCILED') {
+                $query->where('status', 'RECONCILED');
+            } elseif ($upper === 'REVERSED') {
+                // reversed may be in payload or treated as not reconciled; skip strict for compat
+            } else {
+                $query->where(function ($q) { $q->whereNull('status')->orWhere('status', '!=', 'RECONCILED'); });
             }
         }
         if ($keyword = trim((string) $request->query('keyword', ''))) {
@@ -259,7 +292,13 @@ class InventoryAuditController extends Controller
         }
         if ($auditType = trim((string) $request->query('auditType', ''))) {
             $label = collect(self::AUDIT_TYPES)->firstWhere('value', $auditType)['label'] ?? null;
-            $query->where(fn ($builder) => $builder->where('type', $auditType)->when($label, fn ($b) => $b->orWhere('type', $label)));
+            $query->where(function ($builder) use ($auditType, $label) {
+                $builder->where('type', $auditType)
+                    ->orWhere('type', $label)
+                    ->orWhere('payload->auditType', $auditType)
+                    ->orWhere('payload->type', $auditType)
+                    ->orWhere('payload->auditType', 'FULL_WAREHOUSE'); // legacy compat
+            });
         }
         if ($note = trim((string) $request->query('note', ''))) {
             $query->where('note', 'like', "%{$note}%");
@@ -277,39 +316,98 @@ class InventoryAuditController extends Controller
             }
         }
 
+        if ($reconciledFrom = trim((string) $request->query('reconciledFrom', ''))) {
+            $from = $this->parseDate($reconciledFrom);
+            if ($from) {
+                $iso = $from->toISOString();
+                $query->where(function ($q) use ($iso) {
+                    $q->where('payload->reconciledAt', '>=', $iso)
+                      ->orWhere('payload->reconciled_at', '>=', $iso)
+                      ->orWhere('payload->reconciledAt', 'like', $from->toDateString() . '%');
+                });
+            }
+        }
+        if ($reconciledTo = trim((string) $request->query('reconciledTo', ''))) {
+            $to = $this->parseDate($reconciledTo);
+            if ($to) {
+                $iso = $to->toISOString();
+                $query->where(function ($q) use ($iso) {
+                    $q->where('payload->reconciledAt', '<=', $iso)
+                      ->orWhere('payload->reconciled_at', '<=', $iso)
+                      ->orWhere('payload->reconciledAt', 'like', $to->toDateString() . '%');
+                });
+            }
+        }
+
+        if ($status = trim((string) $request->query('status', ''))) {
+            $query->where('status', strtoupper($status));
+        }
+
         return $query;
     }
 
     private function itemQuery(Request $request)
     {
         $query = (new MirrorRecord())->forTable('inventory_check_products')->newQuery();
+        $columns = collect(Schema::getColumnListing('inventory_check_products'))->flip();
         if ($warehouseId = trim((string) $request->query('warehouseId', ''))) {
             $branch = $this->branch($warehouseId);
             if ($branch) {
-                $query->where('branch_id', $branch->id);
+                if ($columns->has('branch_id')) {
+                    $query->where('branch_id', $branch->id);
+                } elseif ($columns->has('branch_mongo_id')) {
+                    $query->where('branch_mongo_id', $branch->mongo_id);
+                } else {
+                    $query->where(function ($q) use ($branch) {
+                        $q->where('payload->warehouseId', (string) $branch->id)
+                          ->orWhere('payload->warehouseId', $branch->mongo_id)
+                          ->orWhere('payload->warehouse', $branch->name)
+                          ->orWhere('payload->warehouseName', $branch->name);
+                    });
+                }
             }
         }
         if ($auditId = trim((string) $request->query('auditId', ''))) {
             $audit = $this->findAudit($auditId);
-            $query->where(function ($builder) use ($audit): void {
+            $prodColumns = collect(Schema::getColumnListing('inventory_check_products'))->flip();
+            $branchIdForQuery = $audit->branch_id ?? ($audit->branch_mongo_id ?? null);
+            $query->where(function ($builder) use ($audit, $prodColumns, $branchIdForQuery): void {
                 $builder->where('code', $audit->code);
                 if ($audit->mongo_id) {
                     $builder->orWhere('mongo_id', $audit->mongo_id);
                 }
-                if ($audit->branch_id && $audit->business_date) {
-                    $builder->orWhere(function ($legacy) use ($audit): void {
-                        $legacy->where('branch_id', $audit->branch_id)
-                            ->whereDate('business_date', $audit->business_date->toDateString())
+                if (($audit->branch_id || $audit->branch_mongo_id) && $audit->business_date) {
+                    $builder->orWhere(function ($legacy) use ($audit, $prodColumns, $branchIdForQuery): void {
+                        if ($prodColumns->has('branch_id')) {
+                            $legacy->where('branch_id', $audit->branch_id);
+                        } elseif ($prodColumns->has('branch_mongo_id') && $audit->branch_mongo_id) {
+                            $legacy->where('branch_mongo_id', $audit->branch_mongo_id);
+                        } elseif ($branchIdForQuery) {
+                            $legacy->where('payload->branchId', $branchIdForQuery)
+                                   ->orWhere('payload->warehouseId', $branchIdForQuery);
+                        }
+                        $legacy->whereDate('business_date', $audit->business_date->toDateString())
                             ->where(fn ($emptyCode) => $emptyCode->whereNull('code')->orWhere('code', ''));
                     });
                 }
             });
         }
         if ($productKeyword = trim((string) $request->query('productKeyword', ''))) {
-            $query->where(fn ($builder) => $builder
-                ->where('product_code', 'like', "%{$productKeyword}%")
-                ->orWhere('product_name', 'like', "%{$productKeyword}%")
-                ->orWhere('barcode', 'like', "%{$productKeyword}%"));
+            if ($columns->has('product_code')) {
+                $query->where(fn ($builder) => $builder
+                    ->where('product_code', 'like', "%{$productKeyword}%")
+                    ->orWhere('product_name', 'like', "%{$productKeyword}%")
+                    ->orWhere('barcode', 'like', "%{$productKeyword}%"));
+            } else {
+                $kw = $productKeyword;
+                $query->where(function ($builder) use ($kw) {
+                    $builder->where('payload->productCode', 'like', "%{$kw}%")
+                        ->orWhere('payload->productName', 'like', "%{$kw}%")
+                        ->orWhere('payload->product_code', 'like', "%{$kw}%")
+                        ->orWhere('payload->product_name', 'like', "%{$kw}%")
+                        ->orWhere('payload->barcode', 'like', "%{$kw}%");
+                });
+            }
         }
         if ($createdFrom = trim((string) $request->query('createdFrom', ''))) {
             $from = $this->parseDate($createdFrom);
@@ -325,7 +423,16 @@ class InventoryAuditController extends Controller
         }
         $varianceType = trim((string) $request->query('varianceType', ''));
         if ($varianceType !== '') {
-            $query->where('difference', $varianceType === 'SHORTAGE' ? '<' : ($varianceType === 'EXCESS' ? '>' : '='), 0);
+            if ($columns->has('difference')) {
+                $query->where('difference', $varianceType === 'SHORTAGE' ? '<' : ($varianceType === 'EXCESS' ? '>' : '='), 0);
+            } else {
+                $op = $varianceType === 'SHORTAGE' ? '<' : ($varianceType === 'EXCESS' ? '>' : '=');
+                $query->where('payload->difference', $op, 0)
+                      ->orWhere('payload->varianceQuantity', $op, 0);
+                if ($varianceType === 'BALANCED') {
+                    $query->orWhereNull('payload->difference')->orWhere('payload->difference', 0);
+                }
+            }
         }
 
         return $query;
@@ -380,16 +487,26 @@ class InventoryAuditController extends Controller
 
     private function auditProductQuery(MirrorRecord $audit)
     {
-        return (new MirrorRecord())->forTable('inventory_check_products')->newQuery()
-            ->where(function ($query) use ($audit): void {
+        $table = 'inventory_check_products';
+        $columns = collect(Schema::getColumnListing($table))->flip();
+        $branchIdForQuery = $audit->branch_id ?? ($audit->branch_mongo_id ?? null);
+        return (new MirrorRecord())->forTable($table)->newQuery()
+            ->where(function ($query) use ($audit, $columns, $branchIdForQuery): void {
                 $query->where('code', $audit->code);
                 if ($audit->mongo_id) {
                     $query->orWhere('mongo_id', $audit->mongo_id);
                 }
                 if ($audit->branch_id && $audit->business_date) {
-                    $query->orWhere(function ($legacy) use ($audit): void {
-                        $legacy->where('branch_id', $audit->branch_id)
-                            ->whereDate('business_date', $audit->business_date->toDateString())
+                    $query->orWhere(function ($legacy) use ($audit, $columns, $branchIdForQuery): void {
+                        if ($columns->has('branch_id')) {
+                            $legacy->where('branch_id', $audit->branch_id);
+                        } elseif ($columns->has('branch_mongo_id') && $audit->branch_mongo_id) {
+                            $legacy->where('branch_mongo_id', $audit->branch_mongo_id);
+                        } elseif ($branchIdForQuery) {
+                            $legacy->where('payload->branchId', $branchIdForQuery)
+                                   ->orWhere('payload->warehouseId', $branchIdForQuery);
+                        }
+                        $legacy->whereDate('business_date', $audit->business_date->toDateString())
                             ->where(fn ($emptyCode) => $emptyCode->whereNull('code')->orWhere('code', ''));
                     });
                 }
@@ -406,15 +523,26 @@ class InventoryAuditController extends Controller
                 return $direct;
             }
         }
-        if (!$record->branch_id || !$record->business_date) {
+        $branchIdForQuery = $record->branch_id ?? ($record->branch_mongo_id ?? null);
+        if (!$branchIdForQuery || !$record->business_date) {
             return null;
         }
 
-        return (new MirrorRecord())->forTable('inventory_checks')->newQuery()
-            ->where('branch_id', $record->branch_id)
+        $chkColumns = collect(Schema::getColumnListing('inventory_checks'))->flip();
+        $q = (new MirrorRecord())->forTable('inventory_checks')->newQuery()
             ->whereDate('business_date', $record->business_date->toDateString())
-            ->orderByDesc('id')
-            ->first();
+            ->orderByDesc('id');
+        if ($chkColumns->has('branch_id') && $record->branch_id) {
+            $q->where('branch_id', $record->branch_id);
+        } elseif ($chkColumns->has('branch_mongo_id') && $record->branch_mongo_id) {
+            $q->where('branch_mongo_id', $record->branch_mongo_id);
+        } else {
+            $q->where(function ($qq) use ($branchIdForQuery) {
+                $qq->where('payload->branchId', $branchIdForQuery)
+                   ->orWhere('payload->warehouseId', $branchIdForQuery);
+            });
+        }
+        return $q->first();
     }
 
     private function auditStatus(MirrorRecord $record, array $payload): string
@@ -432,11 +560,16 @@ class InventoryAuditController extends Controller
         $payload = is_array($record->payload) ? $record->payload : [];
         $items = $this->itemsOf($record);
         $status = $this->auditStatus($record, $payload);
-        $auditType = (string) ($payload['auditType'] ?? $payload['type'] ?? $record->type ?? 'BY_PRODUCT');
+        $rawAuditType = (string) ($payload['auditType'] ?? $payload['type'] ?? $record->type ?? 'BY_PRODUCT');
+        $auditType = $rawAuditType === 'FULL_WAREHOUSE' ? 'FULL' : $rawAuditType;
         $auditLabel = collect(self::AUDIT_TYPES)->firstWhere('value', $auditType)['label'] ?? (string) ($record->type ?? $auditType);
         $statusLabel = collect(self::STATUSES)->firstWhere('value', $status)['label'] ?? $status;
-        $warehouseId = (string) ($payload['warehouseId'] ?? $record->branch_id ?? '');
+        $warehouseId = (string) ($payload['warehouseId'] ?? $record->branch_id ?? $record->branch_mongo_id ?? '');
         $warehouseName = (string) ($payload['warehouse'] ?? $payload['warehouseName'] ?? $record->warehouse_name ?? '');
+        if (!$warehouseName && $warehouseId) {
+            $b = $this->branch($warehouseId);
+            if ($b) $warehouseName = $b->name ?? '';
+        }
         $linkedIds = $payload['linkedInventoryBillIds'] ?? [];
         $linkedCodes = $payload['linkedInventoryBillCodes'] ?? [];
         $mergedInto = $payload['mergedIntoAuditId'] ?? null;
@@ -480,12 +613,19 @@ class InventoryAuditController extends Controller
         $physical = $payload['actualStock'] ?? $payload['actual_stock'] ?? $record->actual_stock ?? null;
         $audit = $this->legacyAuditForItem($record);
 
+        $warehouseId = (string) ($payload['warehouseId'] ?? $record->branch_id ?? $record->branch_mongo_id ?? '');
+        $warehouseName = (string) ($payload['warehouse'] ?? $payload['warehouseName'] ?? $record->warehouse_name ?? '');
+        if (!$warehouseName && $warehouseId) {
+            $b = $this->branch($warehouseId);
+            if ($b) $warehouseName = $b->name ?? '';
+        }
+
         return [
             '_id' => (string) ($record->mongo_id ?: $record->id),
             'auditId' => (string) ($payload['auditId'] ?? ($audit?->mongo_id ?: $audit?->id ?: '')),
             'auditCode' => (string) ($record->code ?: $audit?->code ?: ''),
-            'warehouseId' => (string) ($payload['warehouseId'] ?? $record->branch_id ?? ''),
-            'warehouseName' => (string) ($payload['warehouse'] ?? $payload['warehouseName'] ?? $record->warehouse_name ?? ''),
+            'warehouseId' => $warehouseId,
+            'warehouseName' => $warehouseName,
             'createdAt' => $payload['createdAt'] ?? optional($record->business_date)->toISOString() ?? optional($record->created_at)->toISOString(),
             'productId' => (string) ($payload['productId'] ?? $payload['product_id'] ?? $record->product_id ?? ''),
             'productCodeSnapshot' => (string) ($payload['productCode'] ?? $payload['product_code'] ?? $record->product_code ?? ''),
@@ -513,14 +653,14 @@ class InventoryAuditController extends Controller
 
         return [
             'productId' => (string) ($line['productId'] ?? $line['product_id'] ?? ''),
-            'productCodeSnapshot' => (string) ($line['productCode'] ?? $line['product_code'] ?? ''),
-            'barcodeSnapshot' => (string) ($line['barcode'] ?? ''),
-            'productNameSnapshot' => (string) ($line['productName'] ?? $line['product_name'] ?? ''),
-            'unitSnapshot' => (string) ($line['unit'] ?? ''),
-            'costPriceSnapshot' => (float) ($line['cost'] ?? $line['costPriceSnapshot'] ?? 0),
-            'salePriceSnapshot' => (float) ($line['price'] ?? $line['salePriceSnapshot'] ?? 0),
-            'systemQuantitySnapshot' => (float) ($line['stock'] ?? $line['systemQuantitySnapshot'] ?? 0),
-            'inTransitQuantitySnapshot' => (float) ($line['transferring'] ?? $line['inTransitQuantitySnapshot'] ?? 0),
+            'productCodeSnapshot' => (string) ($line['productCodeSnapshot'] ?? $line['productCode'] ?? $line['product_code'] ?? ''),
+            'barcodeSnapshot' => (string) ($line['barcodeSnapshot'] ?? $line['barcode'] ?? ''),
+            'productNameSnapshot' => (string) ($line['productNameSnapshot'] ?? $line['productName'] ?? $line['product_name'] ?? ''),
+            'unitSnapshot' => (string) ($line['unitSnapshot'] ?? $line['unit'] ?? ''),
+            'costPriceSnapshot' => (float) ($line['costPriceSnapshot'] ?? $line['cost'] ?? $line['cost'] ?? 0),
+            'salePriceSnapshot' => (float) ($line['salePriceSnapshot'] ?? $line['price'] ?? $line['salePriceSnapshot'] ?? 0),
+            'systemQuantitySnapshot' => (float) ($line['systemQuantitySnapshot'] ?? $line['stock'] ?? $line['systemQuantitySnapshot'] ?? 0),
+            'inTransitQuantitySnapshot' => (float) ($line['inTransitQuantitySnapshot'] ?? $line['transferring'] ?? $line['inTransitQuantitySnapshot'] ?? 0),
             'physicalQuantity' => $physical === null || $physical === '' ? null : (float) $physical,
             'physicalQuantity2' => $line['physicalQuantity2'] ?? null,
             'varianceQuantity' => (float) ($line['difference'] ?? $line['varianceQuantity'] ?? 0),

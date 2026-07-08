@@ -550,6 +550,8 @@ export function WholesaleInvoiceCreatePage() {
         note: form.description,
         salesperson: form.salesperson,
         orderSource: form.orderSource,
+        channel, // ensure channel for filtering (store etc)
+        type: 'wholesale', // ensure correct separation from retail
         paymentMethod: form.paymentMethod,
         discountValue: Number(form.orderDiscount) || 0,
         discountType: 'number' as const,

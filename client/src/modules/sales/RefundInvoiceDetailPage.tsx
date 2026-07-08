@@ -35,9 +35,9 @@ function customerText(refund: RefundDetail) {
   if (customer && typeof customer === 'object') {
     const name = customer.name || '';
     const phone = customer.phone || '';
-    return [name, phone ? `(${phone})` : ''].filter(Boolean).join(' ') || 'Khách lẻ';
+    return [name, phone ? `(${phone})` : ''].filter(Boolean).join(' ') || '—';
   }
-  return 'Khách lẻ';
+  return '—';
 }
 
 function branchName(refund: RefundDetail) {
@@ -147,7 +147,7 @@ export function RefundInvoiceDetailPage() {
                     items.map((item: any, index: number) => (
                       <tr key={index}>
                         <td>{item?.productId?.code || '—'}</td>
-                        <td>{item?.productId?.name || 'Sản phẩm'}</td>
+                        <td>{item?.productId?.name || '—'}</td>
                         <td>{Number(item?.amount) || 0}</td>
                         <td>{receiptMoney(item?.price)}</td>
                         <td>{receiptMoney(item?.value)}</td>

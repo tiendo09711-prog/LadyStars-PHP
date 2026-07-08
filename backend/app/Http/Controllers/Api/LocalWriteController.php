@@ -196,16 +196,27 @@ class LocalWriteController extends Controller
         $record = $this->findRecord($table, $id);
         $payload = is_array($record->payload) ? $record->payload : [];
         $originalStatus = $record->status;
-        $status = match ($action) {
-            'confirm-destination' => 'COMPLETED',
-            'complete', 'reconcile' => 'completed',
-            'cancel' => $resource === 'warehouse-transfers' ? 'CANCELLED' : 'cancelled',
-            'submit', 'confirm-source' => 'IN_TRANSIT',
-            'return' => $resource === 'warehouse-transfers' ? 'RETURN_IN_PROGRESS' : 'RETURNED',
-            'resnapshot' => $record->status,
-            'reverse-reconcile' => 'COUNTING',
-            default => $record->status,
-        };
+        if ($resource === 'inventory-checks') {
+            $status = match ($action) {
+                'submit' => 'COUNTING',
+                'reconcile' => 'RECONCILED',
+                'cancel' => 'CANCELLED',
+                'reverse-reconcile' => 'COUNTING',
+                'resnapshot' => $record->status,
+                default => $record->status,
+            };
+        } else {
+            $status = match ($action) {
+                'confirm-destination' => 'COMPLETED',
+                'complete', 'reconcile' => 'completed',
+                'cancel' => $resource === 'warehouse-transfers' ? 'CANCELLED' : 'cancelled',
+                'submit', 'confirm-source' => 'IN_TRANSIT',
+                'return' => $resource === 'warehouse-transfers' ? 'RETURN_IN_PROGRESS' : 'RETURNED',
+                'resnapshot' => $record->status,
+                'reverse-reconcile' => 'COUNTING',
+                default => $record->status,
+            };
+        }
 
         if ($resource === 'sale-payments' && in_array($action, ['return', 'return-exchange'], true)) {
             $status = $originalStatus; // do not pollute sale status; refunds tracked separately

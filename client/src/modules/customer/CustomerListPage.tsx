@@ -748,7 +748,9 @@ export function CustomerListPage() {
     setError('');
     try {
       await http.post('/customers/sync-metrics');
-      await loadCustomers();
+      // Stub: backend currently returns success without recomputing metrics from sales/refunds.
+      // No data change occurs. Reload skipped to avoid confusion.
+      // The "(stub)" label + title on button clarifies this to users.
     } catch (err: any) {
       setError(err.response?.data?.message || 'Không đồng bộ được chỉ số khách hàng.');
     } finally {
@@ -856,8 +858,14 @@ export function CustomerListPage() {
         </div>
         <div className="page-actions customer-list-actions">
           {isAdmin && (
-            <button className="btn btn-outline" type="button" onClick={handleSyncMetrics} disabled={syncingMetrics}>
-              <RefreshCw size={16} className={syncingMetrics ? 'spin' : ''} /> {syncingMetrics ? 'Đang đồng bộ...' : 'Đồng bộ chỉ số'}
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={handleSyncMetrics}
+              disabled={syncingMetrics}
+              title="Chức năng đồng bộ chỉ số hiện đang ở chế độ stub (không tính lại metrics từ dữ liệu bán hàng)"
+            >
+              <RefreshCw size={16} className={syncingMetrics ? 'spin' : ''} /> {syncingMetrics ? 'Đang đồng bộ...' : 'Đồng bộ chỉ số (stub)'}
             </button>
           )}
           <span className="record-badge">{formatNumber(total)} khách hàng</span>

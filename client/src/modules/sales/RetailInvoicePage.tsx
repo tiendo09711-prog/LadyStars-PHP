@@ -231,6 +231,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         page,
         limit: PAGE_SIZE,
         channel,
+        type: 'retail',
       };
       Object.entries(appliedFilters).forEach(([key, value]) => {
         if (value) params[key] = value;
@@ -570,7 +571,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         dataToExport = invoices;
       } else {
         const fetchPage = (nextPage: number, nextLimit: number) => {
-          const params: Record<string, string | number> = { page: nextPage, limit: nextLimit, channel };
+          const params: Record<string, string | number> = { page: nextPage, limit: nextLimit, channel, type: 'retail' };
           Object.entries(appliedFilters).forEach(([key, value]) => { if (value) params[key] = value; });
           return http.get('/products/sales', { params });
         };

@@ -247,17 +247,15 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     setError('');
     try {
       const qs = new URLSearchParams();
-      qs.set('code', 'BHS');
-      // High limit so client-side tab (discount/debt) + invoiceCode filter + paging see complete matching set.
-      // Avoids "empty page" when debt invoices are not in the current server page slice.
+      qs.set('type', 'wholesale');
       qs.set('page', '1');
       qs.set('limit', '500');
+      if (channel) qs.set('channel', channel);
       if (appliedFilters.storeId) qs.set('storeId', appliedFilters.storeId);
       if (appliedFilters.dateFrom) qs.set('dateFrom', appliedFilters.dateFrom);
       if (appliedFilters.dateTo) qs.set('dateTo', appliedFilters.dateTo);
       if (appliedFilters.customerKeyword) qs.set('customerKeyword', appliedFilters.customerKeyword);
       if (appliedFilters.productKeyword) qs.set('productKeyword', appliedFilters.productKeyword);
-      // invoiceCode được lọc phía client để giữ nguyên phạm vi "code=BHS" của bán sỉ.
       const response = await http.get(`/products/sales?${qs.toString()}`, { signal });
       const items = Array.isArray(response.data) ? response.data : response.data.items ?? [];
       setInvoices(items);
@@ -649,9 +647,10 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       } else {
         const fetchPage = (nextPage: number, nextLimit: number) => {
           const qs = new URLSearchParams();
-          qs.set('code', 'BHS');
+          qs.set('type', 'wholesale');
           qs.set('page', String(nextPage));
           qs.set('limit', String(nextLimit));
+          if (channel) qs.set('channel', channel);
           if (appliedFilters.storeId) qs.set('storeId', appliedFilters.storeId);
           if (appliedFilters.dateFrom) qs.set('dateFrom', appliedFilters.dateFrom);
           if (appliedFilters.dateTo) qs.set('dateTo', appliedFilters.dateTo);

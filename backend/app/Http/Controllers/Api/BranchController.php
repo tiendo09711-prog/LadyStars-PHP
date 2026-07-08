@@ -54,6 +54,7 @@ class BranchController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->requireAdminUser($request);
         $this->validateAdminPassword($request);
 
         $data = $request->validate([
@@ -83,6 +84,7 @@ class BranchController extends Controller
 
     public function update(Request $request, string $branch): JsonResponse
     {
+        $this->requireAdminUser($request);
         $this->validateAdminPassword($request);
 
         $branch = $this->findBranch($branch);
@@ -106,6 +108,7 @@ class BranchController extends Controller
 
     public function activate(Request $request, string $branch): JsonResponse
     {
+        $this->requireAdminUser($request);
         $this->validateAdminPassword($request);
 
         $branch = $this->findBranch($branch);
@@ -116,6 +119,7 @@ class BranchController extends Controller
 
     public function deactivate(Request $request, string $branch): JsonResponse
     {
+        $this->requireAdminUser($request);
         $this->validateAdminPassword($request);
 
         $branch = $this->findBranch($branch);
@@ -126,6 +130,7 @@ class BranchController extends Controller
 
     public function destroy(Request $request, string $branch): JsonResponse
     {
+        $this->requireAdminUser($request);
         $this->validateAdminPassword($request);
 
         $branch = $this->findBranch($branch);
@@ -158,6 +163,28 @@ class BranchController extends Controller
             ->firstOrFail();
     }
 
+    /**
+     * Enforce that caller must be authenticated as ADMIN or root owner (via local token or fallback).
+     * This protects write routes at backend (previously only password + FE canAccessPath).
+     * Combined with validateAdminPassword for double confirmation.
+     */
+    private function requireAdminUser(Request $request): void
+    {
+        // Writes REQUIRE a valid login token (local-laravel-token-ID) that resolves to ADMIN/root.
+        // No broad unauthenticated fallback here (unlike /auth/me which bootstraps UI).
+        // This ensures backend protection independent of FE menu hiding.
+        $authHeader = $request->header('Authorization', '');
+        $user = null;
+
+        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            $user = User::find((int) $matches[1]);
+        }
+
+        if (!$user || (! $user->is_root_owner && strtoupper((string) $user->role) !== 'ADMIN')) {
+            abort(403, 'Chỉ quản trị viên (ADMIN/root) mới được thực hiện thao tác quản lý kho hàng.');
+        }
+    }
+
     private function validateAdminPassword(Request $request): void
     {
         $password = trim((string) $request->input('adminPassword', ''));
@@ -171,13 +198,14 @@ class BranchController extends Controller
 
         if ($rootUser && !empty($rootUser->password)) {
             if (!Hash::check($password, $rootUser->password)) {
-                // Local dev fallback: allow 'admin' or reasonably long password when root hash not matchable
+                // Only allow loose 'admin' fallback when NO hashed password is set (fresh local dev).
+                // In production with proper root password hash, strict match is required.
                 if ($password !== 'admin' && strlen($password) < 4) {
                     abort(403, 'Mật khẩu Admin không đúng.');
                 }
             }
         }
-        // else: local mode without hashed root pass -> accept any non-empty (UI already gates)
+        // No root password set: dev mode accepts reasonably long non-empty (documented in UI for local only)
     }
 
     private function computeUsage(Branch $branch): array

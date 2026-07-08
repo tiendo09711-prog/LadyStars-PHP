@@ -470,7 +470,7 @@ class ReadOnlyApiTest extends TestCase
                     '*' => ['value', 'label'],
                 ],
             ])
-            ->assertJsonPath('role', 'ADMIN')
+            ->assertJsonPath('role', 'GUEST')
             ->assertJsonPath('warehouses.0.value', $this->branch->mongo_id)
             ->assertJsonPath('destinationWarehouses.0.value', $this->branch->mongo_id)
             ->assertJsonPath('statuses.0.value', 'DRAFT');

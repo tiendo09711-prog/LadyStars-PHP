@@ -48,6 +48,7 @@ class ImportLegacyData extends Command
             'inv_vouchers' => $base . 'Xuất nhập kho - Phiếu xuất nhập kho.xlsx',
             'inv_items' => $base . 'Xuất nhập kho - Sản phẩm xuất nhập kho.xlsx',
             'product_logs' => $base . 'Sản phẩm - Lịch sử sửa xóa (1).xlsx',
+            'warehouse_transfers' => $base . 'Đơn chuyển kho.xlsx',
         ];
 
         foreach ($fileMap as $k => $p) {

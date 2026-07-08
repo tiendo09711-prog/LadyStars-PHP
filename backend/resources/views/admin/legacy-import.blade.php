@@ -13,7 +13,7 @@
     <div class="max-w-4xl mx-auto py-10 px-4">
         <div class="bg-white shadow rounded-lg p-8">
             <h1 class="text-3xl font-bold text-red-700 mb-2">Import Dữ Liệu Legacy (Excel)</h1>
-            <p class="text-gray-600 mb-6">Trang này dùng để xóa toàn bộ dữ liệu cũ và import lại dữ liệu từ 10 file Excel legacy. <strong>Chỉ dành cho Admin.</strong></p>
+            <p class="text-gray-600 mb-6">Trang này dùng để xóa toàn bộ dữ liệu cũ và import lại dữ liệu từ 11 file Excel legacy. <strong>Chỉ dành cho Admin.</strong></p>
 
             @if(session('errors'))
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -47,13 +47,13 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Chọn 10 file Excel (cùng lúc)
+                        Chọn 11 file Excel (cùng lúc)
                     </label>
                     <input type="file" name="files[]" multiple accept=".xlsx,.xls"
                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
                            required id="fileInput">
                     <p class="text-xs text-gray-500 mt-1">Hỗ trợ .xlsx, .xls. <strong>Giữ nguyên tên file gốc</strong> để hệ thống tự nhận diện.</p>
-                    <p class="text-xs text-gray-500">Các file cần: Danh mục, Sản phảm - Sản phẩm, Tồn kho, Danh sách khách hàng, Bán lẻ, Hóa đơn trả hàng, Danh sách phiếu chăm sóc, Xuất nhập kho - Phiếu..., Xuất nhập kho - Sản phẩm..., Sản phẩm - Lịch sử sửa xóa</p>
+                    <p class="text-xs text-gray-500">Các file cần: Danh mục, Sản phẩm - Sản phẩm, Tồn kho, Danh sách khách hàng, Bán lẻ, Hóa đơn trả hàng, Danh sách phiếu chăm sóc, Xuất nhập kho - Phiếu..., Xuất nhập kho - Sản phẩm..., Sản phẩm - Lịch sử sửa xóa, Đơn chuyển kho</p>
                 </div>
 
                 <!-- Danh sách file đã chọn -->

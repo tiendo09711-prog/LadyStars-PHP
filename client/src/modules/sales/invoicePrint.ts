@@ -262,9 +262,9 @@ function refundCustomerText(refund: Record<string, any>): string {
   if (customer && typeof customer === 'object') {
     const name = customer.name || '';
     const phone = customer.phone || '';
-    return [name, phone ? `(${phone})` : ''].filter(Boolean).join(' ') || 'Khách lẻ';
+    return [name, phone ? `(${phone})` : ''].filter(Boolean).join(' ') || '—';
   }
-  return 'Khách lẻ';
+  return '—';
 }
 
 function refundOriginalCode(refund: Record<string, any>): string {
@@ -289,7 +289,7 @@ export function buildRefundReceiptHtml(refund: Record<string, any>) {
       {
         title: originalCode ? `Sản phẩm trả (HĐ gốc: ${originalCode})` : 'Sản phẩm trả',
         lines: items.map((item: any) => ({
-          name: item?.productId?.name || item?.productId?.code || 'Sản phẩm',
+          name: item?.productId?.name || item?.productId?.code || '—',
           code: item?.productId?.code || '',
           quantity: Number(item?.amount) || 0,
           price: receiptMoney(item?.price),

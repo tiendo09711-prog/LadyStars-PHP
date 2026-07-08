@@ -279,6 +279,20 @@ Route::get('/system/branches', [BranchController::class, 'index']);
 Route::get('/system/branches/{branch}', [BranchController::class, 'show']);
 Route::get('/branches/{branch}', [BranchController::class, 'show']);
 
+// Branch write + usage routes (enable full management from /warehouse/branches UI)
+Route::post('/branches', [BranchController::class, 'store']);
+Route::post('/system/branches', [BranchController::class, 'store']);
+Route::get('/branches/{branch}/usage', [BranchController::class, 'usage']);
+Route::get('/system/branches/{branch}/usage', [BranchController::class, 'usage']);
+Route::patch('/branches/{branch}', [BranchController::class, 'update']);
+Route::patch('/system/branches/{branch}', [BranchController::class, 'update']);
+Route::post('/branches/{branch}/activate', [BranchController::class, 'activate']);
+Route::post('/system/branches/{branch}/activate', [BranchController::class, 'activate']);
+Route::post('/branches/{branch}/deactivate', [BranchController::class, 'deactivate']);
+Route::post('/system/branches/{branch}/deactivate', [BranchController::class, 'deactivate']);
+Route::delete('/branches/{branch}', [BranchController::class, 'destroy']);
+Route::delete('/system/branches/{branch}', [BranchController::class, 'destroy']);
+
 Route::get('/customers', [CustomerController::class, 'index']);
 Route::get('/customers/customers', [CustomerController::class, 'index']);
 Route::get('/customers/customers/meta', [CustomerController::class, 'meta']);
@@ -287,6 +301,8 @@ Route::get('/customers/customers/{customer}/detail', [CustomerController::class,
 Route::get('/customers/customers/{customer}', [CustomerController::class, 'show']);
 Route::patch('/customers/customers/{customer}', [CustomerController::class, 'update']);
 Route::delete('/customers/customers/{customer}', [CustomerController::class, 'destroy']);
+Route::post('/customers/sync-metrics', [CustomerController::class, 'syncMetrics']);
+Route::post('/customers/customers/sync-metrics', [CustomerController::class, 'syncMetrics']);
 Route::get('/customers/care/meta', [MirrorRecordController::class, 'customerCareMeta']);
 Route::get('/customers/care', [MirrorRecordController::class, 'index'])->defaults('resource', 'customer-cares');
 Route::post('/customers/care', [LocalWriteController::class, 'storeMirror'])->defaults('resource', 'customer-cares');

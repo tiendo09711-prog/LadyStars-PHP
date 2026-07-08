@@ -78,7 +78,7 @@ class LegacyImportService
         $this->batchSize = max(50, (int)($options['batch_size'] ?? 500));
         $this->logPath = $options['log_file'] ?? storage_path('logs/legacy_import_' . date('Ymd_His') . '.log');
 
-        $required = ['categories','products','stock','customers','sales','returns','cares','inv_vouchers','inv_items','product_logs'];
+        $required = ['categories','products','stock','customers','sales','returns','cares','inv_vouchers','inv_items','product_logs','warehouse_transfers'];
         foreach ($required as $k) {
             $path = $fileMap[$k] ?? null;
             if (empty($path) || !file_exists($path)) {
@@ -131,6 +131,7 @@ class LegacyImportService
             $this->importReturns($fileMap['returns']);
             $this->importCares($fileMap['cares']);
             $this->importInventory($fileMap['inv_vouchers'], $fileMap['inv_items']);
+            $this->importWarehouseTransfers($fileMap['warehouse_transfers']);
         });
 
         // Phase 6
@@ -148,6 +149,39 @@ class LegacyImportService
         return [
             'success' => true,
             'message' => 'Import completed successfully.',
+            'stats' => $this->stats,
+            'report_path' => $report['md'] ?? null,
+            'orphans_csv' => $report['csv'] ?? null,
+            'inserted' => $this->stats['inserted'] ?? [],
+            'orphans_count' => $this->stats['orphans'] ?? 0,
+            'warnings' => $this->stats['warnings'] ?? 0,
+        ];
+    }
+
+    public function importWarehouseTransfersFile(string $path, array $options = []): array
+    {
+        $this->dryRun = !empty($options['dry_run']);
+        $this->limit = $options['limit'] ?? null;
+        $this->batchSize = max(50, (int)($options['batch_size'] ?? 500));
+        $this->logPath = $options['log_file'] ?? storage_path('logs/warehouse_transfer_import_' . date('Ymd_His') . '.log');
+
+        if (!file_exists($path)) {
+            return [
+                'success' => false,
+                'message' => 'Missing or not found warehouse transfer file: ' . $path,
+                'stats' => $this->stats,
+            ];
+        }
+
+        $this->log('=== WAREHOUSE TRANSFER IMPORT START === dry=' . ($this->dryRun ? '1' : '0'));
+        $this->phase('warehouse-transfers-only', function () use ($path) {
+            $this->importWarehouseTransfers($path);
+        });
+        $report = $this->generateReport();
+
+        return [
+            'success' => true,
+            'message' => 'Warehouse transfer import completed successfully.',
             'stats' => $this->stats,
             'report_path' => $report['md'] ?? null,
             'orphans_csv' => $report['csv'] ?? null,
@@ -865,6 +899,142 @@ class LegacyImportService
         }
         $this->log("Inventory items loaded: $itemCount");
         $this->stats['inserted']['inventory_products'] = $itemCount;
+    }
+
+
+    private function importWarehouseTransfers(string $path): void
+    {
+        $spreadsheet = IOFactory::load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, true);
+
+        $count = 0;
+        foreach ($rows as $idx => $row) {
+            if ($idx == 1) continue;
+            if ($this->limit && $count >= $this->limit) break;
+
+            $code = trim((string)($row['A'] ?? $row[1] ?? ''));
+            if ($code === '') continue;
+
+            $date = $this->parseDate($row['B'] ?? $row[2] ?? null);
+            $direction = trim((string)($row['C'] ?? $row[3] ?? ''));
+            $spCount = (int)($row['D'] ?? $row[4] ?? 0);
+            $qty = (float)($row['E'] ?? $row[5] ?? 0);
+            $creator = trim((string)($row['F'] ?? $row[6] ?? ''));
+            $statusLabel = trim((string)($row['G'] ?? $row[7] ?? ''));
+            $note = trim((string)($row['H'] ?? $row[8] ?? ''));
+
+            [$sourceName, $destinationName] = array_pad(
+                preg_split('/\s*(?:→|->|=>|-->|—>|-)\s*/u', $direction, 2),
+                2,
+                null
+            );
+            $sourceName = trim((string)$sourceName);
+            $destinationName = trim((string)$destinationName);
+
+            $sourceBranch = $this->resolveBranchByName($sourceName);
+            $destinationBranch = $this->resolveBranchByName($destinationName);
+            $status = $this->transferStatusFromLabel($statusLabel);
+            $businessDate = $date?->copy()->startOfDay();
+            $createdAt = $businessDate?->copy();
+            $mongoId = substr(md5('legacy-transfer|' . $code), 0, 24);
+            $lineQty = $qty > 0 ? $qty : max($spCount, 0);
+            $lineCount = max($spCount, 1);
+            $lines = [[
+                '_id' => $mongoId . '-summary',
+                'productId' => null,
+                'productCode' => null,
+                'productName' => 'Tổng hợp từ file Đơn chuyển kho',
+                'unit' => '',
+                'requestedQuantity' => $lineQty,
+                'dispatchedQuantity' => $lineQty,
+                'receivedQuantity' => $lineQty,
+                'lockedQuantity' => 0,
+                'note' => $spCount > 0 ? ('Số SP: ' . $spCount) : '',
+            ]];
+
+            $payload = [
+                '_id' => $mongoId,
+                'id' => $code,
+                'code' => $code,
+                'date' => $date?->toDateString(),
+                'createdAt' => $createdAt?->toIso8601String(),
+                'sourceWarehouseId' => $sourceBranch?->mongo_id,
+                'destinationWarehouseId' => $destinationBranch?->mongo_id,
+                'sourceWarehouseName' => $sourceName ?: $sourceBranch?->name,
+                'destinationWarehouseName' => $destinationName ?: $destinationBranch?->name,
+                'spCount' => $spCount,
+                'qty' => $qty,
+                'creator' => $creator,
+                'status' => $status,
+                'statusLabel' => $statusLabel ?: null,
+                'kind' => 'NORMAL_TRANSFER',
+                'note' => $note,
+                'lines' => $lines,
+                'source_row' => $this->sourcePayload('warehouse_transfers', $idx, $row),
+                'legacy_import' => true,
+                'legacy_export_file' => 'Đơn chuyển kho.xlsx',
+            ];
+
+            if (!$this->dryRun) {
+                $this->safeMirrorInsert('warehouse_transfers', ['code' => $code], [
+                    'mongo_id' => $mongoId,
+                    'code' => $code,
+                    'name' => $code,
+                    'status' => $status,
+                    'type' => 'NORMAL_TRANSFER',
+                    'amount' => $qty,
+                    'total' => $qty,
+                    'business_date' => $businessDate,
+                    'from_branch_mongo_id' => $sourceBranch?->mongo_id,
+                    'to_branch_mongo_id' => $destinationBranch?->mongo_id,
+                    'from_branch_id' => $sourceBranch?->id,
+                    'to_branch_id' => $destinationBranch?->id,
+                    'date_send' => $date?->toDateString(),
+                    'date_take' => $status === 'COMPLETED' ? $date?->toDateString() : null,
+                    'payload' => $payload,
+                    'created_at' => $createdAt ?? now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            $count++;
+        }
+
+        $this->log("Warehouse transfers loaded: $count");
+        $this->stats['inserted']['warehouse_transfers'] = $count;
+    }
+
+    private function resolveBranchByName(?string $name): ?Branch
+    {
+        $name = trim((string)$name);
+        if ($name === '') {
+            return null;
+        }
+
+        $normalized = Str::lower(Str::ascii($name));
+        $branch = Branch::query()->get()->first(function (Branch $branch) use ($normalized): bool {
+            return Str::lower(Str::ascii((string)$branch->name)) === $normalized;
+        });
+
+        if ($branch) {
+            return $branch;
+        }
+
+        $code = Str::upper(Str::substr(Str::slug($name, ''), 0, 12)) ?: null;
+        return $this->createBranchIfNotExists($name, $code ?: Str::upper(Str::substr(md5($name), 0, 8)));
+    }
+
+    private function transferStatusFromLabel(string $label): string
+    {
+        $normalized = Str::lower(Str::ascii(trim($label)));
+        return match (true) {
+            str_contains($normalized, 'hoan thanh') => 'COMPLETED',
+            str_contains($normalized, 'dang chuyen') => 'IN_TRANSIT',
+            str_contains($normalized, 'huy') => 'CANCELLED',
+            str_contains($normalized, 'tra') => 'RETURNED',
+            str_contains($normalized, 'duyet'), str_contains($normalized, 'xac nhan') => 'DRAFT',
+            default => 'DRAFT',
+        };
     }
 
     private function importProductLogs(string $path): void

@@ -57,6 +57,7 @@ class LegacyImportController extends Controller
             'inv_vouchers' => ['xuat-nhap-kho-phieu-xuat-nhap-kho', 'xuat-nhap-kho-phieu'],
             'inv_items' => ['xuat-nhap-kho-san-pham-xuat-nhap-kho'],
             'product_logs' => ['san-pham-lich-su-sua-xoa'],
+            'warehouse_transfers' => ['don-chuyen-kho', 'chuyen-kho'],
         ];
 
         foreach ($request->file('files') as $file) {
@@ -106,8 +107,8 @@ class LegacyImportController extends Controller
             }
         }
 
-        // Kiểm tra đủ 10 file chính
-        $required = ['categories','products','stock','customers','sales','returns','cares','inv_vouchers','inv_items','product_logs'];
+        // Kiểm tra đủ 11 file chính
+        $required = ['categories','products','stock','customers','sales','returns','cares','inv_vouchers','inv_items','product_logs','warehouse_transfers'];
         $missing = [];
         foreach ($required as $k) {
             if (empty($uploadedMap[$k])) {
@@ -136,9 +137,9 @@ class LegacyImportController extends Controller
             }
 
             return back()->withErrors([
-                'files' => 'Thiếu file: ' . implode(', ', $missing) . 
-                           ". Vui lòng giữ nguyên tên file gốc và upload đúng 10 file.\n\n" . 
-                           "Mapping hiện tại:\n" . $debug . 
+                'files' => 'Thiếu file: ' . implode(', ', $missing) .
+                           ". Vui lòng giữ nguyên tên file gốc và upload đúng 11 file.\n\n" .
+                           "Mapping hiện tại:\n" . $debug .
                            "\nLưu ý: Một số file có tên chứa từ 'Sản phẩm' nên cần pattern cụ thể."
             ])->withInput();
         }

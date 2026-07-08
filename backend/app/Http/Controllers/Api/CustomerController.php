@@ -374,7 +374,7 @@ class CustomerController extends Controller
     private function duplicateResponse(QueryException $error): JsonResponse
     {
         if (str_contains($error->getMessage(), 'UNIQUE') || (int) ($error->errorInfo[1] ?? 0) === 1062) {
-            return response()->json(['message' => 'M? kh?ch h?ng ?? t?n t?i.'], 409);
+            return response()->json(['message' => 'Mã khách hàng đã tồn tại.'], 409);
         }
 
         throw $error;

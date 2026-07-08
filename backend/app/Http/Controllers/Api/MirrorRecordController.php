@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\MirrorRecord;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -233,6 +234,12 @@ class MirrorRecordController extends Controller
             $serialized['items'] = $items;
         }
 
+        // Normalize createdAt for consistent date display in refund list (createdAt / business_date / created_at)
+        $serialized['createdAt'] = $serialized['createdAt'] ?? $serialized['created_at'] ?? $serialized['business_date'] ?? null;
+        if (!isset($serialized['created_at']) || $serialized['created_at'] === null) {
+            $serialized['created_at'] = $serialized['createdAt'];
+        }
+
         return $serialized;
     }
 
@@ -256,6 +263,24 @@ class MirrorRecordController extends Controller
                     'phone' => $customer['phone'] ?? $customer['customer_phone'] ?? null,
                     'code' => $customer['code'] ?? $customer['customer_code'] ?? null,
                 ];
+            }
+        }
+
+        // Enrich creator/author name from users table (MySQL) so retail list/detail/export shows real staff name instead of '—'
+        $authorIdRaw = $serialized['author_id'] ?? $serialized['user_id'] ?? $serialized['authorId'] ?? $serialized['userId'] ?? null;
+        $authorId = is_array($authorIdRaw) ? ($authorIdRaw['id'] ?? $authorIdRaw['_id'] ?? null) : $authorIdRaw;
+        if ($authorId && !is_array($serialized['authorId'] ?? null)) {
+            $user = User::query()
+                ->where('id', $authorId)
+                ->orWhere('mongo_id', $authorId)
+                ->first();
+            if ($user) {
+                $serialized['authorId'] = [
+                    '_id' => $user->mongo_id ?: (string) $user->id,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                ];
+                $serialized['userId'] = $serialized['authorId'];
             }
         }
 
@@ -434,7 +459,12 @@ class MirrorRecordController extends Controller
         foreach (self::FILTER_COLUMNS as $field) {
             if ($columns->has($field) && $request->filled($field)) {
                 $value = $request->query($field);
-                if (is_string($value) && str_contains($value, ',')) {
+                if ($resource === 'sale-payments' && $field === 'type' && $value === 'retail') {
+                    // For retail lists: include records with type='retail' OR no type (legacy without explicit type)
+                    $query->where(function ($q) use ($field, $value) {
+                        $q->where($field, $value)->orWhereNull($field);
+                    });
+                } elseif (is_string($value) && str_contains($value, ',')) {
                     $query->whereIn($field, array_filter(array_map('trim', explode(',', $value))));
                 } else {
                     $query->where($field, $value);
@@ -485,6 +515,25 @@ class MirrorRecordController extends Controller
             $this->applyWarehouseTransferFilters($request, $query, $columns);
         }
 
+        // Apply channel filter for product-refunds (scoped per sales-channel like /sales-channels/store/refund).
+        // Strict: only records with explicit matching channel (no auto-include of null-channel legacy records).
+        // Per audit: null channel records are not assumed to belong to 'store' unless payment/order provides mapping.
+        // Total/pagination computed at query level before enrich.
+        if ($resource === 'product-refunds') {
+            $ch = trim((string) $request->query('channel', ''));
+            if ($ch !== '') {
+                if ($columns->has('channel')) {
+                    $query->where('channel', $ch);
+                } else {
+                    $query->where(function ($q) use ($ch) {
+                        $q->whereRaw("JSON_EXTRACT(payload, '$.channel') = ?", [$ch])
+                          ->orWhereRaw("JSON_EXTRACT(payload, '$.orderSource') = ?", [$ch])
+                          ->orWhereRaw("JSON_EXTRACT(payload, '$.saleChannel') = ?", [$ch]);
+                    });
+                }
+            }
+        }
+
         $sortInput = (string) $request->query('sort', 'business_date');
         $sortAliases = [
             'createdAt' => 'created_at',
@@ -526,14 +575,17 @@ class MirrorRecordController extends Controller
             $records->all(),
         );
 
-        // Support channel filter passed by FE (e.g. /products/sales?channel=store) without over-filtering records that lack channel in payload yet.
-        // Main retail filtering is still driven by storeId/branchId. This makes the passed channel param effective when data carries it.
-        if ($resource === 'sale-payments') {
+        // Post-filter safety net (for any records that bypassed query filter, e.g. very old payloads).
+        // For product-refunds: strict match only (nulls excluded, as they are not proven to belong to the channel).
+        if ($resource === 'sale-payments' || $resource === 'product-refunds') {
             $ch = trim((string) $request->query('channel', ''));
             if ($ch !== '') {
-                $items = array_values(array_filter($items, function ($rec) use ($ch) {
+                $items = array_values(array_filter($items, function ($rec) use ($ch, $resource) {
                     $c = $rec['channel'] ?? $rec['orderSource'] ?? $rec['saleChannel'] ?? null;
-                    return $c === null || (string) $c === $ch;
+                    if ($resource === 'product-refunds') {
+                        return (string) $c === $ch; // strict for refunds
+                    }
+                    return $c === null || (string) $c === $ch; // legacy lenient for sales
                 }));
             }
         }
@@ -595,6 +647,24 @@ class MirrorRecordController extends Controller
 
     private function applySalePaymentExtraFilters(Request $request, \Illuminate\Database\Eloquent\Builder $query, \Illuminate\Support\Collection $columns): void
     {
+        // Server-side channel filter (supports direct column from writes + JSON payload fallback for legacy).
+        // Lenient: include records where channel matches or is not set (so legacy data without channel still appears for default 'store').
+        $ch = trim((string) $request->query('channel', ''));
+        if ($ch !== '') {
+            if ($columns->has('channel')) {
+                $query->where(function ($q) use ($ch) {
+                    $q->where('channel', $ch)->orWhereNull('channel');
+                });
+            } else {
+                $query->where(function ($q) use ($ch) {
+                    $q->whereRaw("JSON_EXTRACT(payload, '$.channel') = ?", [$ch])
+                      ->orWhereRaw("JSON_EXTRACT(payload, '$.orderSource') = ?", [$ch])
+                      ->orWhereRaw("JSON_EXTRACT(payload, '$.saleChannel') = ?", [$ch])
+                      ->orWhereNull(DB::raw("JSON_EXTRACT(payload, '$.channel')"));
+                });
+            }
+        }
+
         $dateColumn = $columns->has('business_date') ? 'business_date' : ($columns->has('completed_at') ? 'completed_at' : null);
         if ($dateColumn) {
             if ($from = trim((string) $request->query('dateFrom', ''))) {
@@ -722,12 +792,24 @@ class MirrorRecordController extends Controller
         return response()->json($this->enrich($this->serialize($record), $resource, $table));
     }
 
-    public function warehouseTransferMeta(): JsonResponse
+    public function warehouseTransferMeta(Request $request): JsonResponse
     {
-        $warehouses = Branch::query()
+        // Extract current user from Authorization header (same pattern as LocalContextController::me)
+        // Token format: "Bearer local-laravel-token-{userId}"
+        $authHeader = $request->header('Authorization', '');
+        $user = null;
+        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            $loggedId = (int) $matches[1];
+            $user = User::find($loggedId);
+        }
+
+        // Always return all active branches for dropdown options (warehouses list is global)
+        $activeBranches = Branch::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['mongo_id', 'name', 'code'])
+            ->get(['id', 'mongo_id', 'name', 'code']);
+
+        $warehouses = $activeBranches
             ->map(fn (Branch $branch): array => [
                 'value' => $branch->mongo_id,
                 'label' => $branch->name,
@@ -742,9 +824,58 @@ class MirrorRecordController extends Controller
             ])
             ->values();
 
+        // Compute userWarehouseIds using SAME ID system as warehouses.value (mongo_id)
+        $userWarehouseIds = [];
+        $role = 'GUEST';
+        $isRootOwner = false;
+
+        if ($user) {
+            $role = $user->role ?: 'EMPLOYEE';
+            $isRootOwner = (bool) $user->is_root_owner;
+            $isAdminOrRoot = ($role === 'ADMIN' || $isRootOwner);
+
+            // Collect local branch ids from user + assignments
+            $localIds = [];
+            if ($user->default_warehouse_id) {
+                $localIds[] = (int) $user->default_warehouse_id;
+            }
+            if ($user->branch_id) {
+                $localIds[] = (int) $user->branch_id;
+            }
+            $assignRows = DB::table('user_warehouse_assignments')
+                ->where('user_id', $user->id)
+                ->pluck('branch_id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+            $localIds = array_unique(array_merge($localIds, $assignRows));
+
+            if ($isAdminOrRoot) {
+                // Admin / root owner sees all active warehouses
+                $userWarehouseIds = $activeBranches
+                    ->pluck('mongo_id')
+                    ->filter()
+                    ->values()
+                    ->all();
+            } elseif (!empty($localIds)) {
+                $branchMap = $activeBranches->keyBy('id');
+                foreach ($localIds as $lid) {
+                    if ($b = $branchMap->get($lid)) {
+                        if ($b->mongo_id) {
+                            $userWarehouseIds[] = $b->mongo_id;
+                        }
+                    }
+                }
+                $userWarehouseIds = array_values(array_unique($userWarehouseIds));
+            }
+            // else: regular user with no assignments -> empty list
+        }
+        // If no identifiable user from token: do not pretend ADMIN, use GUEST + empty ids
+        // (warehouses list still provided so UI dropdowns continue to work)
+
         return response()->json([
-            'role' => 'ADMIN',
-            'userWarehouseIds' => [],
+            'role' => $role,
+            'isRootOwner' => $isRootOwner,
+            'userWarehouseIds' => $userWarehouseIds,
             'warehouses' => $warehouses,
             'destinationWarehouses' => $warehouses,
             'statuses' => $statuses,
@@ -761,6 +892,21 @@ class MirrorRecordController extends Controller
 
     private function enrichCustomerCare(array $serialized): array
     {
+        // Normalize camelCase fields that FE (CustomerCarePage) exclusively uses for display, edit, sort, export, links.
+        // Legacy/mirror import + extract migrations populate snake_case columns (customer_name, record_date, ...)
+        // while payload may carry camel. Always provide camel aliases so UI shows real MySQL values (no '—').
+        $serialized['code'] = $serialized['code'] ?? ($serialized['id'] ?? null);
+        $serialized['recordDate'] = $serialized['recordDate'] ?? $serialized['record_date'] ?? $serialized['business_date'] ?? null;
+        $serialized['createdAt'] = $serialized['createdAt'] ?? $serialized['created_at'] ?? null;
+        $serialized['updatedAt'] = $serialized['updatedAt'] ?? $serialized['updated_at'] ?? null;
+        $serialized['customerCode'] = $serialized['customerCode'] ?? $serialized['customer_code'] ?? null;
+        $serialized['customerName'] = $serialized['customerName'] ?? $serialized['customer_name'] ?? $serialized['name'] ?? null;
+        $serialized['customerPhone'] = $serialized['customerPhone'] ?? $serialized['customer_phone'] ?? null;
+        $serialized['details'] = $serialized['details'] ?? null;
+        $serialized['reason'] = $serialized['reason'] ?? null;
+        $serialized['description'] = $serialized['description'] ?? null;
+        $serialized['creator'] = $serialized['creator'] ?? null;
+
         // Ensure customerId is present for linking in FE (works for old + new records)
         $cid = $serialized['customerId'] ?? $serialized['customer_id'] ?? $serialized['customer_mongo_id'] ?? null;
 
