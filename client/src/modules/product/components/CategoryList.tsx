@@ -71,6 +71,13 @@ function getApiErrorMessage(error: unknown, fallback: string) {
   return apiError.response?.data?.message || apiError.message || fallback;
 }
 
+function formatCategoryDate(value?: string | null): string {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('vi-VN');
+}
+
 function parseTemplateBoolean(value: string, fallback: boolean) {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) return fallback;
@@ -103,21 +110,26 @@ export function CategoryList() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const limit = 15;
 
   const load = async (options?: { nextPage?: number; nextSearch?: string }) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await productApi.getCategories({
         page: options?.nextPage ?? page,
         limit,
         q: options?.nextSearch ?? search,
       });
-      setItems(res.items);
-      setTotal(res.total);
+      setItems(res.items || []);
+      setTotal(res.total || 0);
     } catch (err) {
       console.error(err);
+      setError(getApiErrorMessage(err, 'Không thể tải danh sách danh mục.'));
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -127,9 +139,10 @@ export function CategoryList() {
     setLoadingCategoryOptions(true);
     try {
       const res = await productApi.getCategories({ page: 1, limit: 5000 });
-      setCategoryOptions(res.items);
+      setCategoryOptions(res.items || []);
     } catch (err) {
       console.error(err);
+      setCategoryOptions([]);
     } finally {
       setLoadingCategoryOptions(false);
     }
@@ -172,7 +185,7 @@ export function CategoryList() {
       { label: 'M\u00e3 danh m\u1ee5c', key: 'code', getValue: (item: ICategory) => item.code || '' },
       { label: 'Tr\u1ea1ng th\u00e1i', key: 'isActive', getValue: (item: ICategory) => (item.isActive !== false ? '\u0110ang ho\u1ea1t \u0111\u1ed9ng' : 'Ng\u1eebng') },
       { label: 'S\u1ed1 s\u1ea3n ph\u1ea9m', key: 'productCount', getValue: (item: ICategory) => item.productCount || 0 },
-      { label: 'Ng\u00e0y t\u1ea1o', key: 'createdAt', getValue: (item: ICategory) => new Date(item.createdAt).toLocaleDateString('vi-VN') },
+      { label: 'Ng\u00e0y t\u1ea1o', key: 'createdAt', getValue: (item: ICategory) => formatCategoryDate(item.createdAt) },
     ],
     [],
   );
@@ -236,6 +249,7 @@ export function CategoryList() {
   const handleRefresh = () => {
     setSearch('');
     setPage(1);
+    setError(null);
     setRefreshKey((value) => value + 1);
   };
 
@@ -624,7 +638,14 @@ export function CategoryList() {
                   </td>
                 </tr>
               )}
-              {!loading && items.length === 0 && (
+              {!loading && error && (
+                <tr>
+                  <td colSpan={7} className="empty-cell" style={{ color: '#b91c1c' }}>
+                    {error}
+                  </td>
+                </tr>
+              )}
+              {!loading && !error && items.length === 0 && (
                 <tr>
                   <td colSpan={7} className="empty-cell">
                     Chưa có dữ liệu.
@@ -667,7 +688,7 @@ export function CategoryList() {
                         <span>{'S\u1ea3n ph\u1ea9m'}</span>
                       </button>
                     </td>
-                    <td>{new Date(item.createdAt).toLocaleDateString('vi-VN')}</td>
+                    <td>{formatCategoryDate(item.createdAt)}</td>
                     <td className="action-cell">
                       <div className="categories-row-actions">
                         <div className="categories-floating-menu">
@@ -987,6 +1008,7 @@ interface CategoryProductsModalProps {
 function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps) {
   const [items, setItems] = useState<IInventory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -995,6 +1017,7 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
 
   const load = async (nextPage = page, nextSearch = search) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await productApi.getInventories({
         page: nextPage,
@@ -1006,6 +1029,9 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
       setTotal(res.total || 0);
     } catch (err) {
       console.error(err);
+      setError(getApiErrorMessage(err, 'Không thể tải sản phẩm của danh mục.'));
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -1095,7 +1121,14 @@ function CategoryProductsModal({ category, onClose }: CategoryProductsModalProps
                     </td>
                   </tr>
                 )}
-                {!loading && items.length === 0 && (
+                {!loading && error && (
+                  <tr>
+                    <td colSpan={5 + branches.length} className="empty-cell" style={{ color: '#b91c1c' }}>
+                      {error}
+                    </td>
+                  </tr>
+                )}
+                {!loading && !error && items.length === 0 && (
                   <tr>
                     <td colSpan={5 + branches.length} className="empty-cell">
                       Không có sản phẩm nào thuộc danh mục này.

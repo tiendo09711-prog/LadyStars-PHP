@@ -26,6 +26,8 @@ export function InventoryList() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [totalStockQuantity, setTotalStockQuantity] = useState(0);
+  const [totalInventoryValue, setTotalInventoryValue] = useState(0);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
@@ -64,11 +66,15 @@ export function InventoryList() {
       });
       setItems(res.items);
       setTotal(res.total);
+      setTotalStockQuantity(typeof res.totalStockQuantity === 'number' ? res.totalStockQuantity : 0);
+      setTotalInventoryValue(typeof res.totalInventoryValue === 'number' ? res.totalInventoryValue : 0);
     } catch (err) {
       console.error('Inventory load error', err);
       setError('Không tải được dữ liệu tồn kho. Vui lòng thử Làm mới hoặc kiểm tra kết nối.');
       setItems([]);
       setTotal(0);
+      setTotalStockQuantity(0);
+      setTotalInventoryValue(0);
     } finally {
       setLoading(false);
     }
@@ -179,6 +185,8 @@ export function InventoryList() {
     setPage(1);
     setError(null);
     setBranchesError(null);
+    setTotalStockQuantity(0);
+    setTotalInventoryValue(0);
     setRefreshKey((value) => value + 1);
   };
 
@@ -238,16 +246,25 @@ export function InventoryList() {
           </div>
           <div className="inventory-hero-stats">
             <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">Lọc kho</span>
+              <span className="inventory-hero-stat-label">KHO</span>
               <strong>{warehouseFilterLabel}</strong>
             </div>
             <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">Còn tồn</span>
+              <span className="inventory-hero-stat-label">CÒN TỒN</span>
               <strong>{stockStatusLabel}</strong>
             </div>
             <div className="inventory-hero-stat">
-              <span className="inventory-hero-stat-label">Tổng bản ghi</span>
+              <span className="inventory-hero-stat-label">TỔNG BẢN GHI</span>
               <strong>{total.toLocaleString('vi-VN')}</strong>
+            </div>
+            <div className="inventory-hero-stat">
+              <span className="inventory-hero-stat-label">TỔNG TỒN</span>
+              <strong>{totalStockQuantity.toLocaleString('vi-VN')}</strong>
+            </div>
+            <div className="inventory-hero-stat inventory-hero-stat--value">
+              <span className="inventory-hero-stat-label">TỔNG GIÁ TRỊ</span>
+              <strong>{formatMoney(totalInventoryValue)}</strong>
+              <span className="inventory-hero-stat-sublabel">Theo bộ lọc hiện tại</span>
             </div>
           </div>
         </div>

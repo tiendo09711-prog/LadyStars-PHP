@@ -54,8 +54,8 @@ export function WarehouseTransferCreatePage() {
   const [success, setSuccess] = useState('');
   const [editStatus, setEditStatus] = useState('');
 
-  const sourceName = warehouses.find((item) => item.value === sourceWarehouseId)?.label || 'Kho nguồn';
-  const destinationName = (destinationWarehouses.find((item) => item.value === destinationWarehouseId) || warehouses.find((item) => item.value === destinationWarehouseId))?.label || 'Kho đích';
+  const sourceName = warehouses.find((item) => item.value === sourceWarehouseId)?.label || '-';
+  const destinationName = (destinationWarehouses.find((item) => item.value === destinationWarehouseId) || warehouses.find((item) => item.value === destinationWarehouseId))?.label || '-';
   const warehousesValid = Boolean(sourceWarehouseId && destinationWarehouseId && sourceWarehouseId !== destinationWarehouseId);
   const isInTransitEdit = editMode && editStatus === 'IN_TRANSIT';
   const searchHelper = warehousesValid ? `Có thể chuyển = tồn thực - số lượng đang khóa tại ${sourceName}.` : 'Chọn kho nguồn và kho đích trước khi tìm sản phẩm.';

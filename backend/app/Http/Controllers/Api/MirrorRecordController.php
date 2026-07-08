@@ -15,12 +15,12 @@ use Illuminate\Support\Facades\Schema;
 class MirrorRecordController extends Controller
 {
     private const PUBLIC_TRANSFER_STATUSES = [
-        'DRAFT' => 'Chá» xÃ¡c nháº­n xuáº¥t',
-        'IN_TRANSIT' => 'Äang chuyá»ƒn',
-        'RETURN_IN_PROGRESS' => 'Äang chá» nháº­n láº¡i hÃ ng tráº£',
-        'COMPLETED' => 'HoÃ n thÃ nh',
-        'RETURNED' => 'ÄÃ£ tráº£ hÃ ng / ÄÃ£ má»Ÿ khÃ³a',
-        'CANCELLED' => 'ÄÃ£ há»§y',
+        'DRAFT' => 'Chờ xác nhận xuất',
+        'IN_TRANSIT' => 'Đang chuyển',
+        'RETURN_IN_PROGRESS' => 'Đang chờ nhận lại hàng trả',
+        'COMPLETED' => 'Hoàn thành',
+        'RETURNED' => 'Đã trả hàng / Đã mở khóa',
+        'CANCELLED' => 'Đã hủy',
     ];
 
     private const SEARCH_COLUMNS = [
@@ -157,6 +157,11 @@ class MirrorRecordController extends Controller
         $serialized['destinationWarehouseName'] = $serialized['destinationWarehouseName'] ?? $serialized['destination_warehouse_name'] ?? null;
         $serialized['sourceExportBillId'] = $serialized['sourceExportBillId'] ?? $serialized['source_export_bill_mongo_id'] ?? null;
         $serialized['destinationImportBillId'] = $serialized['destinationImportBillId'] ?? $serialized['destination_import_bill_mongo_id'] ?? null;
+
+        // Normalize common display fields from mirror columns (business_date, created_at, creator) so FE display (date/createdAt/creator) is reliable regardless of payload shape.
+        $serialized['date'] = $serialized['date'] ?? $serialized['business_date'] ?? $serialized['created_at'] ?? $serialized['date_send'] ?? null;
+        $serialized['createdAt'] = $serialized['createdAt'] ?? $serialized['created_at'] ?? $serialized['date'] ?? null;
+        $serialized['creator'] = $serialized['creator'] ?? $serialized['created_by'] ?? null;
         $serialized['canEdit'] = $status === 'DRAFT';
         $serialized['canCancel'] = $status === 'DRAFT';
         $serialized['canConfirmSource'] = $status === 'DRAFT';

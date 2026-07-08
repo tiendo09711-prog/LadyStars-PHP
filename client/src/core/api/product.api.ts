@@ -6,6 +6,8 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   limit: number;
+  totalStockQuantity?: number; // aggregate sum for inventory "Tổng tồn" (full filtered set)
+  totalInventoryValue?: number; // aggregate sum (scoped qty * cost) for "TỔNG GIÁ TRỊ" over full filtered result
 }
 
 export interface ProductWarehouseStock {

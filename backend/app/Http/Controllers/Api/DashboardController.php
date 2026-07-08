@@ -26,14 +26,87 @@ class DashboardController extends Controller
         }
 
         $today = Carbon::today();
+
+        // Default range for totals/periods (preserve existing behavior for other cards)
         $rangeDays = $this->rangeDays((string) $request->query('chartRange', '7 ngày'));
         $start = Carbon::today()->subDays($rangeDays - 1);
         $previousStart = (clone $start)->subDays($rangeDays);
         $previousEnd = (clone $start)->subSecond();
 
-        $chartData = collect(range(0, $rangeDays - 1))->map(function (int $offset) use ($start, $previousStart, $completedSales): array {
-            $date = (clone $start)->addDays($offset);
-            $previousDate = (clone $previousStart)->addDays($offset);
+        // Custom date range support for "Doanh thu theo thời gian" chart only.
+        // Frontend may send startDate and/or endDate (YYYY-MM-DD) independently.
+        // isDateFilterActive when at least one is present (start-only / end-only / both are valid).
+        // Only both + start>end is invalid (do not apply).
+        // Never mix with chartRange/days when date filter active.
+        $startDateStr = (string) $request->query('startDate', '');
+        $endDateStr = (string) $request->query('endDate', '');
+        $hasStart = $startDateStr !== '';
+        $hasEnd = $endDateStr !== '';
+        $isDateFilterActive = $hasStart || $hasEnd;
+
+        $chartStart = clone $start;
+        $chartRangeDays = $rangeDays;
+        $chartPrevStart = clone $previousStart;
+        $useCustomChart = false;
+        $chartEndForSeries = null;
+
+        if ($isDateFilterActive) {
+            try {
+                $cs = $hasStart ? Carbon::parse($startDateStr)->startOfDay() : null;
+                $ce = $hasEnd ? Carbon::parse($endDateStr)->endOfDay() : null;
+
+                $bothPresent = $hasStart && $hasEnd;
+                $dateRangeInvalid = $bothPresent && $cs && $ce && $cs->gt($ce);
+
+                if ($dateRangeInvalid) {
+                    // do not apply reverse range; fall through to default days
+                    $useCustomChart = false;
+                } else {
+                    $useCustomChart = true;
+
+                    if ($cs && $ce) {
+                        // full range
+                        $chartStart = $cs;
+                        $chartEndForSeries = $ce;
+                    } elseif ($cs) {
+                        // start-only: from start to today (inclusive)
+                        $chartStart = $cs;
+                        $chartEndForSeries = Carbon::today()->endOfDay();
+                    } elseif ($ce) {
+                        // end-only: last ~30 calendar days ending at the given endDate (bounded window)
+                        // ensures no data after endDate, without using/sending chartRange days
+                        $chartEndForSeries = $ce;
+                        $chartStart = (clone $ce)->subDays(29)->startOfDay();
+                    } else {
+                        $useCustomChart = false;
+                    }
+
+                    if ($useCustomChart && $chartEndForSeries) {
+                        $chartRangeDays = $chartStart->diffInDays($chartEndForSeries) + 1;
+                        $chartPrevStart = (clone $chartStart)->subDays($chartRangeDays)->startOfDay();
+                    }
+                }
+            } catch (\Throwable $e) {
+                $useCustomChart = false;
+            }
+        }
+
+        $chartPrevEnd = (clone $chartStart)->subSecond();
+
+        // Build chart dates inclusively. When custom (incl. partial), only dates satisfying the bounds are included.
+        if (!$chartEndForSeries || !$useCustomChart) {
+            $chartEndForSeries = (clone $chartStart)->addDays($chartRangeDays - 1);
+        }
+        $chartDates = [];
+        $cur = clone $chartStart;
+        while ($cur->lte($chartEndForSeries)) {
+            $chartDates[] = clone $cur;
+            $cur = $cur->copy()->addDay();
+        }
+
+        $chartData = collect($chartDates)->map(function (Carbon $date) use ($chartStart, $chartPrevStart, $completedSales): array {
+            $offset = $date->diffInDays($chartStart);
+            $previousDate = (clone $chartPrevStart)->addDays($offset);
 
             return [
                 'date' => $date->format('d/m'),

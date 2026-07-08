@@ -39,7 +39,7 @@ const fmtCompact = (value: number) => {
   return `${value || 0}`;
 };
 
-const CHART_RANGE_OPTIONS = ['7 ngày', '14 ngày', '30 ngày', 'Tháng này', 'Tháng trước'];
+const CHART_RANGE_OPTIONS = ['Tuần này', 'Tuần trước', '7 ngày', '14 ngày', '30 ngày', 'Tháng này', 'Tháng trước'];
 const CHART_TYPE_OPTIONS = [
   { value: 'bar_compare', label: 'Cột so sánh' },
   { value: 'bar', label: 'Cột doanh thu' },
@@ -71,6 +71,31 @@ function formatSaleTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatDisplayDate(d: string): string {
+  if (!d) return '';
+  const parts = d.split('-');
+  if (parts.length !== 3) return d;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function getWeekDateRange(isCurrentWeek: boolean): { start: string; end: string } {
+  const today = new Date();
+  const day = today.getDay(); // 0=Chủ nhật, 1=Thứ hai, ..., 6=Thứ bảy
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diffToMonday);
+  if (!isCurrentWeek) {
+    monday.setDate(monday.getDate() - 7);
+  }
+  const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+  const fmt = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${da}`;
+  };
+  return { start: fmt(monday), end: fmt(sunday) };
 }
 
 function readStoredOption(key: string, fallback: string, options: readonly string[]) {
@@ -123,6 +148,8 @@ export function DashboardPage() {
   const [storePanelPos, setStorePanelPos] = useState<{ top: number; left: number; width: number; dropUp: boolean } | null>(null);
   const [chartRange, setChartRange] = useStoredOption(DASHBOARD_FILTER_STORAGE.chartRange, '7 ngày', CHART_RANGE_OPTIONS);
   const [chartType, setChartType] = useStoredOption(DASHBOARD_FILTER_STORAGE.chartType, 'bar_compare', CHART_TYPE_OPTIONS.map((option) => option.value));
+  const [chartStartDate, setChartStartDate] = useState('');
+  const [chartEndDate, setChartEndDate] = useState('');
   const [topRange, setTopRange] = useState('7 ngày');
   const [topLimit, setTopLimit] = useState(10);
   const [recentRange, setRecentRange] = useState('Hôm nay');
@@ -194,7 +221,22 @@ export function DashboardPage() {
     const timeout = window.setTimeout(() => {
       const params = new URLSearchParams();
       if (selectedStores.length) params.set('stores', selectedStores.join(','));
-      params.set('chartRange', chartRange);
+      const hasStartDate = Boolean(chartStartDate);
+      const hasEndDate = Boolean(chartEndDate);
+      const isDateFilterActive = hasStartDate || hasEndDate;
+      const bothDatesPresent = hasStartDate && hasEndDate;
+      const dateRangeInvalid = bothDatesPresent && chartStartDate > chartEndDate;
+      const isWeekPreset = chartRange === 'Tuần này' || chartRange === 'Tuần trước';
+      if (isDateFilterActive && !dateRangeInvalid) {
+        if (hasStartDate) params.set('startDate', chartStartDate);
+        if (hasEndDate) params.set('endDate', chartEndDate);
+      } else if (isWeekPreset) {
+        const { start, end } = getWeekDateRange(chartRange === 'Tuần này');
+        params.set('startDate', start);
+        params.set('endDate', end);
+      } else {
+        params.set('chartRange', chartRange);
+      }
       params.set('topRange', topRange);
       params.set('topLimit', String(topLimit));
 
@@ -219,7 +261,7 @@ export function DashboardPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [selectedStores, chartRange, topRange, topLimit, refreshKey]);
+  }, [selectedStores, chartRange, chartStartDate, chartEndDate, topRange, topLimit, refreshKey]);
 
   useEffect(() => {
     let active = true;
@@ -267,6 +309,27 @@ export function DashboardPage() {
   const inventory = data?.inventory ?? { totalQty: 0, totalCostValue: 0, totalSaleValue: 0 };
   const selectedStoreLabel = selectedStores.length === 0 ? 'Tất cả cửa hàng' : selectedStores.length === 1 ? selectedStores[0] : `${selectedStores.length} cửa hàng`;
   const chartMode = CHART_TYPE_OPTIONS.find((option) => option.value === chartType)?.label ?? chartType;
+  const hasStartDate = Boolean(chartStartDate);
+  const hasEndDate = Boolean(chartEndDate);
+  const isDateFilterActive = hasStartDate || hasEndDate;
+  const bothDatesPresent = hasStartDate && hasEndDate;
+  const dateRangeInvalid = bothDatesPresent && chartStartDate > chartEndDate;
+  let rangeLabel: string;
+  if (hasStartDate || hasEndDate) {
+    if (bothDatesPresent && dateRangeInvalid) {
+      rangeLabel = `Từ ${formatDisplayDate(chartStartDate)} đến ${formatDisplayDate(chartEndDate)} (không hợp lệ)`;
+    } else if (bothDatesPresent) {
+      rangeLabel = `Từ ${formatDisplayDate(chartStartDate)} đến ${formatDisplayDate(chartEndDate)}`;
+    } else if (hasStartDate) {
+      rangeLabel = `Từ ${formatDisplayDate(chartStartDate)}`;
+    } else {
+      rangeLabel = `Đến ${formatDisplayDate(chartEndDate)}`;
+    }
+  } else if (chartRange === 'Tuần này' || chartRange === 'Tuần trước') {
+    rangeLabel = chartRange;
+  } else {
+    rangeLabel = `${chartRange} gần nhất`;
+  }
   const chartHasData = chartData.some((row) => row.revenue > 0 || row.prevRevenue > 0);
   const chartTotals = chartData.reduce((acc, row) => ({ current: acc.current + (row.revenue ?? 0), previous: acc.previous + (row.prevRevenue ?? 0) }), { current: 0, previous: 0 });
   const chartPeak = chartData.reduce<{ date: string; revenue: number } | null>((best, row) => (!best || row.revenue > best.revenue ? { date: row.fullDate, revenue: row.revenue ?? 0 } : best), null);
@@ -339,10 +402,30 @@ export function DashboardPage() {
             <div className="dv-surface-head">
               <div>
                 <h2>Doanh thu theo thời gian</h2>
-                <p>{chartRange} gần nhất, dạng {chartMode.toLowerCase()}.</p>
+                <p>{rangeLabel}, dạng {chartMode.toLowerCase()}.</p>
               </div>
               <div className="dv-control-row">
-                <Dropdown value={chartRange} options={CHART_RANGE_OPTIONS.map((option) => ({ value: option, label: option }))} onChange={setChartRange} testId="chart-range-filter" />
+                <div className="dv-date-range">
+                  <label className={`dv-date-field ${dateRangeInvalid ? 'invalid' : ''}`}>
+                    <span>TỪ</span>
+                    <input
+                      type="date"
+                      value={chartStartDate}
+                      onChange={(e) => setChartStartDate(e.target.value)}
+                      aria-label="Từ ngày"
+                    />
+                  </label>
+                  <label className={`dv-date-field ${dateRangeInvalid ? 'invalid' : ''}`}>
+                    <span>ĐẾN</span>
+                    <input
+                      type="date"
+                      value={chartEndDate}
+                      onChange={(e) => setChartEndDate(e.target.value)}
+                      aria-label="Đến ngày"
+                    />
+                  </label>
+                </div>
+                <Dropdown value={chartRange} options={CHART_RANGE_OPTIONS.map((option) => ({ value: option, label: option }))} onChange={setChartRange} testId="chart-range-filter" disabled={isDateFilterActive} />
                 <Dropdown value={chartType} options={CHART_TYPE_OPTIONS} onChange={setChartType} testId="chart-type-filter" wide />
               </div>
             </div>
@@ -467,12 +550,16 @@ export function DashboardPage() {
   );
 }
 
-function Dropdown({ value, options, onChange, testId, wide = false }: { value: string; options: DropdownOption[]; onChange: (value: string) => void; testId?: string; wide?: boolean }) {
+function Dropdown({ value, options, onChange, testId, wide = false, disabled = false }: { value: string; options: DropdownOption[]; onChange: (value: string) => void; testId?: string; wide?: boolean; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; dropUp: boolean } | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
   const label = options.find((option) => option.value === value)?.label ?? value;
   useEffect(() => {
+    if (disabled) {
+      setOpen(false);
+      return;
+    }
     const close = (event: MouseEvent) => {
       const target = event.target as Node;
       if (ref.current && ref.current.contains(target)) return;
@@ -504,19 +591,19 @@ function Dropdown({ value, options, onChange, testId, wide = false }: { value: s
         window.removeEventListener('resize', onResize);
         document.removeEventListener('keydown', onKeyDown);
       };
-  }, [open, options.length, wide]);
+  }, [open, options.length, wide, disabled]);
   useLayoutEffect(() => {
-    if (!open || !ref.current) return;
+    if (!open || !ref.current || disabled) return;
     const rect = ref.current.getBoundingClientRect();
     const panelHeight = Math.min(options.length * 42 + 16, 320);
     const spaceBelow = window.innerHeight - rect.bottom;
     const dropUp = spaceBelow < panelHeight + 12 && rect.top > panelHeight + 12;
     const width = wide ? Math.max(rect.width, 260) : rect.width;
     setPos({ top: dropUp ? rect.top - panelHeight - 8 : rect.bottom + 8, left: rect.left, width, dropUp });
-  }, [open, options.length, wide]);
+  }, [open, options.length, wide, disabled]);
   return (
     <div className={`dv-select-menu ${wide ? 'wide' : ''}`} ref={ref} data-testid={testId}>
-      <button type="button" className="dv-select-button" onClick={() => setOpen((value) => !value)}><span>{label}</span><ChevronDown size={16} /></button>
+      <button type="button" className="dv-select-button" disabled={disabled} onClick={disabled ? undefined : () => setOpen((value) => !value)}><span>{label}</span><ChevronDown size={16} /></button>
       {open && pos && createPortal(
         <div className={`dv-select-options ${pos.dropUp ? 'open-up' : ''}`} style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }} onClick={() => setOpen(false)}>
           {options.map((option) => <button type="button" key={option.value} className={option.value === value ? 'active' : ''} onClick={(e) => { e.stopPropagation(); onChange(option.value); setOpen(false); }}>{option.label}</button>)}

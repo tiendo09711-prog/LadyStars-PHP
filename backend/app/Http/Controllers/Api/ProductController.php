@@ -352,6 +352,9 @@ class ProductController extends Controller
         $isAsc = strtolower((string) $request->query('order', 'desc')) === 'asc';
         $order = $isAsc ? 'asc' : 'desc';
 
+        $totalStockQuantity = 0;
+        $totalInventoryValue = 0;
+
         // === SEMANTICS (rõ ràng, thống nhất FE/BE) ===
         // - branchId filter: lọc ROW (chỉ lấy sản phẩm có record stock ở kho đó). Dùng để "tập trung" vào kho.
         // - totalStock + stockByBranch*: LUÔN là tổng TOÀN BỘ các kho (không bị ảnh hưởng bởi branch filter).
@@ -408,6 +411,61 @@ class ProductController extends Controller
             });
         }
 
+        // === Aggregate "TỔNG TỒN" (total quantity sum over FULL filtered result set, not page) ===
+        // Uses explicit product filter subquery (same conditions as list) + branch scope for sum.
+        // - Tất cả kho: sum(qty) over all branches for matching products
+        // - Specific kho: sum( only that branch's qty ) for matching products
+        // - Respects search, stockStatus (in_stock/sellable scoped to branch if chosen)
+        $productIdSub = Product::query()->select('id');
+        if ($search !== '') {
+            $productIdSub->where(function ($builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('barcode', 'like', "%{$search}%");
+            });
+        }
+        if ($categoryId) $productIdSub->where('category_id', $categoryId);
+        if ($branchId) {
+            $productIdSub->whereHas('stocks', fn ($builder) => $builder->where('branch_id', $branchId));
+        }
+        if ($stockStatus === 'in_stock') {
+            $productIdSub->whereExists(function ($exists) use ($branchId) {
+                $exists->select(DB::raw('1'))
+                    ->from('product_branch_stocks as s')
+                    ->whereColumn('s.product_id', 'products.id')
+                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->groupBy('s.product_id')
+                    ->havingRaw('SUM(s.qty) > 0');
+            });
+        } elseif ($stockStatus === 'sellable') {
+            $productIdSub->whereExists(function ($exists) use ($branchId) {
+                $exists->select(DB::raw('1'))
+                    ->from('product_branch_stocks as s')
+                    ->whereColumn('s.product_id', 'products.id')
+                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->groupBy('s.product_id')
+                    ->havingRaw('SUM(s.qty) - SUM(s.locked_quantity) > 0');
+            });
+        }
+
+        $aggStockQ = ProductBranchStock::query()->whereIn('product_id', $productIdSub);
+        if ($branchId) {
+            $aggStockQ->where('branch_id', $branchId);
+        }
+        $totalStockQuantity = (float) ($aggStockQ->selectRaw('COALESCE(SUM(qty), 0) as sum_qty')->value('sum_qty') ?? 0);
+
+        // === Aggregate "TỔNG GIÁ TRỊ" (full filtered, not page) ===
+        // - qty scoped by branchId (or full total if no branch)
+        // - uses product.cost as unit value (giá vốn/nhập)
+        // - respects same filters as totalStockQuantity and list (search, stockStatus, branch presence)
+        $aggValueQ = ProductBranchStock::query()
+            ->join('products as p', 'p.id', '=', 'product_branch_stocks.product_id')
+            ->whereIn('product_branch_stocks.product_id', $productIdSub);
+        if ($branchId) {
+            $aggValueQ->where('product_branch_stocks.branch_id', $branchId);
+        }
+        $totalInventoryValue = (float) ($aggValueQ->selectRaw('COALESCE(SUM(product_branch_stocks.qty * p.cost), 0) as sum_value')->value('sum_value') ?? 0);
+
         $sortKey = strtolower($sort);
         if (preg_match('/^stock_(\d+)$/', $sortKey, $matches) === 1) {
             $sortBranchId = (int) $matches[1];
@@ -435,6 +493,8 @@ class ProductController extends Controller
             ->all();
         $payload['items'] = $items;
         $payload['data'] = $items;
+        $payload['totalStockQuantity'] = $totalStockQuantity;
+        $payload['totalInventoryValue'] = $totalInventoryValue;
 
         return response()->json($payload);
     }
@@ -474,7 +534,27 @@ class ProductController extends Controller
             $query->where(fn ($builder) => $builder->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
         }
         $payload = ApiPagination::nodeCompatible($query->paginate($perPage));
-        $items = collect($payload['items'])->map(fn (Category $category): array => NodeShape::category($category))->all();
+
+        // Compute live product counts from products table (product_count column may be stale from legacy import).
+        // This ensures /products/categories page shows accurate "Số sản phẩm" synced to current MySQL data.
+        $rawItems = $payload['items'] ?? [];
+        $ids = collect($rawItems)->pluck('id')->filter()->values()->all();
+        $countMap = [];
+        if (count($ids) > 0) {
+            $countMap = Product::query()
+                ->select('category_id', DB::raw('COUNT(*) as cnt'))
+                ->whereIn('category_id', $ids)
+                ->groupBy('category_id')
+                ->get()
+                ->pluck('cnt', 'category_id')
+                ->all();
+        }
+        $items = collect($rawItems)->map(function (Category $category) use ($countMap): array {
+            $shape = NodeShape::category($category);
+            $shape['productCount'] = (int) ($countMap[$category->id] ?? 0);
+            return $shape;
+        })->all();
+
         $payload['items'] = $items;
         $payload['data'] = $items;
 

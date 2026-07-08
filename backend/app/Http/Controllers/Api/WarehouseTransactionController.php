@@ -37,18 +37,27 @@ class WarehouseTransactionController extends Controller
             ->values();
 
         $voucherTypes = $this->distinctSorted('inventory_vouchers', 'type');
+
         $types = collect([
             'IMPORT' => 'Nhập kho',
             'EXPORT' => 'Xuất kho',
             'TRANSFER' => 'Chuyển kho',
         ])->map(fn ($label, $value): array => ['value' => $value, 'label' => $label])->values();
 
-        $kinds = collect([
+        // Build kinds safely to avoid merge/unique mixing arrays and strings (was causing incorrect filter options)
+        $kindMap = collect([
             'IMPORT' => 'Nhập kho',
             'EXPORT' => 'Xuất kho',
             'TRANSFER' => 'Chuyển kho',
-        ])->merge(collect($voucherTypes)->mapWithKeys(fn ($type): array => [$type => $type]))
-            ->unique()
+        ]);
+        foreach ($voucherTypes as $t) {
+            $t = trim((string) $t);
+            if ($t === '' || $kindMap->has($t)) {
+                continue;
+            }
+            $kindMap->put($t, $t);
+        }
+        $kinds = $kindMap
             ->map(fn ($label, $value): array => ['value' => (string) $value, 'label' => (string) $label])
             ->values();
 
@@ -108,7 +117,24 @@ class WarehouseTransactionController extends Controller
         $transferLines = $this->queryTransfers($filters, $warehouses, false)
             ->flatMap(fn ($row) => $this->itemRowsFromTransfer($row, $warehouses));
 
-        return $products->concat($transferLines)
+        $combined = $products->concat($transferLines);
+
+        // Apply productKeyword filter to transfer lines too (previously only applied to voucher products).
+        // Without this, items tab with product search would mix in unrelated transfer lines.
+        if ($filters['productKeyword'] !== '') {
+            $keyword = mb_strtolower(trim($filters['productKeyword']));
+            $combined = $combined->filter(function (array $row) use ($keyword): bool {
+                foreach (['productName', 'productCode', 'barcode'] as $field) {
+                    $val = mb_strtolower((string) ($row[$field] ?? ''));
+                    if ($val !== '' && str_contains($val, $keyword)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+
+        return $combined
             ->sortByDesc(fn (array $row): int => $this->sortTimestamp($row['date'] ?? null))
             ->values();
     }
@@ -266,7 +292,13 @@ class WarehouseTransactionController extends Controller
         $type = $this->detectVoucherType($payload, $record);
         $voucherCode = $record->voucher_code ?: ($payload['voucher_code'] ?? $payload['code'] ?? $record->code ?? $record->mongo_id);
         $warehouseId = $record->warehouse_mongo_id ?: ($payload['warehouse_mongo_id'] ?? null);
-        $warehouseName = $payload['warehouse_name'] ?? ($warehouses[$warehouseId] ?? null)?->name ?? $record->name ?? null;
+        // Prefer specific extracted columns. Never fall back to generic $record->name (ambiguous across entities).
+        $warehouseName = $payload['warehouse_name'] ?? $record->warehouse_name ?? ($warehouses[$warehouseId] ?? null)?->name ?? null;
+
+        $isImport = $type === 'IMPORT';
+        $isExport = $type === 'EXPORT';
+        $directionLabel = $isImport ? 'Nhập kho' : ($isExport ? 'Xuất kho' : ($payload['type'] ?? $payload['import_export_type'] ?? $record->import_export_type ?? $record->type ?? 'Không xác định'));
+        $directionTone = $isImport ? 'import' : ($isExport ? 'export' : 'unknown');
 
         return [
             'rowKey' => 'inventory-voucher:' . $record->mongo_id,
@@ -281,8 +313,8 @@ class WarehouseTransactionController extends Controller
             'totalQuantity' => (int) $this->amountValue($record->qty ?? $payload['qty'] ?? 0, true),
             'totalAmount' => $this->amountValue($record->total_amount ?? $payload['total_amount'] ?? $payload['totalAmount'] ?? $payload['total'] ?? null),
             'type' => $type,
-            'kind' => $type,
-            'kindLabel' => $payload['type'] ?? $payload['import_export_type'] ?? $record->type ?? 'Phiếu xuất nhập',
+            'kind' => $type === 'UNKNOWN' ? ($payload['type'] ?? $payload['import_export_type'] ?? $record->type ?? 'UNKNOWN') : $type,
+            'kindLabel' => $payload['type'] ?? $payload['import_export_type'] ?? $record->import_export_type ?? $record->type ?? 'Không xác định',
             'sourceModule' => 'inventory-voucher',
             'createdByName' => $record->creator ?? ($payload['creator'] ?? null),
             'customerName' => $payload['customer_name'] ?? $payload['customer'] ?? null,
@@ -290,8 +322,8 @@ class WarehouseTransactionController extends Controller
             'relatedCode' => $payload['refer_code'] ?? null,
             'note' => $payload['note'] ?? '',
             'status' => $record->status,
-            'directionLabel' => $type === 'IMPORT' ? 'Nhập kho' : 'Xuất kho',
-            'directionTone' => $type === 'IMPORT' ? 'import' : 'export',
+            'directionLabel' => $directionLabel,
+            'directionTone' => $directionTone,
             'canDelete' => false,
         ];
     }
@@ -310,9 +342,10 @@ class WarehouseTransactionController extends Controller
             'billCode' => $payload['code'] ?? $record->code ?? null,
             'date' => $this->dateValue($payload, $record),
             'fromWarehouseId' => $fromId,
-            'fromWarehouseName' => $payload['source_warehouse_name'] ?? ($warehouses[$fromId] ?? null)?->name,
+            // Prefer extracted mirror columns (source_warehouse_name etc) populated by extract migrations
+            'fromWarehouseName' => $payload['source_warehouse_name'] ?? $record->source_warehouse_name ?? ($warehouses[$fromId] ?? null)?->name,
             'toWarehouseId' => $toId,
-            'toWarehouseName' => $payload['destination_warehouse_name'] ?? ($warehouses[$toId] ?? null)?->name,
+            'toWarehouseName' => $payload['destination_warehouse_name'] ?? $record->destination_warehouse_name ?? ($warehouses[$toId] ?? null)?->name,
             'totalProductLines' => (int) ($payload['sp_count'] ?? count($payload['lines'] ?? [])),
             'totalQuantity' => (int) ($payload['qty'] ?? $this->transferQuantity($payload)),
             'totalAmount' => $this->amountValue($payload['total_amount'] ?? $payload['totalAmount'] ?? $record->total_amount ?? null),
@@ -345,10 +378,11 @@ class WarehouseTransactionController extends Controller
             'billCode' => $voucherCode ?: ($payload['refer_code'] ?? null),
             'date' => $this->dateValue($payload, $record),
             'warehouseId' => $record->branch_mongo_id ?: ($payload['warehouse_mongo_id'] ?? null),
-            'warehouseName' => $payload['warehouse_name'] ?? $payload['warehouse'] ?? ($warehouses[$record->branch_mongo_id] ?? null)?->name,
+            // Use extracted columns (warehouse_name, product_name, creator) when present
+            'warehouseName' => $payload['warehouse_name'] ?? $record->warehouse_name ?? $payload['warehouse'] ?? ($warehouses[$record->branch_mongo_id] ?? null)?->name,
             'productId' => $record->product_mongo_id ?: ($payload['product_mongo_id'] ?? $payload['productId'] ?? null),
             'productCode' => $record->product_code ?: ($payload['product_code'] ?? $payload['productCode'] ?? null),
-            'productName' => $record->name ?: ($payload['product_name'] ?? $payload['productName'] ?? null),
+            'productName' => $record->product_name ?? ($payload['product_name'] ?? $payload['productName'] ?? null),
             'barcode' => $record->barcode ?: ($payload['barcode'] ?? null),
             'imei' => $payload['imei'] ?? null,
             'quantity' => $this->amountValue($record->qty ?? $payload['qty'] ?? $payload['export_qty'] ?? $payload['import_qty'] ?? 0, true),
@@ -356,9 +390,9 @@ class WarehouseTransactionController extends Controller
             'totalAmount' => $this->amountValue($record->total_amount ?? $payload['total_amount'] ?? $payload['totalAmount'] ?? 0, true),
             'type' => $type,
             'kind' => $type,
-            'kindLabel' => $record->type ?: ($payload['type'] ?? 'Phiếu xuất nhập'),
+            'kindLabel' => $record->type ?: ($payload['type'] ?? $payload['import_export_type'] ?? 'Không xác định'),
             'sourceModule' => 'inventory-voucher',
-            'createdByName' => $payload['creator'] ?? null,
+            'createdByName' => $record->creator ?? ($payload['creator'] ?? null),
             'note' => $payload['note'] ?? '',
             'status' => $record->status,
             'directionLabel' => $type === 'IMPORT' ? 'Nhập kho' : 'Xuất kho',
@@ -374,7 +408,7 @@ class WarehouseTransactionController extends Controller
         $fromId = $payload['from_branch_mongo_id'] ?? $record->from_branch_mongo_id ?? null;
         $toId = $payload['to_branch_mongo_id'] ?? $record->to_branch_mongo_id ?? null;
         $date = $this->dateValue($payload, $record);
-        $creator = $payload['creator'] ?? null;
+        $creator = $record->creator ?? ($payload['creator'] ?? null);
         $billCode = $payload['code'] ?? $record->code ?? $record->mongo_id;
 
         return collect($lines)->map(function ($line, $index) use ($record, $warehouses, $fromId, $toId, $date, $creator, $billCode): array {
@@ -387,9 +421,9 @@ class WarehouseTransactionController extends Controller
                 'billCode' => $billCode,
                 'date' => $date,
                 'fromWarehouseId' => $fromId,
-                'fromWarehouseName' => $payload['source_warehouse_name'] ?? ($warehouses[$fromId] ?? null)?->name,
+                'fromWarehouseName' => $payload['source_warehouse_name'] ?? $record->source_warehouse_name ?? ($warehouses[$fromId] ?? null)?->name,
                 'toWarehouseId' => $toId,
-                'toWarehouseName' => $payload['destination_warehouse_name'] ?? ($warehouses[$toId] ?? null)?->name,
+                'toWarehouseName' => $payload['destination_warehouse_name'] ?? $record->destination_warehouse_name ?? ($warehouses[$toId] ?? null)?->name,
                 'productId' => $line['productId'] ?? null,
                 'productCode' => $line['productCode'] ?? null,
                 'productName' => $line['productName'] ?? null,
@@ -424,7 +458,9 @@ class WarehouseTransactionController extends Controller
             return 'EXPORT';
         }
 
-        return 'EXPORT';
+        // Do not default unknown/missing to EXPORT (would fabricate transaction type).
+        // Return neutral marker so FE can display 'Không xác định'.
+        return 'UNKNOWN';
     }
 
     private function transferQuantity(array $payload): int
@@ -571,7 +607,7 @@ class WarehouseTransactionController extends Controller
         return [
             'rowKey' => 'inventory-product:' . $record->mongo_id,
             'productCode' => $record->product_code ?: ($payload['product_code'] ?? $payload['productCode'] ?? ''),
-            'productName' => $record->name ?: ($payload['product_name'] ?? $payload['productName'] ?? $record->name ?? ''),
+            'productName' => $record->product_name ?? ($payload['product_name'] ?? $payload['productName'] ?? ''),
             'barcode' => $record->barcode ?: ($payload['barcode'] ?? ''),
             'quantity' => $this->amountValue($record->qty ?? $payload['qty'] ?? $payload['export_qty'] ?? $payload['import_qty'] ?? 0, true),
             'unitPrice' => $this->amountValue($record->unit_price ?? $payload['unit_price'] ?? $payload['price'] ?? 0, true),

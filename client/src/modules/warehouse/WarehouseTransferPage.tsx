@@ -37,7 +37,7 @@ function displayDate(value?: string) { if (!value) return '-'; const date = new 
 function displayDateTime(value?: string) { if (!value) return '-'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString('vi-VN'); }
 function displayUser(value?: UserCell, fallback = '-') { if (!value) return fallback; if (typeof value === 'string') return value || fallback; return value.name || value.email || fallback; }
 function rowCode(row: TransferRow) { return row.id || row.code || row._id; }
-function direction(row: TransferRow) { return `${row.sourceWarehouseName || 'Kho nguồn'} → ${row.destinationWarehouseName || 'Kho đích'}`; }
+function direction(row: TransferRow) { return `${row.sourceWarehouseName || '-'} → ${row.destinationWarehouseName || '-'}`; }
 function quantity(value?: number) { return Number(value || 0).toLocaleString('vi-VN'); }
 
 export function WarehouseTransferPage() {

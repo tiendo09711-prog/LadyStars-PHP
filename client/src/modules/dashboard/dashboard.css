@@ -200,6 +200,53 @@
 }
 .dv-primary-button:hover { box-shadow: 0 16px 30px rgba(124, 58, 237, 0.30); transform: translateY(-1px); }
 
+/* ---------- Date range filter (TỪ / ĐẾN) matching dashboard control height and style ---------- */
+.dv-date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dv-date-field {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+  padding: 0 10px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.dv-date-field.invalid {
+  border-color: #f87171;
+  background: #fef2f2;
+}
+.dv-date-field span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.dv-date-field input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  min-width: 108px;
+  padding: 0;
+  line-height: 1;
+}
+.dv-select-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
 /* ---------- Filter bar ---------- */
 .dv-filter-bar {
   margin-top: 16px;
@@ -674,6 +721,9 @@
   .dv-recent-skeleton { padding: 11px 16px; }
   .dv-chart-meta div,
   .dv-info-metric { padding: 12px 14px; }
+  .dv-date-range { gap: 4px; }
+  .dv-date-field { height: 36px; padding: 0 8px; }
+  .dv-date-field input { min-width: 92px; font-size: 12px; }
 }
 .dv-storage-alert-card {
   display: grid;

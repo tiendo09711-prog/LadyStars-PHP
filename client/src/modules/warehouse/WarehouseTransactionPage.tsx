@@ -176,7 +176,8 @@ function formatDate(value?: string) {
 
 function warehouseDisplay(row: TransactionRow) {
   if (row.kind === 'TRANSFER') {
-    return `${row.fromWarehouseName || 'Kho nguồn'} → ${row.toWarehouseName || 'Kho đích'}`;
+    // Use neutral '-' instead of inventing "Kho nguồn"/"Kho đích" when names missing from source
+    return `${row.fromWarehouseName || '-'} → ${row.toWarehouseName || '-'}`;
   }
   return row.warehouseName || '-';
 }
@@ -189,6 +190,7 @@ function detailTitle(detail: TransactionDetail) {
   if (detail.kind === 'TRANSFER') return `Phiếu chuyển kho: ${getBillCode(detail)}`;
   if (detail.type === 'IMPORT') return `Hóa đơn nhập kho: ${getBillCode(detail)}`;
   if (detail.type === 'EXPORT') return `Hóa đơn xuất kho: ${getBillCode(detail)}`;
+  // Unknown or other type: neutral title, do not fabricate import/export label
   return `Chi tiết phiếu: ${getBillCode(detail)}`;
 }
 
@@ -518,9 +520,10 @@ export function WarehouseTransactionPage() {
     <div className={row.kind === 'TRANSFER' ? 'wr-warehouse-transfer' : ''}>
       {row.kind === 'TRANSFER' ? (
         <>
-          <span>{row.fromWarehouseName || 'Kho nguồn'}</span>
+          {/* Neutral placeholders; do not fabricate warehouse names */}
+          <span>{row.fromWarehouseName || '-'}</span>
           <ArrowLeftRight size={14} />
-          <span>{row.toWarehouseName || 'Kho đích'}</span>
+          <span>{row.toWarehouseName || '-'}</span>
         </>
       ) : row.warehouseName || '-'}
     </div>
@@ -671,8 +674,9 @@ export function WarehouseTransactionPage() {
                   {visibility.amount && <td className="right">{formatMoney(row.totalAmount)}</td>}
                   {visibility.direction && (
                     <td>
-                      <span className={`wr-direction ${row.directionTone}`}>{row.directionLabel}</span>
-                      <small className="wr-kind">{row.kindLabel}</small>
+                      {/* Safe render: never assume valid directionTone/label; fall back to neutral */}
+                      <span className={`wr-direction ${row.directionTone || ''}`}>{row.directionLabel || row.kindLabel || 'Không xác định'}</span>
+                      <small className="wr-kind">{row.kindLabel || '-'}</small>
                     </td>
                   )}
                   {activeTab === 'bills' && visibility.creator && <td>{row.createdByName || '-'}</td>}
