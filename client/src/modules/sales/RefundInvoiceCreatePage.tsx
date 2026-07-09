@@ -870,7 +870,7 @@ export function RefundInvoiceCreatePage() {
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Warehouse size={14} color="#7c3aed" />
+                <Warehouse size={14} color="#10b981" />
                 <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
                   Kho nhận trả: {loadingBranch ? 'Đang tải...' : (branch ? `${branch.name} (${branch.code})` : 'Chưa chọn kho')}
                 </span>

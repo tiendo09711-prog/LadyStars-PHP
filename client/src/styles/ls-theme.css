@@ -1,0 +1,231 @@
+/*
+  LadyStars Fresh Green UI — design tokens + Tailwind theme bridge.
+  Loaded first from app.css. No preflight reset (keeps existing component CSS).
+*/
+
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+  --color-ls-50: #ecfdf5;
+  --color-ls-100: #d1fae5;
+  --color-ls-200: #a7f3d0;
+  --color-ls-300: #6ee7b7;
+  --color-ls-400: #34d399;
+  --color-ls-500: #10b981;
+  --color-ls-600: #059669;
+  --color-ls-700: #047857;
+  --color-ls-800: #065f46;
+  --color-ls-900: #064e3b;
+
+  --color-ls-ink: #0f172a;
+  --color-ls-muted: #64748b;
+  --color-ls-border: #d7e5de;
+  --color-ls-surface: #ffffff;
+  --color-ls-bg: #f3faf6;
+
+  --radius-ls-sm: 12px;
+  --radius-ls-md: 16px;
+  --radius-ls-lg: 22px;
+  --radius-ls-xl: 28px;
+  --radius-ls-pill: 999px;
+
+  --shadow-ls-soft: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-ls-card: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --shadow-ls-primary: 0 14px 28px rgba(16, 185, 129, 0.22);
+}
+
+:root {
+  --ls-primary-50: #ecfdf5;
+  --ls-primary-100: #d1fae5;
+  --ls-primary-200: #a7f3d0;
+  --ls-primary-300: #6ee7b7;
+  --ls-primary-400: #34d399;
+  --ls-primary-500: #10b981;
+  --ls-primary-600: #059669;
+  --ls-primary-700: #047857;
+  --ls-primary-800: #065f46;
+  --ls-primary-900: #064e3b;
+
+  --ls-surface: #ffffff;
+  --ls-surface-muted: #f6fbf8;
+  --ls-bg: #f3faf6;
+  --ls-ink: #0f172a;
+  --ls-muted: #64748b;
+  --ls-border: #d7e5de;
+  --ls-border-soft: #e8f2ec;
+
+  --ls-radius-sm: 12px;
+  --ls-radius-md: 16px;
+  --ls-radius-lg: 22px;
+  --ls-radius-xl: 28px;
+  --ls-radius-pill: 999px;
+
+  --ls-shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --ls-shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --ls-shadow-primary: 0 14px 28px rgba(16, 185, 129, 0.22);
+
+  --ls-ease: 180ms ease;
+  --ls-ease-slow: 220ms ease;
+
+  /* App contract tokens used across pages */
+  --primary: var(--ls-primary-500);
+  --primary-dark: var(--ls-primary-600);
+  --primary-soft: var(--ls-primary-50);
+  --success: #10b981;
+  --success-soft: #ecfdf5;
+  --warning: #d97706;
+  --warning-soft: #fffbeb;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --surface: var(--ls-surface);
+  --surface-solid: #ffffff;
+  --surface-muted: var(--ls-surface-muted);
+  --muted: var(--ls-muted);
+  --border: var(--ls-border);
+  --border-soft: var(--ls-border-soft);
+  --shadow: var(--ls-shadow-card);
+  --shadow-soft: var(--ls-shadow-soft);
+  --radius-lg: var(--ls-radius-lg);
+  --radius-md: var(--ls-radius-md);
+  --radius-sm: var(--ls-radius-sm);
+
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ls-ink);
+  background: var(--ls-bg);
+}
+
+/* Utility primitives (Tailwind-like, controlled) */
+.ls-card {
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-lg);
+  box-shadow: var(--ls-shadow-soft);
+  transition: transform var(--ls-ease), box-shadow var(--ls-ease), border-color var(--ls-ease);
+}
+
+.ls-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ls-shadow-card);
+  border-color: var(--ls-primary-200);
+}
+
+.ls-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ls-radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--ls-ease), box-shadow var(--ls-ease), background var(--ls-ease), border-color var(--ls-ease), color var(--ls-ease);
+}
+
+.ls-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--ls-primary-500), var(--ls-primary-600));
+  box-shadow: var(--ls-shadow-primary);
+}
+
+.ls-btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.ls-btn-secondary {
+  color: #334155;
+  background: #fff;
+  border-color: var(--ls-primary-200);
+}
+
+.ls-btn-secondary:hover {
+  background: var(--ls-primary-50);
+  color: var(--ls-primary-700);
+  border-color: var(--ls-primary-300);
+}
+
+.ls-btn-ghost {
+  color: #475569;
+  background: transparent;
+}
+
+.ls-btn-ghost:hover {
+  background: var(--ls-primary-50);
+  color: var(--ls-primary-700);
+}
+
+.ls-btn-danger {
+  color: #fff;
+  background: #ef4444;
+}
+
+.ls-btn:disabled,
+.ls-btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  filter: none !important;
+}
+
+.ls-input {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-sm);
+  padding: 0 12px;
+  background: #fff;
+  color: var(--ls-ink);
+  transition: border-color var(--ls-ease), box-shadow var(--ls-ease), background var(--ls-ease);
+}
+
+.ls-input:focus {
+  outline: none;
+  border-color: var(--ls-primary-400);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14);
+  background: #fff;
+}
+
+.ls-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--ls-radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ls-primary-700);
+  background: var(--ls-primary-50);
+}
+
+.ls-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-lg);
+  background: #fff;
+  box-shadow: var(--ls-shadow-soft);
+}
+
+.ls-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: var(--ls-muted);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

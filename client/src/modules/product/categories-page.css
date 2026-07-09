@@ -1,5 +1,10 @@
 .categories-page-shell {
-  gap: 24px;
+  gap: 12px;
+}
+
+.categories-page-shell.product-compact-shell,
+.product-compact-shell.categories-page-shell {
+  gap: 12px;
 }
 
 .categories-top-card {
@@ -97,7 +102,7 @@
 }
 
 .categories-stat-card.accent-blue::after {
-  background: linear-gradient(90deg, #38bdf8, #16a34a);
+  background: linear-gradient(90deg, #6ee7b7, #16a34a);
 }
 
 .categories-stat-card.accent-green::after {
@@ -329,7 +334,7 @@
 }
 
 .categories-search-box:focus-within {
-  border-color: #38bdf8;
+  border-color: #6ee7b7;
   box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
 }
 
@@ -459,7 +464,7 @@
 }
 
 .categories-summary-pill.highlight {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(59, 130, 246, 0.1));
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(52, 211, 153, 0.1));
 }
 
 .categories-summary-pill span,
@@ -662,7 +667,7 @@
 }
 
 .categories-form-field .form-control:focus {
-  border-color: #38bdf8;
+  border-color: #6ee7b7;
   box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
 }
 
@@ -776,7 +781,7 @@
   min-height: 46px;
   padding: 12px 16px;
   background: rgba(236, 254, 255, 0.98);
-  color: #0369a1;
+  color: #047857;
   text-align: left;
   font-weight: 800;
 }
@@ -973,25 +978,349 @@
   }
 }
 
-/* Compact category list layout. Keep these overrides last to neutralize the
-   earlier presentation without affecting shared form and modal styles. */
-.categories-page-shell {
-  gap: 14px;
+/* ==========================================================================
+   Compact category list — MUST stay last.
+   Neutralizes legacy hero/toolbar styles + global ui-contract overrides
+   that still hit .categories-primary-button / .action-cell.
+   ========================================================================== */
+
+.categories-page-shell,
+.product-compact-shell.categories-page-shell {
+  gap: 12px !important;
 }
 
-.categories-top-card {
+.categories-page-shell .categories-top-card,
+.categories-page-shell .categories-top-card.product-compact-card {
   position: relative;
   z-index: 20;
-  padding: 14px 16px;
-  border: 1px solid #dbe5f0;
-  border-radius: 18px;
-  background: linear-gradient(145deg, #ffffff, #f8fbff);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  /* keep menus visible above table card */
+  overflow: visible !important;
+  padding: 14px 18px !important;
+  border: 1px solid #d8e1ec !important;
+  border-radius: 12px !important;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(145deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+  animation: none;
 }
 
-.categories-table-card {
+.categories-page-shell .categories-table-card,
+.categories-page-shell .categories-table-card.product-compact-table-card {
   position: relative;
   z-index: 1;
+  overflow: visible;
+  border: 1px solid #dbe2ea !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05) !important;
+  animation: none;
+}
+
+/* Toolbar / split buttons: compact emerald, not legacy orange 46px */
+.categories-page-shell .categories-primary-button,
+.categories-page-shell .categories-dropdown-button,
+.categories-page-shell .categories-filter-button,
+.categories-page-shell .categories-ghost-button,
+.categories-page-shell .categories-export-button,
+.categories-page-shell .product-compact-btn {
+  min-height: 28px !important;
+  height: auto !important;
+  min-width: 0 !important;
+  padding: 5px 11px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  gap: 4px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.categories-page-shell .categories-primary-button,
+.categories-page-shell .categories-primary-button:hover,
+.categories-page-shell .categories-primary-button:focus-visible {
+  border: 1px solid #10b981 !important;
+  color: #fff !important;
+  background: #10b981 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.categories-page-shell .categories-primary-button:hover:not(:disabled) {
+  background: #059669 !important;
+  border-color: #059669 !important;
+}
+
+.categories-page-shell .categories-dropdown-button,
+.categories-page-shell .categories-ghost-button {
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  background: #fff !important;
+}
+
+.categories-page-shell .categories-dropdown-button:hover,
+.categories-page-shell .categories-ghost-button:hover {
+  border-color: #a7f3d0 !important;
+  background: #f0fdf4 !important;
+  color: #0f766e !important;
+  transform: none !important;
+}
+
+.categories-page-shell .categories-split-toggle {
+  min-width: 28px !important;
+  width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.categories-page-shell .categories-split-add .categories-primary-button:first-child {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.categories-page-shell .categories-floating-dropdown,
+.categories-page-shell .categories-action-dropdown,
+.categories-page-shell .categories-sub-dropdown {
+  border-radius: 8px !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14) !important;
+  padding: 4px !important;
+}
+
+.categories-page-shell .categories-dropdown-item,
+.categories-page-shell .categories-action-item {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  transform: none !important;
+}
+
+/* Table compact alignment */
+.categories-page-shell .categories-table-scroll,
+.categories-page-shell .product-compact-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.categories-page-shell .categories-data-table,
+.categories-page-shell .product-compact-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+
+.categories-page-shell .categories-data-table th,
+.categories-page-shell .categories-data-table td,
+.categories-page-shell .product-compact-table th,
+.categories-page-shell .product-compact-table td {
+  padding: 8px 10px !important;
+  font-size: 12.5px !important;
+  vertical-align: middle !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.categories-page-shell .categories-data-table td:not(.check-cell):not(.action-cell) {
+  min-width: 0 !important;
+}
+
+.categories-page-shell .categories-name-cell {
+  min-width: 0 !important;
+}
+
+.categories-page-shell .categories-name-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.categories-page-shell .categories-data-table th {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  color: #5a6a7e !important;
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%) !important;
+}
+
+.categories-page-shell .categories-data-table tbody tr:hover td {
+  background: linear-gradient(90deg, rgba(248, 250, 252, 0.94), rgba(236, 253, 245, 0.4)) !important;
+}
+
+.categories-page-shell .categories-code-cell {
+  min-width: 0;
+  width: 120px;
+}
+
+.categories-page-shell .categories-code-badge {
+  min-height: 24px !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: inset 0 0 0 1px #e2e8f0 !important;
+  background: #f8fafc !important;
+}
+
+.categories-page-shell .categories-name-cell {
+  min-width: 180px;
+}
+
+.categories-page-shell .categories-name-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.categories-page-shell .categories-name-meta {
+  font-size: 11px;
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
+.categories-page-shell .categories-link-button {
+  gap: 2px;
+  transform: none !important;
+}
+
+.categories-page-shell .categories-link-button:hover {
+  transform: none !important;
+}
+
+.categories-page-shell .categories-count-button {
+  gap: 1px;
+  transform: none !important;
+}
+
+.categories-page-shell .categories-count-button:hover {
+  transform: none !important;
+}
+
+.categories-page-shell .categories-count-button strong {
+  font-size: 13px !important;
+  line-height: 1.2;
+}
+
+.categories-page-shell .categories-count-button span {
+  font-size: 10px !important;
+  font-weight: 600;
+}
+
+.categories-page-shell .status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Action column — fix ui-contract .action-cell { display:flex } + oversized trigger */
+.categories-page-shell .categories-data-table th.action-cell,
+.categories-page-shell .categories-data-table td.action-cell,
+.categories-page-shell td.action-cell,
+.categories-page-shell th.action-cell {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 64px;
+  padding: 6px 8px !important;
+  text-align: right !important;
+  white-space: nowrap;
+  overflow: visible !important;
+  /* override global ui-contract flex on .action-cell */
+  display: table-cell !important;
+  vertical-align: middle !important;
+  flex-wrap: nowrap;
+}
+
+.categories-page-shell .categories-row-actions {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 !important;
+  flex-wrap: nowrap !important;
+  width: 100%;
+  margin: 0;
+  transform: none !important;
+}
+
+.categories-page-shell .categories-row-actions .categories-floating-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.categories-page-shell .categories-action-trigger,
+.categories-page-shell .btn.categories-action-trigger {
+  width: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #fff !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  font-size: 12px !important;
+  gap: 0 !important;
+  letter-spacing: 0 !important;
+}
+
+.categories-page-shell .categories-action-trigger:hover,
+.categories-page-shell .categories-action-trigger[aria-expanded='true'],
+.categories-page-shell .btn.categories-action-trigger:hover {
+  border-color: #a7f3d0 !important;
+  background: #f0fdfa !important;
+  color: #0f766e !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.categories-page-shell .categories-action-dropdown {
+  top: calc(100% + 4px) !important;
+  right: 0 !important;
+  left: auto !important;
+  z-index: 40;
+  min-width: 160px !important;
+}
+
+.categories-page-shell .check-cell {
+  width: 40px;
+  text-align: center;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+.categories-page-shell .product-compact-table-header {
+  padding: 10px 14px !important;
+}
+
+.categories-page-shell .categories-pagination-wrap .pagination {
+  border-top: 1px solid #eef2f7 !important;
+  background: #fafcff !important;
+}
+
+/* Prevent legacy hover lift on interactive list controls */
+.categories-page-shell .categories-primary-button:hover,
+.categories-page-shell .categories-dropdown-button:hover,
+.categories-page-shell .categories-filter-button:hover,
+.categories-page-shell .categories-ghost-button:hover,
+.categories-page-shell .categories-export-button:hover,
+.categories-page-shell .categories-action-trigger:hover,
+.categories-page-shell .categories-inline-view-button:hover,
+.categories-page-shell .categories-link-button:hover,
+.categories-page-shell .categories-count-button:hover {
+  transform: none !important;
 }
 
 .categories-overview-bar {
@@ -1100,8 +1429,8 @@
 }
 
 .categories-filter-button {
-  border-color: #0369a1;
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border-color: #047857;
+  background: linear-gradient(135deg, #34d399, #059669);
   box-shadow: 0 9px 18px rgba(2, 132, 199, 0.22);
 }
 

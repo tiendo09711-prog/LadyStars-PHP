@@ -151,7 +151,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                   <input value={formatDate(tempStart)} readOnly />
                 </div>
                 <div className="drp-month-nav">
-                  <ChevronLeft size={16} color="#0ea5e9" onClick={() => {
+                  <ChevronLeft size={16} color="#34d399" onClick={() => {
                     let m = leftMonth - 1; let y = leftYear;
                     if (m < 1) { m = 12; y--; }
                     setLeftMonth(m); setLeftYear(y);
@@ -160,7 +160,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                     <span className="drp-select">Tháng {leftMonth} <ChevronDown size={14} /></span>
                     <span className="drp-select">{leftYear} <ChevronDown size={14} /></span>
                   </div>
-                  <ChevronRight size={16} color="#0ea5e9" onClick={() => {
+                  <ChevronRight size={16} color="#34d399" onClick={() => {
                     let m = leftMonth + 1; let y = leftYear;
                     if (m > 12) { m = 1; y++; }
                     setLeftMonth(m); setLeftYear(y);
@@ -176,7 +176,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                   <input value={formatDate(tempEnd)} readOnly />
                 </div>
                 <div className="drp-month-nav">
-                  <ChevronLeft size={16} color="#0ea5e9" onClick={() => {
+                  <ChevronLeft size={16} color="#34d399" onClick={() => {
                     let m = rightMonth - 1; let y = rightYear;
                     if (m < 1) { m = 12; y--; }
                     setRightMonth(m); setRightYear(y);
@@ -185,7 +185,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                     <span className="drp-select">Tháng {rightMonth} <ChevronDown size={14} /></span>
                     <span className="drp-select">{rightYear} <ChevronDown size={14} /></span>
                   </div>
-                  <ChevronRight size={16} color="#0ea5e9" onClick={() => {
+                  <ChevronRight size={16} color="#34d399" onClick={() => {
                     let m = rightMonth + 1; let y = rightYear;
                     if (m > 12) { m = 1; y++; }
                     setRightMonth(m); setRightYear(y);

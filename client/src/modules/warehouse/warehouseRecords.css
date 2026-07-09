@@ -6,7 +6,7 @@
   background: #fff;
   border: 1px solid var(--border);
   border-bottom: 0;
-  border-radius: 8px 8px 0 0;
+  border-radius: 16px 16px 0 0;
   padding: 0 14px;
 }
 
@@ -28,8 +28,9 @@
 .wr-card {
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 16px 16px;
   overflow: hidden;
+  box-shadow: var(--shadow-soft, 0 8px 22px rgba(15, 23, 42, .06));
 }
 
 .wr-filters {
@@ -535,7 +536,7 @@
 }
 
 .wr-warehouse-transfer svg {
-  color: #7c3aed;
+  color: #10b981;
 }
 
 .wr-notice,
@@ -1017,7 +1018,7 @@
   width: 260px;
   height: 260px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(16, 185, 129, 0.16));
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.18), rgba(16, 185, 129, 0.16));
   pointer-events: none;
 }
 
@@ -1083,7 +1084,7 @@
   margin-top: 8px;
   padding: 5px 10px;
   border-radius: 999px;
-  background: #dbeafe;
+  background: #d1fae5;
   color: #15803d;
   font-weight: 800;
 }

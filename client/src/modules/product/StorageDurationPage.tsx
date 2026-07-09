@@ -7,7 +7,6 @@ import {
   Percent,
   RefreshCw,
   Search,
-  ArrowRight,
   X,
   CheckCircle2,
   AlertCircle,
@@ -19,6 +18,8 @@ import { Pagination } from '../../core/components/Pagination';
 import { http } from '../../core/api/http';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from './components/ExportExcelModal';
+import './product-compact.css';
+import './products-page.css';
 
 const STORAGE_ALERT_DAYS = 30;
 type StorageTab = 'all' | 'unsold_long' | 'slow_selling';
@@ -70,6 +71,7 @@ export function StorageDurationPage() {
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Discount Modal state
   const [discountProduct, setDiscountProduct] = useState<IStorageDuration | null>(null);
@@ -502,8 +504,13 @@ export function StorageDurationPage() {
     }
   };
 
+  const branchFilterLabel =
+    branches.find((b) => b._id === selectedBranch)?.name || (selectedBranch ? selectedBranch : 'Tất cả chi nhánh');
+  const formatKpiMoney = (val?: number) =>
+    `${Number(val || 0).toLocaleString('vi-VN')} đ`;
+
   return (
-    <div className="workspace-page storage-duration-page">
+    <div className="product-compact-shell storage-duration-page">
       {/* Toast Notification Banner */}
       {toast && (
         <div style={{
@@ -514,7 +521,7 @@ export function StorageDurationPage() {
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          padding: '12px 18px',
+          padding: '10px 14px',
           borderRadius: '8px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           background: toast.type === 'success' ? '#ecfdf5' : '#fef2f2',
@@ -522,201 +529,210 @@ export function StorageDurationPage() {
           color: toast.type === 'success' ? '#047857' : '#b91c1c',
           animation: 'slideIn 0.3s ease'
         }}>
-          {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-          <span style={{ fontWeight: 600, fontSize: '14px' }}>{toast.message}</span>
+          {toast.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+          <span style={{ fontWeight: 600, fontSize: '13px' }}>{toast.message}</span>
         </div>
       )}
 
-
-      {/* Filter form + Tabs + Table */}
-      <section className="products-hero storage-hero">
-        <div>
-          <span className="products-eyebrow">Báo cáo xử lý tồn kho</span>
-          <h1>Hàng tồn lâu &amp; bán chậm</h1>
-          <p>
-            Theo dõi SKU còn tồn, đã lưu kho lâu, chưa từng bán hoặc đã lâu không phát sinh bán. Dữ liệu thay đổi khi có nhập hàng, bán hàng, chuyển kho, kiểm kho hoặc điều chỉnh tồn.
+      <section className="data-card product-compact-card">
+        <div className="product-compact-header">
+          <span className="product-compact-badge">STORAGE DURATION</span>
+          <h1 className="product-compact-title">Hàng tồn lâu &amp; bán chậm</h1>
+          <p className="product-compact-desc">
+            Theo dõi SKU còn tồn, lưu kho lâu, chưa bán hoặc bán chậm. Ngưỡng {kpis.thresholdDays || STORAGE_ALERT_DAYS} ngày.
           </p>
         </div>
-        <div className="storage-hero-actions">
-          <button className="btn btn-light" type="button" onClick={() => navigate('/products')}>
-            Sản phẩm
-          </button>
-          <button className="btn btn-light" type="button" onClick={() => navigate('/products/inventory')}>
-            Tồn kho
-          </button>
+
+        <div className="product-compact-kpi-row">
+          <div className="product-compact-kpi-card">
+            <div className="product-compact-kpi-label">Tổng trong báo cáo</div>
+            <div className="product-compact-kpi-value">{Number(kpis.totalProducts || 0).toLocaleString('vi-VN')}</div>
+            <div className="product-compact-kpi-sub">Theo bộ lọc hiện tại</div>
+          </div>
+          <div className="product-compact-kpi-card">
+            <div className="product-compact-kpi-label">Tồn lâu / chưa bán</div>
+            <div className="product-compact-kpi-value">{Number(kpis.unsoldLong || 0).toLocaleString('vi-VN')}</div>
+            <div className="product-compact-kpi-sub">Bán chậm: {Number(kpis.slowSelling || 0).toLocaleString('vi-VN')}</div>
+          </div>
+          <div className="product-compact-kpi-card product-compact-kpi-card--value">
+            <div className="product-compact-kpi-label">Giá trị tồn</div>
+            <div className="product-compact-kpi-value">{formatKpiMoney(kpis.totalValue)}</div>
+          </div>
+          <div className="product-compact-kpi-card">
+            <div className="product-compact-kpi-label">Bộ lọc</div>
+            <div className="product-compact-kpi-value" style={{ fontSize: 13 }}>{branchFilterLabel}</div>
+            <div className="product-compact-kpi-sub">
+              Tab: {activeTab === 'all' ? 'Tất cả' : activeTab === 'unsold_long' ? 'Tồn lâu' : 'Bán chậm'}
+            </div>
+          </div>
         </div>
-      </section>
 
-      <section className="storage-info-grid">
-        <div className="storage-info-card">
-          <h2>Trang này cập nhật khi nào?</h2>
-          <ul>
-            <li>Thêm sản phẩm mới có tồn sẽ xuất hiện nếu còn tồn theo bộ lọc.</li>
-            <li>Nhập hàng/lô mới cập nhật ngày nhập và tuổi lưu kho.</li>
-            <li>Bán hàng hoàn tất cập nhật ngày bán cuối.</li>
-            <li>Chuyển kho, xuất nhập kho, kiểm kho hoặc điều chỉnh tồn cập nhật tồn chi nhánh và ngày XNK cuối.</li>
-            <li>Hết tồn sẽ không còn nằm trong danh sách mặc định khi tồn tối thiểu lớn hơn 0.</li>
-          </ul>
-        </div>
-        <div className="storage-info-card">
-          <h2>Cách đọc chỉ số</h2>
-          <ul>
-            <li><strong>Lưu từ nhập đầu</strong>: số ngày từ lô nhập đầu tiên hoặc ngày tạo sản phẩm nếu chưa có lô.</li>
-            <li><strong>Lưu từ XNK cuối</strong>: số ngày từ giao dịch kho/cập nhật tồn cuối.</li>
-            <li><strong>Chưa bán ra</strong>: số ngày từ đơn bán hoàn tất gần nhất; nếu chưa từng bán sẽ hiện “Chưa bán lần nào”.</li>
-            <li>Ngưỡng cảnh báo hiện dùng {kpis.thresholdDays || STORAGE_ALERT_DAYS} ngày cho tab “Nhập lâu - Chưa bán” và “Bán chậm”.</li>
-          </ul>
-        </div>
-      </section>
+        <form className="product-compact-filter-bar" onSubmit={handleSearchSubmit}>
+          <div className="product-compact-search">
+            <Search size={15} />
+            <input
+              value={tempSearch}
+              onChange={(e) => setTempSearch(e.target.value)}
+              ref={searchRef}
+              data-product-search-scan="true"
+              data-product-search-primary="true"
+              placeholder="Tìm theo tên, mã SP..."
+            />
+          </div>
 
-      <section className="storage-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <select
+            className="product-compact-select"
+            value={selectedBranch}
+            onChange={(e) => { setSelectedBranch(e.target.value); setPage(1); }}
+            title="Chi nhánh"
+            disabled={loadingBranches}
+          >
+            <option value="">Tất cả chi nhánh</option>
+            {branches.map((b) => (
+              <option key={b._id} value={b._id}>{b.name} ({b.code})</option>
+            ))}
+          </select>
 
-        <form className="products-filter-form" onSubmit={handleSearchSubmit} style={{ padding: '18px 22px', borderBottom: '1px solid #eef3f8' }}>
-          <div className="products-filter-grid products-grid-storage">
-            <label className="products-inline-field">
-              <span>Tên, mã SP</span>
-              <div className="products-inline-control">
-                <Search size={16} />
-                <input
-                  value={tempSearch}
-                  onChange={(e) => setTempSearch(e.target.value)}
-                  ref={searchRef}
-                  data-product-search-scan="true" data-product-search-primary="true"
-                  placeholder="Tìm theo tên, mã SP..."
-                />
-              </div>
-            </label>
+          <select
+            className="product-compact-select"
+            value={selectedCategory}
+            onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
+            title="Nhóm sản phẩm"
+          >
+            <option value="">Tất cả danh mục</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>{c.name}</option>
+            ))}
+          </select>
 
-            <label className="products-inline-field">
-              <span>Chi nhánh</span>
-              <div className="products-inline-control">
-                <select
-                  value={selectedBranch}
-                  onChange={(e) => { setSelectedBranch(e.target.value); setPage(1); }}
-                >
-                  <option value="">Tất cả chi nhánh</option>
-                  {branches.map((b) => (
-                    <option key={b._id} value={b._id}>{b.name} ({b.code})</option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Nhóm sản phẩm</span>
-              <div className="products-inline-control">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
-                >
-                  <option value="">Tất cả danh mục</option>
-                  {categories.map((c) => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Ngày nhập đầu (≥)</span>
-              <div className="products-inline-control">
-                <input
-                  type="number"
-                  min="0"
-                  value={minStartDays}
-                  onChange={(e) => { setMinStartDays(e.target.value); setPage(1); }}
-                  placeholder="30"
-                />
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Chưa bán được (≥)</span>
-              <div className="products-inline-control">
-                <input
-                  type="number"
-                  min="0"
-                  value={minSoldDays}
-                  onChange={(e) => { setMinSoldDays(e.target.value); setPage(1); }}
-                  placeholder="30"
-                />
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Tồn kho (≥)</span>
-              <div className="products-inline-control">
-                <input
-                  type="number"
-                  min="1"
-                  value={minStock}
-                  onChange={(e) => { setMinStock(e.target.value); setPage(1); }}
-                  placeholder="1"
-                />
-              </div>
-            </label>
-
-            <button className="btn btn-primary products-filter-submit" type="submit">
-              <Filter size={15} />
+          <div className="product-compact-actions">
+            <button
+              className="product-compact-btn product-compact-btn-secondary"
+              type="button"
+              onClick={() => setShowAdvancedFilters((v) => !v)}
+            >
+              <Filter size={14} />
+              {showAdvancedFilters ? 'Ẩn nâng cao' : 'Bộ lọc nâng cao'}
+            </button>
+            <button className="product-compact-btn product-compact-btn-primary" type="submit">
               Lọc
+            </button>
+            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={handleClearFilters} title="Đặt lại bộ lọc và làm mới">
+              <RefreshCw size={14} /> Làm mới
+            </button>
+            <button className="product-compact-btn product-compact-btn-accent" type="button" onClick={() => setShowExportModal(true)}>
+              <FileDown size={14} /> Xuất
+            </button>
+            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={() => navigate('/products')}>
+              Sản phẩm
+            </button>
+            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={() => navigate('/products/inventory')}>
+              Tồn kho
             </button>
           </div>
         </form>
 
-        <div className="products-table-topbar" style={{ flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <strong>Chi tiết lưu kho hàng hóa</strong>
-            <span className="record-badge">{total} sản phẩm thỏa mãn</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="workspace-tabs" role="tablist" aria-label="Storage tabs" style={{ borderBottom: 'none', padding: 0, margin: 0 }}>
-              <button
-                type="button"
-                className={activeTab === 'all' ? 'active' : ''}
-                onClick={() => { setActiveTab('all'); setPage(1); }}
-              >
-                Tất cả ({kpis.totalProducts})
-              </button>
-              <button
-                type="button"
-                className={activeTab === 'unsold_long' ? 'active' : ''}
-                onClick={() => { setActiveTab('unsold_long'); setPage(1); }}
-              >
-                Nhập lâu - Chưa bán ({kpis.unsoldLong})
-              </button>
-              <button
-                type="button"
-                className={activeTab === 'slow_selling' ? 'active' : ''}
-                onClick={() => { setActiveTab('slow_selling'); setPage(1); }}
-              >
-                Bán chậm ({kpis.slowSelling})
-              </button>
-            </div>
-          </div>
-          <div className="products-table-hint" style={{ marginLeft: 'auto' }}>
-            <button className="btn btn-light" type="button" onClick={handleClearFilters} title="Đặt lại bộ lọc và làm mới">
-              <RefreshCw size={15} /> Làm mới
-            </button>
-            <button className="btn btn-success" type="button" onClick={() => setShowExportModal(true)} style={{ marginLeft: 4 }}>
-              <FileDown size={15} /> Xuất dữ liệu
-            </button>
-          </div>
+        <div className={`product-compact-advanced${showAdvancedFilters ? ' is-open' : ''}`}>
+          <label>
+            Nhập đầu ≥
+            <input
+              className="product-compact-input"
+              type="number"
+              min="0"
+              value={minStartDays}
+              onChange={(e) => { setMinStartDays(e.target.value); setPage(1); }}
+              placeholder="30"
+            />
+          </label>
+          <label>
+            Chưa bán ≥
+            <input
+              className="product-compact-input"
+              type="number"
+              min="0"
+              value={minSoldDays}
+              onChange={(e) => { setMinSoldDays(e.target.value); setPage(1); }}
+              placeholder="30"
+            />
+          </label>
+          <label>
+            Tồn ≥
+            <input
+              className="product-compact-input"
+              type="number"
+              min="1"
+              value={minStock}
+              onChange={(e) => { setMinStock(e.target.value); setPage(1); }}
+              placeholder="1"
+            />
+          </label>
         </div>
 
-        <div className="products-table-wrap">
-          <table className="data-table products-data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+        <div className="product-compact-pills" role="tablist" aria-label="Storage tabs">
+          <button
+            type="button"
+            className={activeTab === 'all' ? 'active' : ''}
+            onClick={() => { setActiveTab('all'); setPage(1); }}
+          >
+            Tất cả ({kpis.totalProducts})
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'unsold_long' ? 'active' : ''}
+            onClick={() => { setActiveTab('unsold_long'); setPage(1); }}
+          >
+            Tồn lâu ({kpis.unsoldLong})
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'slow_selling' ? 'active' : ''}
+            onClick={() => { setActiveTab('slow_selling'); setPage(1); }}
+          >
+            Cần xử lý / bán chậm ({kpis.slowSelling})
+          </button>
+          <button
+            type="button"
+            className={Number(minStartDays) >= (kpis.thresholdDays || STORAGE_ALERT_DAYS) ? 'active' : ''}
+            onClick={() => {
+              const thr = String(kpis.thresholdDays || STORAGE_ALERT_DAYS);
+              setMinStartDays(thr);
+              setPage(1);
+              setShowAdvancedFilters(true);
+            }}
+          >
+            Giá trị / tuổi cao
+          </button>
+        </div>
+
+        <p className="product-compact-info-note">
+          <strong>Cách đọc:</strong> Lưu từ nhập đầu = ngày từ lô nhập đầu; Lưu từ XNK cuối = từ giao dịch kho cuối;
+          Chưa bán ra = từ đơn bán gần nhất (hoặc “Chưa bán lần nào”). Cập nhật khi nhập/bán/chuyển kho/kiểm kho.
+        </p>
+      </section>
+
+      <section className="storage-card product-compact-table-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div className="product-compact-table-header">
+          <div>
+            <strong>Chi tiết lưu kho hàng hóa</strong>
+            <p className="product-compact-table-meta">{total} sản phẩm thỏa mãn bộ lọc</p>
+          </div>
+          <span className="product-compact-table-count">{total.toLocaleString('vi-VN')} dòng</span>
+        </div>
+
+        <div className="products-table-wrap product-compact-table-wrap">
+          <table className="data-table products-data-table product-compact-table">
             <colgroup>
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '20%' }} />
+              <col style={{ width: '9%' }} />
+              <col />
               <col style={{ width: '11%' }} />
               <col style={{ width: '12%' }} />
-              <col style={{ width: '6%' }} />
+              <col style={{ width: '7%' }} />
               <col style={{ width: '10%' }} />
-              <col style={{ width: '7%' }} />
-              <col style={{ width: '7%' }} />
-              <col style={{ width: '7%' }} />
               <col style={{ width: '8%' }} />
-              <col style={{ width: '4%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '56px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -738,27 +754,25 @@ export function StorageDurationPage() {
               {!loading && items.length === 0 && <tr><td colSpan={11} className="empty-cell">Chưa có sản phẩm nào phù hợp. Trang này chỉ hiển thị sản phẩm còn tồn theo điều kiện lọc. Hãy thử giảm tồn tối thiểu, chọn Tất cả chi nhánh hoặc kiểm tra dữ liệu nhập/bán hàng.</td></tr>}
               {!loading && items.map((item) => (
                 <tr key={item._id}>
-                  <td><strong>{item.code}</strong></td>
-                  <td style={{ overflow: 'hidden' }}>
-                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }} title={item.name}>
-                      {item.name}
-                    </div>
+                  <td><strong className="products-code">{item.code}</strong></td>
+                  <td className="products-name-cell" title={item.name}>
+                    <div className="products-name-main">{item.name}</div>
                   </td>
                   <td>
                     <span>{item.categoryName || 'Chưa phân loại'}</span>
-                    <small style={{ color: 'var(--muted)', display: 'block', fontSize: '11px' }}>
+                    <small className="products-name-sub">
                       NCC: {item.supplierName || 'Mặc định'}
                     </small>
                   </td>
-                  <td>
-                    <span style={{ color: 'var(--muted)', fontSize: '13px' }}>{formatMoney(item.cost)}</span>
-                    <span style={{ margin: '0 6px', color: '#cbd5e1' }}>|</span>
-                    <strong style={{ color: '#0f172a' }}>{formatMoney(item.price)}</strong>
+                  <td className="number">
+                    <span style={{ color: 'var(--muted)', fontSize: '12px' }}>{formatMoney(item.cost)}</span>
+                    <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span>
+                    <strong style={{ color: '#0f172a', fontSize: '12px' }}>{formatMoney(item.price)}</strong>
                     {item.clearanceActive && item.clearancePrice ? (
                       <small style={{ display: 'block', color: '#c2410c', fontWeight: 700, fontSize: '11px' }}>Xả: {formatMoney(item.clearancePrice)}</small>
                     ) : null}
                   </td>
-                  <td>
+                  <td className="number">
                     <strong style={{ color: '#1e293b' }}>{Number(item.qty || 0).toLocaleString('vi-VN')}</strong>
                   </td>
                   <td>

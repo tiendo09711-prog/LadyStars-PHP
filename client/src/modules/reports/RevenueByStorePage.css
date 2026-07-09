@@ -154,7 +154,7 @@
 }
 
 .text-blue {
-  color: #2563eb;
+  color: #10b981;
 }
 
 .text-green {
@@ -178,7 +178,7 @@
 }
 
 .tab-item.active {
-  color: #2563eb;
+  color: #10b981;
 }
 
 .tab-item.active::after {
@@ -188,7 +188,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #2563eb;
+  background-color: #10b981;
 }
 
 /* Settings Modal */
@@ -291,7 +291,7 @@
 
 .col-parent {
   font-weight: 500;
-  background-color: #eff6ff;
+  background-color: #ecfdf5;
   margin-top: 8px;
 }
 

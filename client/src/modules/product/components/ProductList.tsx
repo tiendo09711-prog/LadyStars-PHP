@@ -3,7 +3,6 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Boxes,
   CheckSquare,
   ChevronDown,
   Download,
@@ -18,7 +17,6 @@ import {
   RefreshCw,
   Search,
   Settings,
-  ShieldAlert,
   Tag,
   Trash2,
   UploadCloud,
@@ -2189,6 +2187,7 @@ export function ProductList({
   const [openBulkMenu, setOpenBulkMenu] = useState(false);
   const [openBulkStatusMenu, setOpenBulkStatusMenu] = useState(false);
   const [openRowActionId, setOpenRowActionId] = useState<string | null>(null);
+  const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
   const toolbarActionsRef = useRef<HTMLDivElement | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [showBarcodePrint, setShowBarcodePrint] = useState(false);
@@ -2252,6 +2251,7 @@ export function ProductList({
       setOpenBulkMenu(false);
       setOpenBulkStatusMenu(false);
       setOpenRowActionId(null);
+      setRowMenuPos(null);
     };
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node | null;
@@ -2266,11 +2266,19 @@ export function ProductList({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeAllMenus();
     };
+    const handleViewportChange = () => {
+      setOpenRowActionId(null);
+      setRowMenuPos(null);
+    };
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleViewportChange);
+    document.addEventListener('scroll', handleViewportChange, true);
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleViewportChange);
+      document.removeEventListener('scroll', handleViewportChange, true);
     };
   }, []);
 
@@ -2650,176 +2658,252 @@ export function ProductList({
     );
   }
 
+  const statusFilterLabel = appliedStatus || 'Tất cả';
+  const warehouseFilterLabel =
+    warehouseOptions.find((w) => w._id === appliedWarehouseId)?.name ||
+    (appliedWarehouseId ? appliedWarehouseId : 'Tất cả kho');
+  const sellingOnPage = items.filter((item) => {
+    const s = (item.status || '').toLowerCase();
+    return s === 'đang bán' || s === 'mới' || s === 'active';
+  }).length;
+  const outOfStockOnPage = items.filter((item) => {
+    const s = (item.status || '').toLowerCase();
+    return s === 'hết hàng' || Number(item.qty || 0) <= 0;
+  }).length;
+
+  const applyQuickStatus = (value: string) => {
+    setDraftStatus(value);
+    setAppliedStatus(value);
+    setPage(1);
+  };
+
+  const openRowActionMenu = (productId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (openRowActionId === productId) {
+      setOpenRowActionId(null);
+      setRowMenuPos(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 168;
+    const menuHeight = 150;
+    const gap = 6;
+    let left = rect.right - menuWidth;
+    let top = rect.bottom + gap;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - gap);
+    }
+    setRowMenuPos({ top, left });
+    setOpenRowActionId(productId);
+  };
+
+  const openRowItem = openRowActionId ? items.find((item) => item._id === openRowActionId) ?? null : null;
+
   return (
-    <div className="products-panel">
-      <section className="products-control-card">
-        <div className="products-stat-row">
-          <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
-          <span className="products-stat-chip">
-            <Boxes size={14} />
-            Trang {page} / {Math.max(1, Math.ceil(total / limit))}
-          </span>
-          <span className="products-stat-chip">
-            <ShieldAlert size={14} />
-            Tổng tồn đồng bộ từ tồn kho từng kho
-          </span>
+    <div className="products-list-stack">
+      <section className="data-card inventory-toolbar-card">
+        <div className="inv-kpi-row">
+          <div className="inv-kpi-card">
+            <div className="inv-kpi-label">Tổng sản phẩm</div>
+            <div className="inv-kpi-value">{total.toLocaleString('vi-VN')}</div>
+            <div className="inv-kpi-sub">
+              Trang {page} / {Math.max(1, Math.ceil(total / limit))}
+            </div>
+          </div>
+          <div className="inv-kpi-card">
+            <div className="inv-kpi-label">Trên trang · đang bán</div>
+            <div className="inv-kpi-value">{sellingOnPage.toLocaleString('vi-VN')}</div>
+            <div className="inv-kpi-sub">Theo trang hiện tại</div>
+          </div>
+          <div className="inv-kpi-card">
+            <div className="inv-kpi-label">Trên trang · hết/0 tồn</div>
+            <div className="inv-kpi-value">{outOfStockOnPage.toLocaleString('vi-VN')}</div>
+            <div className="inv-kpi-sub">Hết hàng hoặc tồn ≤ 0</div>
+          </div>
+          <div className="inv-kpi-card inv-kpi-card--value">
+            <div className="inv-kpi-label">Đã chọn / bộ lọc</div>
+            <div className="inv-kpi-value">{selectedIds.size.toLocaleString('vi-VN')}</div>
+            <div className="inv-kpi-sub">
+              {statusFilterLabel} · {warehouseFilterLabel}
+            </div>
+          </div>
         </div>
 
-        {actionSlot?.current
-          ? createPortal(
-              <div className="products-action-row" ref={toolbarActionsRef}>
-                <div className="products-primary-actions">
-                  <div className="products-split-add products-floating-menu">
-                    <button className="btn products-add-button" type="button" onClick={() => { setSaveError(''); setEditItem(null); }}>
-                      <Plus size={15} />
-                      Thêm mới
-                    </button>
-                    <button className="btn products-add-button products-split-toggle" type="button" onClick={() => setOpenAddMenu((current) => !current)} aria-label="Mở menu thêm mới">
-                      <ChevronDown size={15} />
-                    </button>
-                    {openAddMenu ? (
-                      <div className="products-floating-dropdown products-add-dropdown">
-                        <button className="products-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImport(true); }}>
-                          <FileUp size={15} />
-                          <span>Nhập từ file</span>
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
+        <form className="inv-filter-bar" onSubmit={handleSearch}>
+          <div className="inv-search">
+            <Search size={15} />
+            <input
+              ref={productListSearchRef}
+              value={draftSearch}
+              onChange={(event) => setDraftSearch(event.target.value)}
+              data-product-search-scan="true"
+              data-product-search-primary="true"
+              placeholder="Tìm theo tên, mã hoặc barcode..."
+            />
+          </div>
 
-                  <div className="products-bulk-menu products-floating-menu">
-                    <button className="btn products-dropdown-button" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
-                      <span>Thao tác</span>
-                      <ChevronDown size={15} />
-                    </button>
-                    {openBulkMenu ? (
-                      <div className="products-floating-dropdown products-bulk-dropdown">
-                        <button className="products-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
-                          <FileDown size={15} />
-                          <span>Xuất dữ liệu</span>
-                        </button>
-                        <button className="products-dropdown-item" type="button" onClick={openBarcodePrint}>
-                          <Printer size={15} />
-                          <span>In mã vạch</span>
-                        </button>
-                        {canManageProducts ? (
-                          <div className="products-dropdown-group">
-                            <button className="products-dropdown-item" type="button" onClick={() => {
-                              if (!requireSelection()) return;
-                              setOpenBulkStatusMenu((current) => !current);
-                            }}>
-                              <RefreshCw size={15} />
-                              <span>Đổi trạng thái sản phẩm</span>
-                              <ChevronDown size={14} />
-                            </button>
-                            {openBulkStatusMenu ? (
-                              <div className="products-sub-dropdown">
-                                {statusOptions.map((status) => (
-                                  <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
-                                    {status}
-                                  </button>
-                                ))}
-                                <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
-                                  Tùy chọn khác...
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                        {canManageProducts ? (
-                          <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
-                            <Trash2 size={15} />
-                            <span>Xóa các dòng đã chọn</span>
-                          </button>
-                        ) : null}
-                        {canManageProducts ? (
-                          <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
-                            <CheckSquare size={15} />
-                            <span>Cập nhật danh mục</span>
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                  <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
-                </div>
+          <select
+            className="inv-filter-select"
+            value={draftStatus}
+            onChange={(event) => setDraftStatus(event.target.value)}
+            title="Trạng thái"
+          >
+            <option value="">Tất cả trạng thái</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
 
-                <div className="products-secondary-actions">
-                  <button className="btn btn-light" type="button" onClick={resetFiltersAndLoad} title="Đặt lại bộ lọc và làm mới dữ liệu">
-                    <RefreshCw size={15} />
-                    Làm mới
-                  </button>
-                </div>
-              </div>,
-              actionSlot.current,
-            )
-          : null}
-        <form className="products-filter-form" onSubmit={handleSearch}>
-          <div className="products-filter-grid products-grid-products">
-            <label className="products-inline-field">
-              <span>Tên, mã sản phẩm</span>
-              <div className="products-inline-control">
-                <Search size={16} />
-                <input
-                  ref={productListSearchRef}
-                  value={draftSearch}
-                  onChange={(event) => setDraftSearch(event.target.value)}
-                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm theo tên, mã hoặc barcode..."
-                />
-              </div>
-            </label>
+          <select
+            className="inv-filter-select"
+            value={draftWarehouseId}
+            onChange={(event) => setDraftWarehouseId(event.target.value)}
+            disabled={loadingWarehouses}
+            title="Kho hàng"
+          >
+            <option value="">Tất cả kho</option>
+            {warehouseOptions.map((warehouse) => (
+              <option key={warehouse._id} value={warehouse._id}>
+                {warehouse.name}{warehouse.code ? ` (${warehouse.code})` : ''}
+              </option>
+            ))}
+          </select>
 
-            <label className="products-inline-field">
-              <span>Trạng thái</span>
-              <div className="products-inline-control">
-                <select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value)}>
-                  <option value="">Tất cả trạng thái</option>
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Kho hàng</span>
-              <div className="products-inline-control">
-                <select
-                  value={draftWarehouseId}
-                  onChange={(event) => setDraftWarehouseId(event.target.value)}
-                  disabled={loadingWarehouses}
-                >
-                  <option value="">Tất cả kho</option>
-                  {warehouseOptions.map((warehouse) => (
-                    <option key={warehouse._id} value={warehouse._id}>
-                      {warehouse.name}{warehouse.code ? ` (${warehouse.code})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
-            <button className="btn btn-primary products-filter-submit" type="submit">
-              <Search size={15} />
+          <div className="products-filter-actions inv-filter-actions" ref={toolbarActionsRef}>
+            <button type="submit" className="inv-btn inv-btn-primary">
+              <Search size={14} />
               Lọc
             </button>
-          </div>
+            <button type="button" className="inv-btn inv-btn-secondary" onClick={resetFiltersAndLoad} title="Đặt lại bộ lọc và làm mới">
+              <RefreshCw size={14} />
+              Làm mới
+            </button>
 
+            <div className="products-split-add products-floating-menu">
+              <button type="button" className="inv-btn inv-btn-primary" onClick={() => { setSaveError(''); setEditItem(null); }}>
+                <Plus size={14} />
+                Thêm mới
+              </button>
+              <button
+                type="button"
+                className="inv-btn inv-btn-primary products-split-toggle"
+                onClick={() => setOpenAddMenu((current) => !current)}
+                aria-label="Mở menu thêm mới"
+              >
+                <ChevronDown size={14} />
+              </button>
+              {openAddMenu ? (
+                <div className="products-floating-dropdown products-add-dropdown">
+                  <button className="products-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImport(true); }}>
+                    <FileUp size={15} />
+                    <span>Nhập từ file</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="products-bulk-menu products-floating-menu">
+              <button
+                type="button"
+                className="inv-btn inv-btn-secondary"
+                onClick={() => setOpenBulkMenu((current) => !current)}
+              >
+                <span>Thao tác</span>
+                <ChevronDown size={14} />
+              </button>
+              {openBulkMenu ? (
+                <div className="products-floating-dropdown products-bulk-dropdown">
+                  <button className="products-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
+                    <FileDown size={15} />
+                    <span>Xuất dữ liệu</span>
+                  </button>
+                  <button className="products-dropdown-item" type="button" onClick={openBarcodePrint}>
+                    <Printer size={15} />
+                    <span>In mã vạch</span>
+                  </button>
+                  {canManageProducts ? (
+                    <div className="products-dropdown-group">
+                      <button
+                        className="products-dropdown-item"
+                        type="button"
+                        onClick={() => {
+                          if (!requireSelection()) return;
+                          setOpenBulkStatusMenu((current) => !current);
+                        }}
+                      >
+                        <RefreshCw size={15} />
+                        <span>Đổi trạng thái sản phẩm</span>
+                        <ChevronDown size={14} />
+                      </button>
+                      {openBulkStatusMenu ? (
+                        <div className="products-sub-dropdown">
+                          {statusOptions.map((status) => (
+                            <button className="products-dropdown-item" type="button" key={status} disabled={bulkLoading} onClick={() => handleBulkStatus(status)}>
+                              {status}
+                            </button>
+                          ))}
+                          <button className="products-dropdown-item" type="button" disabled={bulkLoading} onClick={() => { setOpenBulkMenu(false); setShowBulkStatusModal(true); }}>
+                            Tùy chọn khác...
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {canManageProducts ? (
+                    <button className="products-dropdown-item danger" type="button" disabled={bulkLoading} onClick={handleBulkDelete}>
+                      <Trash2 size={15} />
+                      <span>Xóa các dòng đã chọn</span>
+                    </button>
+                  ) : null}
+                  {canManageProducts ? (
+                    <button className="products-dropdown-item" type="button" disabled={bulkLoading || loadingCategories} onClick={() => void openBulkCategoryModal()}>
+                      <CheckSquare size={15} />
+                      <span>Cập nhật danh mục</span>
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
+          </div>
         </form>
+
+        <div className="inv-quick-pills">
+          <button type="button" className={!appliedStatus ? 'active' : ''} onClick={() => applyQuickStatus('')}>
+            Tất cả
+          </button>
+          <button type="button" className={appliedStatus === 'Đang bán' ? 'active' : ''} onClick={() => applyQuickStatus('Đang bán')}>
+            Đang bán
+          </button>
+          <button type="button" className={appliedStatus === 'Hết hàng' ? 'active' : ''} onClick={() => applyQuickStatus('Hết hàng')}>
+            Hết hàng
+          </button>
+          <button type="button" className={appliedStatus === 'Ngừng bán' ? 'active' : ''} onClick={() => applyQuickStatus('Ngừng bán')}>
+            Ngừng bán
+          </button>
+        </div>
       </section>
 
-      <section className="products-table-card">
-        <div className="products-table-topbar">
+      <section className="data-card inventory-table-card">
+        <div className="data-card-header inventory-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
           <div>
-            <strong>Bảng dữ liệu sản phẩm</strong>
-
+            <h2 style={{ margin: 0, fontSize: 15 }}>Bảng dữ liệu sản phẩm</h2>
+            <p className="inventory-table-subtitle" style={{ margin: '2px 0 0', fontSize: 12 }}>
+              {total.toLocaleString('vi-VN')} bản ghi · Sắp xếp {sortField} ({sortOrder === 'asc' ? 'tăng' : 'giảm'})
+            </p>
           </div>
-          <div className="products-table-hint">
-            <ArrowUpDown size={14} />
-            Sắp xếp theo {sortField} ({sortOrder === 'asc' ? 'tăng dần' : 'giảm dần'})
-          </div>
+          <span className="products-selected-count">
+            <ArrowUpDown size={12} />
+            {sortField}
+          </span>
         </div>
 
-        <div className="products-table-wrap">
+        <div className="table-scroll inventory-table-scroll">
           <table className="data-table products-data-table">
             <thead>
               <tr>
@@ -2936,8 +3020,8 @@ export function ProductList({
                         )}
                       </td>
                       <td className="products-barcode">{item.barcode || '—'}</td>
-                      <td className="products-price">{formatMoney(item.cost)}</td>
-                      <td className="products-price products-price-sale">
+                      <td className="products-price number">{formatMoney(item.cost)}</td>
+                      <td className="products-price products-price-sale number">
                         {formatMoney(item.price)}
                         {item.clearanceActive && item.clearancePrice ? (
                           <button
@@ -2950,7 +3034,7 @@ export function ProductList({
                           </button>
                         ) : null}
                       </td>
-                      <td className="products-stock">{Number(item.qty || 0).toLocaleString('vi-VN')}</td>
+                      <td className="products-stock number">{Number(item.qty || 0).toLocaleString('vi-VN')}</td>
                       <td>
                         <span className={`status-badge ${getStatusClass(item.status)}`}>{item.status || 'Mới'}</span>
                       </td>
@@ -2960,30 +3044,13 @@ export function ProductList({
                             className="icon-button products-row-menu-button"
                             type="button"
                             title="Thao tác"
-                            onClick={() => setOpenRowActionId((current) => (current === item._id ? null : item._id))}
+                            aria-label={`Thao tác sản phẩm ${item.code}`}
+                            aria-expanded={openRowActionId === item._id}
+                            aria-haspopup="menu"
+                            onClick={(event) => openRowActionMenu(item._id, event)}
                           >
-                            <MoreHorizontal size={17} />
+                            <MoreHorizontal size={16} />
                           </button>
-                          {openRowActionId === item._id ? (
-                            <div className="products-row-action-menu">
-                              <button type="button" onClick={() => { setDetailItem(item); setOpenRowActionId(null); }}>
-                                <Eye size={15} />
-                                Chi tiết
-                              </button>
-                              {canManageProducts ? (
-                                <button type="button" onClick={() => { setSaveError(''); setEditItem(item); setOpenRowActionId(null); }}>
-                                  <Pencil size={15} />
-                                  Sửa
-                                </button>
-                              ) : null}
-                              {canManageProducts ? (
-                                <button className="danger" type="button" onClick={() => { setDeleteItem(item); setOpenRowActionId(null); }}>
-                                  <Trash2 size={15} />
-                                  Xóa
-                                </button>
-                              ) : null}
-                            </div>
-                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -2995,6 +3062,60 @@ export function ProductList({
 
         <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
       </section>
+
+      {openRowItem && rowMenuPos
+        ? createPortal(
+            <div
+              className="products-row-action-menu products-row-action-menu--portal"
+              role="menu"
+              style={{ top: rowMenuPos.top, left: rowMenuPos.left }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setDetailItem(openRowItem);
+                  setOpenRowActionId(null);
+                  setRowMenuPos(null);
+                }}
+              >
+                <Eye size={15} />
+                Chi tiết
+              </button>
+              {canManageProducts ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setSaveError('');
+                    setEditItem(openRowItem);
+                    setOpenRowActionId(null);
+                    setRowMenuPos(null);
+                  }}
+                >
+                  <Pencil size={15} />
+                  Sửa
+                </button>
+              ) : null}
+              {canManageProducts ? (
+                <button
+                  className="danger"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setDeleteItem(openRowItem);
+                    setOpenRowActionId(null);
+                    setRowMenuPos(null);
+                  }}
+                >
+                  <Trash2 size={15} />
+                  Xóa
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
 
       {detailItem ? <DetailModal product={detailItem} onClose={() => setDetailItem(null)} /> : null}
 

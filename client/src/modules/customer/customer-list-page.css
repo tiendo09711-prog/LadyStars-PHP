@@ -79,8 +79,8 @@
 .form-field select:focus,
 .form-field textarea:focus {
   outline: none;
-  border-color: rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.12);
 }
 
 .customer-select-wrap {
@@ -261,7 +261,7 @@
   gap: 8px;
   border: 1px solid rgba(147, 197, 253, 0.8);
   background: rgba(239, 246, 255, 0.9);
-  color: #1d4ed8;
+  color: #059669;
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 12px;
@@ -729,8 +729,8 @@
 
 .stat-icon.purchase { background: linear-gradient(135deg, #10b981, #059669); }
 .stat-icon.return  { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.stat-icon.order   { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-.stat-icon.warranty { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.stat-icon.order   { background: linear-gradient(135deg, #10b981, #059669); }
+.stat-icon.warranty { background: linear-gradient(135deg, #10b981, #059669); }
 
 .stat-body {
   display: flex;

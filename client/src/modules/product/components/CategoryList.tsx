@@ -1,17 +1,14 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import {
-  Boxes,
   ChevronDown,
   Eye,
   FileDown,
   Filter,
-  FolderTree,
   MoreHorizontal,
   Plus,
   RefreshCw,
   Search,
-  Sparkles,
   Trash2,
   Upload,
   UploadCloud,
@@ -111,6 +108,7 @@ export function CategoryList() {
   const [importing, setImporting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusPill, setStatusPill] = useState<'all' | 'active' | 'inactive' | 'parent'>('all');
 
   const limit = 15;
 
@@ -471,9 +469,18 @@ export function CategoryList() {
   const allRowsSelected = items.length > 0 && selectedIds.length === items.length;
   const selectedCount = selectedIds.length;
   const activeCount = items.filter((item) => item.isActive !== false).length;
+  const inactiveCount = items.filter((item) => item.isActive === false).length;
+  const parentCount = items.filter((item) => !item.parentId).length;
   const showingFrom = total === 0 ? 0 : (page - 1) * limit + 1;
   const showingTo = total === 0 ? 0 : Math.min(page * limit, total);
   const hasSearch = search.trim().length > 0;
+
+  const visibleItems = useMemo(() => {
+    if (statusPill === 'active') return items.filter((item) => item.isActive !== false);
+    if (statusPill === 'inactive') return items.filter((item) => item.isActive === false);
+    if (statusPill === 'parent') return items.filter((item) => !item.parentId);
+    return items;
+  }, [items, statusPill]);
 
   if (editorMode) {
     return (
@@ -496,127 +503,146 @@ export function CategoryList() {
   }
 
   return (
-    <div className="page-stack categories-page-shell">
-      <section className="data-card categories-top-card">
-        <div className="categories-overview-bar">
-          <span className="categories-hero-kicker">
-            <Sparkles size={14} />
-            <span>Danh mục sản phẩm</span>
-          </span>
-          <div className="categories-hero-stats" aria-label="Tổng quan danh mục hiện tại">
-            <article className="categories-stat-card accent-blue">
-              <div className="categories-stat-icon">
-                <FolderTree size={18} />
-              </div>
-              <div>
-                <strong>{total.toLocaleString('vi-VN')}</strong>
-                <span>Tổng danh mục</span>
-              </div>
-            </article>
-            <article className="categories-stat-card accent-green">
-              <div className="categories-stat-icon">
-                <Boxes size={18} />
-              </div>
-              <div>
-                <strong>{activeCount.toLocaleString('vi-VN')}</strong>
-                <span>Đang hoạt động</span>
-              </div>
-            </article>
+    <div className="page-stack categories-page-shell categories-compact-list">
+      <section className="data-card categories-top-card product-compact-card">
+        <div className="product-compact-header">
+          <span className="product-compact-badge">CATEGORIES</span>
+          <h1 className="product-compact-title">Danh mục sản phẩm</h1>
+          <p className="product-compact-desc">Quản lý cây danh mục, trạng thái và số sản phẩm gắn kèm.</p>
+        </div>
+
+        <div className="product-compact-kpi-row">
+          <div className="product-compact-kpi-card">
+            <div className="product-compact-kpi-label">Tổng danh mục</div>
+            <div className="product-compact-kpi-value">{total.toLocaleString('vi-VN')}</div>
+            <div className="product-compact-kpi-sub">
+              Hiển thị {showingFrom.toLocaleString('vi-VN')}–{showingTo.toLocaleString('vi-VN')}
+            </div>
+          </div>
+          <div className="product-compact-kpi-card">
+            <div className="product-compact-kpi-label">Đang hoạt động</div>
+            <div className="product-compact-kpi-value">{activeCount.toLocaleString('vi-VN')}</div>
+            <div className="product-compact-kpi-sub">Trên trang hiện tại</div>
+          </div>
+          <div className="product-compact-kpi-card">
+            <div className="product-compact-kpi-label">Ngừng hoạt động</div>
+            <div className="product-compact-kpi-value">{inactiveCount.toLocaleString('vi-VN')}</div>
+            <div className="product-compact-kpi-sub">Trên trang hiện tại</div>
+          </div>
+          <div className="product-compact-kpi-card product-compact-kpi-card--value">
+            <div className="product-compact-kpi-label">Cha / đã chọn</div>
+            <div className="product-compact-kpi-value">{parentCount.toLocaleString('vi-VN')}</div>
+            <div className="product-compact-kpi-sub">Đã chọn {selectedCount.toLocaleString('vi-VN')}</div>
           </div>
         </div>
 
-        <div className="categories-toolbar-shell">
-          <div className="categories-toolbar-simple">
-            <div className="categories-toolbar-left categories-floating-menu">
-              <div className="categories-split-add">
-                <button className="btn categories-primary-button" type="button" onClick={openCreateEditor}>
-                  <Plus size={16} />
-                  <span>Thêm mới</span>
-                </button>
-                <button className="btn categories-primary-button categories-split-toggle" type="button" onClick={() => setOpenAddMenu((current) => !current)}>
-                  <ChevronDown size={15} />
-                </button>
-                {openAddMenu && (
-                  <div className="categories-floating-dropdown categories-add-dropdown">
-                    <button className="categories-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImportModal(true); }}>
-                      <Upload size={15} />
-                      <span>Nhập từ Excel</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+        <form className="product-compact-filter-bar" onSubmit={handleSearch}>
+          <div className="product-compact-search">
+            <Search size={15} />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên danh mục, mã..." />
+          </div>
 
-              <div className="categories-bulk-menu categories-floating-menu">
-                <button className="btn categories-dropdown-button categories-bulk-trigger" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
-                  <span>Thao tác</span>
-                  <ChevronDown size={15} />
-                </button>
-                {openBulkMenu && (
-                  <div className="categories-floating-dropdown categories-bulk-dropdown">
-                    <button className="categories-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
-                      <FileDown size={15} />
-                      <span>Xuất dữ liệu</span>
-                    </button>
-                    <div className="categories-dropdown-group">
-                      <button className="categories-dropdown-item" type="button" onClick={() => setOpenBulkStatusMenu((current) => !current)}>
-                        <RefreshCw size={15} />
-                        <span>Đổi trạng thái</span>
-                        <ChevronDown size={14} />
-                      </button>
-                      {openBulkStatusMenu && (
-                        <div className="categories-sub-dropdown">
-                          <button className="categories-dropdown-item" type="button" disabled={actionLoading} onClick={() => handleBulkStatus(true)}>Hoạt động</button>
-                          <button className="categories-dropdown-item" type="button" disabled={actionLoading} onClick={() => handleBulkStatus(false)}>Ngừng hoạt động</button>
-                        </div>
-                      )}
-                    </div>
-                    <button className="categories-dropdown-item danger" type="button" disabled={actionLoading} onClick={handleDeleteSelected}>
-                      <Trash2 size={15} />
-                      <span>Xóa các dòng đã chọn</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+          <div className="product-compact-actions">
+            <button className="product-compact-btn product-compact-btn-primary" type="submit">
+              <Filter size={14} />
+              Lọc
+            </button>
+            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={handleRefresh} title="Làm mới">
+              <RefreshCw size={14} />
+              Làm mới
+            </button>
+
+            <div className="categories-split-add categories-floating-menu">
+              <button className="categories-primary-button product-compact-btn product-compact-btn-primary" type="button" onClick={openCreateEditor}>
+                <Plus size={14} />
+                <span>Thêm mới</span>
+              </button>
+              <button className="categories-primary-button categories-split-toggle" type="button" aria-label="Mở menu thêm" onClick={() => setOpenAddMenu((current) => !current)}>
+                <ChevronDown size={14} />
+              </button>
+              {openAddMenu && (
+                <div className="categories-floating-dropdown categories-add-dropdown">
+                  <button className="categories-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImportModal(true); }}>
+                    <Upload size={15} />
+                    <span>Nhập từ Excel</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            <form className="categories-search-inline" onSubmit={handleSearch}>
-              <div className="categories-search-field">
-                <label className="categories-field-label">Tìm kiếm</label>
-                <div className="search-box categories-search-box">
-                  <Search size={16} />
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên danh mục, mã..." />
+            <div className="categories-bulk-menu categories-floating-menu">
+              <button className="categories-dropdown-button product-compact-btn product-compact-btn-secondary" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
+                <span>Thao tác</span>
+                <ChevronDown size={14} />
+              </button>
+              {openBulkMenu && (
+                <div className="categories-floating-dropdown categories-bulk-dropdown">
+                  <button className="categories-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
+                    <FileDown size={15} />
+                    <span>Xuất dữ liệu</span>
+                  </button>
+                  <div className="categories-dropdown-group">
+                    <button className="categories-dropdown-item" type="button" onClick={() => setOpenBulkStatusMenu((current) => !current)}>
+                      <RefreshCw size={15} />
+                      <span>Đổi trạng thái</span>
+                      <ChevronDown size={14} />
+                    </button>
+                    {openBulkStatusMenu && (
+                      <div className="categories-sub-dropdown">
+                        <button className="categories-dropdown-item" type="button" disabled={actionLoading} onClick={() => handleBulkStatus(true)}>Hoạt động</button>
+                        <button className="categories-dropdown-item" type="button" disabled={actionLoading} onClick={() => handleBulkStatus(false)}>Ngừng hoạt động</button>
+                      </div>
+                    )}
+                  </div>
+                  <button className="categories-dropdown-item danger" type="button" disabled={actionLoading} onClick={handleDeleteSelected}>
+                    <Trash2 size={15} />
+                    <span>Xóa các dòng đã chọn</span>
+                  </button>
                 </div>
-              </div>
-              <button className="btn categories-filter-button" type="submit">
-                <Filter size={15} />
-                <span>Lọc</span>
-              </button>
-              <button className="btn categories-ghost-button" type="button" onClick={handleRefresh} title="Làm mới">
-                <RefreshCw size={16} />
-                <span>Làm mới</span>
-              </button>
-            </form>
+              )}
+            </div>
           </div>
+        </form>
+
+        <div className="product-compact-pills">
+          <button type="button" className={statusPill === 'all' ? 'active' : ''} onClick={() => setStatusPill('all')}>
+            Tất cả
+          </button>
+          <button type="button" className={statusPill === 'active' ? 'active' : ''} onClick={() => setStatusPill('active')}>
+            Đang hoạt động
+          </button>
+          <button type="button" className={statusPill === 'inactive' ? 'active' : ''} onClick={() => setStatusPill('inactive')}>
+            Ngừng hoạt động
+          </button>
+          <button type="button" className={statusPill === 'parent' ? 'active' : ''} onClick={() => setStatusPill('parent')}>
+            Danh mục cha
+          </button>
         </div>
       </section>
 
-      <section className="data-card categories-table-card">
-        <div className="categories-table-meta">
-          <span>{hasSearch ? `Tìm thấy ${total.toLocaleString('vi-VN')} kết quả` : `${total.toLocaleString('vi-VN')} danh mục`}</span>
-          <div className="categories-table-summary">
-            <div className="categories-summary-pill">
-              <span>Hiển thị</span>
-              <strong>{showingFrom.toLocaleString('vi-VN')} - {showingTo.toLocaleString('vi-VN')}</strong>
-            </div>
-            <div className="categories-summary-pill">
-              <span>Đã chọn</span>
-              <strong>{selectedCount.toLocaleString('vi-VN')}</strong>
-            </div>
+      <section className="data-card categories-table-card product-compact-table-card">
+        <div className="product-compact-table-header">
+          <div>
+            <strong>Danh sách danh mục</strong>
+            <p className="product-compact-table-meta">
+              {hasSearch ? `Tìm thấy ${total.toLocaleString('vi-VN')} kết quả` : `${total.toLocaleString('vi-VN')} danh mục`}
+              {statusPill !== 'all' ? ` · pill: ${visibleItems.length}` : ''}
+            </p>
           </div>
+          <span className="product-compact-table-count">Đã chọn {selectedCount.toLocaleString('vi-VN')}</span>
         </div>
 
-        <div className="table-scroll categories-table-scroll">
-          <table className="data-table categories-data-table">
+        <div className="table-scroll categories-table-scroll product-compact-table-wrap">
+          <table className="data-table categories-data-table product-compact-table">
+            <colgroup>
+              <col style={{ width: '40px' }} />
+              <col style={{ width: '14%' }} />
+              <col />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '56px' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th className="check-cell">
@@ -645,7 +671,7 @@ export function CategoryList() {
                   </td>
                 </tr>
               )}
-              {!loading && !error && items.length === 0 && (
+              {!loading && !error && visibleItems.length === 0 && (
                 <tr>
                   <td colSpan={7} className="empty-cell">
                     Chưa có dữ liệu.
@@ -653,7 +679,7 @@ export function CategoryList() {
                 </tr>
               )}
               {!loading &&
-                items.map((item) => (
+                visibleItems.map((item) => (
                   <tr key={item._id}>
                     <td className="check-cell">
                       <input type="checkbox" checked={selectedIds.includes(item._id)} onChange={() => handleToggleSelected(item._id)} />
@@ -689,17 +715,19 @@ export function CategoryList() {
                       </button>
                     </td>
                     <td>{formatCategoryDate(item.createdAt)}</td>
-                    <td className="action-cell">
+                    <td className="action-cell categories-action-cell">
                       <div className="categories-row-actions">
                         <div className="categories-floating-menu">
                           <button
-                            className="btn categories-action-trigger"
+                            className="categories-action-trigger"
                             type="button"
+                            title="Thao tác"
+                            aria-label={`Thao tác danh mục ${item.name}`}
                             onClick={() => setOpenActionMenuId((current) => (current === item._id ? null : item._id))}
                             aria-expanded={openActionMenuId === item._id}
                             aria-haspopup="menu"
                           >
-                            <MoreHorizontal size={15} />
+                            <MoreHorizontal size={14} />
                           </button>
                           {openActionMenuId === item._id && (
                             <div className="categories-action-dropdown" role="menu">
@@ -712,7 +740,7 @@ export function CategoryList() {
                                   setViewProductsCategory(item);
                                 }}
                               >
-                                <Eye size={14} />
+                                <Eye size={13} />
                                 <span>Xem sản phẩm</span>
                               </button>
                               <button
@@ -729,7 +757,7 @@ export function CategoryList() {
                                 role="menuitem"
                                 onClick={() => handleDeleteCategory(item)}
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={13} />
                                 <span>Xóa</span>
                               </button>
                             </div>

@@ -1065,22 +1065,22 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
 const retailStyles = `
 /* Retail invoice list - premium effect system, aligned with Overview / Products / Warehouse cluster */
 .retail-invoice-page{
-  --ri-accent:#2563eb;
-  --ri-accent-2:#6d5dfc;
-  --ri-accent-rgb:37,99,235;
-  --ri-border:rgba(148,163,184,.22);
+  --ri-accent:#10b981;
+  --ri-accent-2:#059669;
+  --ri-accent-rgb:16,185,129;
+  --ri-border:rgba(16,185,129,.16);
   --ri-shadow-sm:0 8px 20px rgba(15,23,42,.06);
   --ri-shadow:0 18px 42px rgba(15,23,42,.10);
   --ri-surface:rgba(255,255,255,.96);
-  --ri-radius:14px;
-  --ri-radius-lg:18px;
+  --ri-radius:16px;
+  --ri-radius-lg:22px;
   display:flex;flex-direction:column;min-width:0;gap:16px;
   min-height:calc(100vh - 76px);
   padding:22px clamp(18px,4vw,44px) 46px;
   background:
     radial-gradient(circle at top left,rgba(var(--ri-accent-rgb),.12),transparent 30%),
-    radial-gradient(circle at 86% 8%,rgba(109,93,252,.10),transparent 26%),
-    linear-gradient(180deg,#f8fbff 0%,#f4f7fc 100%);
+    radial-gradient(circle at 86% 8%,rgba(16, 185, 129,.10),transparent 26%),
+    linear-gradient(180deg,#f7fcf9 0%,#f3faf6 100%);
   color:#0f172a;
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
@@ -1091,10 +1091,10 @@ const retailStyles = `
   padding:22px 24px;border:1px solid var(--ri-border);border-radius:var(--ri-radius-lg);
   background:
     radial-gradient(900px 240px at 92% -40%,rgba(var(--ri-accent-rgb),.16),transparent 70%),
-    linear-gradient(135deg,rgba(237,233,254,.4),rgba(255,255,255,.96));
+    linear-gradient(135deg,rgba(209,250,229,.45),rgba(255,255,255,.96));
   box-shadow:var(--ri-shadow);backdrop-filter:blur(10px);animation:ri-rise 360ms ease both;overflow:hidden;
 }
-.retail-hero::after{content:"";position:absolute;inset:auto -60px -80px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(109,93,252,.16),transparent 68%);pointer-events:none}
+.retail-hero::after{content:"";position:absolute;inset:auto -60px -80px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(16, 185, 129,.16),transparent 68%);pointer-events:none}
 .retail-hero-text{position:relative;z-index:1;display:grid;gap:6px;min-width:0}
 .retail-eyebrow{display:inline-flex;align-items:center;gap:8px;width:fit-content;min-height:28px;padding:0 12px;border-radius:999px;background:rgba(var(--ri-accent-rgb),.12);color:var(--ri-accent);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .retail-hero h1{margin:0;font-size:clamp(22px,2vw,28px);font-weight:850;letter-spacing:-.03em;line-height:1.15;background:linear-gradient(120deg,#1e3a8a,var(--ri-accent) 60%,var(--ri-accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
