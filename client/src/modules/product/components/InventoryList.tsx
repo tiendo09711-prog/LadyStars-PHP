@@ -413,18 +413,18 @@ export function InventoryList() {
                 <th aria-sort={getAriaSort('name')}>
                   {renderSortButton('name', 'Sản phẩm')}
                 </th>
-                <th aria-sort={getAriaSort('cost')}>
+                <th className="inventory-numeric-col" aria-sort={getAriaSort('cost')}>
                   {renderSortButton('cost', 'Giá nhập')}
                 </th>
-                <th aria-sort={getAriaSort('price')}>
+                <th className="inventory-numeric-col" aria-sort={getAriaSort('price')}>
                   {renderSortButton('price', 'Giá bán')}
                 </th>
                 {branches.map(b => (
-                  <th key={b._id} aria-sort={getAriaSort(`stock_${b._id}`)}>
+                  <th key={b._id} className="inventory-numeric-col" aria-sort={getAriaSort(`stock_${b._id}`)}>
                     {renderSortButton(`stock_${b._id}`, b.name)}
                   </th>
                 ))}
-                <th aria-sort={getAriaSort('totalStock')}>
+                <th className="inventory-numeric-col" aria-sort={getAriaSort('totalStock')}>
                   {renderSortButton('totalStock', 'Tổng tồn')}
                 </th>
               </tr>

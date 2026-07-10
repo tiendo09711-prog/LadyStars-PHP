@@ -1648,15 +1648,22 @@
   margin-bottom: 0;
 }
 
-/* Customer list: table fit */
-.customer-list-page .table-scroll,
-.customer-list-page .data-table {
+/* Customer list: allow horizontal scroll (override densify overflow-x: hidden) */
+.customer-list-page .table-scroll.customer-list-table-scroll,
+.customer-list-page .table-scroll.customer-list-table {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
 }
 
-.customer-list-page .data-table {
-  table-layout: fixed;
+.customer-list-page .data-table.customer-list-data-table {
+  width: 1437px !important;
+  min-width: 1437px !important;
+  max-width: none !important;
+  table-layout: fixed !important;
 }
 
 /* Sales channel action grid densify */

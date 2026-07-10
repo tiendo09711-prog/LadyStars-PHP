@@ -1,4 +1,5 @@
-import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent, type FormEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   ArrowUpDown,
@@ -444,6 +445,9 @@ export function CustomerListPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [syncingMetrics, setSyncingMetrics] = useState(false);
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [openBulkMenu, setOpenBulkMenu] = useState(false);
+  const bulkMenuRef = useRef<HTMLDivElement>(null);
 
   const filters = useMemo(() => parseFiltersFromParams(searchParams), [searchParams]);
   const page = useMemo(() => parsePageFromParams(searchParams), [searchParams]);
@@ -465,12 +469,12 @@ export function CustomerListPage() {
 
   useEffect(() => {
     if (!advancedOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
       if (advancedRef.current && !advancedRef.current.contains(event.target as Node)) {
         setAdvancedOpen(false);
       }
     };
-    const handleEscape = (event: KeyboardEvent) => {
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') setAdvancedOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -483,12 +487,47 @@ export function CustomerListPage() {
 
   useEffect(() => {
     if (!openActionId) return;
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.customer-actions-menu')) setOpenActionId(null);
+      if (
+        !target.closest('.customer-list-actions')
+        && !target.closest('.customer-list-row-action-menu--portal')
+      ) {
+        setOpenActionId(null);
+        setRowMenuPos(null);
+      }
     };
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenActionId(null);
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenActionId(null);
+        setRowMenuPos(null);
+      }
+    };
+    const handleRepositionClose = () => {
+      setOpenActionId(null);
+      setRowMenuPos(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('resize', handleRepositionClose);
+    window.addEventListener('scroll', handleRepositionClose, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('resize', handleRepositionClose);
+      window.removeEventListener('scroll', handleRepositionClose, true);
+    };
+  }, [openActionId]);
+
+  useEffect(() => {
+    if (!openBulkMenu) return;
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
+      if (bulkMenuRef.current && !bulkMenuRef.current.contains(event.target as Node)) {
+        setOpenBulkMenu(false);
+      }
+    };
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenBulkMenu(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
@@ -496,11 +535,44 @@ export function CustomerListPage() {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [openActionId]);
+  }, [openBulkMenu]);
 
   const activeAdvancedCount = useMemo(() => countActiveAdvancedFilters(filters), [filters]);
 
   const filterChips = useMemo(() => buildFilterChips(filters, meta), [filters, meta]);
+
+  const hasActiveFilters = useMemo(() => {
+    return (Object.entries(filters) as Array<[keyof CustomerFilters, string]>).some(([key, value]) => {
+      if (key === 'preset') return value !== 'all';
+      return Boolean(value);
+    });
+  }, [filters]);
+
+  const openRowActionMenu = (customerId: string, event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (openActionId === customerId) {
+      setOpenActionId(null);
+      setRowMenuPos(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 168;
+    const menuHeight = 150;
+    const gap = 6;
+    let left = rect.right - menuWidth;
+    let top = rect.bottom + gap;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - gap);
+    }
+    setRowMenuPos({ top, left });
+    setOpenActionId(customerId);
+  };
+
+  const openRowItem = openActionId ? items.find((item) => item._id === openActionId) ?? null : null;
 
   const loadMeta = async () => {
     const [metaRes, branchesRes, meRes] = await Promise.all([
@@ -846,219 +918,311 @@ export function CustomerListPage() {
       setExportLoading(false);
     }
   };
+  const sortLabel = SORT_OPTIONS.find((option) => option.value === sortField)?.label || sortField;
+
   return (
-    <div className="page-stack customer-list-page compact-page" data-testid="customers-list-page">
-      <div className="page-heading customer-list-heading compact-toolbar-card">
-        <div className="page-title-block compact-header">
-          <span className="compact-badge">CUSTOMERS</span>
-          <div className="page-icon"><Users size={20} /></div>
-          <div>
-            <h1 className="compact-title">Khách hàng</h1>
-            <p className="compact-desc">Danh sách khách hàng dùng chung cho bán lẻ, bán sỉ và các luồng chọn khách trong hệ thống.</p>
+    <div className="page-stack customer-list-page customer-list-root" data-testid="customers-list-page">
+      <section className="data-card customer-list-toolbar-card customer-list-sticky-toolbar">
+        <div className="customer-list-toolbar-header-slot">
+          <div className="customer-list-compact-head">
+            <h1 className="customer-list-compact-heading-sr">Danh sách khách hàng</h1>
+            <div className="customer-list-tabs-row customer-list-tabs-row--title-slot">
+              <span className="customer-list-toolbar-eyebrow">CUSTOMERS</span>
+              <span className="customer-list-title-chip">Danh sách khách hàng</span>
+            </div>
           </div>
         </div>
-        <div className="page-actions customer-list-actions compact-header-actions">
-          {isAdmin && (
-            <button
-              className="btn btn-outline"
-              type="button"
-              onClick={handleSyncMetrics}
-              disabled={syncingMetrics}
-              title="Chức năng đồng bộ chỉ số hiện đang ở chế độ stub (không tính lại metrics từ dữ liệu bán hàng)"
-            >
-              <RefreshCw size={16} className={syncingMetrics ? 'spin' : ''} /> {syncingMetrics ? 'Đang đồng bộ...' : 'Đồng bộ chỉ số (stub)'}
+
+        <div className="customer-list-summary-strip" aria-label="Tóm tắt khách hàng">
+          <div className="customer-list-summary-cluster">
+            <span className="customer-list-summary-main">
+              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <span>khách hàng</span>
+            </span>
+            {selectedCount > 0 ? (
+              <>
+                <span className="customer-list-summary-divider" aria-hidden="true" />
+                <span>{selectedCount.toLocaleString('vi-VN')} đã chọn</span>
+              </>
+            ) : null}
+            {hasActiveFilters ? (
+              <>
+                <span className="customer-list-summary-divider" aria-hidden="true" />
+                <span className="customer-list-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
+            {tableBusy ? (
+              <>
+                <span className="customer-list-summary-divider" aria-hidden="true" />
+                <span>Đang cập nhật…</span>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        <form className="customer-list-filter-bar" onSubmit={handleSubmitFilters}>
+          <div className="customer-list-search">
+            <Search size={15} />
+            <input
+              value={draftFilters.keyword}
+              placeholder="Tên, SĐT, mã khách, mã thẻ, email..."
+              onChange={(event) => setDraftFilters((current) => ({ ...current, keyword: event.target.value }))}
+              data-testid="customers-keyword-filter"
+              aria-label="Tìm kiếm khách hàng"
+            />
+          </div>
+
+          <select
+            className="customer-list-filter-select"
+            value={draftFilters.preset}
+            onChange={(event) => handleSelectPreset(event.target.value as PresetKey)}
+            data-testid="customers-preset-filter"
+            title="Mẫu lọc nhanh"
+            aria-label="Mẫu lọc nhanh"
+          >
+            <option value="all">Tất cả khách hàng</option>
+            <option value="buyalot">Mua nhiều</option>
+            <option value="birthday">Mua nhiều, sinh nhật trong kỳ</option>
+            <option value="buyregularly">Mua thường xuyên</option>
+            <option value="longtimereturn">Lâu chưa mua</option>
+          </select>
+
+          <select
+            className="customer-list-filter-select"
+            value={draftFilters.type}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, type: event.target.value }))}
+            title="Loại khách hàng"
+            aria-label="Loại khách hàng"
+          >
+            <option value="">Tất cả loại</option>
+            {meta?.customerTypes.map((type) => (
+              <option key={type.value} value={type.value}>{type.label}</option>
+            ))}
+          </select>
+
+          <select
+            className="customer-list-filter-select"
+            value={draftFilters.customerLevel}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, customerLevel: event.target.value }))}
+            title="Cấp độ"
+            aria-label="Cấp độ"
+          >
+            <option value="">Tất cả cấp độ</option>
+            {meta?.levels.map((level) => (
+              <option key={level} value={level}>{level}</option>
+            ))}
+          </select>
+
+          <select
+            className="customer-list-filter-select"
+            value={draftFilters.groupId}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, groupId: event.target.value }))}
+            title="Nhóm"
+            aria-label="Nhóm khách hàng"
+          >
+            <option value="">Tất cả nhóm</option>
+            {meta?.groups.map((group) => (
+              <option key={group._id} value={group._id}>{group.name}</option>
+            ))}
+          </select>
+
+          <div className="customer-list-filter-actions">
+            <button className="customer-list-btn customer-list-btn-primary" type="submit">
+              <Search size={14} /> Lọc
             </button>
-          )}
-          <span className="record-badge">{formatNumber(total)} khách hàng</span>
-          <Link to="/customers/care" className="btn btn-outline">
-            <HeartHandshake size={16} /> Phiếu chăm sóc
-          </Link>
-          <button className="btn btn-primary" type="button" onClick={openCreateModal} data-testid="add-customer-button">
-            <Plus size={16} /> Thêm khách hàng
-          </button>
-        </div>
-      </div>
+            <button className="customer-list-btn customer-list-btn-secondary" type="button" onClick={handleClearFilters} title="Xóa bộ lọc">
+              <RotateCcw size={14} /> Xóa lọc
+            </button>
 
-      <section className="data-card customer-filter-card">
-        <form className="customer-filter-shell" onSubmit={handleSubmitFilters}>
-          <div className="customer-filter-topline">
-            <label className="customer-filter-item customer-filter-search">
-              <span>Tìm kiếm</span>
-              <div className="search-box">
-                <Search size={16} />
-                <input
-                  value={draftFilters.keyword}
-                  placeholder="Tên khách, SĐT, mã khách, mã thẻ, email"
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, keyword: event.target.value }))}
-                  data-testid="customers-keyword-filter"
-                />
-              </div>
-            </label>
-
-            <label className="customer-filter-item">
-              <span>Mẫu lọc nhanh</span>
-              <div className="customer-select-wrap">
-                <select
-                  value={draftFilters.preset}
-                  onChange={(event) => handleSelectPreset(event.target.value as PresetKey)}
-                  data-testid="customers-preset-filter"
-                >
-                  <option value="all">Tất cả khách hàng</option>
-                  <option value="buyalot">Mua nhiều</option>
-                  <option value="birthday">Mua nhiều, sinh nhật trong kỳ</option>
-                  <option value="buyregularly">Mua thường xuyên</option>
-                  <option value="longtimereturn">Lâu chưa mua</option>
-                </select>
-                <ChevronDown size={16} />
-              </div>
-            </label>
-          </div>
-
-          <div className="customer-filter-grid">
-            <label className="customer-filter-item">
-              <span>Loại khách hàng</span>
-              <div className="customer-select-wrap">
-                <select value={draftFilters.type} onChange={(event) => setDraftFilters((current) => ({ ...current, type: event.target.value }))}>
-                  <option value="">Tất cả</option>
-                  {meta?.customerTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                </select>
-                <ChevronDown size={16} />
-              </div>
-            </label>
-
-            <label className="customer-filter-item">
-              <span>Cấp độ</span>
-              <div className="customer-select-wrap">
-                <select value={draftFilters.customerLevel} onChange={(event) => setDraftFilters((current) => ({ ...current, customerLevel: event.target.value }))}>
-                  <option value="">Tất cả</option>
-                  {meta?.levels.map((level) => <option key={level} value={level}>{level}</option>)}
-                </select>
-                <ChevronDown size={16} />
-              </div>
-            </label>
-
-            <label className="customer-filter-item">
-              <span>Nhóm</span>
-              <div className="customer-select-wrap">
-                <select value={draftFilters.groupId} onChange={(event) => setDraftFilters((current) => ({ ...current, groupId: event.target.value }))}>
-                  <option value="">Tất cả</option>
-                  {meta?.groups.map((group) => <option key={group._id} value={group._id}>{group.name}</option>)}
-                </select>
-                <ChevronDown size={16} />
-              </div>
-            </label>
-
-            <div className="customer-filter-actions-inline">
-              <button className="btn btn-primary" type="submit">
-                <Search size={16} /> Lọc
+            <div className="customer-advanced-popover-wrap" ref={advancedRef}>
+              <button
+                className={`customer-list-btn customer-list-btn-secondary customer-advanced-toggle${advancedOpen ? ' is-active' : ''}`}
+                type="button"
+                onClick={() => setAdvancedOpen((current) => !current)}
+                data-testid="customers-advanced-toggle"
+                aria-expanded={advancedOpen}
+              >
+                <SlidersHorizontal size={14} /> Nâng cao
+                {activeAdvancedCount > 0 ? <span className="customer-advanced-badge">{activeAdvancedCount}</span> : null}
+                <ChevronDown size={14} className={`customer-advanced-caret${advancedOpen ? ' is-open' : ''}`} />
               </button>
-              <button className="btn btn-outline" type="button" onClick={handleClearFilters}>
-                <RotateCcw size={16} /> Xóa bộ lọc
-              </button>
-              <div className="customer-advanced-popover-wrap" ref={advancedRef}>
-                <button
-                  className={`btn btn-outline customer-advanced-toggle${advancedOpen ? ' is-active' : ''}`}
-                  type="button"
-                  onClick={() => setAdvancedOpen((current) => !current)}
-                  data-testid="customers-advanced-toggle"
-                  aria-expanded={advancedOpen}
-                >
-                  <SlidersHorizontal size={16} /> Bộ lọc nâng cao
-                  {activeAdvancedCount > 0 && <span className="customer-advanced-badge">{activeAdvancedCount}</span>}
-                  <ChevronDown size={14} className={`customer-advanced-caret${advancedOpen ? ' is-open' : ''}`} />
-                </button>
-                {advancedOpen && (
-                  <div className="customer-advanced-popover" data-testid="customers-advanced-panel" role="dialog" aria-label="Bộ lọc nâng cao">
-                    <div className="customer-advanced-popover-header">
-                      <span className="customer-advanced-popover-title"><SlidersHorizontal size={16} /> Bộ lọc nâng cao</span>
-                      <button type="button" className="customer-advanced-popover-close" onClick={() => setAdvancedOpen(false)} aria-label="Đóng bộ lọc nâng cao">
-                        <X size={16} />
-                      </button>
-                    </div>
-                    <div className="customer-advanced-popover-scroll">
-                      <div className="customer-advanced-group">
-                        <h3>Thông tin khách hàng</h3>
-                        <div className="customer-advanced-grid">
-                          <label><span>ID / Mã khách</span><input value={draftFilters.id} onChange={(event) => setDraftFilters((current) => ({ ...current, id: event.target.value }))} /></label>
-                          <label><span>Mã khách</span><input value={draftFilters.code} onChange={(event) => setDraftFilters((current) => ({ ...current, code: event.target.value }))} /></label>
-                          <label><span>Tên</span><input value={draftFilters.name} onChange={(event) => setDraftFilters((current) => ({ ...current, name: event.target.value }))} /></label>
-                          <label><span>Số điện thoại</span><input value={draftFilters.phone} onChange={(event) => setDraftFilters((current) => ({ ...current, phone: event.target.value }))} /></label>
-                          <label><span>Email</span><input value={draftFilters.email} onChange={(event) => setDraftFilters((current) => ({ ...current, email: event.target.value }))} /></label>
-                          <label><span>Mã thẻ</span><input value={draftFilters.cardId} onChange={(event) => setDraftFilters((current) => ({ ...current, cardId: event.target.value }))} /></label>
-                          <label><span>Trạng thái</span>
-                            <div className="customer-select-wrap">
-                              <select value={draftFilters.status} onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}>
-                                <option value="">Tất cả</option>
-                                <option value="active">Đang hoạt động</option>
-                                <option value="inactive">Ngừng hoạt động</option>
-                              </select>
-                              <ChevronDown size={16} />
-                            </div>
-                          </label>
-                          <label><span>Sinh nhật từ (MM-DD)</span><input value={draftFilters.birthdayFrom} placeholder="06-01" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayFrom: event.target.value }))} /></label>
-                          <label><span>Sinh nhật đến (MM-DD)</span><input value={draftFilters.birthdayTo} placeholder="06-30" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayTo: event.target.value }))} /></label>
-                        </div>
-                      </div>
-
-                      <div className="customer-advanced-group">
-                        <h3>Chỉ số mua hàng</h3>
-                        <div className="customer-advanced-grid">
-                          <label><span>Tổng tiền từ</span><input type="number" min="0" value={draftFilters.totalSpentMin} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMin: event.target.value }))} /></label>
-                          <label><span>Tổng tiền đến</span><input type="number" min="0" value={draftFilters.totalSpentMax} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMax: event.target.value }))} /></label>
-                          <label><span>Điểm từ</span><input type="number" min="0" value={draftFilters.pointsMin} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMin: event.target.value }))} /></label>
-                          <label><span>Điểm đến</span><input type="number" min="0" value={draftFilters.pointsMax} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMax: event.target.value }))} /></label>
-                          <label><span>Số lần mua từ</span><input type="number" min="0" value={draftFilters.purchaseCountMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMin: event.target.value }))} /></label>
-                          <label><span>Số lần mua đến</span><input type="number" min="0" value={draftFilters.purchaseCountMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMax: event.target.value }))} /></label>
-                          <label><span>SL sản phẩm từ</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMin: event.target.value }))} /></label>
-                          <label><span>SL sản phẩm đến</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMax: event.target.value }))} /></label>
-                          <label><span>Ngày mua gần nhất từ</span><input type="date" value={draftFilters.lastPurchaseDateFrom} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateFrom: event.target.value }))} /></label>
-                          <label><span>Ngày mua gần nhất đến</span><input type="date" value={draftFilters.lastPurchaseDateTo} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateTo: event.target.value }))} /></label>
-                          <label><span>Chu kỳ mua từ</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMin: event.target.value }))} /></label>
-                          <label><span>Chu kỳ mua đến</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMax: event.target.value }))} /></label>
-                          <label><span>Số ngày chưa mua từ</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMin} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMin: event.target.value }))} /></label>
-                          <label><span>Số ngày chưa mua đến</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMax} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMax: event.target.value }))} /></label>
-                        </div>
-                      </div>
-
-                      <div className="customer-advanced-group">
-                        <h3>Sắp xếp</h3>
-                        <div className="customer-advanced-grid compact">
-                          <label>
-                            <span>Trường sắp xếp</span>
-                            <div className="customer-select-wrap">
-                              <select value={sortField} onChange={(event) => applyFilters(draftFilters, 1, event.target.value as SortField, sortOrder)}>
-                                {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                              </select>
-                              <ChevronDown size={16} />
-                            </div>
-                          </label>
-                          <label>
-                            <span>Thứ tự</span>
-                            <div className="customer-select-wrap">
-                              <select value={sortOrder} onChange={(event) => applyFilters(draftFilters, 1, sortField, event.target.value as SortOrder)}>
-                                <option value="desc">Giảm dần</option>
-                                <option value="asc">Tăng dần</option>
-                              </select>
-                              <ChevronDown size={16} />
-                            </div>
-                          </label>
-                        </div>
+              {advancedOpen ? (
+                <div className="customer-advanced-popover" data-testid="customers-advanced-panel" role="dialog" aria-label="Bộ lọc nâng cao">
+                  <div className="customer-advanced-popover-header">
+                    <span className="customer-advanced-popover-title"><SlidersHorizontal size={16} /> Bộ lọc nâng cao</span>
+                    <button type="button" className="customer-advanced-popover-close" onClick={() => setAdvancedOpen(false)} aria-label="Đóng bộ lọc nâng cao">
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="customer-advanced-popover-scroll">
+                    <div className="customer-advanced-group">
+                      <h3>Thông tin khách hàng</h3>
+                      <div className="customer-advanced-grid">
+                        <label><span>ID / Mã khách</span><input value={draftFilters.id} onChange={(event) => setDraftFilters((current) => ({ ...current, id: event.target.value }))} /></label>
+                        <label><span>Mã khách</span><input value={draftFilters.code} onChange={(event) => setDraftFilters((current) => ({ ...current, code: event.target.value }))} /></label>
+                        <label><span>Tên</span><input value={draftFilters.name} onChange={(event) => setDraftFilters((current) => ({ ...current, name: event.target.value }))} /></label>
+                        <label><span>Số điện thoại</span><input value={draftFilters.phone} onChange={(event) => setDraftFilters((current) => ({ ...current, phone: event.target.value }))} /></label>
+                        <label><span>Email</span><input value={draftFilters.email} onChange={(event) => setDraftFilters((current) => ({ ...current, email: event.target.value }))} /></label>
+                        <label><span>Mã thẻ</span><input value={draftFilters.cardId} onChange={(event) => setDraftFilters((current) => ({ ...current, cardId: event.target.value }))} /></label>
+                        <label><span>Trạng thái</span>
+                          <div className="customer-select-wrap">
+                            <select value={draftFilters.status} onChange={(event) => setDraftFilters((current) => ({ ...current, status: event.target.value }))}>
+                              <option value="">Tất cả</option>
+                              <option value="active">Đang hoạt động</option>
+                              <option value="inactive">Ngừng hoạt động</option>
+                            </select>
+                            <ChevronDown size={16} />
+                          </div>
+                        </label>
+                        <label><span>Sinh nhật từ (MM-DD)</span><input value={draftFilters.birthdayFrom} placeholder="06-01" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayFrom: event.target.value }))} /></label>
+                        <label><span>Sinh nhật đến (MM-DD)</span><input value={draftFilters.birthdayTo} placeholder="06-30" onChange={(event) => setDraftFilters((current) => ({ ...current, birthdayTo: event.target.value }))} /></label>
                       </div>
                     </div>
-                    <div className="customer-advanced-popover-footer">
-                      <button className="btn btn-outline" type="button" onClick={() => setAdvancedOpen(false)}>Đóng</button>
-                      <button className="btn btn-primary" type="button" onClick={handleApplyAdvancedFilters}>
-                        <Check size={16} /> Áp dụng
-                      </button>
+
+                    <div className="customer-advanced-group">
+                      <h3>Chỉ số mua hàng</h3>
+                      <div className="customer-advanced-grid">
+                        <label><span>Tổng tiền từ</span><input type="number" min="0" value={draftFilters.totalSpentMin} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMin: event.target.value }))} /></label>
+                        <label><span>Tổng tiền đến</span><input type="number" min="0" value={draftFilters.totalSpentMax} onChange={(event) => setDraftFilters((current) => ({ ...current, totalSpentMax: event.target.value }))} /></label>
+                        <label><span>Điểm từ</span><input type="number" min="0" value={draftFilters.pointsMin} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMin: event.target.value }))} /></label>
+                        <label><span>Điểm đến</span><input type="number" min="0" value={draftFilters.pointsMax} onChange={(event) => setDraftFilters((current) => ({ ...current, pointsMax: event.target.value }))} /></label>
+                        <label><span>Số lần mua từ</span><input type="number" min="0" value={draftFilters.purchaseCountMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMin: event.target.value }))} /></label>
+                        <label><span>Số lần mua đến</span><input type="number" min="0" value={draftFilters.purchaseCountMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMax: event.target.value }))} /></label>
+                        <label><span>SL sản phẩm từ</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMin: event.target.value }))} /></label>
+                        <label><span>SL sản phẩm đến</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMax: event.target.value }))} /></label>
+                        <label><span>Ngày mua gần nhất từ</span><input type="date" value={draftFilters.lastPurchaseDateFrom} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateFrom: event.target.value }))} /></label>
+                        <label><span>Ngày mua gần nhất đến</span><input type="date" value={draftFilters.lastPurchaseDateTo} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateTo: event.target.value }))} /></label>
+                        <label><span>Chu kỳ mua từ</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMin: event.target.value }))} /></label>
+                        <label><span>Chu kỳ mua đến</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMax: event.target.value }))} /></label>
+                        <label><span>Số ngày chưa mua từ</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMin} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMin: event.target.value }))} /></label>
+                        <label><span>Số ngày chưa mua đến</span><input type="number" min="0" value={draftFilters.daysSinceLastPurchaseMax} onChange={(event) => setDraftFilters((current) => ({ ...current, daysSinceLastPurchaseMax: event.target.value }))} /></label>
+                      </div>
+                    </div>
+
+                    <div className="customer-advanced-group">
+                      <h3>Sắp xếp</h3>
+                      <div className="customer-advanced-grid compact">
+                        <label>
+                          <span>Trường sắp xếp</span>
+                          <div className="customer-select-wrap">
+                            <select value={sortField} onChange={(event) => applyFilters(draftFilters, 1, event.target.value as SortField, sortOrder)}>
+                              {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                            </select>
+                            <ChevronDown size={16} />
+                          </div>
+                        </label>
+                        <label>
+                          <span>Thứ tự</span>
+                          <div className="customer-select-wrap">
+                            <select value={sortOrder} onChange={(event) => applyFilters(draftFilters, 1, sortField, event.target.value as SortOrder)}>
+                              <option value="desc">Giảm dần</option>
+                              <option value="asc">Tăng dần</option>
+                            </select>
+                            <ChevronDown size={16} />
+                          </div>
+                        </label>
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
+                  <div className="customer-advanced-popover-footer">
+                    <button className="btn btn-outline" type="button" onClick={() => setAdvancedOpen(false)}>Đóng</button>
+                    <button className="btn btn-primary" type="button" onClick={handleApplyAdvancedFilters}>
+                      <Check size={16} /> Áp dụng
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <button className="customer-list-btn customer-list-btn-primary" type="button" onClick={openCreateModal} data-testid="add-customer-button">
+              <Plus size={14} /> Thêm mới
+            </button>
+
+            <div className="customer-list-bulk-menu customer-list-floating-menu" ref={bulkMenuRef}>
+              <button
+                type="button"
+                className="customer-list-btn customer-list-btn-secondary"
+                onClick={() => setOpenBulkMenu((current) => !current)}
+                aria-expanded={openBulkMenu}
+                aria-haspopup="menu"
+              >
+                <span>Thao tác</span>
+                <ChevronDown size={14} />
+              </button>
+              {openBulkMenu ? (
+                <div className="customer-list-floating-dropdown" role="menu">
+                  <button
+                    className="customer-list-dropdown-item"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenBulkMenu(false);
+                      setShowExportModal(true);
+                    }}
+                  >
+                    <FileDown size={15} />
+                    <span>Xuất dữ liệu</span>
+                  </button>
+                  <Link
+                    className="customer-list-dropdown-item"
+                    role="menuitem"
+                    to="/customers/care"
+                    onClick={() => setOpenBulkMenu(false)}
+                  >
+                    <HeartHandshake size={15} />
+                    <span>Phiếu chăm sóc</span>
+                  </Link>
+                  {isAdmin ? (
+                    <button
+                      className="customer-list-dropdown-item"
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpenBulkMenu(false);
+                        void handleSyncMetrics();
+                      }}
+                      disabled={syncingMetrics}
+                      title="Chức năng đồng bộ chỉ số hiện đang ở chế độ stub"
+                    >
+                      <RefreshCw size={15} className={syncingMetrics ? 'spin' : ''} />
+                      <span>{syncingMetrics ? 'Đang đồng bộ...' : 'Đồng bộ chỉ số (stub)'}</span>
+                    </button>
+                  ) : null}
+                  {selectedCount > 0 ? (
+                    <>
+                      <button
+                        className="customer-list-dropdown-item"
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setOpenBulkMenu(false);
+                          setSelectedIds(new Set());
+                        }}
+                      >
+                        <X size={15} />
+                        <span>Bỏ chọn ({selectedCount})</span>
+                      </button>
+                      <button
+                        className="customer-list-dropdown-item danger"
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setOpenBulkMenu(false);
+                          void handleBulkDelete();
+                        }}
+                      >
+                        <Trash2 size={15} />
+                        <span>Xóa đã chọn</span>
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </form>
 
-        {(filterChips.length > 0 || selectedCount > 0) && (
+        {(filterChips.length > 0 || selectedCount > 0) ? (
           <div className="customer-chip-bar" data-testid="customers-filter-chips">
             <div className="customer-chip-list">
               {filterChips.map((chip) => (
@@ -1069,135 +1233,158 @@ export function CustomerListPage() {
               ))}
             </div>
             <div className="customer-chip-actions">
-              {selectedCount > 0 && <span className="record-badge">{selectedCount} khách đang chọn</span>}
-              {selectedCount > 0 && <button className="btn btn-outline" type="button" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>}
-              {selectedCount > 0 && (
-                <button className="btn btn-danger" type="button" onClick={() => void handleBulkDelete()}>
+              {selectedCount > 0 ? <span className="customer-list-selected-count">{selectedCount} khách đang chọn</span> : null}
+              {selectedCount > 0 ? (
+                <button className="customer-list-btn customer-list-btn-secondary" type="button" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>
+              ) : null}
+              {selectedCount > 0 ? (
+                <button className="customer-list-btn customer-list-btn-danger" type="button" onClick={() => void handleBulkDelete()}>
                   Xóa đã chọn
                 </button>
-              )}
-              {filterChips.length > 0 && <button className="btn btn-outline" type="button" onClick={handleClearFilters}>Xóa tất cả</button>}
+              ) : null}
+              {filterChips.length > 0 ? (
+                <button className="customer-list-btn customer-list-btn-secondary" type="button" onClick={handleClearFilters}>Xóa tất cả</button>
+              ) : null}
             </div>
           </div>
-        )}
+        ) : null}
       </section>
 
-      <section className="data-card customer-table-card">
-        <div className="data-card-header customer-table-header">
+      <section className="data-card customer-list-table-card">
+        <div className="data-card-header customer-list-table-header">
           <div>
-            <h2>Danh sách khách hàng</h2>
-            <p>Kết quả đang hiển thị đúng theo điều kiện lọc, sắp xếp và phân trang từ API.</p>
+            <h2 className="customer-list-table-title">Bảng dữ liệu khách hàng</h2>
+            <p className="customer-list-table-subtitle">
+              {total.toLocaleString('vi-VN')} bản ghi · Sắp xếp {sortLabel} ({sortOrder === 'asc' ? 'tăng' : 'giảm'})
+            </p>
           </div>
-          {tableBusy && <span className="record-badge">Đang cập nhật dữ liệu…</span>}
-          <button className="btn btn-outline" type="button" onClick={() => setShowExportModal(true)}>
-            <FileDown size={15} /> Xuất dữ liệu
-          </button>
+          <span className="customer-list-selected-count">
+            <ArrowUpDown size={12} aria-hidden="true" />
+            {sortLabel}
+          </span>
         </div>
 
-        {error && (
+        {error ? (
           <div className="customer-feedback error">
             <AlertCircle size={18} />
             <span>{error}</span>
-            <button className="btn btn-outline" type="button" onClick={() => void loadCustomers()}>Thử lại</button>
+            <button className="customer-list-btn customer-list-btn-secondary" type="button" onClick={() => void loadCustomers()}>Thử lại</button>
           </div>
-        )}
+        ) : null}
 
-        <div className="table-scroll">
-          <table className="data-table customer-table">
+        <div className="table-scroll customer-list-table-scroll customer-list-table">
+          <table className="data-table customer-list-data-table">
+            <colgroup>
+              <col className="col-check" />
+              <col className="col-customer" />
+              <col className="col-type" />
+              <col className="col-phone" />
+              <col className="col-level" />
+              <col className="col-group" />
+              <col className="col-spent" />
+              <col className="col-points" />
+              <col className="col-purchases" />
+              <col className="col-qty" />
+              <col className="col-cycle" />
+              <col className="col-last-buy" />
+              <col className="col-days-away" />
+              <col className="col-actions" />
+            </colgroup>
             <thead>
               <tr>
-                <th className="checkbox-col">
+                <th className="checkbox-col col-check">
                   <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} aria-label="Chọn tất cả khách hàng" />
                 </th>
-                <th>
+                <th className="col-customer customer-list-name-cell">
                   <button type="button" className="customer-sort-button" onClick={() => handleSort('name')}>
-                    Khách hàng <ArrowUpDown size={14} />
+                    Khách hàng <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th>Loại</th>
-                <th>
+                <th className="col-type col-center">Loại</th>
+                <th className="col-phone">
                   <button type="button" className="customer-sort-button" onClick={() => handleSort('phone')}>
-                    Số điện thoại <ArrowUpDown size={14} />
+                    Số điện thoại <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th>
-                  <button type="button" className="customer-sort-button" onClick={() => handleSort('customerLevel')}>
-                    Cấp độ <ArrowUpDown size={14} />
+                <th className="col-level col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('customerLevel')}>
+                    Cấp độ <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th>Nhóm</th>
-                <th className="align-right">
-                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('totalSpent')}>
-                    Tổng tiền <ArrowUpDown size={14} />
+                <th className="col-group">Nhóm</th>
+                <th className="col-spent col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('totalSpent')}>
+                    Tổng tiền <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="align-right">
-                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('points')}>
-                    Điểm <ArrowUpDown size={14} />
+                <th className="col-points col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('points')}>
+                    Điểm <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="align-right">
-                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('purchaseCount')}>
-                    Lần mua <ArrowUpDown size={14} />
+                <th className="col-purchases col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('purchaseCount')}>
+                    Lần mua <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="align-right">
-                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('purchaseProductQuantity')}>
-                    SL <ArrowUpDown size={14} />
+                <th className="col-qty col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('purchaseProductQuantity')}>
+                    SL <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="align-right">
-                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('purchaseCycleDays')}>
-                    Chu kỳ mua hàng <ArrowUpDown size={14} />
+                <th className="col-cycle col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('purchaseCycleDays')}>
+                    Chu kỳ mua hàng <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="align-right">
-                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('lastPurchaseDate')}>
-                    Mua gần nhất <ArrowUpDown size={14} />
+                <th className="col-last-buy col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('lastPurchaseDate')}>
+                    Mua gần nhất <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="align-right">
-                  <button type="button" className="customer-sort-button align-right" onClick={() => handleSort('daysSinceLastPurchase')}>
-                    Chưa mua (ngày) <ArrowUpDown size={14} />
+                <th className="col-days-away col-center">
+                  <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('daysSinceLastPurchase')}>
+                    Chưa mua (ngày) <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="action-col">Thao tác</th>
+                <th className="action-cell col-actions col-center" scope="col">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading && Array.from({ length: 8 }).map((_, index) => (
                 <tr key={`loading-${index}`} className="customer-skeleton-row">
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box tall" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
+                  <td className="checkbox-col col-check"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-customer customer-list-name-cell"><div className="customer-skeleton-box tall" /></td>
+                  <td className="col-type col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-phone"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-level col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-group"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-spent col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-points col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-purchases col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-qty col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-cycle col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-last-buy col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="col-days-away col-center"><div className="customer-skeleton-box short" /></td>
+                  <td className="action-cell col-actions col-center"><div className="customer-skeleton-box short" /></td>
                 </tr>
               ))}
 
-              {!loading && items.length === 0 && !error && (
+              {!loading && items.length === 0 && !error ? (
                 <tr>
-                  <td colSpan={14}>
+                  <td colSpan={14} className="customer-list-empty-cell">
                     <div className="customer-empty-state">
+                      <Users size={28} aria-hidden="true" />
                       <strong>Không có khách hàng phù hợp</strong>
                       <span>Hãy đổi điều kiện lọc hoặc tạo khách hàng mới để bắt đầu.</span>
                     </div>
                   </td>
                 </tr>
-              )}
+              ) : null}
 
               {!loading && items.map((customer) => (
                 <tr key={customer._id}>
-                  <td className="checkbox-col">
+                  <td className="checkbox-col col-check">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(customer._id)}
@@ -1205,54 +1392,40 @@ export function CustomerListPage() {
                       aria-label={`Chọn ${customer.name || customer.code || customer._id}`}
                     />
                   </td>
-                  <td>
+                  <td className="col-customer customer-list-name-cell">
                     <button type="button" className="customer-name-button" onClick={() => openEditModal(customer)}>
-                      <strong>{customer.name || '—'}</strong>
-                      <span>{customer.code || customer.cardId || customer._id}</span>
+                      <span className="customer-list-name-main">{customer.name || '—'}</span>
+                      <span className="customer-list-name-sub">{customer.code || customer.cardId || customer._id}</span>
                     </button>
                   </td>
-                  <td>{customer.type === 'company' ? 'Công ty' : customer.type === 'person' ? 'Cá nhân' : '—'}</td>
-                  <td>{customer.phone || '—'}</td>
-                  <td>{customer.customerLevel || '—'}</td>
-                  <td className="customer-groups-cell">{customer.groupNames?.length ? customer.groupNames.join(', ') : '—'}</td>
-                  <td className="align-right">{formatMoney(customer.totalSpent)}</td>
-                  <td className="align-right">{formatNumber(customer.points)}</td>
-                  <td className="align-right">{formatNumber(customer.purchaseCount)}</td>
-                  <td className="align-right">{formatNumber(customer.purchaseProductQuantity)}</td>
-                  <td className="align-right">{formatCycleDays(customer.purchaseCycleDays)}</td>
-                  <td className="align-right">{customer.lastPurchaseDate ? formatDate(customer.lastPurchaseDate) : '—'}</td>
-                  <td className="align-right">{formatCycleDays(customer.daysSinceLastPurchase)}</td>
-                  <td className="action-col">
-                    <div className="customer-actions-menu">
+                  <td className="col-type col-center">
+                    <span className={`customer-list-status-badge ${customer.type === 'company' ? 'neutral' : 'success'}`}>
+                      {customer.type === 'company' ? 'Công ty' : customer.type === 'person' ? 'Cá nhân' : '—'}
+                    </span>
+                  </td>
+                  <td className="col-phone">{customer.phone || '—'}</td>
+                  <td className="col-level col-center">{customer.customerLevel || '—'}</td>
+                  <td className="col-group customer-groups-cell">{customer.groupNames?.length ? customer.groupNames.join(', ') : '—'}</td>
+                  <td className="col-spent col-center customer-list-number">{formatMoney(customer.totalSpent)}</td>
+                  <td className="col-points col-center customer-list-number">{formatNumber(customer.points)}</td>
+                  <td className="col-purchases col-center customer-list-number">{formatNumber(customer.purchaseCount)}</td>
+                  <td className="col-qty col-center customer-list-number">{formatNumber(customer.purchaseProductQuantity)}</td>
+                  <td className="col-cycle col-center customer-list-number">{formatCycleDays(customer.purchaseCycleDays)}</td>
+                  <td className="col-last-buy col-center customer-list-number">{customer.lastPurchaseDate ? formatDate(customer.lastPurchaseDate) : '—'}</td>
+                  <td className="col-days-away col-center customer-list-number">{formatCycleDays(customer.daysSinceLastPurchase)}</td>
+                  <td className="action-cell col-actions col-center" align="center">
+                    <div className="customer-list-actions" role="presentation">
                       <button
-                        className="icon-button"
+                        className="customer-list-row-menu-button"
                         type="button"
                         title="Thao tác"
+                        aria-label={`Thao tác khách hàng ${customer.name || customer.code || customer._id}`}
                         aria-haspopup="menu"
                         aria-expanded={openActionId === customer._id}
-                        onClick={() => setOpenActionId((current) => current === customer._id ? null : customer._id)}
+                        onClick={(event) => openRowActionMenu(customer._id, event)}
                       >
-                        <MoreVertical size={16} />
+                        <MoreVertical size={16} aria-hidden="true" />
                       </button>
-                      {openActionId === customer._id && (
-                        <div className="customer-actions-dropdown" role="menu">
-                          <button type="button" role="menuitem" onClick={() => { setOpenActionId(null); openEditModal(customer); }}>
-                            <Pencil size={15} /> Sửa
-                          </button>
-                          <Link role="menuitem" to={`/customers/list/${customer._id}`} onClick={() => setOpenActionId(null)}>
-                            <Users size={15} /> Xem chi tiết
-                          </Link>
-                          <button
-                            className="danger"
-                            type="button"
-                            role="menuitem"
-                            onClick={() => { setOpenActionId(null); void handleDeleteCustomer(customer); }}
-                            disabled={deletingId === customer._id}
-                          >
-                            <Trash2 size={15} /> Xóa
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -1263,6 +1436,52 @@ export function CustomerListPage() {
 
         <Pagination page={page} total={total} limit={PAGE_SIZE} onPageChange={(nextPage) => applyFilters(filters, nextPage)} />
       </section>
+
+      {openRowItem && rowMenuPos
+        ? createPortal(
+            <div
+              className="customer-list-row-action-menu customer-list-row-action-menu--portal"
+              role="menu"
+              style={{ top: rowMenuPos.top, left: rowMenuPos.left }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpenActionId(null);
+                  setRowMenuPos(null);
+                  openEditModal(openRowItem);
+                }}
+              >
+                <Pencil size={15} /> Sửa
+              </button>
+              <Link
+                role="menuitem"
+                to={`/customers/list/${openRowItem._id}`}
+                onClick={() => {
+                  setOpenActionId(null);
+                  setRowMenuPos(null);
+                }}
+              >
+                <Users size={15} /> Xem chi tiết
+              </Link>
+              <button
+                className="danger"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpenActionId(null);
+                  setRowMenuPos(null);
+                  void handleDeleteCustomer(openRowItem);
+                }}
+                disabled={deletingId === openRowItem._id}
+              >
+                <Trash2 size={15} /> Xóa
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {modalOpen && (
         <div className="modal-backdrop" role="presentation" onClick={() => !saving && setModalOpen(false)}>

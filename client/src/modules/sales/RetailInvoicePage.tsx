@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -44,6 +45,7 @@ import {
   editActionState,
   deleteActionState,
 } from './invoiceHelpers';
+import './retail-invoice-page.css';
 
 type RetailInvoicePageProps = {
   channel: string;
@@ -141,7 +143,6 @@ function paymentRows(invoice: Invoice) {
 export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const rowMenuRef = useRef<HTMLDivElement | null>(null);
   const pendingPrintWindowRef = useRef<Window | null>(null);
   const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -153,6 +154,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [rowActionOpen, setRowActionOpen] = useState<string | null>(null);
+  const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [branchLoading, setBranchLoading] = useState(false);
@@ -259,28 +261,71 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
   useEffect(() => {
     if (!rowActionOpen) return;
-    const close = (event: MouseEvent) => {
-      const target = event.target;
-      if (target instanceof Element && rowMenuRef.current?.contains(target)) return;
+    const closeMenus = () => {
       setRowActionOpen(null);
+      setRowMenuPos(null);
+    };
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest('.retail-row-action-menu')) return;
+      if (target.closest('.retail-row-menu-button')) return;
+      closeMenus();
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setRowActionOpen(null);
+      if (event.key === 'Escape') closeMenus();
     };
-    window.addEventListener('mousedown', close);
-    window.addEventListener('keydown', closeOnEscape);
+    const handleViewportChange = () => closeMenus();
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('resize', handleViewportChange);
+    document.addEventListener('scroll', handleViewportChange, true);
     return () => {
-      window.removeEventListener('mousedown', close);
-      window.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('resize', handleViewportChange);
+      document.removeEventListener('scroll', handleViewportChange, true);
     };
   }, [rowActionOpen]);
 
   const selectedAll = invoices.length > 0 && invoices.every((invoice) => selectedIds.has(invoice._id));
 
-  const branchName = useMemo(
-    () => branches.find((branch) => branch._id === draftFilters.storeId)?.name,
-    [branches, draftFilters.storeId],
+  const hasActiveFilters = useMemo(
+    () => Object.values(appliedFilters).some((value) => Boolean(value)),
+    [appliedFilters],
   );
+
+  const openRowInvoice = rowActionOpen
+    ? invoices.find((invoice) => invoice._id === rowActionOpen) ?? null
+    : null;
+
+  const closeRowMenu = () => {
+    setRowActionOpen(null);
+    setRowMenuPos(null);
+  };
+
+  const openRowActionMenu = (invoiceId: string, event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (rowActionOpen === invoiceId) {
+      closeRowMenu();
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 220;
+    const menuHeight = 260;
+    const gap = 6;
+    let left = rect.right - menuWidth;
+    let top = rect.bottom + gap;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - gap);
+    }
+    setRowMenuPos({ top, left });
+    setRowActionOpen(invoiceId);
+  };
 
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
@@ -305,7 +350,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   };
 
   const openDetail = async (invoice: Invoice) => {
-    setRowActionOpen(null);
+    closeRowMenu();
     setDetail(invoice);
     setDetailLoading(true);
     setDetailError('');
@@ -438,7 +483,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   };
 
   const handlePrintInvoice = async (invoice: Invoice, giftOnly = false) => {
-    setRowActionOpen(null);
+    closeRowMenu();
 
     const popup = openPrintWindow();
     if (!popup) {
@@ -514,7 +559,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       } else {
         await http.delete(`/products/sales/${invoice._id}`);
       }
-      setRowActionOpen(null);
+      closeRowMenu();
       if (detail?._id === invoice._id) setDetail(null);
       await loadInvoices();
     } catch (err: any) {
@@ -616,113 +661,140 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
     }
   };
   return (
-    <div className="retail-invoice-page">
-      <style>{retailStyles}</style>
+    <div className="page-stack retail-root retail-invoice-page">
+      <section className="data-card retail-toolbar-card retail-sticky-toolbar">
+        {/* Row 1: title + KPI stats — single horizontal band, no overlap */}
+        <div className="retail-toolbar-row retail-toolbar-row--summary" aria-label="Tóm tắt Bán lẻ">
+          <div className="retail-compact-head">
+            <h1 className="retail-compact-heading-sr">Hóa đơn bán lẻ</h1>
+            <span className="retail-toolbar-eyebrow">Bán lẻ</span>
+            <span className="retail-toolbar-title-chip">
+              <ShoppingCart size={14} aria-hidden="true" />
+              Hóa đơn bán lẻ
+            </span>
+          </div>
 
-      <header className="retail-hero">
-        <div className="retail-hero-text">
-          <span className="retail-eyebrow">Kênh bán - Cửa hàng</span>
-          <h1>Hóa đơn bán lẻ</h1>
-          <p>Tra cứu, lọc và quản lý hóa đơn bán lẻ của cửa hàng</p>
+          <div className="retail-kpi-row">
+            <div className="retail-kpi-card">
+              <span className="retail-kpi-label">Tổng hóa đơn</span>
+              <strong className="retail-kpi-value">{total.toLocaleString('vi-VN')}</strong>
+            </div>
+            <div className="retail-kpi-card">
+              <span className="retail-kpi-label">Đang hiển thị</span>
+              <strong className="retail-kpi-value">
+                {total === 0
+                  ? '0'
+                  : `${rangeStart.toLocaleString('vi-VN')}–${rangeEnd.toLocaleString('vi-VN')}`}
+              </strong>
+            </div>
+            <div className="retail-kpi-card retail-kpi-card--money">
+              <span className="retail-kpi-label">Tổng tiền trang</span>
+              <strong className="retail-kpi-value">{safeMoney(pageSummary.totalValue)}</strong>
+            </div>
+            <div className="retail-kpi-card retail-kpi-card--money">
+              <span className="retail-kpi-label">Đã thu trang</span>
+              <strong className="retail-kpi-value">{safeMoney(pageSummary.paid)}</strong>
+            </div>
+            {selectedIds.size > 0 ? (
+              <div className="retail-kpi-card retail-kpi-card--selected">
+                <span className="retail-kpi-label">Đã chọn</span>
+                <strong className="retail-kpi-value">{selectedIds.size.toLocaleString('vi-VN')}</strong>
+              </div>
+            ) : null}
+            {hasActiveFilters ? (
+              <div className="retail-kpi-card retail-kpi-card--filter">
+                <span className="retail-kpi-label">Bộ lọc</span>
+                <strong className="retail-kpi-value">Đang lọc</strong>
+              </div>
+            ) : null}
+          </div>
         </div>
-        <div className="retail-hero-icon"><ShoppingCart size={26} /></div>
-      </header>
 
-      <form className="retail-filterbar" onSubmit={applyFilters}>
-        <label className="retail-filter-field">
-          <Search size={14} />
-          <input
-            value={draftFilters.invoiceCode}
-            onChange={(event) => setDraftFilters((current) => ({ ...current, invoiceCode: event.target.value }))}
-            placeholder="Nhập mã hóa đơn"
-            aria-label="ID hóa đơn"
-          />
-        </label>
+        {/* Row 2: filters + actions only */}
+        <form className="retail-toolbar-row retail-filter-bar" onSubmit={applyFilters}>
+          <label className="retail-search">
+            <Search size={15} aria-hidden="true" />
+            <input
+              value={draftFilters.invoiceCode}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, invoiceCode: event.target.value }))}
+              placeholder="Nhập mã hóa đơn"
+              aria-label="ID hóa đơn"
+            />
+          </label>
 
-        <select
-          className="retail-filter-select"
-          value={draftFilters.storeId}
-          onChange={(event) => setDraftFilters((current) => ({ ...current, storeId: event.target.value }))}
-          aria-label="Cửa hàng"
-        >
-          <option value="">Tất cả cửa hàng</option>
-          {branches.map((branch) => (
-            <option key={branch._id} value={branch._id}>{branch.name || branch.code || branch._id}</option>
-          ))}
-        </select>
-
-        <label className="retail-filter-field retail-date-field">
-          <span>Từ</span>
-          <input
-            type="date"
-            value={draftFilters.dateFrom}
-            onChange={(event) => setDraftFilters((current) => ({ ...current, dateFrom: event.target.value }))}
-            aria-label="Từ ngày"
-          />
-        </label>
-
-        <label className="retail-filter-field retail-date-field">
-          <span>Đến</span>
-          <input
-            type="date"
-            value={draftFilters.dateTo}
-            min={draftFilters.dateFrom || undefined}
-            onChange={(event) => setDraftFilters((current) => ({ ...current, dateTo: event.target.value }))}
-            aria-label="Đến ngày"
-          />
-        </label>
-
-        <label className="retail-filter-field">
-          <UserRound size={14} />
-          <input
-            value={draftFilters.customerKeyword}
-            onChange={(event) => setDraftFilters((current) => ({ ...current, customerKeyword: event.target.value }))}
-            placeholder="Tên hoặc số điện thoại"
-            aria-label="Khách hàng"
-          />
-        </label>
-
-        <label className="retail-filter-field">
-          <Package size={14} />
-          <input
-            value={draftFilters.productKeyword}
-            onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
-            placeholder="Mã hoặc tên sản phẩm"
-            aria-label="Sản phẩm"
-          />
-        </label>
-
-        <button className="retail-filter-button" type="submit"><Search size={15} /> Lọc</button>
-        <button className="retail-reset-button" type="button" onClick={resetFilters}>Đặt lại</button>
-      </form>
-
-      <div className="retail-actionbar">
-        <div className="retail-actionbar-left">
-          <button className="retail-btn success" type="button" onClick={() => void openBranchPicker()}>
-            <Plus size={16} /> Thêm hóa đơn lẻ
-          </button>
-          {selectedIds.size > 0 && <span className="retail-selected">{selectedIds.size} hóa đơn đã chọn</span>}
-        </div>
-        <div className="retail-actionbar-right">
-          {branchName && appliedFilters.storeId === draftFilters.storeId && (
-            <span className="retail-filter-chip"><Store size={13} /> {branchName}</span>
-          )}
-          <span><strong>{total.toLocaleString('vi-VN')}</strong> bản ghi</span>
-          <span>{rangeStart.toLocaleString('vi-VN')} - {rangeEnd.toLocaleString('vi-VN')}</span>
-          <button className="retail-btn" type="button" onClick={() => setShowExportModal(true)}>
-            <FileDown size={15} /> Xuất dữ liệu
-          </button>
-          <button
-            className="retail-icon-btn"
-            type="button"
-            title="Làm mới"
-            aria-label="Làm mới"
-            onClick={resetFilters}
+          <select
+            className="retail-filter-select"
+            value={draftFilters.storeId}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, storeId: event.target.value }))}
+            aria-label="Cửa hàng"
           >
-            <RefreshCw size={15} />
-          </button>
-        </div>
-      </div>
+            <option value="">Tất cả cửa hàng</option>
+            {branches.map((branch) => (
+              <option key={branch._id} value={branch._id}>{branch.name || branch.code || branch._id}</option>
+            ))}
+          </select>
+
+          <label className="retail-date-field">
+            <span>Từ</span>
+            <input
+              type="date"
+              value={draftFilters.dateFrom}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, dateFrom: event.target.value }))}
+              aria-label="Từ ngày"
+            />
+          </label>
+
+          <label className="retail-date-field">
+            <span>Đến</span>
+            <input
+              type="date"
+              value={draftFilters.dateTo}
+              min={draftFilters.dateFrom || undefined}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, dateTo: event.target.value }))}
+              aria-label="Đến ngày"
+            />
+          </label>
+
+          <label className="retail-search">
+            <UserRound size={14} aria-hidden="true" />
+            <input
+              value={draftFilters.customerKeyword}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, customerKeyword: event.target.value }))}
+              placeholder="Tên hoặc số điện thoại"
+              aria-label="Khách hàng"
+            />
+          </label>
+
+          <label className="retail-search">
+            <Package size={14} aria-hidden="true" />
+            <input
+              value={draftFilters.productKeyword}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
+              placeholder="Mã hoặc tên sản phẩm"
+              aria-label="Sản phẩm"
+            />
+          </label>
+
+          <div className="retail-filter-actions">
+            <button className="retail-btn retail-btn-primary" type="submit">
+              <Search size={14} aria-hidden="true" />
+              Lọc
+            </button>
+            <button className="retail-btn retail-btn-secondary" type="button" onClick={resetFilters} title="Đặt lại bộ lọc và làm mới">
+              <RefreshCw size={14} aria-hidden="true" />
+              Làm mới
+            </button>
+            <button className="retail-btn retail-btn-primary" type="button" onClick={() => void openBranchPicker()}>
+              <Plus size={14} aria-hidden="true" />
+              Thêm hóa đơn
+            </button>
+            <button className="retail-btn retail-btn-secondary" type="button" onClick={() => setShowExportModal(true)}>
+              <FileDown size={14} aria-hidden="true" />
+              Xuất dữ liệu
+            </button>
+          </div>
+        </form>
+      </section>
 
       {error && (
         <div className="retail-alert" role="alert">
@@ -732,37 +804,53 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         </div>
       )}
 
-      <section className="retail-table-card" aria-label="Danh sách hóa đơn bán lẻ">
-        <div className="retail-table-scroll">
-          <table>
+      <section className="data-card retail-table-card" aria-label="Danh sách hóa đơn bán lẻ">
+        <div className="data-card-header retail-table-header">
+          <div>
+            <h2 className="retail-table-title">Bảng dữ liệu Bán lẻ</h2>
+            <p className="retail-table-subtitle">
+              {total.toLocaleString('vi-VN')} hóa đơn
+              {hasActiveFilters ? ' · Đang lọc' : ''}
+              {total > 0 ? ` · Trang ${page}/${totalPages}` : ''}
+            </p>
+          </div>
+          <span className={`retail-selected-count${selectedIds.size > 0 ? ' is-active' : ''}`}>
+            Đã chọn {selectedIds.size.toLocaleString('vi-VN')}
+          </span>
+        </div>
+
+        <div className="table-scroll retail-table-scroll retail-sales-table">
+          <table className="data-table retail-data-table">
             <colgroup>
-              <col className="col-check" />
-              <col className="col-creator" />
-              <col className="col-id" />
-              <col className="col-customer" />
-              <col className="col-product" />
-              <col className="col-gross" />
-              <col className="col-qty" />
-              <col className="col-discount" />
-              <col className="col-total" />
-              <col className="col-payment" />
-              <col className="col-status" />
-              <col className="col-action" />
+              <col className="col-check" style={{ width: 40 }} />
+              <col className="col-creator" style={{ width: 165 }} />
+              <col className="col-id" style={{ width: 145 }} />
+              <col className="col-customer" style={{ width: 115 }} />
+              <col className="col-product" style={{ width: 145 }} />
+              <col className="col-gross" style={{ width: 135 }} />
+              <col className="col-qty" style={{ width: 75 }} />
+              <col className="col-discount" style={{ width: 95 }} />
+              <col className="col-total" style={{ width: 125 }} />
+              <col className="col-payment" style={{ width: 110 }} />
+              <col className="col-status" style={{ width: 100 }} />
+              <col className="col-action" style={{ width: 75 }} />
             </colgroup>
             <thead>
               <tr>
-                <th className="check"><input type="checkbox" checked={selectedAll} onChange={(event) => toggleAll(event.target.checked)} aria-label="Chọn tất cả" /></th>
-                <th>Người tạo / Ngày tạo</th>
-                <th>ID hóa đơn</th>
-                <th>Khách hàng</th>
-                <th>Sản phẩm</th>
-                <th className="number">Giá trị hàng hóa</th>
-                <th className="number">Tổng SL</th>
-                <th className="number">Giảm giá</th>
-                <th className="number">Tổng tiền</th>
-                <th>Thanh toán</th>
-                <th>Trạng thái</th>
-                <th className="action">Thao tác</th>
+                <th className="check col-check">
+                  <input type="checkbox" checked={selectedAll} onChange={(event) => toggleAll(event.target.checked)} aria-label="Chọn tất cả" />
+                </th>
+                <th className="col-creator">Người tạo / Ngày tạo</th>
+                <th className="col-id">ID hóa đơn</th>
+                <th className="col-customer">Khách hàng</th>
+                <th className="col-product">Sản phẩm</th>
+                <th className="number col-center col-gross">Giá trị hàng hóa</th>
+                <th className="number col-center col-qty">Tổng SL</th>
+                <th className="number col-center col-discount">Giảm giá</th>
+                <th className="number col-center col-total">Tổng tiền</th>
+                <th className="col-center col-payment">Thanh toán</th>
+                <th className="col-center col-status">Trạng thái</th>
+                <th className="action-cell col-action">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -774,11 +862,11 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
               {!loading && !error && invoices.length === 0 && (
                 <tr>
-                  <td colSpan={12}>
-                    <div className="retail-empty">
-                      <Package size={30} />
+                  <td colSpan={12} className="retail-empty-cell">
+                    <div className="retail-empty-state">
+                      <Package size={28} aria-hidden="true" />
                       <strong>Không có hóa đơn phù hợp</strong>
-                      <span>Hãy thay đổi bộ lọc hoặc tạo hóa đơn bán lẻ mới.</span>
+                      <span>Thử đổi bộ lọc hoặc tạo hóa đơn bán lẻ mới.</span>
                     </div>
                   </td>
                 </tr>
@@ -791,13 +879,9 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                 const creator = invoice.authorId?.name || invoice.userId?.name;
                 const payments = paymentRows(invoice);
                 const status = statusMeta(invoice.status, invoice.refundStatus);
-                const giftDisabled = !hasGiftItems(invoice);
-                const refundState = refundActionState(invoice);
-                const editState = editActionState(invoice);
-                const deleteState = deleteActionState(invoice);
                 return (
                   <tr key={invoice._id}>
-                    <td className="check">
+                    <td className="check col-check">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(invoice._id)}
@@ -805,42 +889,53 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                         aria-label={`Chọn hóa đơn ${invoice.code || invoice._id}`}
                       />
                     </td>
-                    <td>
+                    <td className="col-creator">
                       <div className="retail-stack">
-                        <strong title={`${creator || '—'} · ${safeDate(invoice.createdAt)}`}>{creator || '—'}</strong>
-                        <span>{safeDate(invoice.createdAt)}</span>
+                        <strong title={creator || '—'}>{creator || '—'}</strong>
+                        <span title={safeDate(invoice.createdAt)}>{safeDate(invoice.createdAt)}</span>
                       </div>
                     </td>
-                    <td>
+                    <td className="col-id">
                       <button className="retail-invoice-link" type="button" title={invoice.code || '—'} onClick={() => void openDetail(invoice)}>
                         {invoice.code || '—'}
                       </button>
                     </td>
-                    <td>
+                    <td className="col-customer">
                       <div className="retail-stack">
-                        <strong title={`${customer?.name || 'Khách lẻ'} · ${customer?.phone || '—'}`}>{customer?.name || 'Khách lẻ'}</strong>
-                        <span>{customer?.phone || '—'}</span>
+                        <strong title={customer?.name || 'Khách lẻ'}>{customer?.name || 'Khách lẻ'}</strong>
+                        <span title={customer?.phone || '—'}>{customer?.phone || '—'}</span>
                       </div>
                     </td>
-                    <td>
+                    <td className="col-product">
                       {firstItem ? (
                         <div className="retail-product-cell">
                           <strong title={productName(firstItem)}>{productName(firstItem)}</strong>
-                          <span>{productCode(firstItem) || '—'}</span>
+                          <span title={productCode(firstItem) || '—'}>{productCode(firstItem) || '—'}</span>
                           {items.length > 1 && <em>+{items.length - 1} sản phẩm khác</em>}
                         </div>
                       ) : '—'}
                     </td>
-                    <td className="number" title={items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}>{items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}</td>
-                    <td className="number" title={items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}>{items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}</td>
-                    <td className="number discount" title={Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—'}>{Number(invoice.discountValue) > 0 ? (
-                      <span className="retail-discount-cell">
-                        <span className="retail-discount-money">-{safeMoney(discountMoneyAmount(invoice))}</span>
-                        {invoice.discountType === 'percent' ? <span className="retail-discount-rate">{Number(invoice.discountValue)}%</span> : null}
-                      </span>
-                    ) : '—'}</td>
-                    <td className="number total" title={safeMoney(invoice.value)}>{safeMoney(invoice.value)}</td>
-                    <td className="retail-payment-column">
+                    <td className="number col-center col-gross" title={items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}>
+                      {items.length > 0 ? safeMoney(grossValue(invoice)) : '—'}
+                    </td>
+                    <td className="number col-center col-qty" title={items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}>
+                      {items.length > 0 ? totalQuantity(invoice).toLocaleString('vi-VN') : '—'}
+                    </td>
+                    <td
+                      className="number col-center discount col-discount"
+                      title={Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—'}
+                    >
+                      {Number(invoice.discountValue) > 0 ? (
+                        <span className="retail-discount-cell">
+                          <span className="retail-discount-money">-{safeMoney(discountMoneyAmount(invoice))}</span>
+                          {invoice.discountType === 'percent' ? <span className="retail-discount-rate">{Number(invoice.discountValue)}%</span> : null}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="number col-center total col-total" title={safeMoney(invoice.value)}>
+                      {safeMoney(invoice.value)}
+                    </td>
+                    <td className="col-center retail-payment-column col-payment">
                       {payments.length > 0 ? (
                         <div className="retail-payments">
                           {payments.map((payment, index) => (
@@ -852,30 +947,21 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                         </div>
                       ) : '—'}
                     </td>
-                    <td><span className={`retail-status ${status.tone}`}>{status.label}</span></td>
-                    <td className="action">
-                      <div className="retail-row-menu" ref={rowActionOpen === invoice._id ? rowMenuRef : null}>
+                    <td className="col-center col-status">
+                      <span className={`retail-status ${status.tone}`}>{status.label}</span>
+                    </td>
+                    <td className="action-cell col-action">
+                      <div className="retail-actions">
                         <button
-                          className="retail-icon-btn"
+                          className="retail-row-menu-button"
                           type="button"
                           aria-label={`Thao tác hóa đơn ${invoice.code || invoice._id}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setRowActionOpen((current) => current === invoice._id ? null : invoice._id);
-                          }}
+                          aria-expanded={rowActionOpen === invoice._id}
+                          aria-haspopup="menu"
+                          onClick={(event) => openRowActionMenu(invoice._id, event)}
                         >
-                          <MoreHorizontal size={17} />
+                          <MoreHorizontal size={16} aria-hidden="true" />
                         </button>
-                        {rowActionOpen === invoice._id && (
-                          <div className="retail-menu" onClick={(event) => event.stopPropagation()}>
-                            <button type="button" onClick={() => void openDetail(invoice)}><Eye size={15} /> Xem chi tiết</button>
-                            <button type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice)}><Printer size={15} /> In hóa đơn</button>
-                            <button type="button" disabled={giftDisabled} title={giftDisabled ? 'Hóa đơn này không có sản phẩm tặng kèm' : ''} onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(invoice, true)}><Gift size={15} /> In hóa đơn quà tặng</button>
-                            <button type="button" disabled={!refundState.enabled} title={refundState.title} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${invoice._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
-                            {canManageSales ? (<button type="button" disabled={!editState.enabled} title={editState.title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${invoice._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>) : null}
-                            {canManageSales ? (<button type="button" disabled={!deleteState.enabled || actionBusyId === invoice._id} title={deleteState.title} onClick={() => void handleDeleteInvoice(invoice)}><Trash2 size={15} /> {actionBusyId === invoice._id ? 'Đang xử lý...' : 'Xóa hóa đơn'}</button>) : null}
-                          </div>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -886,12 +972,13 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               <tfoot className="retail-summary-foot">
                 <tr>
                   <td colSpan={5} className="retail-summary-label">Tổng cộng trang {page}/{totalPages}</td>
-                  <td className="number" title={safeMoney(pageSummary.gross)}>{safeMoney(pageSummary.gross)}</td>
-                  <td className="number" />
-                  <td className="number" />
-                  <td className="number total" title={safeMoney(pageSummary.totalValue)}>{safeMoney(pageSummary.totalValue)}</td>
-                  <td className="number retail-summary-paid" title={safeMoney(pageSummary.paid)}>{safeMoney(pageSummary.paid)}</td>
-                  <td colSpan={2} />
+                  <td className="number col-center" title={safeMoney(pageSummary.gross)}>{safeMoney(pageSummary.gross)}</td>
+                  <td className="number col-center" />
+                  <td className="number col-center" />
+                  <td className="number col-center total" title={safeMoney(pageSummary.totalValue)}>{safeMoney(pageSummary.totalValue)}</td>
+                  <td className="number col-center retail-summary-paid" title={safeMoney(pageSummary.paid)}>{safeMoney(pageSummary.paid)}</td>
+                  <td className="col-center" />
+                  <td className="action-cell" />
                 </tr>
               </tfoot>
             )}
@@ -907,6 +994,72 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
           </div>
         </div>
       </section>
+
+      {openRowInvoice && rowMenuPos
+        ? createPortal(
+            <div
+              className="retail-row-action-menu retail-row-action-menu--portal"
+              role="menu"
+              style={{ top: rowMenuPos.top, left: rowMenuPos.left }}
+            >
+              <button type="button" role="menuitem" onClick={() => void openDetail(openRowInvoice)}>
+                <Eye size={15} aria-hidden="true" /> Xem chi tiết
+              </button>
+              <button type="button" role="menuitem" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(openRowInvoice)}>
+                <Printer size={15} aria-hidden="true" /> In hóa đơn
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={!hasGiftItems(openRowInvoice)}
+                title={!hasGiftItems(openRowInvoice) ? 'Hóa đơn này không có sản phẩm tặng kèm' : ''}
+                onPointerDown={primePrintWindow}
+                onClick={() => void handlePrintInvoice(openRowInvoice, true)}
+              >
+                <Gift size={15} aria-hidden="true" /> In hóa đơn quà tặng
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={!refundActionState(openRowInvoice).enabled}
+                title={refundActionState(openRowInvoice).title}
+                onClick={() => {
+                  closeRowMenu();
+                  navigate(`/sales-channels/${channel}/refund/create?saleId=${openRowInvoice._id}`);
+                }}
+              >
+                <RotateCcw size={15} aria-hidden="true" /> Đổi trả hàng
+              </button>
+              {canManageSales ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={!editActionState(openRowInvoice).enabled}
+                  title={editActionState(openRowInvoice).title}
+                  onClick={() => {
+                    closeRowMenu();
+                    navigate(`/sales-channels/${channel}/retail/create?editId=${openRowInvoice._id}`);
+                  }}
+                >
+                  <FilePenLine size={15} aria-hidden="true" /> Sửa đơn hàng
+                </button>
+              ) : null}
+              {canManageSales ? (
+                <button
+                  className="danger"
+                  type="button"
+                  role="menuitem"
+                  disabled={!deleteActionState(openRowInvoice).enabled || actionBusyId === openRowInvoice._id}
+                  title={deleteActionState(openRowInvoice).title}
+                  onClick={() => void handleDeleteInvoice(openRowInvoice)}
+                >
+                  <Trash2 size={15} aria-hidden="true" /> {actionBusyId === openRowInvoice._id ? 'Đang xử lý...' : 'Xóa hóa đơn'}
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
 
       {showBranchModal && (
         <div className="retail-modal-backdrop" role="presentation">
@@ -1061,211 +1214,3 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
     </div>
   );
 }
-
-const retailStyles = `
-/* Retail invoice list - premium effect system, aligned with Overview / Products / Warehouse cluster */
-.retail-invoice-page{
-  --ri-accent:#10b981;
-  --ri-accent-2:#059669;
-  --ri-accent-rgb:16,185,129;
-  --ri-border:rgba(16,185,129,.16);
-  --ri-shadow-sm:0 8px 20px rgba(15,23,42,.06);
-  --ri-shadow:0 18px 42px rgba(15,23,42,.10);
-  --ri-surface:rgba(255,255,255,.96);
-  --ri-radius:16px;
-  --ri-radius-lg:22px;
-  display:flex;flex-direction:column;min-width:0;gap:16px;
-  min-height:calc(100vh - 76px);
-  padding:22px clamp(18px,4vw,44px) 46px;
-  background:
-    radial-gradient(circle at top left,rgba(var(--ri-accent-rgb),.12),transparent 30%),
-    radial-gradient(circle at 86% 8%,rgba(16, 185, 129,.10),transparent 26%),
-    linear-gradient(180deg,#f7fcf9 0%,#f3faf6 100%);
-  color:#0f172a;
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-}
-
-/* ---------- Hero ---------- */
-.retail-hero{
-  position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:22px;
-  padding:22px 24px;border:1px solid var(--ri-border);border-radius:var(--ri-radius-lg);
-  background:
-    radial-gradient(900px 240px at 92% -40%,rgba(var(--ri-accent-rgb),.16),transparent 70%),
-    linear-gradient(135deg,rgba(209,250,229,.45),rgba(255,255,255,.96));
-  box-shadow:var(--ri-shadow);backdrop-filter:blur(10px);animation:ri-rise 360ms ease both;overflow:hidden;
-}
-.retail-hero::after{content:"";position:absolute;inset:auto -60px -80px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(16, 185, 129,.16),transparent 68%);pointer-events:none}
-.retail-hero-text{position:relative;z-index:1;display:grid;gap:6px;min-width:0}
-.retail-eyebrow{display:inline-flex;align-items:center;gap:8px;width:fit-content;min-height:28px;padding:0 12px;border-radius:999px;background:rgba(var(--ri-accent-rgb),.12);color:var(--ri-accent);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
-.retail-hero h1{margin:0;font-size:clamp(22px,2vw,28px);font-weight:850;letter-spacing:-.03em;line-height:1.15;background:linear-gradient(120deg,#1e3a8a,var(--ri-accent) 60%,var(--ri-accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
-.retail-hero p{margin:0;max-width:680px;color:#64748b;font-size:13px;line-height:1.55}
-.retail-hero-icon{width:56px;height:56px;border-radius:18px;display:inline-grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--ri-accent),var(--ri-accent-2));box-shadow:0 14px 30px rgba(var(--ri-accent-rgb),.32);flex-shrink:0}
-
-/* ---------- Surfaces (filterbar / actionbar / table) ---------- */
-.retail-actionbar,.retail-table-card,.retail-alert{border:1px solid var(--ri-border);border-radius:var(--ri-radius);background:var(--ri-surface);box-shadow:var(--ri-shadow-sm);backdrop-filter:blur(8px)}
-.retail-filterbar{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(150px,1fr) minmax(170px,1.1fr) minmax(132px,.8fr) minmax(132px,.8fr) auto auto;gap:10px;align-items:center;padding:16px;border:1px solid var(--ri-border);border-radius:var(--ri-radius);background:linear-gradient(180deg,#fbfdff,#f8fafc);box-shadow:var(--ri-shadow-sm);animation:ri-rise 340ms ease both}
-.retail-filter-field{min-height:40px;display:inline-flex;align-items:center;gap:8px;min-width:0;background:#fff;border:1px solid #d7e0ec;border-radius:13px;padding:0 11px;color:#64748b;box-shadow:0 8px 20px rgba(15,23,42,.04);transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
-.retail-filter-field:focus-within{border-color:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.12)}
-.retail-filter-field input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:#0f172a;font:inherit;font-size:13px;font-weight:600}
-.retail-date-field span{white-space:nowrap;font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b}
-.retail-filter-select{min-height:40px;width:100%;min-width:0;border:1px solid #d7e0ec;border-radius:13px;background:#fff;padding:0 11px;color:#0f172a;font-size:13px;font-weight:600;box-shadow:0 8px 20px rgba(15,23,42,.04);transition:border-color .15s ease,box-shadow .15s ease}
-.retail-filter-select:focus{outline:0;border-color:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.12)}
-.retail-filter-button,.retail-reset-button{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 16px;border-radius:13px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;transition:box-shadow .15s ease,transform .15s ease,background .15s ease,border-color .15s ease,color .15s ease}
-.retail-filter-button{border:0;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 12px 24px rgba(22,163,74,.2)}
-.retail-filter-button:hover{background:linear-gradient(135deg,#15803d,#166534);box-shadow:0 16px 30px rgba(22,163,74,.28);transform:translateY(-1px)}
-.retail-reset-button{border:1px solid #d7e0ec;background:#fff;color:#334155;box-shadow:0 8px 18px rgba(15,23,42,.04)}
-.retail-reset-button:hover{border-color:#16a34a;color:#16a34a}
-.retail-filter-button:active,.retail-reset-button:active{transform:translateY(0);filter:brightness(.98)}
-.retail-btn{height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid transparent;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:box-shadow .16s ease,transform .16s ease,filter .16s ease,border-color .16s ease,color .16s ease}
-.retail-btn:disabled{opacity:.55;cursor:not-allowed}
-.retail-btn.primary{background:linear-gradient(135deg,var(--ri-accent),var(--ri-accent-2));color:#fff;box-shadow:0 8px 18px rgba(var(--ri-accent-rgb),.22)}
-.retail-btn.primary:hover{box-shadow:0 12px 24px rgba(var(--ri-accent-rgb),.30);transform:translateY(-1px)}
-.retail-btn.success{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;box-shadow:0 8px 18px rgba(22,163,74,.22)}
-.retail-btn.success:hover{box-shadow:0 12px 24px rgba(22,163,74,.30);transform:translateY(-1px)}
-.retail-btn.ghost{background:#fff;border-color:#cfd7df;color:#475569}
-.retail-btn.ghost:hover{border-color:rgba(var(--ri-accent-rgb),.45);color:var(--ri-accent)}
-.retail-btn:active{transform:translateY(0);filter:brightness(.98)}
-
-.retail-actionbar{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;animation:ri-rise 340ms ease both}
-.retail-actionbar-left,.retail-actionbar-right{display:flex;align-items:center;gap:12px}
-.retail-actionbar-right{font-size:12px;color:#687685}
-.retail-selected,.retail-filter-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;background:rgba(var(--ri-accent-rgb),.1);color:var(--ri-accent);font-size:12px;font-weight:700}
-.retail-icon-btn{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d4dbe2;border-radius:10px;background:#fff;color:#657383;cursor:pointer;transition:border-color .16s ease,color .16s ease,background .16s ease}
-.retail-icon-btn:hover{background:rgba(var(--ri-accent-rgb),.08);border-color:rgba(var(--ri-accent-rgb),.4);color:var(--ri-accent)}
-
-.retail-alert{display:flex;align-items:center;gap:10px;margin:0;padding:12px 14px;border-color:rgba(220,38,38,.25);background:linear-gradient(135deg,rgba(254,242,242,.96),#fff);color:#b42318}
-.retail-alert div{display:flex;flex:1;flex-direction:column;gap:2px}
-.retail-alert span{font-size:12px}
-.retail-alert button{border:0;background:transparent;color:#b42318;font-weight:750;cursor:pointer}
-
-/* ---------- Table ---------- */
-.retail-table-card{min-width:0;overflow:hidden;animation:ri-rise 360ms ease both}
-.retail-table-scroll{overflow:auto}
-.retail-table-card table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:12px}
-.retail-table-card colgroup col{width:auto}
-.retail-table-card .col-check{width:3.5%}
-.retail-table-card .col-creator{width:9.5%}
-.retail-table-card .col-id{width:8%}
-.retail-table-card .col-customer{width:13%}
-.retail-table-card .col-product{width:17%}
-.retail-table-card .col-gross{width:8.5%}
-.retail-table-card .col-qty{width:4%}
-.retail-table-card .col-discount{width:7%}
-.retail-table-card .col-total{width:8.5%}
-.retail-table-card .col-payment{width:7%}
-.retail-table-card .col-status{width:8%}
-.retail-table-card .col-action{width:6%}
-.retail-table-card th:last-child,.retail-table-card td:last-child{border-right:0}
-.retail-table-card th{position:sticky;top:0;z-index:1;padding:9px 10px;background:linear-gradient(180deg,#f1f5f9,#eef2f7);border-bottom:1px solid rgba(148,163,184,.4);border-right:1px solid rgba(148,163,184,.18);color:#334155;font-size:11px;font-weight:750;text-align:left;white-space:normal;letter-spacing:.02em}
-.retail-table-card td{padding:9px 10px;border-bottom:1px solid #eef2f7;border-right:1px solid #f1f5f9;vertical-align:top;background:#fff;transition:background .14s ease}
-.retail-table-card tbody tr{transition:transform .14s ease}
-.retail-table-card tbody tr:hover td{background:linear-gradient(90deg,rgba(var(--ri-accent-rgb),.05),rgba(var(--ri-accent-rgb),.015))}
-.retail-summary-foot td{padding:10px;background:linear-gradient(180deg,#f8fafc,#eef2f7);border-top:2px solid rgba(148,163,184,.45);border-bottom:0;border-right:1px solid rgba(148,163,184,.18);color:#334155;font-weight:800;white-space:nowrap}
-.retail-summary-foot td:last-child{border-right:0}
-.retail-summary-foot td.retail-summary-label{text-align:right;color:#475569;font-size:11px;font-weight:750;letter-spacing:.02em;white-space:nowrap}
-.retail-summary-foot td.total{color:#16a34a}
-.retail-summary-foot td.retail-summary-paid{color:#0f172a}
-.retail-summary-foot td.number{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35}
-.retail-table-card .check,.retail-table-card .action{text-align:center}
-.retail-table-card .number{text-align:right}
-.retail-table-card td.number{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.retail-stack,.retail-product-cell,.retail-payments{display:flex;flex-direction:column;gap:3px}
-.retail-stack strong,.retail-product-cell strong{font-weight:700;color:#0f172a}
-.retail-stack span,.retail-product-cell span{color:#64748b;font-size:11px}
-.retail-stack strong,.retail-stack span{min-width:0;word-break:break-word}
-.retail-product-cell{min-width:0;max-width:100%}
-.retail-product-cell strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.retail-product-cell em{color:var(--ri-accent);font-size:11px;font-style:normal;font-weight:700}
-.retail-invoice-link{display:block;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;padding:0;border:0;background:transparent;color:var(--ri-accent);font-weight:700;cursor:pointer;transition:color .14s ease}
-.retail-invoice-link:hover{color:var(--ri-accent-2);text-decoration:underline}
-.retail-table-card td.discount{color:#ea580c}
-.retail-discount-cell{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.3}
-.retail-discount-money{white-space:nowrap}
-.retail-discount-rate{color:#b45309;font-size:11px;font-weight:600;white-space:nowrap}
-.retail-discount-detail{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.3}
-.retail-table-card td.total{color:#16a34a;font-weight:800}
-.retail-payment-column{min-width:0;max-width:100%}
-.retail-payments{min-width:0;max-width:180px;gap:8px}
-.retail-payment-item{display:flex;min-width:0;max-width:100%;flex-direction:column;align-items:flex-end;gap:3px}
-.retail-payment-amount{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-weight:700;white-space:nowrap;color:#0f172a}
-.retail-payment-method{display:block;min-width:0;max-width:100%;overflow:hidden;color:#64748b;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
-.retail-status{display:inline-flex;padding:3px 9px;border-radius:999px;background:#eef1f4;color:#5d6874;font-size:11px;font-style:normal;font-weight:700;white-space:nowrap}
-.retail-status.success{background:rgba(22,163,74,.12);color:#15803d}
-.retail-status.warning{background:rgba(180,83,9,.12);color:#b45309}
-.retail-status.danger{background:rgba(220,38,38,.12);color:#b91c1c}
-.retail-table-card .retail-status{white-space:normal;line-height:1.3}
-.retail-row-menu{position:relative;display:inline-flex}
-.retail-menu{position:absolute;z-index:40;top:38px;right:0;width:220px;padding:6px;background:#fff;border:1px solid var(--ri-border);border-radius:12px;box-shadow:0 18px 40px rgba(15,23,42,.16);text-align:left;animation:ri-popover-in 160ms ease both}
-.retail-menu button{width:100%;display:flex;align-items:center;gap:8px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#334155;font-size:12px;cursor:pointer;transition:background .14s ease,color .14s ease}
-.retail-menu button:hover{background:rgba(var(--ri-accent-rgb),.08);color:var(--ri-accent)}
-.retail-menu button:disabled{opacity:.45;cursor:not-allowed}
-.retail-menu button:disabled:hover{background:transparent;color:#334155}
-.retail-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#94a3b8}
-.retail-empty strong{color:#475569;font-size:14px}
-.retail-skeleton td span{display:block;height:13px;border-radius:6px;background:linear-gradient(100deg,#e9edf4 30%,#f4f7fb 50%,#e9edf4 70%);background-size:200% 100%;animation:ri-shimmer 1.4s ease-in-out infinite}
-.retail-pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--ri-border);color:#687685;font-size:12px}
-.retail-pagination>div{display:flex;align-items:center;gap:8px}
-.retail-pagination button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d5dde5;border-radius:9px;background:#fff;cursor:pointer;transition:border-color .16s ease,color .16s ease}
-.retail-pagination button:hover:not(:disabled){border-color:rgba(var(--ri-accent-rgb),.45);color:var(--ri-accent)}
-.retail-pagination button:disabled{opacity:.45;cursor:not-allowed}
-
-/* ---------- Modals ---------- */
-.retail-modal-backdrop{position:fixed;z-index:1000;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.52);backdrop-filter:blur(4px);animation:ri-fade 180ms ease both}
-.retail-modal{width:min(560px,100%);max-height:calc(100vh - 36px);display:flex;flex-direction:column;background:#fff;border:1px solid var(--ri-border);border-radius:18px;box-shadow:0 30px 70px rgba(15,23,42,.30);overflow:hidden;animation:ri-rise 220ms ease both}
-.retail-modal.detail-modal{width:min(1040px,100%)}
-.retail-modal header,.retail-modal footer{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #eef2f7}
-.retail-modal footer{justify-content:flex-end;gap:8px;border-top:1px solid #eef2f7;border-bottom:0}
-.retail-modal header>div{display:flex;align-items:center;gap:9px}
-.retail-modal h2{margin:0;font-size:16px;font-weight:800}
-.retail-modal header>button{width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:#64748b;cursor:pointer;transition:color .16s ease,background .16s ease}
-.retail-modal header>button:hover{color:#0f172a;background:#f1f5f9}
-.retail-modal-body{padding:16px;overflow:auto}
-.retail-modal-state{min-height:150px;display:flex;align-items:center;justify-content:center;gap:9px;color:#64748b}
-.retail-modal-error{display:flex;align-items:center;gap:8px;padding:12px;border-radius:10px;background:#fff2f1;color:#b42318}
-.retail-modal-error button{margin-left:auto;border:0;background:transparent;color:inherit;font-weight:700;cursor:pointer}
-.retail-branch-list{display:flex;flex-direction:column;gap:10px}
-.retail-branch-list>button{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:14px;border:1px solid var(--ri-border);border-radius:12px;background:#fff;color:#475569;text-align:left;cursor:pointer;transition:border-color .16s ease,background .16s ease,transform .16s ease,box-shadow .16s ease}
-.retail-branch-list>button:hover{border-color:rgba(var(--ri-accent-rgb),.4);background:rgba(var(--ri-accent-rgb),.04);transform:translateY(-1px);box-shadow:0 10px 22px rgba(15,23,42,.06)}
-.retail-branch-list>button.active{border-color:#16a34a;background:rgba(22,163,74,.06);color:#15803d;box-shadow:0 10px 22px rgba(22,163,74,.12)}
-.retail-branch-list span{display:flex;flex-direction:column;gap:3px}
-.retail-branch-list small{color:#64748b}
-.retail-detail-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,.8fr);gap:14px}
-.retail-detail-main,.retail-detail-side{display:flex;flex-direction:column;gap:12px}
-.retail-detail-card{border:1px solid var(--ri-border);border-radius:12px;overflow:hidden;background:#fff}
-.retail-detail-card h3{margin:0;padding:12px 14px;background:linear-gradient(180deg,#f8fafc,#f1f5f9);border-bottom:1px solid var(--ri-border);font-size:13px;font-weight:800;color:#334155}
-.retail-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:14px}
-.retail-info-grid span{display:flex;flex-direction:column;gap:3px}
-.retail-info-grid small,.retail-detail-info small{color:#64748b}
-.retail-detail-table{overflow:auto}
-.retail-detail-table table{min-width:620px}
-.retail-detail-table th{position:static}
-.retail-detail-empty{text-align:center;color:#64748b}
-.retail-note{margin:0;padding:14px;white-space:pre-wrap}
-.retail-money-summary{margin:0;padding:14px}
-.retail-money-summary>div{display:flex;justify-content:space-between;gap:12px;padding:7px 0}
-.retail-money-summary dt{color:#64748b}
-.retail-money-summary dd{margin:0;font-weight:700}
-.retail-money-summary .discount{color:#ea580c}
-.retail-money-summary .grand{border-top:1px solid var(--ri-border);font-size:15px}
-.retail-money-summary .grand dd{color:#16a34a}
-.retail-payment-breakdown{display:flex;flex-direction:column;gap:6px;padding:0 14px 14px}
-.retail-payment-breakdown span{display:flex;justify-content:space-between;padding:8px 10px;border-radius:8px;background:#f4f7f9}
-.retail-payment-breakdown small{color:#64748b}
-.retail-detail-info{display:flex;flex-direction:column;gap:12px;padding:14px}
-.retail-detail-info>span{display:flex;align-items:flex-start;gap:9px}
-.retail-detail-info>span>div{display:flex;flex-direction:column;gap:3px}
-
-/* ---------- Animations ---------- */
-.spin{animation:ri-spin 1s linear infinite}
-@keyframes ri-spin{to{transform:rotate(360deg)}}
-@keyframes ri-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@keyframes ri-fade{from{opacity:0}to{opacity:1}}
-@keyframes ri-shimmer{0%{background-position:100% 0;opacity:.7}50%{opacity:1}100%{background-position:-100% 0;opacity:.7}}
-@keyframes ri-popover-in{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-
-/* ---------- Responsive ---------- */
-@media(max-width:1180px){.retail-filterbar{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:760px){.retail-hero{flex-direction:column;align-items:stretch;gap:14px}.retail-filterbar{grid-template-columns:1fr}.retail-actionbar{align-items:flex-start;flex-direction:column}.retail-actionbar-right{width:100%;flex-wrap:wrap}.retail-detail-grid{grid-template-columns:1fr}.retail-info-grid{grid-template-columns:1fr}.retail-pagination{align-items:flex-start;flex-direction:column;gap:8px}}
-@media(max-width:900px){.retail-table-card table{table-layout:auto;min-width:980px}.retail-table-card th{white-space:nowrap}.retail-table-card colgroup col{width:auto}}
-`;
-

@@ -422,7 +422,7 @@ function InvoiceTemplateDesigner(props: InvoiceTemplateDesignerProps) {
 
 export function WarehouseBranchesPage() {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
-  const [storeSetting, setStoreSetting] = useState<StoreSettingRecord>({ shopName: 'LadyStars' });
+  const [storeSetting, setStoreSetting] = useState<StoreSettingRecord>({});
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [form, setForm] = useState<BranchFormState>(createEmptyForm);
   const [isCreateMode, setIsCreateMode] = useState(false);
@@ -522,12 +522,31 @@ export function WarehouseBranchesPage() {
     });
   }, [branches, searchQuery, statusFilter]);
 
+  const branchStats = useMemo(() => {
+    let active = 0;
+    let inactive = 0;
+    for (const branch of branches) {
+      if (branch.isActive === false) inactive += 1;
+      else active += 1;
+    }
+    return { active, inactive, total: branches.length };
+  }, [branches]);
+
+  const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'all';
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+  };
+
   const loadStoreSetting = async () => {
     try {
       const data = await getStoreSetting();
-      setStoreSetting(data || { shopName: 'LadyStars' });
+      // Keep empty object on missing payload — never invent shop brand names.
+      setStoreSetting(data && typeof data === 'object' ? data : {});
     } catch {
-      setStoreSetting({ shopName: 'LadyStars' });
+      // Preview falls back via buildInvoiceProfile; do not hardcode fake store data.
+      setStoreSetting({});
     }
   };
 
@@ -536,18 +555,33 @@ export function WarehouseBranchesPage() {
     // Backend supports up to 5000 + server-side q/search/includeInactive.
     // If total >> loaded in future, UI should be updated to server pagination; for now load all.
     const data = await listBranches({ page: 1, limit: 5000, includeInactive: true });
-    setBranches(data.items || []);
-      // Open the first branch only for viewing the detail form.
-    const preferredId = nextSelectedId
-      || selectedBranchId
-      || data.items?.[0]?._id
-      || '';
-    setSelectedBranchId(preferredId);
-    if (!isCreateModeRef.current && preferredId) {
-      const selected = data.items.find((branch) => branch._id === preferredId) || null;
-      setForm(mapBranchToForm(selected));
+    const items = data.items || [];
+    setBranches(items);
+
+    // Resolve selection from API data only:
+    // - explicit non-empty id: prefer that id if still present
+    // - explicit '' (e.g. after delete): pick first remaining branch
+    // - omitted: keep current selection if still present, else first item
+    const exists = (id: string) => items.some((branch) => branch._id === id);
+    let preferredId = '';
+    if (typeof nextSelectedId === 'string') {
+      if (nextSelectedId && exists(nextSelectedId)) preferredId = nextSelectedId;
+      else preferredId = items[0]?._id || '';
+    } else {
+      const current = selectedBranchIdRef.current;
+      preferredId = current && exists(current) ? current : (items[0]?._id || '');
     }
-    return data.items || [];
+
+    setSelectedBranchId(preferredId);
+    if (!isCreateModeRef.current) {
+      if (preferredId) {
+        const selected = items.find((branch) => branch._id === preferredId) || null;
+        setForm(mapBranchToForm(selected));
+      } else {
+        setForm(createEmptyForm());
+      }
+    }
+    return items;
   };
 
   const loadBranchDetail = async (branchId: string) => {
@@ -570,7 +604,10 @@ export function WarehouseBranchesPage() {
       if (isStillSelected && !isCreateModeRef.current && isStillEditingSameForm) setForm(mapBranchToForm(detail));
     } catch (err: any) {
       if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
-      throw err;
+      // Surface API failures instead of unhandled rejection (e.g. deleted/missing branch).
+      if (detailRequestSeqRef.current === requestSeq) {
+        setError(err.response?.data?.message || 'Không tải được chi tiết kho hàng.');
+      }
     } finally {
       if (detailRequestSeqRef.current === requestSeq) setLoadingDetail(false);
     }
@@ -688,16 +725,16 @@ export function WarehouseBranchesPage() {
         setNotice('Kho hàng đã được chuyển sang ngừng hoạt động.');
       } else if (confirmAction === 'delete' && targetBranchId) {
         await deleteBranch(targetBranchId, adminPassword);
-        const remaining = await loadBranchesData('');
-        const nextId = remaining[0]?._id || '';
-        setSelectedBranchId(nextId);
         setIsCreateMode(false);
-        if (nextId) {
-          const branch = remaining.find((item) => item._id === nextId) || null;
-          setForm(mapBranchToForm(branch));
-        } else {
-          setForm(createEmptyForm());
-        }
+        isCreateModeRef.current = false;
+        // Explicit empty id: drop deleted selection and pick first remaining from API list.
+        await loadBranchesData('');
+        setUsageByBranchId((current) => {
+          if (!(targetBranchId in current)) return current;
+          const next = { ...current };
+          delete next[targetBranchId];
+          return next;
+        });
         setNotice('Đã xóa kho hàng trống.');
       }
     } catch (err: any) {
@@ -725,7 +762,7 @@ export function WarehouseBranchesPage() {
 
   if (loading) {
     return (
-      <div className="warehouse-branches-page warehouse-branches-loading">
+      <div className="page-stack warehouse-branches-page warehouse-branches-root warehouse-branches-loading">
         <LoaderCircle className="spin" size={20} />
         <span>Đang tải cấu hình kho hàng...</span>
       </div>
@@ -733,34 +770,128 @@ export function WarehouseBranchesPage() {
   }
 
   return (
-    <div className="warehouse-branches-page compact-page">
-      <div className="warehouse-branches-header card-shell compact-toolbar-card">
-        <div>
-          <h1>Cấu hình kho hàng</h1>
-          <p>Quản lý kho vận hành, dữ liệu chi nhánh và thông tin in hóa đơn.</p>
+    <div className="page-stack warehouse-branches-page warehouse-branches-root">
+      <section className="data-card warehouse-branches-toolbar-card warehouse-branches-sticky-toolbar">
+        <div className="warehouse-branches-toolbar-header-slot">
+          <div className="warehouse-branches-compact-head">
+            <h1 className="warehouse-branches-compact-heading-sr">Cấu hình kho hàng</h1>
+            <div className="warehouse-branches-tabs-row warehouse-branches-tabs-row--title-slot">
+              <span className="warehouse-branches-toolbar-eyebrow">CẤU HÌNH KHO</span>
+              <div className="warehouse-branches-tabbar is-compact" role="tablist" aria-label="Lọc trạng thái kho hàng">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === 'all'}
+                  className={`warehouse-branches-tab is-compact${statusFilter === 'all' ? ' is-active' : ''}`}
+                  onClick={() => setStatusFilter('all')}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === 'active'}
+                  className={`warehouse-branches-tab is-compact${statusFilter === 'active' ? ' is-active' : ''}`}
+                  onClick={() => setStatusFilter('active')}
+                >
+                  Hoạt động
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === 'inactive'}
+                  className={`warehouse-branches-tab is-compact${statusFilter === 'inactive' ? ' is-active' : ''}`}
+                  onClick={() => setStatusFilter('inactive')}
+                >
+                  Ngừng
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <button className="btn btn-primary" type="button" onClick={openCreateMode}>
-          <Plus size={16} /> Thêm kho hàng
-        </button>
-      </div>
+
+        <div className="warehouse-branches-summary-strip" aria-label="Tóm tắt Cấu hình kho hàng">
+          <div className="warehouse-branches-summary-cluster">
+            <span className="warehouse-branches-summary-main">
+              <strong>{branchStats.total.toLocaleString('vi-VN')}</strong>
+              <span>kho hàng</span>
+            </span>
+            <span className="warehouse-branches-summary-divider" aria-hidden="true" />
+            <span>{branchStats.active.toLocaleString('vi-VN')} hoạt động</span>
+            {branchStats.inactive > 0 ? (
+              <>
+                <span className="warehouse-branches-summary-divider" aria-hidden="true" />
+                <span>{branchStats.inactive.toLocaleString('vi-VN')} ngừng</span>
+              </>
+            ) : null}
+            {hasActiveFilters ? (
+              <>
+                <span className="warehouse-branches-summary-divider" aria-hidden="true" />
+                <span className="warehouse-branches-summary-filter">
+                  Đang lọc · {filteredBranches.length.toLocaleString('vi-VN')}
+                </span>
+              </>
+            ) : null}
+            {isCreateMode ? (
+              <>
+                <span className="warehouse-branches-summary-divider" aria-hidden="true" />
+                <span className="warehouse-branches-summary-filter">Đang tạo mới</span>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        <form
+          className="warehouse-branches-filter-bar"
+          onSubmit={(event) => {
+            event.preventDefault();
+          }}
+        >
+          <label className="warehouse-branches-search">
+            <Search size={15} aria-hidden="true" />
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Tìm theo tên, mã, địa chỉ hoặc hotline"
+              aria-label="Tìm kho hàng"
+            />
+          </label>
+          <div className="warehouse-branches-filter-actions">
+            <button
+              className="warehouse-branches-btn warehouse-branches-btn-secondary"
+              type="button"
+              onClick={clearFilters}
+              title="Xóa bộ lọc"
+            >
+              <RefreshCw size={14} aria-hidden="true" />
+              Làm mới
+            </button>
+            <button
+              className="warehouse-branches-btn warehouse-branches-btn-primary"
+              type="button"
+              onClick={openCreateMode}
+            >
+              <Plus size={14} aria-hidden="true" />
+              Thêm kho hàng
+            </button>
+          </div>
+        </form>
+      </section>
 
       {error ? <div className="data-alert" role="alert">{error}</div> : null}
       {notice ? <div className="warehouse-branches-notice">{notice}</div> : null}
 
       <div className="warehouse-branches-layout">
-        <aside className="card-shell warehouse-branch-list-panel">
-          <div className="warehouse-branch-search">
-            <Search size={16} />
-            <input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Tìm theo tên, mã, địa chỉ hoặc hotline"
-            />
-          </div>
-          <div className="warehouse-branch-filters">
-            <button type="button" className={statusFilter === 'all' ? 'active' : ''} onClick={() => setStatusFilter('all')}>Tất cả</button>
-            <button type="button" className={statusFilter === 'active' ? 'active' : ''} onClick={() => setStatusFilter('active')}>Hoạt động</button>
-            <button type="button" className={statusFilter === 'inactive' ? 'active' : ''} onClick={() => setStatusFilter('inactive')}>Ngừng hoạt động</button>
+        <aside className="data-card warehouse-branch-list-panel">
+          <div className="warehouse-branch-list-header">
+            <div>
+              <h2 className="warehouse-branch-list-title">Danh sách kho</h2>
+              <p className="warehouse-branch-list-subtitle">
+                {filteredBranches.length.toLocaleString('vi-VN')} / {branchStats.total.toLocaleString('vi-VN')} kho
+                {selectedBranch && !isCreateMode ? ` · Đang chọn ${selectedBranch.name}` : ''}
+                {isCreateMode ? ' · Chế độ tạo mới' : ''}
+              </p>
+            </div>
           </div>
           <div className="warehouse-branch-list">
             {filteredBranches.map((branch) => {
@@ -773,36 +904,42 @@ export function WarehouseBranchesPage() {
                   onClick={() => selectBranch(branch._id)}
                 >
                   <div className="warehouse-branch-card-top">
-                    <div>
-                      <strong>{branch.name}</strong>
+                    <div className="warehouse-branch-name-cell">
+                      <strong className="warehouse-branch-name-main">{branch.name}</strong>
                       <div className="warehouse-branch-code">{branch.code}</div>
                     </div>
-                    <Warehouse size={18} />
+                    <Warehouse size={16} aria-hidden="true" />
                   </div>
-                  <div className="warehouse-branch-meta"><MapPin size={14} /> {branch.address || 'Chưa có địa chỉ'}</div>
-                  <div className="warehouse-branch-meta"><Phone size={14} /> {branch.phone || 'Chưa có hotline'}</div>
+                  <div className="warehouse-branch-meta"><MapPin size={13} aria-hidden="true" /> {branch.address || 'Chưa có địa chỉ'}</div>
+                  <div className="warehouse-branch-meta"><Phone size={13} aria-hidden="true" /> {branch.phone || 'Chưa có hotline'}</div>
                   <div className="warehouse-branch-badges">
-                    <span className={`status-badge ${branch.isActive === false ? 'inactive' : 'active'}`}>
-                      {branch.isActive === false ? <CircleOff size={12} /> : <CheckCircle2 size={12} />}
-                      {branch.isActive === false ? 'Ngừng hoạt động' : 'Đang hoạt động'}
+                    <span className={`warehouse-branches-status-badge ${branch.isActive === false ? 'danger' : 'success'}`}>
+                      {branch.isActive === false ? <CircleOff size={11} aria-hidden="true" /> : <CheckCircle2 size={11} aria-hidden="true" />}
+                      {branch.isActive === false ? 'Ngừng' : 'Hoạt động'}
                     </span>
-                    {usage ? <span className="status-badge neutral">{usage.totalLinked} liên kết</span> : null}
+                    {usage ? <span className="warehouse-branches-status-badge neutral">{usage.totalLinked} liên kết</span> : null}
                   </div>
                 </button>
               );
             })}
-            {!filteredBranches.length ? <div className="warehouse-empty-state">Không có kho nào khớp bộ lọc hiện tại.</div> : null}
+            {!filteredBranches.length ? (
+              <div className="warehouse-empty-state">
+                <Warehouse size={28} aria-hidden="true" />
+                <strong>Không có kho nào khớp bộ lọc</strong>
+                <span>Thử đổi bộ lọc hoặc thêm kho hàng mới.</span>
+              </div>
+            ) : null}
           </div>
         </aside>
 
         <section className="warehouse-branch-detail">
-          <div className="card-shell warehouse-branch-section">
+          <div className="data-card warehouse-branch-section">
             <div className="section-heading">
               <div>
-                <h2>Thông tin kho</h2>
-                <p>{isCreateMode ? 'Thiết lập kho mới và mã kho chỉ nhập một lần khi tạo.' : 'Quản lý dữ liệu vận hành của kho đang chọn.'}</p>
+                <h2 className="warehouse-branch-section-title">Thông tin kho</h2>
+                <p className="warehouse-branch-section-subtitle">{isCreateMode ? 'Thiết lập kho mới và mã kho chỉ nhập một lần khi tạo.' : 'Quản lý dữ liệu vận hành của kho đang chọn.'}</p>
               </div>
-              {loadingDetail ? <LoaderCircle className="spin" size={18} /> : null}
+              {loadingDetail ? <LoaderCircle className="spin" size={18} aria-hidden="true" /> : null}
             </div>
 
             <div className="warehouse-branch-grid">
@@ -823,18 +960,23 @@ export function WarehouseBranchesPage() {
                 <input aria-label="Hotline" value={form.phone} onChange={(event) => updateForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Nhập số hotline hiển thị trên hóa đơn" />
               </label>
               <div className="warehouse-state-card">
-                <div><span>Trạng thái</span><strong>{selectedBranch?.isActive === false && !isCreateMode ? 'Ngừng hoạt động' : 'Đang hoạt động'}</strong></div>
+                <div>
+                  <span>Trạng thái</span>
+                  <strong className={selectedBranch?.isActive === false && !isCreateMode ? 'is-inactive' : 'is-active'}>
+                    {selectedBranch?.isActive === false && !isCreateMode ? 'Ngừng hoạt động' : 'Đang hoạt động'}
+                  </strong>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="card-shell warehouse-branch-section invoice-tpl-module">
+          <div className="data-card warehouse-branch-section invoice-tpl-module">
             <div className="invoice-tpl-module-head">
               <div>
-                <h2>Thiết kế mẫu in hóa đơn</h2>
-                <p>Thiết lập mẫu hóa đơn riêng cho kho đang chọn. Thông tin thương hiệu, địa chỉ và hotline được đồng bộ tự động từ cấu hình phía trên.</p>
+                <h2 className="warehouse-branch-section-title">Thiết kế mẫu in hóa đơn</h2>
+                <p className="warehouse-branch-section-subtitle">Thiết lập mẫu hóa đơn riêng cho kho đang chọn. Thông tin thương hiệu, địa chỉ và hotline được đồng bộ tự động từ cấu hình phía trên.</p>
               </div>
-              <Printer size={18} />
+              <Printer size={18} aria-hidden="true" />
             </div>
             <InvoiceTemplateDesigner
               form={form}
@@ -847,21 +989,21 @@ export function WarehouseBranchesPage() {
               onSave={saveTemplate}
             />
           </div>
-          <div className="card-shell warehouse-branch-section">
+          <div className="data-card warehouse-branch-section">
             <div className="section-heading">
               <div>
-                <h2>An toàn dữ liệu</h2>
-                <p>Xem mức độ liên kết, in thử mẫu hóa đơn và khóa các thao tác nguy cơ cao bằng mật khẩu Admin.</p>
+                <h2 className="warehouse-branch-section-title">An toàn dữ liệu</h2>
+                <p className="warehouse-branch-section-subtitle">Xem mức độ liên kết, in thử mẫu hóa đơn và khóa các thao tác nguy cơ cao bằng mật khẩu Admin.</p>
               </div>
-              <ShieldAlert size={18} />
+              <ShieldAlert size={18} aria-hidden="true" />
             </div>
 
             <div className="warehouse-actions-row">
-              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={submitting || !trim(form.name) || !trim(form.code) || !trim(form.phone) || !trim(form.address)}><Save size={16} /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
-              <button className="btn btn-light" type="button" onClick={() => setConfirmAction(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={submitting || isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} /> : <CircleOff size={16} />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
-              <button className="btn btn-light" type="button" onClick={() => void loadUsage()} disabled={isCreateMode || !selectedBranch || loadingUsage}><Info size={16} /> {loadingUsage ? 'Đang tải liên kết...' : 'Xem dữ liệu liên kết'}</button>
-              <button className="btn btn-light" type="button" onClick={printPreview}><Printer size={16} /> In thử mẫu hóa đơn</button>
-              <button className="btn btn-light danger" type="button" onClick={() => setConfirmAction('delete')} disabled={submitting || isCreateMode || !selectedBranch}><Trash2 size={16} /> Xóa vĩnh viễn</button>
+              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={submitting || !trim(form.name) || !trim(form.code) || !trim(form.phone) || !trim(form.address)}><Save size={16} aria-hidden="true" /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
+              <button className="btn btn-light" type="button" onClick={() => setConfirmAction(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={submitting || isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} aria-hidden="true" /> : <CircleOff size={16} aria-hidden="true" />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
+              <button className="btn btn-light" type="button" onClick={() => void loadUsage()} disabled={isCreateMode || !selectedBranch || loadingUsage}><Info size={16} aria-hidden="true" /> {loadingUsage ? 'Đang tải liên kết...' : 'Xem dữ liệu liên kết'}</button>
+              <button className="btn btn-light" type="button" onClick={printPreview}><Printer size={16} aria-hidden="true" /> In thử mẫu hóa đơn</button>
+              <button className="btn btn-light danger" type="button" onClick={() => setConfirmAction('delete')} disabled={submitting || isCreateMode || !selectedBranch}><Trash2 size={16} aria-hidden="true" /> Xóa vĩnh viễn</button>
             </div>
 
             <div className="usage-summary-card">

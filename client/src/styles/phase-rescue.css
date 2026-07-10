@@ -218,13 +218,26 @@ body {
   background: rgba(255, 255, 255, 0.98) !important;
   box-shadow: 0 18px 40px rgba(15, 23, 42, .12), 0 2px 8px rgba(15, 23, 42, .04) !important;
   backdrop-filter: blur(10px) !important;
+  pointer-events: auto !important;
+}
+
+/* Hover bridge: keeps pointer over the panel while crossing the 4px visual gap. */
+.menu-panel::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: -10px !important;
+  height: 10px !important;
+  background: transparent !important;
+  pointer-events: auto !important;
 }
 
 .menu-group:hover > .menu-panel,
 .menu-panel.open {
   display: grid !important;
   gap: 2px !important;
-  animation: ls-nav-panel-in 160ms ease both !important;
+  animation: ls-nav-panel-in 160ms ease !important;
 }
 
 @keyframes ls-nav-panel-in {
@@ -314,13 +327,26 @@ body {
   background: rgba(255, 255, 255, 0.98) !important;
   box-shadow: 0 18px 40px rgba(15, 23, 42, .12), 0 2px 8px rgba(15, 23, 42, .04) !important;
   backdrop-filter: blur(10px) !important;
+  pointer-events: auto !important;
+}
+
+/* Hover bridge: keep pointer connected when moving into side flyout. */
+.submenu-panel::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: -10px !important;
+  width: 10px !important;
+  background: transparent !important;
+  pointer-events: auto !important;
 }
 
 .submenu-group:hover > .submenu-panel,
 .submenu-panel.open {
   display: grid !important;
   gap: 2px !important;
-  animation: ls-nav-panel-in 160ms ease both !important;
+  animation: ls-nav-panel-in 160ms ease !important;
 }
 
 .reports-panel {
@@ -364,8 +390,14 @@ body {
 }
 
 .reports-panel .submenu-panel {
-  right: 100% !important;
+  right: calc(100% + 4px) !important;
   left: auto !important;
+}
+
+/* Report flyouts open leftward — bridge on the right edge toward the trigger. */
+.reports-panel .submenu-panel::before {
+  left: auto !important;
+  right: -10px !important;
 }
 
 .report-submenu-panel {
@@ -1232,8 +1264,9 @@ h1 {
     border-color: transparent !important;
   }
 
-  .menu-group:hover > .menu-panel,
-  .submenu-group:hover > .submenu-panel {
+  /* Disable pure CSS hover open on mobile — JS accordion owns open state. */
+  .menu-group:hover > .menu-panel:not(.open):not(.mobile-open),
+  .submenu-group:hover > .submenu-panel:not(.open):not(.mobile-open) {
     display: none !important;
   }
 
@@ -1252,14 +1285,28 @@ h1 {
     border-radius: 12px !important;
     background: rgba(15, 23, 42, .42) !important;
     box-shadow: none !important;
+    animation: none !important;
   }
 
+  /* No hover bridges needed for static accordion panels. */
+  .menu-panel::before,
+  .submenu-panel::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  /* Open state must win over any hover rule — prevents open/close flicker. */
   .menu-panel.open,
   .submenu-panel.open,
   .menu-panel.mobile-open,
-  .submenu-panel.mobile-open {
+  .submenu-panel.mobile-open,
+  .menu-group:hover > .menu-panel.open,
+  .menu-group:hover > .menu-panel.mobile-open,
+  .submenu-group:hover > .submenu-panel.open,
+  .submenu-group:hover > .submenu-panel.mobile-open {
     display: grid !important;
     gap: 3px !important;
+    animation: none !important;
   }
 
   .submenu-panel {

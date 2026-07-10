@@ -156,6 +156,28 @@ class MirrorRecordController extends Controller
         $serialized['destinationWarehouseId'] = $serialized['destinationWarehouseId'] ?? $serialized['to_branch_mongo_id'] ?? null;
         $serialized['sourceWarehouseName'] = $serialized['sourceWarehouseName'] ?? $serialized['source_warehouse_name'] ?? null;
         $serialized['destinationWarehouseName'] = $serialized['destinationWarehouseName'] ?? $serialized['destination_warehouse_name'] ?? null;
+
+        // Resolve warehouse display names from MySQL branches when payload/legacy rows lack names.
+        if (empty($serialized['sourceWarehouseName']) && !empty($serialized['sourceWarehouseId'])) {
+            $sourceBranch = Branch::query()
+                ->where('mongo_id', $serialized['sourceWarehouseId'])
+                ->orWhere('id', $serialized['sourceWarehouseId'])
+                ->first();
+            if ($sourceBranch) {
+                $serialized['sourceWarehouseName'] = $sourceBranch->name;
+                $serialized['sourceWarehouseId'] = $sourceBranch->mongo_id ?: (string) $sourceBranch->id;
+            }
+        }
+        if (empty($serialized['destinationWarehouseName']) && !empty($serialized['destinationWarehouseId'])) {
+            $destBranch = Branch::query()
+                ->where('mongo_id', $serialized['destinationWarehouseId'])
+                ->orWhere('id', $serialized['destinationWarehouseId'])
+                ->first();
+            if ($destBranch) {
+                $serialized['destinationWarehouseName'] = $destBranch->name;
+                $serialized['destinationWarehouseId'] = $destBranch->mongo_id ?: (string) $destBranch->id;
+            }
+        }
         $serialized['sourceExportBillId'] = $serialized['sourceExportBillId'] ?? $serialized['source_export_bill_mongo_id'] ?? null;
         $serialized['destinationImportBillId'] = $serialized['destinationImportBillId'] ?? $serialized['destination_import_bill_mongo_id'] ?? null;
 

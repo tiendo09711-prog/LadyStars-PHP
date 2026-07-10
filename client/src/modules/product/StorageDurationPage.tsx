@@ -776,31 +776,32 @@ export function StorageDurationPage() {
 
         <div className="table-scroll storage-table-scroll">
           <table id="storage-duration-table" className="data-table storage-data-table">
+            {/* Fixed-layout widths: name is widest; short/numeric cols stay compact; action always visible */}
             <colgroup>
-              <col style={{ width: '9%' }} />
-              <col />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '18%' }} />
               <col style={{ width: '11%' }} />
               <col style={{ width: '12%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '9%' }} />
               <col style={{ width: '7%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '8%' }} />
+              <col style={{ width: '7%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
-              <col style={{ width: '68px' }} />
+              <col style={{ width: '88px' }} />
             </colgroup>
             <thead>
               <tr>
-                <th>Mã SP</th>
-                <th>Tên sản phẩm</th>
-                <th>Nhóm / NCC</th>
-                <th>Giá nhập | Giá bán</th>
-                <th>Tồn kho</th>
-                <th>XNK Đầu / Cuối</th>
-                <th>Bán cuối</th>
-                <th>Lưu từ đầu</th>
-                <th>Lưu từ XNK cuối</th>
-                <th>Chưa bán ra</th>
+                <th className="storage-col-code">Mã SP</th>
+                <th className="storage-col-name">Tên sản phẩm</th>
+                <th className="storage-col-group">Nhóm / NCC</th>
+                <th className="storage-col-price">Giá nhập | Giá bán</th>
+                <th className="storage-col-qty">Tồn kho</th>
+                <th className="storage-col-xnk">XNK Đầu / Cuối</th>
+                <th className="storage-col-sold">Bán cuối</th>
+                <th className="storage-col-days">Lưu từ đầu</th>
+                <th className="storage-col-days">Lưu từ XNK cuối</th>
+                <th className="storage-col-unsold">Chưa bán ra</th>
                 <th className="action-cell">Thao tác</th>
               </tr>
             </thead>
@@ -809,17 +810,17 @@ export function StorageDurationPage() {
               {!loading && items.length === 0 && <tr><td colSpan={11} className="storage-empty-cell">Chưa có sản phẩm nào phù hợp. Trang này chỉ hiển thị sản phẩm còn tồn theo điều kiện lọc. Hãy thử giảm tồn tối thiểu, chọn Tất cả chi nhánh hoặc kiểm tra dữ liệu nhập/bán hàng.</td></tr>}
               {!loading && items.map((item) => (
                 <tr key={item._id}>
-                  <td><strong className="storage-code">{item.code}</strong></td>
-                  <td className="storage-name-cell" title={item.name}>
+                  <td className="storage-col-code"><strong className="storage-code">{item.code}</strong></td>
+                  <td className="storage-name-cell storage-col-name" title={item.name}>
                     <div className="storage-name-main">{item.name}</div>
                   </td>
-                  <td>
-                    <span>{item.categoryName || 'Chưa phân loại'}</span>
+                  <td className="storage-col-group">
+                    <span className="storage-group-main">{item.categoryName || 'Chưa phân loại'}</span>
                     <small className="storage-name-sub">
                       NCC: {item.supplierName || 'Mặc định'}
                     </small>
                   </td>
-                  <td className="number">
+                  <td className="number storage-col-price">
                     <span style={{ color: 'var(--muted)', fontSize: '12px' }}>{formatMoney(item.cost)}</span>
                     <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span>
                     <strong style={{ color: '#0f172a', fontSize: '12px' }}>{formatMoney(item.price)}</strong>
@@ -827,31 +828,31 @@ export function StorageDurationPage() {
                       <small style={{ display: 'block', color: '#c2410c', fontWeight: 700, fontSize: '11px' }}>Xả: {formatMoney(item.clearancePrice)}</small>
                     ) : null}
                   </td>
-                  <td className="number">
+                  <td className="number storage-col-qty">
                     <strong style={{ color: '#1e293b' }}>{Number(item.qty || 0).toLocaleString('vi-VN')}</strong>
                   </td>
-                  <td>
+                  <td className="storage-col-xnk">
                     <span style={{ fontSize: '12px', display: 'block' }}>{formatDate(item.firstTransactionDate)}</span>
                     <small style={{ color: 'var(--muted)', fontSize: '11px', display: 'block' }}>
                       Cuối: {formatDate(item.lastTransactionDate)}
                     </small>
                   </td>
-                  <td>
+                  <td className="storage-col-sold">
                     <span style={{ fontSize: '12px' }}>{formatDate(item.lastSoldDate)}</span>
                   </td>
-                  <td>
+                  <td className="storage-col-days">
                     <span className={`status-badge ${getDaysStartBadgeClass(item.daysFromStart)}`}>
                       {item.daysFromStart} ngày
                     </span>
                   </td>
-                  <td>
+                  <td className="storage-col-days">
                     <span style={{ fontSize: '13px', color: '#475569' }}>
                       {item.daysFromLast} ngày
                     </span>
                   </td>
-                  <td>
+                  <td className="storage-col-unsold">
                     {item.daysFromLastSold === null ? (
-                      <span style={{ color: 'var(--muted)', fontStyle: 'italic', fontSize: '12px' }}>Chưa bán lần nào</span>
+                      <span className="storage-unsold-empty" style={{ color: 'var(--muted)', fontStyle: 'italic', fontSize: '12px' }}>Chưa bán lần nào</span>
                     ) : (
                       <span style={{
                         fontWeight: 600,

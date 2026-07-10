@@ -344,15 +344,15 @@ export function ProductHistory({ headerSlot }: { actionSlot?: React.RefObject<HT
         </div>
 
         <div className="table-scroll inventory-table-scroll">
-          <table className="data-table products-data-table">
+          <table className="data-table products-data-table products-history-table">
             <thead>
               <tr>
-                <th>Mã SP</th>
-                <th className="products-history-name">Tên sản phẩm</th>
-                <th className="products-history-type">Loại log</th>
-                <th>Kiểu log</th>
-                <th>Người thao tác</th>
-                <th className="products-history-time">Thời gian</th>
+                <th className="products-history-code" scope="col">Mã SP</th>
+                <th className="products-history-name" scope="col">Tên sản phẩm</th>
+                <th className="products-history-type" scope="col">Loại log</th>
+                <th className="products-history-action" scope="col">Kiểu log</th>
+                <th className="products-history-actor" scope="col">Người thao tác</th>
+                <th className="products-history-time" scope="col">Thời gian</th>
               </tr>
             </thead>
             <tbody>
@@ -375,19 +375,27 @@ export function ProductHistory({ headerSlot }: { actionSlot?: React.RefObject<HT
               {!loading
                 ? items.map((item) => (
                     <tr key={item._id}>
-                      <td>
+                      <td className="products-history-code">
                         <strong>{item.productCode || '-'}</strong>
                       </td>
                       <td className="products-history-name">
-                        <div className="products-name-main">{item.productName || '-'}</div>
+                        <div className="products-name-main" title={item.productName || undefined}>
+                          {item.productName || '-'}
+                        </div>
                       </td>
-                      <td>
+                      <td className="products-history-type">
                         <span className={`status-badge ${filterOptions.toneByLogType[item.logType] || ''}`}>
                           {item.logType || 'Hệ thống'}
                         </span>
                       </td>
-                      <td>{item.logAction || '-'}</td>
-                      <td>{item.createdBy || '-'}</td>
+                      <td className="products-history-action">
+                        <span className="products-history-action-text" title={item.logAction || undefined}>
+                          {item.logAction || '-'}
+                        </span>
+                      </td>
+                      <td className="products-history-actor" title={item.createdBy || undefined}>
+                        {item.createdBy || '-'}
+                      </td>
                       <td className="products-history-time">{safeFormatDate(item.createdAt)}</td>
                     </tr>
                   ))

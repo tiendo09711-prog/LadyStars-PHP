@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\MirrorRecord;
 use App\Models\Product;
@@ -345,7 +346,8 @@ class ProductController extends Controller
     {
         $perPage = min(max((int) $request->query('limit', $request->query('perPage', 50)), 1), 5000);
         $search = trim((string) $request->query('q', $request->query('search', '')));
-        $branchId = $request->query('branchId');
+        // Resolve mongo_id / code / local id → branches.id so transfer create (meta uses mongo_id) works.
+        $branchId = $this->resolveBranchLocalId($request->query('branchId'));
         $categoryId = $request->query('categoryId');
         $stockStatus = (string) $request->query('stockStatus', '');
         $sort = (string) $request->query('sort', 'createdAt');
@@ -1197,6 +1199,34 @@ class ProductController extends Controller
                 ['qty' => (float) $line['quantity'], 'locked_quantity' => 0, 'min_quantity' => 0, 'max_quantity' => 999999999]
             );
         }
+    }
+
+    /**
+     * Map FE branch identifiers (local id, mongo_id, code) to product_branch_stocks.branch_id.
+     * Warehouse transfer meta returns warehouses.value = mongo_id; inventories must accept that.
+     */
+    private function resolveBranchLocalId(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $raw = is_string($value) ? trim($value) : $value;
+        if ($raw === '' || $raw === null) {
+            return null;
+        }
+
+        $branch = Branch::query()
+            ->where(function ($query) use ($raw): void {
+                if (is_numeric($raw)) {
+                    $query->where('id', (int) $raw);
+                }
+                $query->orWhere('mongo_id', (string) $raw)
+                    ->orWhere('code', (string) $raw);
+            })
+            ->first();
+
+        return $branch?->id;
     }
 
     private function refreshProductQty(Product $product): void

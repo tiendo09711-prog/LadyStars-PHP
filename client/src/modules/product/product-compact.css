@@ -957,10 +957,15 @@
 
   .product-compact-shell .data-table,
   .product-compact-shell .products-data-table,
-  .product-compact-shell .categories-data-table,
   .product-compact-shell .product-compact-table {
     min-width: 720px;
     table-layout: auto;
+  }
+
+  /* Categories: keep fixed layout so columns still fit; soft min for very narrow phones only */
+  .product-compact-shell .categories-data-table {
+    min-width: 0;
+    table-layout: fixed;
   }
 }
 

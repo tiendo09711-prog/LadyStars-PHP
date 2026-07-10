@@ -497,231 +497,274 @@ export function CustomerCarePage() {
     return chips;
   }, [filters]);
 
+  const hasActiveFilters = filterChips.length > 0;
+  const sortLabel = SORT_OPTIONS.find((option) => option.value === sortField)?.label || sortField;
+  const sortOrderLabel = sortOrder === 'desc' ? 'giảm dần' : 'tăng dần';
+
   return (
-    <div className="page-stack customer-list-page customer-care-page" data-testid="customers-care-page">
-      <div className="page-heading customer-list-heading">
-        <div className="page-title-block">
-          <div className="page-icon"><HeartHandshake size={24} /></div>
-          <div>
-            <h1>Danh sách phiếu chăm sóc khách hàng</h1>
-            <p>Ghi nhận các hoạt động chăm sóc, thu hồi và tương tác với khách hàng</p>
-          </div>
-        </div>
-        <div className="page-actions customer-care-actions">
-          <span className="record-badge">{formatNumber(total)} bản ghi</span>
-          <Link to="/customers/list" className="btn btn-outline">
-            <Users size={16} /> Danh sách KH
-          </Link>
-          <button className="btn btn-outline" type="button" onClick={() => setShowExportModal(true)}>
-            <FileDown size={16} /> Xuất Excel
-          </button>
-          <div className="customer-care-action-menu" ref={actionMenuRef}>
-            <div className="customer-care-action-toggle">
-              <button className="btn btn-primary" type="button" onClick={openCreate}>
-                <Plus size={16} /> Thêm phiếu chăm sóc
-              </button>
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={() => setShowActionMenu((current) => !current)}
-                aria-label="Thao tác chăm sóc"
-                title="Thao tác chăm sóc"
-              >
-                <ChevronDown size={16} />
-              </button>
+    <div className="page-stack customer-care-page care-root" data-testid="customers-care-page">
+      <section className="data-card care-toolbar-card care-sticky-toolbar">
+        <div className="care-toolbar-header-slot">
+          <div className="care-compact-head">
+            <h1 className="care-compact-heading-sr">Danh sách phiếu chăm sóc khách hàng</h1>
+            <div className="care-tabs-row care-tabs-row--title-slot">
+              <span className="care-toolbar-eyebrow">CUSTOMER CARE</span>
+              <div className="care-title-chip" aria-hidden="true">
+                <HeartHandshake size={14} />
+                <span>Phiếu chăm sóc</span>
+              </div>
             </div>
-            {showActionMenu && (
-              <div className="customer-care-action-menu-panel" role="menu">
-                {actionsList.map((action) => (
-                  <button
-                    key={action}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => { setShowActionMenu(false); setActiveAction(action); }}
-                  >
-                    {CareActionIcons[action]} {action}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
-      </div>
 
-      <section className="data-card customer-filter-card">
-        <form className="customer-filter-shell" onSubmit={handleSubmitFilters}>
-          <div className="customer-filter-topline">
-            <label className="customer-filter-item customer-filter-search">
-              <span>Tìm kiếm</span>
-              <div className="search-box">
-                <Search size={16} />
-                <input
-                  value={draftFilters.keyword}
-                  placeholder="ID phiếu, tên khách hàng, số điện thoại"
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, keyword: event.target.value }))}
-                  data-testid="customers-care-keyword-filter"
-                />
-              </div>
-            </label>
-            <label className="customer-filter-item">
-              <span>Sắp xếp</span>
-              <div className="customer-select-wrap">
-                <select
-                  value={sortField}
-                  onChange={(event) => { setSortField(event.target.value as SortField); setPage(1); }}
-                >
-                  {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-                <ChevronDown size={16} />
-              </div>
-            </label>
+        <div className="care-summary-strip" aria-label="Tóm tắt chăm sóc khách hàng">
+          <div className="care-summary-cluster">
+            <span className="care-summary-main">
+              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <span>phiếu</span>
+            </span>
+            {selectedCount > 0 ? (
+              <>
+                <span className="care-summary-divider" aria-hidden="true" />
+                <span>{selectedCount.toLocaleString('vi-VN')} đã chọn</span>
+              </>
+            ) : null}
+            {hasActiveFilters ? (
+              <>
+                <span className="care-summary-divider" aria-hidden="true" />
+                <span className="care-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        <form className="care-filter-bar" onSubmit={handleSubmitFilters}>
+          <div className="care-search">
+            <Search size={15} />
+            <input
+              value={draftFilters.keyword}
+              placeholder="ID phiếu, tên KH, SĐT..."
+              onChange={(event) => setDraftFilters((current) => ({ ...current, keyword: event.target.value }))}
+              data-testid="customers-care-keyword-filter"
+              aria-label="Tìm kiếm phiếu chăm sóc"
+            />
           </div>
 
-          <div className="customer-filter-grid">
-            <label className="customer-filter-item">
-              <span>Lý do</span>
-              <div className="customer-select-wrap">
-                <select value={draftFilters.reason} onChange={(event) => setDraftFilters((current) => ({ ...current, reason: event.target.value }))}>
-                  <option value="">Tất cả</option>
-                  {meta.reasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
-                </select>
-                <ChevronDown size={16} />
-              </div>
-            </label>
-            <label className="customer-filter-item">
-              <span>Người tạo</span>
-              <div className="customer-select-wrap">
-                <select value={draftFilters.creator} onChange={(event) => setDraftFilters((current) => ({ ...current, creator: event.target.value }))}>
-                  <option value="">Tất cả</option>
-                  {meta.creators.map((creator) => <option key={creator} value={creator}>{creator}</option>)}
-                </select>
-                <ChevronDown size={16} />
-              </div>
-            </label>
-            <label className="customer-filter-item">
-              <span>Thứ tự</span>
-              <div className="customer-select-wrap">
-                <select
-                  value={sortOrder}
-                  onChange={(event) => { setSortOrder(event.target.value as SortOrder); setPage(1); }}
+          <select
+            className="care-filter-select"
+            value={draftFilters.reason}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, reason: event.target.value }))}
+            aria-label="Lý do"
+            title="Lý do"
+          >
+            <option value="">Tất cả lý do</option>
+            {meta.reasons.map((reason) => (
+              <option key={reason} value={reason}>{reason}</option>
+            ))}
+          </select>
+
+          <select
+            className="care-filter-select"
+            value={draftFilters.creator}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, creator: event.target.value }))}
+            aria-label="Người tạo"
+            title="Người tạo"
+          >
+            <option value="">Tất cả người tạo</option>
+            {meta.creators.map((creator) => (
+              <option key={creator} value={creator}>{creator}</option>
+            ))}
+          </select>
+
+          <select
+            className="care-filter-select"
+            value={sortField}
+            onChange={(event) => { setSortField(event.target.value as SortField); setPage(1); }}
+            aria-label="Sắp xếp"
+            title="Sắp xếp"
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+
+          <select
+            className="care-filter-select care-filter-select--order"
+            value={sortOrder}
+            onChange={(event) => { setSortOrder(event.target.value as SortOrder); setPage(1); }}
+            aria-label="Thứ tự sắp xếp"
+            title="Thứ tự"
+          >
+            <option value="desc">Giảm dần</option>
+            <option value="asc">Tăng dần</option>
+          </select>
+
+          <div className="care-filter-actions">
+            <button className="care-btn care-btn-primary" type="submit">
+              <Search size={14} /> Lọc
+            </button>
+            <button className="care-btn care-btn-secondary" type="button" onClick={handleClearFilters} title="Xóa bộ lọc">
+              <RotateCcw size={14} /> Làm mới
+            </button>
+            <button className="care-btn care-btn-secondary" type="button" onClick={() => setShowExportModal(true)}>
+              <FileDown size={14} /> Xuất
+            </button>
+            <Link to="/customers/list" className="care-btn care-btn-secondary">
+              <Users size={14} /> Danh sách KH
+            </Link>
+
+            <div className="care-floating-menu care-bulk-menu" ref={actionMenuRef}>
+              <div className="care-split-actions">
+                <button className="care-btn care-btn-primary" type="button" onClick={openCreate}>
+                  <Plus size={14} /> Thêm phiếu
+                </button>
+                <button
+                  className="care-btn care-btn-primary care-split-toggle"
+                  type="button"
+                  onClick={() => setShowActionMenu((current) => !current)}
+                  aria-label="Thao tác chăm sóc"
+                  aria-expanded={showActionMenu}
+                  title="Thao tác chăm sóc"
                 >
-                  <option value="desc">Giảm dần</option>
-                  <option value="asc">Tăng dần</option>
-                </select>
-                <ChevronDown size={16} />
+                  <ChevronDown size={14} />
+                </button>
               </div>
-            </label>
-            <div className="customer-filter-actions-inline">
-              <button className="btn btn-primary" type="submit">
-                <Search size={16} /> Lọc
-              </button>
-              <button className="btn btn-outline" type="button" onClick={handleClearFilters}>
-                <RotateCcw size={16} /> Xóa bộ lọc
-              </button>
+              {showActionMenu && (
+                <div className="care-floating-dropdown" role="menu">
+                  {actionsList.map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      role="menuitem"
+                      className="care-dropdown-item"
+                      onClick={() => { setShowActionMenu(false); setActiveAction(action); }}
+                    >
+                      {CareActionIcons[action]} {action}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </form>
 
-        {(filterChips.length > 0 || selectedCount > 0) && (
-          <div className="customer-chip-bar" data-testid="customers-care-filter-chips">
-            <div className="customer-chip-list">
+        {(hasActiveFilters || selectedCount > 0) && (
+          <div className="care-chip-bar" data-testid="customers-care-filter-chips">
+            <div className="care-chip-list">
               {filterChips.map((chip) => (
-                <button key={chip.key + chip.value} type="button" className="customer-chip" onClick={() => handleRemoveChip(chip.key)}>
+                <button
+                  key={chip.key + chip.value}
+                  type="button"
+                  className="care-chip"
+                  onClick={() => handleRemoveChip(chip.key)}
+                >
                   <span>{chip.label}: {chip.value}</span>
-                  <X size={14} />
+                  <X size={12} />
                 </button>
               ))}
             </div>
-            <div className="customer-chip-actions">
-              {selectedCount > 0 && <span className="record-badge">{selectedCount} đang chọn</span>}
-              {selectedCount > 0 && <button className="btn btn-outline" type="button" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</button>}
+            <div className="care-chip-actions">
+              {selectedCount > 0 ? (
+                <>
+                  <span className="care-selected-pill">{selectedCount} đang chọn</span>
+                  <button className="care-btn care-btn-secondary" type="button" onClick={() => setSelectedIds(new Set())}>
+                    Bỏ chọn
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
         )}
       </section>
 
-      <section className="data-card customer-table-card">
-        <div className="data-card-header customer-table-header">
+      <section className="data-card care-table-card">
+        <div className="data-card-header care-table-header">
           <div>
-            <h2>Danh sách phiếu chăm sóc</h2>
-            <p>Tổng {formatNumber(total)} phiếu đã ghi nhận</p>
+            <h2 className="care-table-title">Bảng dữ liệu chăm sóc khách hàng</h2>
+            <p className="care-table-subtitle">
+              {total.toLocaleString('vi-VN')} bản ghi · Sắp xếp {sortLabel} · {sortOrderLabel}
+            </p>
           </div>
-          <div className="customer-chip-actions">
-            {tableBusy && <span className="record-badge">Đang cập nhật dữ liệu…</span>}
+          <div className="care-table-header-meta">
+            {selectedCount > 0 ? (
+              <span className="care-selected-count">{selectedCount.toLocaleString('vi-VN')} đã chọn</span>
+            ) : null}
+            {tableBusy ? <span className="care-busy-pill">Đang cập nhật…</span> : null}
           </div>
         </div>
 
         {error && (
-          <div className="customer-feedback error" role="alert">
+          <div className="care-feedback error" role="alert">
             <AlertCircle size={18} /><span>{error}</span>
-            <button className="btn btn-outline" type="button" onClick={() => void loadCare()}>Thử lại</button>
+            <button className="care-btn care-btn-secondary" type="button" onClick={() => void loadCare()}>Thử lại</button>
           </div>
         )}
 
-        <div className="table-scroll">
-          <table className="data-table customer-table">
+        <div className="table-scroll care-table-scroll">
+          <table className="data-table care-data-table">
             <thead>
               <tr>
-                <th className="checkbox-col">
+                <th className="check-cell">
                   <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} aria-label="Chọn tất cả" />
                 </th>
                 <th>
-                  <button type="button" className="customer-sort-button" onClick={() => handleSort('code')}>
-                    ID Phiếu <ArrowUpDown size={14} />
+                  <button type="button" className="care-sort-button" onClick={() => handleSort('code')}>
+                    ID Phiếu <ArrowUpDown size={13} />
                   </button>
                 </th>
                 <th>
-                  <button type="button" className="customer-sort-button" onClick={() => handleSort('customerName')}>
-                    Tên khách hàng <ArrowUpDown size={14} />
+                  <button type="button" className="care-sort-button" onClick={() => handleSort('customerName')}>
+                    Tên khách hàng <ArrowUpDown size={13} />
                   </button>
                 </th>
                 <th>
-                  <button type="button" className="customer-sort-button" onClick={() => handleSort('customerPhone')}>
-                    SĐT <ArrowUpDown size={14} />
+                  <button type="button" className="care-sort-button" onClick={() => handleSort('customerPhone')}>
+                    SĐT <ArrowUpDown size={13} />
                   </button>
                 </th>
                 <th>Chi tiết</th>
                 <th>
-                  <button type="button" className="customer-sort-button" onClick={() => handleSort('reason')}>
-                    Lý do <ArrowUpDown size={14} />
+                  <button type="button" className="care-sort-button" onClick={() => handleSort('reason')}>
+                    Lý do <ArrowUpDown size={13} />
                   </button>
                 </th>
                 <th>Mô tả</th>
                 <th>
-                  <button type="button" className="customer-sort-button" onClick={() => handleSort('creator')}>
-                    Người tạo <ArrowUpDown size={14} />
+                  <button type="button" className="care-sort-button" onClick={() => handleSort('creator')}>
+                    Người tạo <ArrowUpDown size={13} />
                   </button>
                 </th>
                 <th>
-                  <button type="button" className="customer-sort-button" onClick={() => handleSort('recordDate')}>
-                    Ngày tạo <ArrowUpDown size={14} />
+                  <button type="button" className="care-sort-button" onClick={() => handleSort('recordDate')}>
+                    Ngày tạo <ArrowUpDown size={13} />
                   </button>
                 </th>
-                <th className="action-col">Thao tác</th>
+                <th className="action-cell">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading && Array.from({ length: 8 }).map((_, index) => (
-                <tr key={'loading-' + index} className="customer-skeleton-row">
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box tall" /></td>
-                  <td><div className="customer-skeleton-box tall" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
-                  <td><div className="customer-skeleton-box short" /></td>
+                <tr key={'loading-' + index} className="care-skeleton-row">
+                  <td><div className="care-skeleton-box short" /></td>
+                  <td><div className="care-skeleton-box tall" /></td>
+                  <td><div className="care-skeleton-box tall" /></td>
+                  <td><div className="care-skeleton-box short" /></td>
+                  <td><div className="care-skeleton-box short" /></td>
+                  <td><div className="care-skeleton-box short" /></td>
+                  <td><div className="care-skeleton-box short" /></td>
+                  <td><div className="care-skeleton-box short" /></td>
+                  <td><div className="care-skeleton-box short" /></td>
+                  <td className="action-cell"><div className="care-skeleton-box short" /></td>
                 </tr>
               ))}
 
               {!loading && items.length === 0 && !error && (
                 <tr>
-                  <td colSpan={10}>
-                    <div className="customer-empty-state">
-                      <strong>Không có phiếu chăm sóc phù hợp</strong>
-                      <span>Hãy đổi điều kiện lọc hoặc thêm phiếu chăm sóc mới để bắt đầu.</span>
+                  <td colSpan={10} className="care-empty-cell">
+                    <div className="care-empty-state">
+                      <HeartHandshake size={28} />
+                      <strong>Chưa có dữ liệu</strong>
+                      <span>Thử đổi bộ lọc hoặc thêm phiếu chăm sóc mới.</span>
                     </div>
                   </td>
                 </tr>
@@ -729,7 +772,7 @@ export function CustomerCarePage() {
 
               {!loading && items.map((item) => (
                 <tr key={item._id}>
-                  <td className="checkbox-col">
+                  <td className="check-cell">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(item._id)}
@@ -737,44 +780,63 @@ export function CustomerCarePage() {
                       aria-label={'Chọn ' + (item.code || item._id)}
                     />
                   </td>
-                  <td>
-                    <button type="button" className="customer-name-button" onClick={() => openEdit(item)}>
-                      <strong>{item.code || '—'}</strong>
-                      <span>{item.customerCode || item._id}</span>
+                  <td className="care-name-cell">
+                    <button type="button" className="care-link-button care-name-button" onClick={() => openEdit(item)}>
+                      <span className="care-name-main">{item.code || '—'}</span>
+                      <span className="care-name-sub">{item.customerCode || item._id}</span>
                     </button>
                   </td>
-                  <td className="customer-groups-cell">
+                  <td className="care-name-cell">
                     {item.customerName ? (
                       item.customerId ? (
-                        <Link to={`/customers/list/${item.customerId}`} title="Xem chi tiết khách hàng">
+                        <Link
+                          to={`/customers/list/${item.customerId}`}
+                          className="care-code"
+                          title="Xem chi tiết khách hàng"
+                        >
                           {item.customerName}
                         </Link>
                       ) : (
-                        <Link to={`/customers/list?keyword=${encodeURIComponent(item.customerName)}`} title="Tìm khách hàng trong danh sách">
+                        <Link
+                          to={`/customers/list?keyword=${encodeURIComponent(item.customerName)}`}
+                          className="care-code"
+                          title="Tìm khách hàng trong danh sách"
+                        >
                           {item.customerName}
                         </Link>
                       )
                     ) : '—'}
                   </td>
-                  <td>{item.customerPhone || '—'}</td>
-                  <td>{item.details || '—'}</td>
-                  <td>{item.reason || '—'}</td>
-                  <td>{item.description || '—'}</td>
+                  <td className="care-number">{item.customerPhone || '—'}</td>
+                  <td className="care-clamp-cell">{item.details || '—'}</td>
+                  <td>
+                    {item.reason ? (
+                      <span className="care-status-badge neutral">{item.reason}</span>
+                    ) : '—'}
+                  </td>
+                  <td className="care-clamp-cell">{item.description || '—'}</td>
                   <td>{item.creator || '—'}</td>
-                  <td>{formatDate(item.recordDate)}</td>
-                  <td className="action-col">
-                    <div className="customer-row-actions">
-                      <button className="icon-button" type="button" title="Sửa" onClick={() => openEdit(item)}>
-                        <Pencil size={16} />
+                  <td className="care-number">{formatDate(item.recordDate)}</td>
+                  <td className="action-cell">
+                    <div className="care-actions">
+                      <button
+                        className="care-row-menu-button"
+                        type="button"
+                        title="Sửa"
+                        aria-label={'Sửa ' + (item.code || item._id)}
+                        onClick={() => openEdit(item)}
+                      >
+                        <Pencil size={14} />
                       </button>
                       <button
-                        className="icon-button danger"
+                        className="care-row-menu-button danger"
                         type="button"
                         title="Xóa"
+                        aria-label={'Xóa ' + (item.code || item._id)}
                         onClick={() => void handleDelete(item)}
                         disabled={deletingId === item._id}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>

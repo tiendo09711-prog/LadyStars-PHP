@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Check,
@@ -285,6 +286,21 @@ function varianceClass(value: number) {
   return 'audit-variance neutral';
 }
 
+function modeLabel(audit: Pick<AuditRow, 'blindMode' | 'doubleCount'>) {
+  const parts: string[] = [];
+  if (audit.blindMode) parts.push('Đếm mù');
+  if (audit.doubleCount) parts.push('Double');
+  return parts.length ? parts.join(' · ') : 'Thường';
+}
+
+function statusBadgeClass(status: string) {
+  const normalized = (status || '').toUpperCase();
+  if (normalized === 'RECONCILED' || normalized === 'COMPLETED') return 'success';
+  if (normalized === 'CANCELLED' || normalized === 'CANCELED') return 'danger';
+  if (normalized === 'SUBMITTED' || normalized === 'COUNTING') return 'warning';
+  return 'neutral';
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -327,7 +343,9 @@ export function WarehouseAuditPage() {
   const [appliedItemFilters, setAppliedItemFilters] = useState<ItemFilters>(() => defaultItemFilters());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
+  const [bulkMenuPos, setBulkMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -346,6 +364,117 @@ export function WarehouseAuditPage() {
     () => auditRows.filter((row) => selectedIds.has(row._id)),
     [auditRows, selectedIds],
   );
+
+  const openMenuAudit = useMemo(
+    () => (openMenu ? auditRows.find((row) => row._id === openMenu) ?? null : null),
+    [openMenu, auditRows],
+  );
+
+  const hasActiveFilters = useMemo(() => {
+    if (activeTab === 'audits') {
+      const defaults = defaultAuditFilters();
+      return (
+        appliedAuditFilters.warehouseId !== defaults.warehouseId
+        || appliedAuditFilters.createdFrom !== defaults.createdFrom
+        || appliedAuditFilters.createdTo !== defaults.createdTo
+        || appliedAuditFilters.keyword !== defaults.keyword
+        || appliedAuditFilters.auditType !== defaults.auditType
+        || appliedAuditFilters.reconciliationStatus !== defaults.reconciliationStatus
+        || appliedAuditFilters.note !== defaults.note
+        || appliedAuditFilters.reconciledFrom !== defaults.reconciledFrom
+        || appliedAuditFilters.reconciledTo !== defaults.reconciledTo
+      );
+    }
+    const defaults = defaultItemFilters();
+    return (
+      appliedItemFilters.warehouseId !== defaults.warehouseId
+      || appliedItemFilters.createdFrom !== defaults.createdFrom
+      || appliedItemFilters.createdTo !== defaults.createdTo
+      || appliedItemFilters.auditId !== defaults.auditId
+      || appliedItemFilters.productKeyword !== defaults.productKeyword
+      || appliedItemFilters.varianceType !== defaults.varianceType
+    );
+  }, [activeTab, appliedAuditFilters, appliedItemFilters]);
+
+  const closeMenus = () => {
+    setOpenMenu(null);
+    setRowMenuPos(null);
+    setShowBulkMenu(false);
+    setBulkMenuPos(null);
+  };
+
+  /**
+   * Position a fixed portal menu next to a trigger.
+   * Prefer below-right; flip above only when below space is insufficient AND above has more room.
+   * Avoid the old bug: overestimated height forced `top = 8` (menu jumps to page top).
+   */
+  const positionMenu = (
+    trigger: HTMLElement,
+    menuWidth: number,
+    menuHeight: number,
+  ) => {
+    const rect = trigger.getBoundingClientRect();
+    const gap = 6;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const spaceBelow = vh - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+
+    let left = rect.right - menuWidth;
+    if (left < 8) left = 8;
+    if (left + menuWidth > vw - 8) {
+      left = Math.max(8, vw - menuWidth - 8);
+    }
+
+    let top = rect.bottom + gap;
+    if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+      top = rect.top - menuHeight - gap;
+    }
+    // Clamp inside viewport — never snap to a meaningless corner
+    const maxTop = Math.max(8, vh - Math.min(menuHeight, vh - 16) - 8);
+    top = Math.min(Math.max(8, top), maxTop);
+
+    return { top, left };
+  };
+
+  const estimateRowMenuHeight = (audit: AuditRow) => {
+    // Base: Xem chi tiết + Xuất CSV (+ padding)
+    let items = 2;
+    if (audit.availableActions.some((action) => action.action === 'reconcile')) items += 1;
+    if (audit.linkedInventoryBillIds.length) items += 1;
+    if (audit.status === 'RECONCILED' && meta.role === 'ADMIN') items += 1;
+    if (audit.availableActions.some((action) => action.action === 'cancel')) items += 1;
+    if (audit.canDelete) items += 1;
+    return 12 + items * 38;
+  };
+
+  const openRowActionMenu = (auditId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (openMenu === auditId) {
+      setOpenMenu(null);
+      setRowMenuPos(null);
+      return;
+    }
+    const audit = auditRows.find((row) => row._id === auditId);
+    const menuHeight = audit ? estimateRowMenuHeight(audit) : 160;
+    setShowBulkMenu(false);
+    setBulkMenuPos(null);
+    setRowMenuPos(positionMenu(event.currentTarget, 200, menuHeight));
+    setOpenMenu(auditId);
+  };
+
+  const toggleBulkMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (showBulkMenu) {
+      setShowBulkMenu(false);
+      setBulkMenuPos(null);
+      return;
+    }
+    setOpenMenu(null);
+    setRowMenuPos(null);
+    setBulkMenuPos(positionMenu(event.currentTarget, 220, 100));
+    setShowBulkMenu(true);
+  };
 
   const loadMeta = async () => {
     const response = await http.get('/inventory-audits/meta');
@@ -447,17 +576,21 @@ export function WarehouseAuditPage() {
   }, [notice]);
 
   useEffect(() => {
-    const closeMenu = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpenMenu(null);
-        setShowBulkMenu(false);
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const el = target instanceof Element ? target : target.parentElement;
+      // Keep open when interacting with trigger buttons or portal menus
+      if (el?.closest('.audit-bulk-menu, .audit-actions, .audit-row-action-menu--portal, .audit-bulk-action-menu--portal')) {
+        return;
       }
+      closeMenus();
     };
-    document.addEventListener('mousedown', closeMenu);
-    return () => document.removeEventListener('mousedown', closeMenu);
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
 
   const refresh = async () => {
+    closeMenus();
     await load();
   };
 
@@ -465,18 +598,24 @@ export function WarehouseAuditPage() {
     setActiveTab(tab);
     setPage(1);
     setSelectedIds(new Set());
-    setOpenMenu(null);
-    setShowBulkMenu(false);
+    closeMenus();
   };
 
   const applyCurrentFilters = () => {
     setPage(1);
+    closeMenus();
     if (activeTab === 'audits') setAppliedAuditFilters(auditFilters);
     else setAppliedItemFilters(itemFilters);
   };
 
+  const handleFilterSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    applyCurrentFilters();
+  };
+
   const resetCurrentFilters = () => {
     setPage(1);
+    closeMenus();
     if (activeTab === 'audits') {
       const nextFilters = defaultAuditFilters();
       setAuditFilters(nextFilters);
@@ -636,6 +775,7 @@ export function WarehouseAuditPage() {
   const exportAuditProducts = async (audit: AuditRow) => {
     setActionLoading(true);
     setError('');
+    closeMenus();
     try {
       const response = await http.get('/inventory-audit-items/export', {
         params: { auditId: audit._id },
@@ -646,12 +786,11 @@ export function WarehouseAuditPage() {
       setError(err.response?.data?.message || 'Không xuất được sản phẩm kiểm kho.');
     } finally {
       setActionLoading(false);
-      setOpenMenu(null);
     }
   };
 
   const openReconcilePreview = async (audit: AuditRow) => {
-    setOpenMenu(null);
+    closeMenus();
     setPreviewLoading(true);
     setPreviewAudit(null);
     setError('');
@@ -682,7 +821,7 @@ export function WarehouseAuditPage() {
   };
 
   const openVoucherViewer = async (audit: AuditRow) => {
-    setOpenMenu(null);
+    closeMenus();
     const codes = audit.linkedInventoryBillIds.map((id, index) => ({
       id,
       code: audit.linkedInventoryBillCodes[index] || `Voucher ${index + 1}`,
@@ -771,13 +910,32 @@ export function WarehouseAuditPage() {
   };
 
   const canMerge = selectedAuditRows.length >= 2;
+  const auditColumnCount = 12;
+  const itemColumnCount = 15;
+  const currentTitle = activeTab === 'audits' ? 'Kiểm kho' : 'Sản phẩm kiểm kho';
+  const entityLabel = activeTab === 'audits' ? 'phiếu' : 'dòng';
+  const sortLabel = activeTab === 'audits' ? 'Mới nhất trước' : 'Theo phiếu / sản phẩm';
 
   const auditTable = (
-    <div className="wr-table-wrap">
-      <table className="wr-table audit-table">
+    <div className="table-scroll audit-table-scroll warehouse-audit-table">
+      <table className="data-table audit-data-table audit-table audit-data-table--audits">
+        <colgroup>
+          <col className="col-check" style={{ width: 42 }} />
+          <col className="col-id-date" style={{ width: 195 }} />
+          <col className="col-type" style={{ width: 115 }} />
+          <col className="col-mode" style={{ width: 85 }} />
+          <col className="col-warehouse" style={{ width: 130 }} />
+          <col className="col-creator" style={{ width: 100 }} />
+          <col className="col-sp" style={{ width: 70 }} />
+          <col className="col-qty" style={{ width: 80 }} />
+          <col className="col-note" style={{ width: 220 }} />
+          <col className="col-variance" style={{ width: 85 }} />
+          <col className="col-reconcile" style={{ width: 115 }} />
+          <col className="col-action" style={{ width: 68 }} />
+        </colgroup>
         <thead>
           <tr>
-            <th className="wr-checkbox-cell">
+            <th className="check-cell">
               <input
                 type="checkbox"
                 aria-label="Chọn tất cả phiếu kiểm kho"
@@ -785,123 +943,101 @@ export function WarehouseAuditPage() {
                 onChange={(event) => toggleSelectAll(event.target.checked)}
               />
             </th>
-            <th>ID | Ngày</th>
-            <th>Loại kiểm kho</th>
-            <th>Chế độ</th>
-            <th>Kho hàng</th>
-            <th>Người tạo</th>
-            <th className="right">SP</th>
-            <th className="right">SL kiểm</th>
-            <th>Ghi chú</th>
-            <th className="right">Chênh lệch</th>
-            <th>Bù trừ kiểm kho</th>
-            <th className="wr-action-cell"><MoreHorizontal size={14} /></th>
+            <th className="col-id-date">ID | Ngày</th>
+            <th className="col-type">Loại kiểm kho</th>
+            <th className="col-mode audit-col-center">Chế độ</th>
+            <th className="col-warehouse">Kho hàng</th>
+            <th className="col-creator">Người tạo</th>
+            <th className="col-sp audit-number">SP</th>
+            <th className="col-qty audit-number">SL kiểm</th>
+            <th className="col-note">Ghi chú</th>
+            <th className="col-variance audit-number">Chênh lệch</th>
+            <th className="col-reconcile audit-col-center">Bù trừ kiểm kho</th>
+            <th className="action-cell" scope="col">Thao Tác</th>
           </tr>
         </thead>
         <tbody>
           {loading && Array.from({ length: 6 }).map((_, index) => (
             <tr className="wr-skeleton" key={`audit-skeleton-${index}`}>
-              <td colSpan={12}><span /></td>
+              <td colSpan={auditColumnCount}><span /></td>
             </tr>
           ))}
           {!loading && auditRows.length === 0 && (
             <tr>
-              <td className="wr-empty" colSpan={12}>Chưa có phiếu kiểm kho phù hợp.</td>
+              <td className="audit-empty-cell" colSpan={auditColumnCount}>
+                <div className="audit-empty-state">
+                  <ClipboardCheck size={28} />
+                  <strong>Chưa có phiếu kiểm kho</strong>
+                  <span>Thử đổi bộ lọc hoặc tạo phiếu kiểm kho mới.</span>
+                </div>
+              </td>
             </tr>
           )}
           {!loading && auditRows.map((audit) => (
             <tr key={audit._id}>
-              <td className="wr-checkbox-cell">
+              <td className="check-cell">
                 <input
                   type="checkbox"
+                  aria-label={`Chọn phiếu ${audit.code}`}
                   disabled={Boolean(audit.mergedIntoAuditId)}
                   checked={selectedIds.has(audit._id)}
                   onChange={(event) => toggleSelectRow(audit._id, event.target.checked)}
                 />
               </td>
-              <td className="wr-identity-cell">
-                <button type="button" className="wr-link" onClick={() => navigate(`/warehouse/audit/${audit._id}`)}>
+              <td className="col-id-date audit-name-cell">
+                <button type="button" className="audit-link-button" onClick={() => navigate(`/warehouse/audit/${audit._id}`)}>
                   {audit.code}
                 </button>
-                <span>{formatDate(audit.createdAt)}</span>
+                <div className="audit-name-sub">{formatDate(audit.createdAt)}</div>
               </td>
-              <td>
-                <strong>{audit.auditTypeLabel}</strong>
-                <span className="wr-sub">{audit.statusLabel}</span>
+              <td className="col-type audit-name-cell">
+                <div className="audit-name-main">{audit.auditTypeLabel}</div>
+                <span className={`audit-status-badge ${statusBadgeClass(audit.status)}`}>{audit.statusLabel}</span>
               </td>
-              <td>{audit.warehouseName || '—'}</td>
-              <td>
-                {audit.createdByName || '—'}
-                {audit.mergedIntoAuditId ? <span className="wr-sub">Đã gộp sang phiếu khác</span> : null}
+              <td className="col-mode audit-col-center">
+                <span className="audit-status-badge neutral">{modeLabel(audit)}</span>
               </td>
-              <td className="right">{formatNumber(audit.summary.itemCount)}</td>
-              <td className="right">{formatNumber(audit.summary.physicalQuantityTotal)}</td>
-              <td className="audit-note-cell">{audit.note || '—'}</td>
-              <td className={`right ${varianceClass(audit.summary.varianceQuantityTotal)}`}>{signedNumber(audit.summary.varianceQuantityTotal)}</td>
-              <td>
+              <td className="col-warehouse">{audit.warehouseName || '—'}</td>
+              <td className="col-creator audit-name-cell">
+                <div className="audit-name-main">{audit.createdByName || '—'}</div>
+                {audit.mergedIntoAuditId ? <div className="audit-name-sub">Đã gộp sang phiếu khác</div> : null}
+              </td>
+              <td className="col-sp audit-number">{formatNumber(audit.summary.itemCount)}</td>
+              <td className="col-qty audit-number">{formatNumber(audit.summary.physicalQuantityTotal)}</td>
+              <td className="col-note audit-note-cell" title={audit.note || undefined}>{audit.note || '—'}</td>
+              <td className={`col-variance audit-number ${varianceClass(audit.summary.varianceQuantityTotal)}`}>{signedNumber(audit.summary.varianceQuantityTotal)}</td>
+              <td className="col-reconcile audit-col-center audit-name-cell">
                 {audit.status === 'RECONCILED' ? (
                   <>
-                    <span className="audit-pill success">Đã bù trừ</span>
-                    <span className="wr-sub">
+                    <span className="audit-status-badge success">Đã bù trừ</span>
+                    <div className="audit-name-sub">
                       {audit.reconciledByName || '—'} · {formatDateTime(audit.reconciledAt)}
-                    </span>
+                    </div>
                     {audit.linkedInventoryBillCodes.length ? (
-                      <span className="wr-sub">{audit.linkedInventoryBillCodes.join(', ')}</span>
+                      <div className="audit-name-sub">{audit.linkedInventoryBillCodes.join(', ')}</div>
                     ) : null}
                   </>
                 ) : (
                   <>
-                    <span className="audit-pill neutral">Chưa bù trừ</span>
-                    <span className="wr-sub">
+                    <span className="audit-status-badge neutral">Chưa bù trừ</span>
+                    <div className="audit-name-sub">
                       Dư {formatNumber(audit.summary.excessItemCount)} · Thiếu {formatNumber(audit.summary.shortageItemCount)}
-                    </span>
+                    </div>
                   </>
                 )}
               </td>
-              <td className="wr-action-cell">
-                <div className="wr-menu">
+              <td className="action-cell">
+                <div className="audit-actions">
                   <button
-                    className="wr-row-menu-button"
+                    className="audit-row-menu-button"
                     type="button"
-                    onClick={() => setOpenMenu(openMenu === audit._id ? null : audit._id)}
+                    aria-label={`Thao tác phiếu ${audit.code}`}
+                    aria-haspopup="menu"
+                    aria-expanded={openMenu === audit._id}
+                    onClick={(event) => openRowActionMenu(audit._id, event)}
                   >
-                    <MoreHorizontal size={16} />
+                    <MoreHorizontal size={16} aria-hidden="true" />
                   </button>
-                  {openMenu === audit._id && (
-                    <div className="wr-menu-panel wr-row-menu">
-                      <button type="button" onClick={() => navigate(`/warehouse/audit/${audit._id}`)}>
-                        <Eye size={15} /> Xem chi tiết
-                      </button>
-                      <button type="button" onClick={() => void exportAuditProducts(audit)}>
-                        <FileDown size={15} /> Xuất CSV sản phẩm
-                      </button>
-                      {audit.availableActions.some((action) => action.action === 'reconcile') ? (
-                        <button type="button" onClick={() => void openReconcilePreview(audit)}>
-                          <Check size={15} /> Bù trừ kiểm kho
-                        </button>
-                      ) : null}
-                      {audit.linkedInventoryBillIds.length ? (
-                        <button type="button" onClick={() => void openVoucherViewer(audit)}>
-                          <Link2 size={15} /> Xem phiếu XNK
-                        </button>
-                      ) : null}
-                      {audit.status === 'RECONCILED' && meta.role === 'ADMIN' ? (
-                        <button type="button" onClick={() => setConfirm({ kind: 'reverse', audit, reason: '' })}>
-                          <RefreshCw size={15} /> Đảo bù trừ
-                        </button>
-                      ) : null}
-                      {audit.availableActions.some((action) => action.action === 'cancel') ? (
-                        <button type="button" className="danger" onClick={() => setConfirm({ kind: 'cancel', audit, reason: '' })}>
-                          <X size={15} /> Hủy phiếu
-                        </button>
-                      ) : null}
-                      {audit.canDelete ? (
-                        <button type="button" className="danger" onClick={() => setConfirm({ kind: 'delete', audit })}>
-                          <Trash2 size={15} /> Xóa phiếu nháp
-                        </button>
-                      ) : null}
-                    </div>
-                  )}
                 </div>
               </td>
             </tr>
@@ -912,72 +1048,98 @@ export function WarehouseAuditPage() {
   );
 
   const itemTable = (
-    <div className="wr-table-wrap">
-      <table className="wr-table audit-table">
+    <div className="table-scroll audit-table-scroll warehouse-audit-table">
+      <table className="data-table audit-data-table audit-table audit-data-table--items">
+        <colgroup>
+          <col className="col-date" style={{ width: 95 }} />
+          <col className="col-warehouse" style={{ width: 120 }} />
+          <col className="col-product" style={{ width: 200 }} />
+          <col className="col-location" style={{ width: 90 }} />
+          <col className="col-counter" style={{ width: 100 }} />
+          <col className="col-cost" style={{ width: 90 }} />
+          <col className="col-price" style={{ width: 90 }} />
+          <col className="col-sys" style={{ width: 85 }} />
+          <col className="col-transit" style={{ width: 85 }} />
+          <col className="col-phys" style={{ width: 85 }} />
+          <col className="col-count2" style={{ width: 80 }} />
+          <col className="col-variance" style={{ width: 80 }} />
+          <col className="col-reason" style={{ width: 100 }} />
+          <col className="col-desc" style={{ width: 240 }} />
+          <col className="col-action" style={{ width: 60 }} />
+        </colgroup>
         <thead>
           <tr>
-            <th>Ngày</th>
-            <th>Kho</th>
-            <th>Tên sản phẩm</th>
-            <th>Vị trí/kệ</th>
-            <th>Người đếm</th>
-            <th className="right">Giá vốn</th>
-            <th className="right">Giá bán</th>
-            <th className="right">Tồn hệ thống</th>
-            <th className="right">Đang chuyển</th>
-            <th className="right">Tồn thực tế</th>
-            <th className="right">Đếm lần 2</th>
-            <th className="right">Chênh lệch</th>
-            <th>Lý do</th>
-            <th>Mô tả</th>
-            <th className="wr-action-cell"><MoreHorizontal size={14} /></th>
+            <th className="col-date audit-col-center">Ngày</th>
+            <th className="col-warehouse">Kho</th>
+            <th className="col-product">Tên sản phẩm</th>
+            <th className="col-location audit-col-center">Vị trí/kệ</th>
+            <th className="col-counter">Người đếm</th>
+            <th className="col-cost audit-number">Giá vốn</th>
+            <th className="col-price audit-number">Giá bán</th>
+            <th className="col-sys audit-number">Tồn hệ thống</th>
+            <th className="col-transit audit-number">Đang chuyển</th>
+            <th className="col-phys audit-number">Tồn thực tế</th>
+            <th className="col-count2 audit-number">Đếm lần 2</th>
+            <th className="col-variance audit-number">Chênh lệch</th>
+            <th className="col-reason">Lý do</th>
+            <th className="col-desc">Mô tả</th>
+            <th className="action-cell" scope="col">Thao Tác</th>
           </tr>
         </thead>
         <tbody>
           {loading && Array.from({ length: 6 }).map((_, index) => (
             <tr className="wr-skeleton" key={`item-skeleton-${index}`}>
-              <td colSpan={12}><span /></td>
+              <td colSpan={itemColumnCount}><span /></td>
             </tr>
           ))}
           {!loading && itemRows.length === 0 && (
             <tr>
-              <td className="wr-empty" colSpan={12}>Chưa có sản phẩm kiểm kho phù hợp.</td>
+              <td className="audit-empty-cell" colSpan={itemColumnCount}>
+                <div className="audit-empty-state">
+                  <PackageSearch size={28} />
+                  <strong>Chưa có sản phẩm kiểm kho</strong>
+                  <span>Thử đổi bộ lọc hoặc mở tab phiếu kiểm kho.</span>
+                </div>
+              </td>
             </tr>
           )}
           {!loading && itemRows.map((item) => (
             <tr key={item._id}>
-              <td>
-                <button type="button" className="wr-link audit-inline-link" onClick={() => navigate(`/warehouse/audit/${item.auditId}`)}>
+              <td className="col-date audit-col-center">
+                <button type="button" className="audit-link-button" onClick={() => navigate(`/warehouse/audit/${item.auditId}`)}>
                   {formatDate(item.createdAt)}
                 </button>
               </td>
-              <td>{item.warehouseName || '—'}</td>
-              <td className="wr-product">
-                <button type="button" className="wr-link audit-inline-link" onClick={() => navigate(`/warehouse/audit/${item.auditId}`)}>
+              <td className="col-warehouse">{item.warehouseName || '—'}</td>
+              <td className="col-product audit-name-cell">
+                <button type="button" className="audit-link-button audit-name-main" onClick={() => navigate(`/warehouse/audit/${item.auditId}`)}>
                   {item.productNameSnapshot || '—'}
                 </button>
-                <small>{item.productCodeSnapshot || item.barcodeSnapshot || '—'}</small>
+                <div className="audit-name-sub">{item.productCodeSnapshot || item.barcodeSnapshot || '—'}</div>
               </td>
-              <td>{item.location || '—'}</td>
-              <td>{item.assignedToName || item.countedByName || '—'}{item.countedByName2 ? ` / ${item.countedByName2}` : ''}</td>
-              <td className="right">{formatMoney(item.costPriceSnapshot)}</td>
-              <td className="right">{formatMoney(item.salePriceSnapshot)}</td>
-              <td className="right">{formatNumber(item.systemQuantitySnapshot)}</td>
-              <td className="right">{formatNumber(item.inTransitQuantitySnapshot)}</td>
-              <td className="right">{formatNumber(item.physicalQuantity)}</td>
-              <td className="right">{formatNumber(item.physicalQuantity2)}</td>
-              <td className={`right ${varianceClass(item.varianceQuantity)}`}>{signedNumber(item.varianceQuantity)}</td>
-              <td>{item.varianceReasonLabel || (item.varianceQuantity === 0 ? '—' : 'Chưa chọn')}</td>
-              <td className="audit-note-cell">{item.note || '—'}</td>
-              <td className="wr-action-cell">
-                <button
-                  className="wr-row-menu-button"
-                  type="button"
-                  onClick={() => navigate(`/warehouse/audit/${item.auditId}`)}
-                  title="Mở phiếu kiểm kho"
-                >
-                  <Eye size={15} />
-                </button>
+              <td className="col-location audit-col-center">{item.location || '—'}</td>
+              <td className="col-counter">{item.assignedToName || item.countedByName || '—'}{item.countedByName2 ? ` / ${item.countedByName2}` : ''}</td>
+              <td className="col-cost audit-number">{formatMoney(item.costPriceSnapshot)}</td>
+              <td className="col-price audit-number">{formatMoney(item.salePriceSnapshot)}</td>
+              <td className="col-sys audit-number">{formatNumber(item.systemQuantitySnapshot)}</td>
+              <td className="col-transit audit-number">{formatNumber(item.inTransitQuantitySnapshot)}</td>
+              <td className="col-phys audit-number">{formatNumber(item.physicalQuantity)}</td>
+              <td className="col-count2 audit-number">{formatNumber(item.physicalQuantity2)}</td>
+              <td className={`col-variance audit-number ${varianceClass(item.varianceQuantity)}`}>{signedNumber(item.varianceQuantity)}</td>
+              <td className="col-reason">{item.varianceReasonLabel || (item.varianceQuantity === 0 ? '—' : 'Chưa chọn')}</td>
+              <td className="col-desc audit-note-cell" title={item.note || undefined}>{item.note || '—'}</td>
+              <td className="action-cell">
+                <div className="audit-actions">
+                  <button
+                    className="audit-row-menu-button"
+                    type="button"
+                    onClick={() => navigate(`/warehouse/audit/${item.auditId}`)}
+                    title="Mở phiếu kiểm kho"
+                    aria-label={`Mở phiếu kiểm kho ${item.auditCode || item.auditId}`}
+                  >
+                    <Eye size={15} />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -987,102 +1149,182 @@ export function WarehouseAuditPage() {
   );
 
   return (
-    <div className="workspace-page warehouse-records warehouse-audit-admin compact-page" ref={rootRef}>
-      <section className="wr-card">
-        {dashboard ? (
-          <div className="audit-dashboard">
-            <div><span>Tổng phiếu</span><strong>{formatNumber(dashboard.totalAudits)}</strong></div>
-            <div><span>Dòng đã đếm</span><strong>{formatNumber(dashboard.countedItemCount)} / {formatNumber(dashboard.itemCount)}</strong></div>
-            <div><span>Tổng lệch</span><strong className={varianceClass(dashboard.totalVarianceQuantity)}>{signedNumber(dashboard.totalVarianceQuantity)}</strong></div>
-            <div><span>Tăng/giảm</span><strong>+{formatNumber(dashboard.totalIncreaseQuantity)} / -{formatNumber(dashboard.totalDecreaseQuantity)}</strong></div>
-            <div className="wide"><span>Trạng thái</span><strong>{dashboard.byStatus.map((entry) => `${entry.label}: ${entry.count}`).join(' · ')}</strong></div>
-          </div>
-        ) : null}
-
-        {activeTab === 'audits' ? (
-          <div className="audit-suggestions">
-            <div>
-              <strong>Gợi ý kiểm kho</strong>
-              <span>Ưu tiên sản phẩm lâu chưa kiểm, tồn cao hoặc từng lệch.</span>
-            </div>
-            <button className="btn btn-light" type="button" onClick={() => void loadSuggestions()}>Làm mới gợi ý</button>
-            {suggestions.length ? (
-              <div className="audit-suggestion-list">
-                {suggestions.slice(0, 6).map((item) => (
-                  <button key={item.productId} type="button" onClick={() => navigate(`/warehouse/audit/create`)}>
-                    <strong>{item.productName}</strong>
-                    <small>{item.productCode || '—'} · Tồn {formatNumber(item.currentStock)} · {item.reasons.join(', ') || 'Nên kiểm lại'}</small>
-                  </button>
-                ))}
+    <div className="page-stack audit-root warehouse-audit-admin" ref={rootRef}>
+      <section className="data-card audit-toolbar-card audit-sticky-toolbar">
+        <div className="audit-toolbar-header-slot">
+          <div className="audit-compact-head">
+            <h1 className="audit-compact-heading-sr">{currentTitle}</h1>
+            <div className="audit-tabs-row audit-tabs-row--title-slot">
+              <div className="audit-tabbar is-compact" role="tablist" aria-label="Kiểm kho tabs">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'audits'}
+                  aria-controls="audit-table-panel"
+                  className={`audit-tab is-compact${activeTab === 'audits' ? ' is-active' : ''}`}
+                  onClick={() => changeTab('audits')}
+                >
+                  <ClipboardCheck size={14} /> Kiểm kho
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'items'}
+                  aria-controls="audit-table-panel"
+                  className={`audit-tab is-compact${activeTab === 'items' ? ' is-active' : ''}`}
+                  onClick={() => changeTab('items')}
+                >
+                  <PackageSearch size={14} /> Sản phẩm kiểm kho
+                </button>
               </div>
-            ) : <span className="wr-sub">Chưa có gợi ý hoặc chưa chọn kho.</span>}
+            </div>
           </div>
-        ) : null}
-
-        <div className="workspace-tabs wr-tabs audit-tabs" role="tablist" aria-label="Kiểm kho">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'audits'}
-            className={activeTab === 'audits' ? 'active' : ''}
-            onClick={() => changeTab('audits')}
-          >
-            <ClipboardCheck size={16} /> Kiểm kho
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'items'}
-            className={activeTab === 'items' ? 'active' : ''}
-            onClick={() => changeTab('items')}
-          >
-            <PackageSearch size={16} /> Sản phẩm kiểm kho
-          </button>
         </div>
 
-        <div className="wr-filters audit-filters">
+        <div className="audit-summary-strip" aria-label="Tóm tắt Kiểm kho">
+          <div className="audit-summary-cluster">
+            <span className="audit-summary-main">
+              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <span>{entityLabel}</span>
+            </span>
+            {activeTab === 'audits' && selectedIds.size > 0 ? (
+              <>
+                <span className="audit-summary-divider" aria-hidden="true" />
+                <span>{selectedIds.size.toLocaleString('vi-VN')} đã chọn</span>
+              </>
+            ) : null}
+            {hasActiveFilters ? (
+              <>
+                <span className="audit-summary-divider" aria-hidden="true" />
+                <span className="audit-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
+            {dashboard ? (
+              <>
+                <span className="audit-summary-divider" aria-hidden="true" />
+                <span title="Dòng đã đếm / tổng dòng">
+                  Đếm {formatNumber(dashboard.countedItemCount)}/{formatNumber(dashboard.itemCount)}
+                </span>
+                <span className="audit-summary-divider" aria-hidden="true" />
+                <span className={varianceClass(dashboard.totalVarianceQuantity)} title="Tổng chênh lệch">
+                  Lệch {signedNumber(dashboard.totalVarianceQuantity)}
+                </span>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        <form className="audit-filter-bar" onSubmit={handleFilterSubmit}>
           {activeTab === 'audits' ? (
             <>
-              <select className="wr-filter" value={auditFilters.warehouseId} onChange={(event) => setAuditFilters({ ...auditFilters, warehouseId: event.target.value })}>
+              <div className="audit-search">
+                <Search size={15} />
+                <input
+                  value={auditFilters.keyword}
+                  onChange={(event) => setAuditFilters({ ...auditFilters, keyword: event.target.value })}
+                  placeholder="ID phiếu kiểm kho"
+                />
+              </div>
+              <select
+                className="audit-filter-select"
+                value={auditFilters.warehouseId}
+                onChange={(event) => setAuditFilters({ ...auditFilters, warehouseId: event.target.value })}
+              >
                 <option value="">Kho hàng</option>
-                {meta.warehouses.map((warehouse) => <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>)}
+                {meta.warehouses.map((warehouse) => (
+                  <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>
+                ))}
               </select>
-              <input className="wr-filter audit-date" type="date" value={auditFilters.createdFrom} onChange={(event) => setAuditFilters({ ...auditFilters, createdFrom: event.target.value })} />
-              <input className="wr-filter audit-date" type="date" value={auditFilters.createdTo} onChange={(event) => setAuditFilters({ ...auditFilters, createdTo: event.target.value })} />
-              <label className="wr-search-field">
-                <Search size={14} />
-                <input value={auditFilters.keyword} onChange={(event) => setAuditFilters({ ...auditFilters, keyword: event.target.value })} placeholder="ID phiếu kiểm kho" />
-              </label>
-              <select className="wr-filter" value={auditFilters.auditType} onChange={(event) => setAuditFilters({ ...auditFilters, auditType: event.target.value })}>
+              <input
+                className="audit-filter-select"
+                type="date"
+                value={auditFilters.createdFrom}
+                onChange={(event) => setAuditFilters({ ...auditFilters, createdFrom: event.target.value })}
+                title="Từ ngày tạo"
+              />
+              <input
+                className="audit-filter-select"
+                type="date"
+                value={auditFilters.createdTo}
+                onChange={(event) => setAuditFilters({ ...auditFilters, createdTo: event.target.value })}
+                title="Đến ngày tạo"
+              />
+              <select
+                className="audit-filter-select"
+                value={auditFilters.auditType}
+                onChange={(event) => setAuditFilters({ ...auditFilters, auditType: event.target.value })}
+              >
                 <option value="">Loại kiểm kho</option>
-                {meta.auditTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                {meta.auditTypes.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
-              <select className="wr-filter" value={auditFilters.reconciliationStatus} onChange={(event) => setAuditFilters({ ...auditFilters, reconciliationStatus: event.target.value })}>
+              <select
+                className="audit-filter-select"
+                value={auditFilters.reconciliationStatus}
+                onChange={(event) => setAuditFilters({ ...auditFilters, reconciliationStatus: event.target.value })}
+              >
                 <option value="">Trạng thái bù trừ</option>
-                {meta.reconciliationStatuses.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                {meta.reconciliationStatuses.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
-              <label className="wr-search-field wide">
-                <Search size={14} />
-                <input value={auditFilters.note} onChange={(event) => setAuditFilters({ ...auditFilters, note: event.target.value })} placeholder="Ghi chú" />
-              </label>
+              <div className="audit-search audit-search--note">
+                <Search size={15} />
+                <input
+                  value={auditFilters.note}
+                  onChange={(event) => setAuditFilters({ ...auditFilters, note: event.target.value })}
+                  placeholder="Ghi chú"
+                />
+              </div>
             </>
           ) : (
             <>
-              <select className="wr-filter" value={itemFilters.warehouseId} onChange={(event) => setItemFilters({ ...itemFilters, warehouseId: event.target.value })}>
+              <div className="audit-search">
+                <Search size={15} />
+                <input
+                  value={itemFilters.productKeyword}
+                  onChange={(event) => setItemFilters({ ...itemFilters, productKeyword: event.target.value })}
+                  placeholder="Sản phẩm"
+                />
+              </div>
+              <select
+                className="audit-filter-select"
+                value={itemFilters.warehouseId}
+                onChange={(event) => setItemFilters({ ...itemFilters, warehouseId: event.target.value })}
+              >
                 <option value="">Kho hàng</option>
-                {meta.warehouses.map((warehouse) => <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>)}
+                {meta.warehouses.map((warehouse) => (
+                  <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>
+                ))}
               </select>
-              <input className="wr-filter audit-date" type="date" value={itemFilters.createdFrom} onChange={(event) => setItemFilters({ ...itemFilters, createdFrom: event.target.value })} />
-              <input className="wr-filter audit-date" type="date" value={itemFilters.createdTo} onChange={(event) => setItemFilters({ ...itemFilters, createdTo: event.target.value })} />
-              <label className="wr-search-field">
-                <Search size={14} />
-                <input value={itemFilters.auditId} onChange={(event) => setItemFilters({ ...itemFilters, auditId: event.target.value })} placeholder="ID phiếu kiểm kho" />
-              </label>
-              <label className="wr-search-field wide">
-                <Search size={14} />
-                <input value={itemFilters.productKeyword} onChange={(event) => setItemFilters({ ...itemFilters, productKeyword: event.target.value })} placeholder="Sản phẩm" />
-              </label>
-              <select className="wr-filter" value={itemFilters.varianceType} onChange={(event) => setItemFilters({ ...itemFilters, varianceType: event.target.value })}>
+              <input
+                className="audit-filter-select"
+                type="date"
+                value={itemFilters.createdFrom}
+                onChange={(event) => setItemFilters({ ...itemFilters, createdFrom: event.target.value })}
+                title="Từ ngày"
+              />
+              <input
+                className="audit-filter-select"
+                type="date"
+                value={itemFilters.createdTo}
+                onChange={(event) => setItemFilters({ ...itemFilters, createdTo: event.target.value })}
+                title="Đến ngày"
+              />
+              <div className="audit-search audit-search--note">
+                <Search size={15} />
+                <input
+                  value={itemFilters.auditId}
+                  onChange={(event) => setItemFilters({ ...itemFilters, auditId: event.target.value })}
+                  placeholder="ID phiếu kiểm kho"
+                />
+              </div>
+              <select
+                className="audit-filter-select"
+                value={itemFilters.varianceType}
+                onChange={(event) => setItemFilters({ ...itemFilters, varianceType: event.target.value })}
+              >
                 <option value="">Trạng thái chênh lệch</option>
                 <option value="EXCESS">Dư hàng</option>
                 <option value="SHORTAGE">Thiếu hàng</option>
@@ -1091,62 +1333,200 @@ export function WarehouseAuditPage() {
             </>
           )}
 
-          <button className="btn btn-primary wr-filter-button" type="button" onClick={applyCurrentFilters}>Lọc</button>
-          <button className="btn btn-light wr-reset-button" type="button" onClick={resetCurrentFilters}>Đặt lại</button>
-        </div>
-
-        <div className="wr-actions">
-          <div className="wr-action-left">
+          <div className="audit-filter-actions">
+            <button className="audit-btn audit-btn-primary" type="submit">Lọc</button>
+            <button className="audit-btn audit-btn-secondary" type="button" onClick={resetCurrentFilters} title="Đặt lại bộ lọc">
+              <RefreshCw size={14} /> Đặt lại
+            </button>
             {activeTab === 'audits' ? (
-              <button className="btn btn-primary wr-create-button" type="button" onClick={() => navigate('/warehouse/audit/create')}>
-                <Plus size={15} /> Thêm mới
+              <button className="audit-btn audit-btn-primary" type="button" onClick={() => navigate('/warehouse/audit/create')}>
+                <Plus size={14} /> Thêm mới
               </button>
             ) : null}
-            <div className="wr-menu">
-              <button className="btn btn-light" type="button" onClick={() => setShowBulkMenu(!showBulkMenu)}>
+            <div className={`audit-floating-menu audit-bulk-menu${showBulkMenu ? ' is-open' : ''}`}>
+              <button
+                className="audit-btn audit-btn-secondary"
+                type="button"
+                aria-expanded={showBulkMenu}
+                aria-haspopup="menu"
+                onClick={toggleBulkMenu}
+              >
                 <ChevronDown size={14} /> Thao tác
               </button>
-              {showBulkMenu && (
-                <div className="wr-menu-panel wr-action-menu">
-                  <button type="button" disabled={exportLoading} onClick={() => setShowExportModal(true)}>
-                    <FileDown size={15} /> Xuất dữ liệu
-                  </button>
-                  {activeTab === 'audits' ? (
-                    <button
-                      type="button"
-                      disabled={!canMerge || actionLoading}
-                      onClick={() => setConfirm({ kind: 'merge', auditIds: selectedAuditRows.map((row) => row._id), note: '' })}
-                    >
-                      <Link2 size={15} /> Gộp phiếu đã chọn
-                    </button>
-                  ) : null}
-                </div>
-              )}
             </div>
           </div>
-          <div className="wr-action-right">
-            <span className="wr-count">
-              {pageRange(page, total, PAGE_LIMIT)}
-              {activeTab === 'audits' && selectedIds.size ? ` · Đã chọn ${selectedIds.size}` : ''}
-            </span>
-            <button className="wr-icon-button" type="button" title="Làm mới" onClick={resetCurrentFilters}>
-              <RefreshCw size={15} />
-            </button>
-          </div>
-        </div>
+        </form>
 
-        {notice ? <div className="wr-notice"><Check size={15} /> {notice}</div> : null}
-        {error ? (
-          <div className="wr-error" role="alert">
-            <AlertCircle size={16} />
-            <span>{error}</span>
-            <button type="button" onClick={() => setError('')}>Đóng</button>
+        {activeTab === 'audits' ? (
+          <div className="audit-suggestions" aria-label="Gợi ý kiểm kho">
+            <div className="audit-suggestions-head">
+              <strong>Gợi ý kiểm kho</strong>
+              <span>Ưu tiên SP lâu chưa kiểm, tồn cao hoặc từng lệch</span>
+              <button className="audit-btn audit-btn-secondary audit-btn-sm" type="button" onClick={() => void loadSuggestions()}>
+                Làm mới gợi ý
+              </button>
+            </div>
+            {suggestions.length ? (
+              <div className="audit-suggestion-list">
+                {suggestions.slice(0, 6).map((item) => (
+                  <button key={item.productId} type="button" onClick={() => navigate('/warehouse/audit/create')}>
+                    <strong>{item.productName}</strong>
+                    <small>
+                      {item.productCode || '—'} · Tồn {formatNumber(item.currentStock)} · {item.reasons.join(', ') || 'Nên kiểm lại'}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="audit-suggestions-empty">Chưa có gợi ý hoặc chưa chọn kho.</span>
+            )}
           </div>
         ) : null}
+      </section>
+
+      {notice ? (
+        <div className="audit-notice" role="status">
+          <Check size={15} /> {notice}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="audit-error" role="alert">
+          <AlertCircle size={16} />
+          <span>{error}</span>
+          <button type="button" onClick={() => setError('')}>Đóng</button>
+        </div>
+      ) : null}
+
+      <section className="data-card audit-table-card" id="audit-table-panel">
+        <div className="data-card-header audit-table-header">
+          <div>
+            <h2 className="audit-table-title">Bảng dữ liệu {currentTitle}</h2>
+            <p className="audit-table-subtitle">
+              {total.toLocaleString('vi-VN')} bản ghi · {pageRange(page, total, PAGE_LIMIT)} · Sắp xếp {sortLabel}
+            </p>
+          </div>
+          {activeTab === 'audits' && selectedIds.size > 0 ? (
+            <span className="audit-selected-count">{selectedIds.size.toLocaleString('vi-VN')} đã chọn</span>
+          ) : null}
+        </div>
 
         {activeTab === 'audits' ? auditTable : itemTable}
         <Pagination page={page} total={total} limit={PAGE_LIMIT} onPageChange={setPage} />
       </section>
+
+      {showBulkMenu && bulkMenuPos
+        ? createPortal(
+            <div
+              className="audit-floating-dropdown audit-bulk-action-menu--portal"
+              role="menu"
+              style={{
+                position: 'fixed',
+                top: `${bulkMenuPos.top}px`,
+                left: `${bulkMenuPos.left}px`,
+                zIndex: 10050,
+              }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="audit-dropdown-item"
+                disabled={exportLoading}
+                onClick={() => {
+                  closeMenus();
+                  setShowExportModal(true);
+                }}
+              >
+                <FileDown size={15} /> Xuất dữ liệu
+              </button>
+              {activeTab === 'audits' ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="audit-dropdown-item"
+                  disabled={!canMerge || actionLoading}
+                  onClick={() => {
+                    closeMenus();
+                    setConfirm({ kind: 'merge', auditIds: selectedAuditRows.map((row) => row._id), note: '' });
+                  }}
+                >
+                  <Link2 size={15} /> Gộp phiếu đã chọn
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {openMenuAudit && rowMenuPos
+        ? createPortal(
+            <div
+              className="audit-row-action-menu audit-row-action-menu--portal"
+              role="menu"
+              style={{
+                position: 'fixed',
+                top: `${rowMenuPos.top}px`,
+                left: `${rowMenuPos.left}px`,
+                zIndex: 10050,
+              }}
+            >
+              <button type="button" role="menuitem" onClick={() => { closeMenus(); navigate(`/warehouse/audit/${openMenuAudit._id}`); }}>
+                <Eye size={15} /> Xem chi tiết
+              </button>
+              <button type="button" role="menuitem" onClick={() => void exportAuditProducts(openMenuAudit)}>
+                <FileDown size={15} /> Xuất CSV sản phẩm
+              </button>
+              {openMenuAudit.availableActions.some((action) => action.action === 'reconcile') ? (
+                <button type="button" role="menuitem" onClick={() => void openReconcilePreview(openMenuAudit)}>
+                  <Check size={15} /> Bù trừ kiểm kho
+                </button>
+              ) : null}
+              {openMenuAudit.linkedInventoryBillIds.length ? (
+                <button type="button" role="menuitem" onClick={() => void openVoucherViewer(openMenuAudit)}>
+                  <Link2 size={15} /> Xem phiếu XNK
+                </button>
+              ) : null}
+              {openMenuAudit.status === 'RECONCILED' && meta.role === 'ADMIN' ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    closeMenus();
+                    setConfirm({ kind: 'reverse', audit: openMenuAudit, reason: '' });
+                  }}
+                >
+                  <RefreshCw size={15} /> Đảo bù trừ
+                </button>
+              ) : null}
+              {openMenuAudit.availableActions.some((action) => action.action === 'cancel') ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onClick={() => {
+                    closeMenus();
+                    setConfirm({ kind: 'cancel', audit: openMenuAudit, reason: '' });
+                  }}
+                >
+                  <X size={15} /> Hủy phiếu
+                </button>
+              ) : null}
+              {openMenuAudit.canDelete ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onClick={() => {
+                    closeMenus();
+                    setConfirm({ kind: 'delete', audit: openMenuAudit });
+                  }}
+                >
+                  <Trash2 size={15} /> Xóa phiếu nháp
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
 
       {previewLoading ? (
         <div className="modal-backdrop wr-modal-backdrop" role="presentation">
@@ -1269,7 +1649,13 @@ export function WarehouseAuditPage() {
           <section className="wr-confirm-modal audit-small-modal">
             <header>
               <h2>
-                {confirm.kind === 'cancel' ? 'Hủy phiếu kiểm kho' : confirm.kind === 'delete' ? 'Xóa phiếu nháp' : 'Gộp phiếu kiểm kho'}
+                {confirm.kind === 'cancel'
+                  ? 'Hủy phiếu kiểm kho'
+                  : confirm.kind === 'delete'
+                    ? 'Xóa phiếu nháp'
+                    : confirm.kind === 'reverse'
+                      ? 'Đảo bù trừ kiểm kho'
+                      : 'Gộp phiếu kiểm kho'}
               </h2>
               <button className="wr-icon-button" type="button" onClick={() => setConfirm(null)}><X size={16} /></button>
             </header>
@@ -1302,12 +1688,30 @@ export function WarehouseAuditPage() {
                 </div>
               </>
             ) : null}
+            {confirm.kind === 'reverse' ? (
+              <>
+                <p>
+                  Phiếu <strong>{confirm.audit.code}</strong> sẽ được đảo bù trừ và chuyển về trạng thái đang kiểm. Vui lòng nhập lý do.
+                </p>
+                <div className="audit-modal-body">
+                  <textarea
+                    className="audit-textarea"
+                    placeholder="Nhập lý do đảo bù trừ..."
+                    value={confirm.reason}
+                    onChange={(event) => setConfirm({ ...confirm, reason: event.target.value })}
+                  />
+                </div>
+              </>
+            ) : null}
             <footer className="audit-modal-footer">
               <button className="btn btn-light" type="button" onClick={() => setConfirm(null)}>Đóng</button>
               <button
                 className="btn btn-primary"
                 type="button"
-                disabled={actionLoading || (confirm.kind === 'cancel' && !confirm.reason.trim())}
+                disabled={
+                  actionLoading
+                  || ((confirm.kind === 'cancel' || confirm.kind === 'reverse') && !confirm.reason.trim())
+                }
                 onClick={() => void runConfirm()}
               >
                 {actionLoading ? 'Đang xử lý...' : 'Xác nhận'}

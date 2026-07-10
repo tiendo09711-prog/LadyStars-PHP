@@ -371,8 +371,15 @@ class InventoryAuditController extends Controller
             $audit = $this->findAudit($auditId);
             $prodColumns = collect(Schema::getColumnListing('inventory_check_products'))->flip();
             $branchIdForQuery = $audit->branch_id ?? ($audit->branch_mongo_id ?? null);
-            $query->where(function ($builder) use ($audit, $prodColumns, $branchIdForQuery): void {
-                $builder->where('code', $audit->code);
+            $auditKey = (string) ($audit->mongo_id ?: $audit->id);
+            $query->where(function ($builder) use ($audit, $prodColumns, $branchIdForQuery, $auditKey): void {
+                // Parent code (legacy single-row) or per-line codes "{code}#{index}" + payload.auditId
+                if ($audit->code) {
+                    $builder->where('code', $audit->code)
+                        ->orWhere('code', 'like', $audit->code.'#%')
+                        ->orWhere('payload->auditCode', $audit->code);
+                }
+                $builder->orWhere('payload->auditId', $auditKey);
                 if ($audit->mongo_id) {
                     $builder->orWhere('mongo_id', $audit->mongo_id);
                 }
@@ -490,9 +497,16 @@ class InventoryAuditController extends Controller
         $table = 'inventory_check_products';
         $columns = collect(Schema::getColumnListing($table))->flip();
         $branchIdForQuery = $audit->branch_id ?? ($audit->branch_mongo_id ?? null);
+        $auditKey = (string) ($audit->mongo_id ?: $audit->id);
+
         return (new MirrorRecord())->forTable($table)->newQuery()
-            ->where(function ($query) use ($audit, $columns, $branchIdForQuery): void {
-                $query->where('code', $audit->code);
+            ->where(function ($query) use ($audit, $columns, $branchIdForQuery, $auditKey): void {
+                if ($audit->code) {
+                    $query->where('code', $audit->code)
+                        ->orWhere('code', 'like', $audit->code.'#%')
+                        ->orWhere('payload->auditCode', $audit->code);
+                }
+                $query->orWhere('payload->auditId', $auditKey);
                 if ($audit->mongo_id) {
                     $query->orWhere('mongo_id', $audit->mongo_id);
                 }
@@ -515,9 +529,25 @@ class InventoryAuditController extends Controller
 
     private function legacyAuditForItem(MirrorRecord $record): ?MirrorRecord
     {
-        if ($record->code) {
+        $payload = is_array($record->payload) ? $record->payload : [];
+        $auditId = trim((string) ($payload['auditId'] ?? ''));
+        if ($auditId !== '') {
+            try {
+                return $this->findAudit($auditId);
+            } catch (\Throwable) {
+                // fall through
+            }
+        }
+        $auditCode = trim((string) ($payload['auditCode'] ?? ''));
+        $lineCode = (string) ($record->code ?? '');
+        // Per-line codes use "{auditCode}#{index}"
+        if (str_contains($lineCode, '#')) {
+            $auditCode = $auditCode !== '' ? $auditCode : explode('#', $lineCode, 2)[0];
+        }
+        $lookupCode = $auditCode !== '' ? $auditCode : $lineCode;
+        if ($lookupCode !== '') {
             $direct = (new MirrorRecord())->forTable('inventory_checks')->newQuery()
-                ->where('code', $record->code)
+                ->where('code', $lookupCode)
                 ->first();
             if ($direct) {
                 return $direct;
@@ -620,10 +650,15 @@ class InventoryAuditController extends Controller
             if ($b) $warehouseName = $b->name ?? '';
         }
 
+        $rawCode = (string) ($payload['auditCode'] ?? $record->code ?: $audit?->code ?: '');
+        if (str_contains($rawCode, '#')) {
+            $rawCode = explode('#', $rawCode, 2)[0];
+        }
+
         return [
             '_id' => (string) ($record->mongo_id ?: $record->id),
             'auditId' => (string) ($payload['auditId'] ?? ($audit?->mongo_id ?: $audit?->id ?: '')),
-            'auditCode' => (string) ($record->code ?: $audit?->code ?: ''),
+            'auditCode' => $rawCode,
             'warehouseId' => $warehouseId,
             'warehouseName' => $warehouseName,
             'createdAt' => $payload['createdAt'] ?? optional($record->business_date)->toISOString() ?? optional($record->created_at)->toISOString(),
@@ -718,10 +753,9 @@ class InventoryAuditController extends Controller
             $actions[] = ['action' => 'submit', 'label' => 'Nộp kiểm'];
             $actions[] = ['action' => 'cancel', 'label' => 'Hủy phiếu', 'needsReason' => true, 'danger' => true];
         }
-        if (in_array($status, ['COUNTING'], true)) {
+        if ($status === 'COUNTING') {
             $actions[] = ['action' => 'resnapshot', 'label' => 'Chụp lại snapshot'];
-        }
-        if (in_array($status, ['COUNTING', 'RECONCILED'], true)) {
+            // Reconcile only while counting — never expose on already RECONCILED.
             $actions[] = ['action' => 'reconcile', 'label' => 'Bù trừ kiểm kho'];
         }
         if ($status === 'RECONCILED') {

@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   ArrowDownLeft,
@@ -26,6 +27,7 @@ import { http } from '../../core/api/http';
 import { Pagination } from '../../core/components/Pagination';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import './warehouseRecords.css';
+import './warehouse-transactions-page.css';
 
 type TabKey = 'bills' | 'items';
 
@@ -242,7 +244,10 @@ export function WarehouseTransactionPage() {
     bills: defaultTransactionFilters(),
     items: defaultTransactionFilters(),
   });
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [openCreateMenu, setOpenCreateMenu] = useState(false);
+  const [openBulkMenu, setOpenBulkMenu] = useState(false);
+  const [openRowKey, setOpenRowKey] = useState<string | null>(null);
+  const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [deleteRows, setDeleteRows] = useState<TransactionRow[]>([]);
@@ -265,6 +270,59 @@ export function WarehouseTransactionPage() {
   const currentFilters = draftFilters[activeTab];
   const exportColumns = useMemo(() => buildTransactionExportColumns(activeTab), [activeTab]);
   const visibleColumnCount = columns.filter((column) => visibility[column.key]).length;
+  const currentTabMeta = TRANSACTION_TABS.find((tab) => tab.key === activeTab) || TRANSACTION_TABS[0];
+  const rangeLabel = total
+    ? `${((page - 1) * LIMIT + 1).toLocaleString('vi-VN')}–${Math.min(page * LIMIT, total).toLocaleString('vi-VN')} / ${total.toLocaleString('vi-VN')}`
+    : '0 bản ghi';
+
+  const hasActiveFilters = useMemo(() => {
+    const applied = appliedFilters[activeTab];
+    const defaults = defaultTransactionFilters();
+    return (
+      applied.warehouseId !== defaults.warehouseId
+      || applied.billId !== defaults.billId
+      || applied.type !== defaults.type
+      || applied.kind !== defaults.kind
+      || applied.fromDate !== defaults.fromDate
+      || applied.toDate !== defaults.toDate
+      || applied.productKeyword !== defaults.productKeyword
+    );
+  }, [activeTab, appliedFilters]);
+
+  const openRowItem = openRowKey ? rows.find((row) => row.rowKey === openRowKey) ?? null : null;
+
+  const closeMenus = () => {
+    setOpenCreateMenu(false);
+    setOpenBulkMenu(false);
+    setOpenRowKey(null);
+    setRowMenuPos(null);
+  };
+
+  const openRowActionMenu = (rowKey: string, event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (openRowKey === rowKey) {
+      setOpenRowKey(null);
+      setRowMenuPos(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 220;
+    const menuHeight = 150;
+    const gap = 6;
+    let left = rect.right - menuWidth;
+    let top = rect.bottom + gap;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - gap);
+    }
+    setOpenCreateMenu(false);
+    setOpenBulkMenu(false);
+    setRowMenuPos({ top, left });
+    setOpenRowKey(rowKey);
+  };
 
   const load = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -276,10 +334,13 @@ export function WarehouseTransactionPage() {
         limit: LIMIT,
       };
       const response = await http.get(`/warehouse/transactions/${activeTab}`, { params, signal });
-      setRows(response.data.items || []);
-      setTotal(Number(response.data.total || 0));
+      setRows(Array.isArray(response.data?.items) ? response.data.items : (Array.isArray(response.data?.data) ? response.data.data : []));
+      setTotal(Number(response.data?.total ?? 0));
     } catch (err: any) {
       if (err.code === 'ERR_CANCELED') return;
+      // Clear previous rows so a failed request never looks like real current data.
+      setRows([]);
+      setTotal(0);
       setError(err.response?.data?.message || 'Không tải được dữ liệu xuất nhập kho.');
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -303,11 +364,15 @@ export function WarehouseTransactionPage() {
   }, [activeTab, page, appliedFilters]);
 
   useEffect(() => {
-    const closeMenus = (event: MouseEvent) => {
-      if (!menuRootRef.current?.contains(event.target as Node)) setOpenMenu(null);
+    const onPointerDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node;
+      if (menuRootRef.current?.contains(target)) return;
+      const portalMenu = document.querySelector('.wt-row-action-menu--portal');
+      if (portalMenu?.contains(target)) return;
+      closeMenus();
     };
-    document.addEventListener('mousedown', closeMenus);
-    return () => document.removeEventListener('mousedown', closeMenus);
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
 
   useEffect(() => {
@@ -325,11 +390,13 @@ export function WarehouseTransactionPage() {
 
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
+    closeMenus();
     setPage(1);
     setAppliedFilters((current) => ({ ...current, [activeTab]: { ...draftFilters[activeTab] } }));
   };
 
   const resetFilters = () => {
+    closeMenus();
     setPage(1);
     const nextFilters = defaultTransactionFilters();
     setDraftFilters((current) => ({ ...current, [activeTab]: nextFilters }));
@@ -337,18 +404,18 @@ export function WarehouseTransactionPage() {
   };
 
   const refreshData = () => {
-    setOpenMenu(null);
+    closeMenus();
     void load();
   };
 
   const changeTab = (tab: TabKey) => {
     setActiveTab(tab);
     setPage(1);
-    setOpenMenu(null);
+    closeMenus();
   };
 
   const openDetail = async (row: TransactionRow) => {
-    setOpenMenu(null);
+    closeMenus();
     setDetailLoading(true);
     setError('');
     try {
@@ -395,7 +462,7 @@ export function WarehouseTransactionPage() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, activeTab === 'bills' ? 'Phiếu XNK' : 'Sản phẩm XNK');
     XLSX.writeFile(workbook, `${filename}.xlsx`);
-    setOpenMenu(null);
+    closeMenus();
   };
 
   const handleExcelExport = async (
@@ -468,7 +535,7 @@ export function WarehouseTransactionPage() {
       return;
     }
     setDeleteRows(targets);
-    setOpenMenu(null);
+    closeMenus();
   };
 
   const confirmDelete = async () => {
@@ -498,7 +565,7 @@ export function WarehouseTransactionPage() {
   const openColumnModal = () => {
     setColumnDraft({ ...visibility });
     setColumnModalOpen(true);
-    setOpenMenu(null);
+    closeMenus();
   };
 
   const saveColumns = () => {
@@ -517,184 +584,382 @@ export function WarehouseTransactionPage() {
   };
 
   const renderWarehouseCell = (row: TransactionRow) => (
-    <div className={row.kind === 'TRANSFER' ? 'wr-warehouse-transfer' : ''}>
+    <div className={row.kind === 'TRANSFER' ? 'wr-warehouse-transfer wt-warehouse-cell' : 'wt-warehouse-cell'}>
       {row.kind === 'TRANSFER' ? (
         <>
           {/* Neutral placeholders; do not fabricate warehouse names */}
           <span>{row.fromWarehouseName || '-'}</span>
-          <ArrowLeftRight size={14} />
+          <ArrowLeftRight size={14} aria-hidden="true" />
           <span>{row.toWarehouseName || '-'}</span>
         </>
-      ) : row.warehouseName || '-'}
+      ) : (
+        <span>{row.warehouseName || '-'}</span>
+      )}
     </div>
   );
 
   return (
-    <div className="workspace-page warehouse-records compact-page" ref={menuRootRef}>
-      <section className="wr-card">
-        <div className="wr-transfer-tabbar" role="tablist" aria-label="Xuất nhập kho">
-          {TRANSACTION_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={'wr-transfer-tab ' + (isActive ? 'is-active' : '')}
-                onClick={() => changeTab(tab.key)}
-              >
-                <Icon size={17} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+    <div className="workspace-page warehouse-records wt-root compact-page" ref={menuRootRef}>
+      <section className="data-card wt-toolbar-card wt-sticky-toolbar">
+        <div className="wt-toolbar-header-slot">
+          <div className="wt-compact-head">
+            <h1 className="wt-compact-heading-sr">{currentTabMeta.label}</h1>
+            <div className="wt-tabs-row wt-tabs-row--title-slot">
+              <div className="wt-tabbar is-compact" role="tablist" aria-label="Xuất nhập kho">
+                {TRANSACTION_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls="wt-data-table"
+                      className={'wt-tab is-compact' + (isActive ? ' is-active' : '')}
+                      onClick={() => changeTab(tab.key)}
+                    >
+                      <Icon size={14} aria-hidden="true" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <form className="wr-filters" onSubmit={applyFilters}>
-          <select className="wr-filter" value={currentFilters.warehouseId} onChange={(event) => updateFilter('warehouseId', event.target.value)}>
-            <option value="">Kho hàng</option>
-            {meta.warehouses.map((warehouse) => <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>)}
-          </select>
-          <label className="wr-search-field">
-            <Search size={14} />
-            <input value={currentFilters.billId} onChange={(event) => updateFilter('billId', event.target.value)} placeholder="ID phiếu" />
-          </label>
-          <select className="wr-filter" value={currentFilters.type} onChange={(event) => updateFilter('type', event.target.value)}>
-            <option value="">Loại</option>
-            {meta.types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-          </select>
-          <select className="wr-filter wide" value={currentFilters.kind} onChange={(event) => updateFilter('kind', event.target.value)}>
-            <option value="">Kiểu</option>
-            {meta.kinds.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
-          </select>
-          {activeTab === 'items' && (
-            <label className="wr-search-field wide">
-              <Search size={14} />
-              <input value={currentFilters.productKeyword} onChange={(event) => updateFilter('productKeyword', event.target.value)} placeholder="Tên, mã, mã vạch sản phẩm" />
-            </label>
-          )}
-          <label className="wr-date-field">
-            <span>Từ</span>
-            <input type="date" value={currentFilters.fromDate} onChange={(event) => updateFilter('fromDate', event.target.value)} />
-          </label>
-          <label className="wr-date-field">
-            <span>Đến</span>
-            <input type="date" value={currentFilters.toDate} onChange={(event) => updateFilter('toDate', event.target.value)} />
-          </label>
-          <button className="btn btn-primary wr-filter-button" type="submit"><Filter size={15} /> Lọc</button>
-          <button className="btn btn-light wr-reset-button" type="button" onClick={resetFilters}>Đặt lại</button>
-        </form>
+        <div className="wt-summary-strip" aria-label="Tóm tắt xuất nhập kho">
+          <div className="wt-summary-cluster">
+            <span className="wt-summary-main">
+              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <span>{activeTab === 'bills' ? 'phiếu' : 'dòng SP'}</span>
+            </span>
+            <span className="wt-summary-divider" aria-hidden="true" />
+            <span>{rangeLabel}</span>
+            {hasActiveFilters ? (
+              <>
+                <span className="wt-summary-divider" aria-hidden="true" />
+                <span className="wt-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
+          </div>
+        </div>
 
-        <div className="wr-actions">
-          <div className="wr-action-left">
-            <div className="wr-menu">
-              <button className="btn wr-create-button" type="button" onClick={() => setOpenMenu(openMenu === 'create' ? null : 'create')}>
-                <Plus size={15} /> Thêm mới <ChevronDown size={14} />
+        <form
+          className={`wt-filter-bar wt-filter-bar--balanced${activeTab === 'items' ? ' wt-filter-bar--items' : ' wt-filter-bar--bills'}`}
+          onSubmit={applyFilters}
+        >
+          {/* Row 1: primary filters + Lọc (mirrors /warehouse/transfers "Tất cả") */}
+          <select
+            className="wt-filter-select"
+            value={currentFilters.warehouseId}
+            onChange={(event) => updateFilter('warehouseId', event.target.value)}
+            title="Kho hàng"
+            aria-label="Kho hàng"
+          >
+            <option value="">Kho hàng</option>
+            {meta.warehouses.map((warehouse) => (
+              <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>
+            ))}
+          </select>
+
+          <div className="wt-search wt-search--compact">
+            <Search size={15} aria-hidden="true" />
+            <input
+              value={currentFilters.billId}
+              onChange={(event) => updateFilter('billId', event.target.value)}
+              placeholder="ID phiếu"
+              aria-label="ID phiếu"
+            />
+          </div>
+
+          <select
+            className="wt-filter-select"
+            value={currentFilters.type}
+            onChange={(event) => updateFilter('type', event.target.value)}
+            title="Loại"
+            aria-label="Loại giao dịch"
+          >
+            <option value="">Loại</option>
+            {meta.types.map((type) => (
+              <option key={type.value} value={type.value}>{type.label}</option>
+            ))}
+          </select>
+
+          <select
+            className="wt-filter-select wt-filter-select--wide"
+            value={currentFilters.kind}
+            onChange={(event) => updateFilter('kind', event.target.value)}
+            title="Kiểu"
+            aria-label="Kiểu giao dịch"
+          >
+            <option value="">Kiểu</option>
+            {meta.kinds.map((kind) => (
+              <option key={kind.value} value={kind.value}>{kind.label}</option>
+            ))}
+          </select>
+
+          {activeTab === 'items' ? (
+            <div className="wt-search wt-search--product">
+              <Search size={15} aria-hidden="true" />
+              <input
+                value={currentFilters.productKeyword}
+                onChange={(event) => updateFilter('productKeyword', event.target.value)}
+                placeholder="Tên, mã, mã vạch sản phẩm"
+                aria-label="Tìm sản phẩm"
+              />
+            </div>
+          ) : null}
+
+          <input
+            className="wt-filter-select"
+            type="date"
+            value={currentFilters.fromDate}
+            onChange={(event) => updateFilter('fromDate', event.target.value)}
+            title="Từ ngày"
+            aria-label="Từ ngày"
+          />
+          <input
+            className="wt-filter-select"
+            type="date"
+            value={currentFilters.toDate}
+            onChange={(event) => updateFilter('toDate', event.target.value)}
+            title="Đến ngày"
+            aria-label="Đến ngày"
+          />
+
+          <button className="wt-btn wt-btn-primary wt-filter-apply" type="submit">
+            <Filter size={14} aria-hidden="true" />
+            Lọc
+          </button>
+
+          {/* Row 2: secondary / create actions, right-aligned */}
+          <div className="wt-filter-actions">
+            <button className="wt-btn wt-btn-secondary" type="button" onClick={resetFilters} title="Đặt lại bộ lọc">
+              <RefreshCw size={14} aria-hidden="true" />
+              Đặt lại
+            </button>
+            <button className="wt-btn wt-btn-secondary" type="button" onClick={refreshData} title="Làm mới" aria-label="Làm mới">
+              <RefreshCw size={14} aria-hidden="true" />
+              Làm mới
+            </button>
+
+            <div className="wt-floating-menu">
+              <button
+                className="wt-btn wt-btn-primary"
+                type="button"
+                aria-expanded={openCreateMenu}
+                aria-haspopup="menu"
+                onClick={() => {
+                  setOpenBulkMenu(false);
+                  setOpenRowKey(null);
+                  setRowMenuPos(null);
+                  setOpenCreateMenu((current) => !current);
+                }}
+              >
+                <Plus size={14} aria-hidden="true" />
+                Thêm mới
+                <ChevronDown size={14} aria-hidden="true" />
               </button>
-              {openMenu === 'create' && (
-                <div className="wr-menu-panel wr-action-menu">
-                  <button type="button" onClick={() => navigate('/warehouse/transactions/vouchers/import')}><ArrowDownLeft size={15} /> Nhập kho</button>
-                  <button type="button" onClick={() => navigate('/warehouse/transactions/vouchers/export')}><ArrowUpRight size={15} /> Xuất kho</button>
-                  {activeTab === 'bills' && (
+              {openCreateMenu ? (
+                <div className="wt-floating-dropdown" role="menu">
+                  <button className="wt-dropdown-item" type="button" role="menuitem" onClick={() => navigate('/warehouse/transactions/vouchers/import')}>
+                    <ArrowDownLeft size={15} aria-hidden="true" />
+                    <span>Nhập kho</span>
+                  </button>
+                  <button className="wt-dropdown-item" type="button" role="menuitem" onClick={() => navigate('/warehouse/transactions/vouchers/export')}>
+                    <ArrowUpRight size={15} aria-hidden="true" />
+                    <span>Xuất kho</span>
+                  </button>
+                  {activeTab === 'bills' ? (
                     <>
-                      <button type="button" onClick={() => navigate('/warehouse/transfers/create')}><ArrowLeftRight size={15} /> Chuyển kho</button>
-                      <button type="button" onClick={() => navigate('/warehouse/transactions/vouchers/excel')}><FileSpreadsheet size={15} /> Nhập từ Excel</button>
+                      <button className="wt-dropdown-item" type="button" role="menuitem" onClick={() => navigate('/warehouse/transfers/create')}>
+                        <ArrowLeftRight size={15} aria-hidden="true" />
+                        <span>Chuyển kho</span>
+                      </button>
+                      <button className="wt-dropdown-item" type="button" role="menuitem" onClick={() => navigate('/warehouse/transactions/vouchers/excel')}>
+                        <FileSpreadsheet size={15} aria-hidden="true" />
+                        <span>Nhập từ Excel</span>
+                      </button>
                     </>
-                  )}
+                  ) : null}
                 </div>
-              )}
+              ) : null}
             </div>
 
-            <button className="btn btn-light" type="button" onClick={() => setShowExportModal(true)}>
-              <FileDown size={15} /> Xuất dữ liệu
-            </button>
+            <div className="wt-floating-menu wt-bulk-menu">
+              <button
+                className="wt-btn wt-btn-secondary"
+                type="button"
+                aria-expanded={openBulkMenu}
+                aria-haspopup="menu"
+                onClick={() => {
+                  setOpenCreateMenu(false);
+                  setOpenRowKey(null);
+                  setRowMenuPos(null);
+                  setOpenBulkMenu((current) => !current);
+                }}
+              >
+                <span>Thao tác</span>
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
+              {openBulkMenu ? (
+                <div className="wt-floating-dropdown" role="menu">
+                  <button
+                    className="wt-dropdown-item"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenBulkMenu(false);
+                      setShowExportModal(true);
+                    }}
+                  >
+                    <FileDown size={15} aria-hidden="true" />
+                    <span>Xuất dữ liệu</span>
+                  </button>
+                  <button className="wt-dropdown-item" type="button" role="menuitem" onClick={openColumnModal}>
+                    <Settings2 size={15} aria-hidden="true" />
+                    <span>Tùy chỉnh cột</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
+        </form>
+      </section>
 
-          <div className="wr-action-right">
-            <span className="wr-count">
-              {total ? `${(page - 1) * LIMIT + 1} - ${Math.min(page * LIMIT, total)} / ${total}` : '0 bản ghi'}
-            </span>
-            <button className="wr-icon-button" type="button" title="Làm mới" aria-label="Làm mới" onClick={refreshData}>
-              <RefreshCw size={15} />
-            </button>
-            <button className="wr-icon-button" type="button" title="Tùy chỉnh cột" aria-label="Tùy chỉnh cột" onClick={openColumnModal}>
-              <Settings2 size={15} />
-            </button>
+      {notice ? (
+        <div className="wt-notice">
+          <Check size={16} aria-hidden="true" />
+          {notice}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="wt-error" role="alert">
+          <AlertCircle size={16} aria-hidden="true" />
+          <span>{error}</span>
+          <button type="button" onClick={() => void load()}>Thử lại</button>
+        </div>
+      ) : null}
+
+      <section className="data-card wt-table-card">
+        <div className="data-card-header wt-table-header">
+          <div>
+            <h2 className="wt-table-title">Bảng dữ liệu xuất nhập kho</h2>
+            <p className="wt-table-subtitle">
+              {total.toLocaleString('vi-VN')} bản ghi · {currentTabMeta.label} · {rangeLabel}
+            </p>
           </div>
         </div>
 
-        {notice && <div className="wr-notice"><Check size={16} /> {notice}</div>}
-        {error && (
-          <div className="wr-error" role="alert">
-            <AlertCircle size={16} />
-            <span>{error}</span>
-            <button type="button" onClick={() => void load()}>Thử lại</button>
-          </div>
-        )}
-
-        <div className="wr-table-wrap">
-          <table className="wr-table">
+        <div className="table-scroll wt-table-scroll">
+          <table
+            className={`data-table wt-data-table warehouse-transaction-table wt-data-table--${activeTab}`}
+            id="wt-data-table"
+          >
             <thead>
               <tr>
-                {columns.map((column) => visibility[column.key] && <th key={column.key}>{column.label}</th>)}
-                <th className="wr-action-cell"><Settings2 size={14} /></th>
+                {columns.map((column) => visibility[column.key] && (
+                  <th
+                    key={column.key}
+                    className={`wt-col wt-col-${column.key}`}
+                    scope="col"
+                  >
+                    {column.label}
+                  </th>
+                ))}
+                <th className="action-cell wt-col wt-col-actions" scope="col">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading && Array.from({ length: 6 }).map((_, index) => (
-                <tr className="wr-skeleton" key={`loading-${index}`}>
+                <tr className="wt-skeleton" key={`loading-${index}`}>
                   <td colSpan={visibleColumnCount + 1}><span /></td>
                 </tr>
               ))}
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td className="wr-empty" colSpan={visibleColumnCount + 1}>Chưa có dữ liệu phù hợp với bộ lọc.</td>
+                  <td className="wt-empty-cell" colSpan={visibleColumnCount + 1}>
+                    <div className="wt-empty-state">
+                      <Boxes size={28} aria-hidden="true" />
+                      <strong>Chưa có dữ liệu</strong>
+                      <span>Thử đổi bộ lọc hoặc thêm phiếu xuất/nhập kho mới.</span>
+                    </div>
+                  </td>
                 </tr>
               )}
               {!loading && rows.map((row) => (
                 <tr key={row.rowKey}>
                   {visibility.identity && (
-                    <td className="wr-identity-cell">
-                      <button type="button" className="wr-link" onClick={() => void openDetail(row)}>{getBillCode(row)}</button>
-                      <span>{formatDate(row.date)}</span>
+                    <td className="wt-col wt-col-identity wt-identity-cell">
+                      <div className="id-date-cell">
+                        <button type="button" className="wt-link-button id-date-cell__id" onClick={() => void openDetail(row)}>
+                          {getBillCode(row)}
+                        </button>
+                        <span className="id-date-cell__date date">{formatDate(row.date)}</span>
+                      </div>
                     </td>
                   )}
-                  {visibility.warehouse && <td>{renderWarehouseCell(row)}</td>}
-                  {activeTab === 'bills' && visibility.products && <td className="right">{Number(row.totalProductLines || 0).toLocaleString('vi-VN')}</td>}
+                  {visibility.warehouse && (
+                    <td className="wt-col wt-col-warehouse">{renderWarehouseCell(row)}</td>
+                  )}
+                  {activeTab === 'bills' && visibility.products && (
+                    <td className="wt-col wt-col-products wt-number wt-col--center">
+                      {Number(row.totalProductLines || 0).toLocaleString('vi-VN')}
+                    </td>
+                  )}
                   {activeTab === 'items' && visibility.product && (
-                    <td className="wr-product">
-                      <strong>{row.productName || '-'}</strong>
-                      <small>{[row.productCode, row.barcode].filter(Boolean).join(' · ')}</small>
+                    <td className="wt-col wt-col-product wt-name-cell">
+                      <div className="wt-name-main">{row.productName || '-'}</div>
+                      <div className="wt-name-sub">{[row.productCode, row.barcode].filter(Boolean).join(' · ') || '—'}</div>
                     </td>
                   )}
-                  {visibility.quantity && <td className="right">{Number(activeTab === 'bills' ? row.totalQuantity : row.quantity || 0).toLocaleString('vi-VN')}</td>}
-                  {activeTab === 'items' && visibility.price && <td className="right">{formatMoney(row.unitPrice)}</td>}
-                  {visibility.amount && <td className="right">{formatMoney(row.totalAmount)}</td>}
+                  {visibility.quantity && (
+                    <td className="wt-col wt-col-quantity wt-number wt-col--center">
+                      {Number(activeTab === 'bills' ? row.totalQuantity : row.quantity || 0).toLocaleString('vi-VN')}
+                    </td>
+                  )}
+                  {activeTab === 'items' && visibility.price && (
+                    <td className="wt-col wt-col-price wt-price wt-col--center">
+                      {formatMoney(row.unitPrice)}
+                    </td>
+                  )}
+                  {visibility.amount && (
+                    <td className="wt-col wt-col-amount wt-price wt-col--center">
+                      {formatMoney(row.totalAmount)}
+                    </td>
+                  )}
                   {visibility.direction && (
-                    <td>
-                      {/* Safe render: never assume valid directionTone/label; fall back to neutral */}
-                      <span className={`wr-direction ${row.directionTone || ''}`}>{row.directionLabel || row.kindLabel || 'Không xác định'}</span>
-                      <small className="wr-kind">{row.kindLabel || '-'}</small>
+                    <td className="wt-col wt-col-direction">
+                      <span className={`wt-status-badge wr-direction ${row.directionTone || 'neutral'}`}>
+                        {row.directionLabel || row.kindLabel || 'Không xác định'}
+                      </span>
+                      <small className="wt-kind">{row.kindLabel || '-'}</small>
                     </td>
                   )}
-                  {activeTab === 'bills' && visibility.creator && <td>{row.createdByName || '-'}</td>}
-                  {visibility.note && <td className="wr-note-cell" title={row.note || ''}>{row.note || '-'}</td>}
-                  <td className="wr-action-cell">
-                    <div className="wr-menu">
-                      <button className="wr-row-menu-button" type="button" aria-label={`Mở thao tác cho ${getBillCode(row)}`} onClick={() => setOpenMenu(openMenu === row.rowKey ? null : row.rowKey)}>
-                        <MoreHorizontal size={17} />
+                  {activeTab === 'bills' && visibility.creator && (
+                    <td className="wt-col wt-col-creator">{row.createdByName || '-'}</td>
+                  )}
+                  {visibility.note && (
+                    <td className="wt-col wt-col-note wt-note-cell" title={row.note || undefined}>
+                      <div className={`wt-note-wrap${activeTab === 'items' ? ' wt-note-wrap--clamp' : ''}`}>
+                        {row.note || '-'}
+                      </div>
+                    </td>
+                  )}
+                  <td className="action-cell wt-col wt-col-actions">
+                    <div className="wt-actions flex w-full items-center justify-center">
+                      <button
+                        className="wt-row-menu-button"
+                        type="button"
+                        aria-label={`Mở thao tác cho ${getBillCode(row)}`}
+                        aria-expanded={openRowKey === row.rowKey}
+                        aria-haspopup="menu"
+                        onClick={(event) => openRowActionMenu(row.rowKey, event)}
+                      >
+                        <MoreHorizontal size={16} aria-hidden="true" />
                       </button>
-                      {openMenu === row.rowKey && (
-                        <div className="wr-menu-panel wr-row-menu">
-                          <button type="button" onClick={() => void openDetail(row)}><Eye size={15} /> Xem chi tiết phiếu</button>
-                          <button type="button" onClick={() => exportRows([row], `phieu-${getBillCode(row)}`)}><FileDown size={15} /> Xuất dữ liệu</button>
-                          {row.canDelete && activeTab === 'bills' && (
-                            <button className="danger" type="button" onClick={() => requestDelete([row])}><Trash2 size={15} /> Xóa phiếu</button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -705,6 +970,32 @@ export function WarehouseTransactionPage() {
 
         <Pagination page={page} total={total} limit={LIMIT} onPageChange={setPage} />
       </section>
+
+      {openRowItem && rowMenuPos
+        ? createPortal(
+            <div
+              className="wt-row-action-menu wt-row-action-menu--portal"
+              role="menu"
+              style={{ top: rowMenuPos.top, left: rowMenuPos.left }}
+            >
+              <button type="button" role="menuitem" onClick={() => void openDetail(openRowItem)}>
+                <Eye size={15} aria-hidden="true" />
+                Xem chi tiết phiếu
+              </button>
+              <button type="button" role="menuitem" onClick={() => exportRows([openRowItem], `phieu-${getBillCode(openRowItem)}`)}>
+                <FileDown size={15} aria-hidden="true" />
+                Xuất dữ liệu
+              </button>
+              {openRowItem.canDelete && activeTab === 'bills' ? (
+                <button className="danger" type="button" role="menuitem" onClick={() => requestDelete([openRowItem])}>
+                  <Trash2 size={15} aria-hidden="true" />
+                  Xóa phiếu
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
 
       {(detailLoading || detail) && (
         <div className="modal-backdrop wr-modal-backdrop" role="presentation" onMouseDown={(event) => {

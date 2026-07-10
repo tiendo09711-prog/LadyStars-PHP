@@ -492,4 +492,111 @@ class ReadOnlyApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.0.status', 'MIGRATION_PLACEHOLDER');
     }
+
+    public function test_warehouse_transactions_meta_and_list_use_mysql_data(): void
+    {
+        $businessDate = now()->subDays(2);
+
+        (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()->create([
+            'mongo_id' => 'voucher-tx-export-0001',
+            'code' => 'PX-TX-001',
+            'voucher_code' => 'PX-TX-001',
+            'type' => 'Xuất bán lẻ',
+            'import_export_type' => 'EXPORT',
+            'warehouse_name' => $this->branch->name,
+            'warehouse_mongo_id' => null,
+            'branch_mongo_id' => null,
+            'qty' => 3,
+            'sp_count' => 1,
+            'total_amount' => 300000,
+            'creator' => 'Tester',
+            'business_date' => $businessDate,
+            'payload' => [
+                'type' => 'Xuất bán lẻ',
+                'import_export_type' => 'EXPORT',
+                'warehouse_name' => $this->branch->name,
+            ],
+        ]);
+
+        (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()->create([
+            'mongo_id' => 'voucher-tx-import-0001',
+            'code' => 'PN-TX-001',
+            'voucher_code' => 'PN-TX-001',
+            'type' => 'Nhập khi tạo sản phẩm',
+            'import_export_type' => 'IMPORT',
+            'warehouse_name' => $this->branch->name,
+            'qty' => 5,
+            'sp_count' => 1,
+            'total_amount' => 500000,
+            'business_date' => $businessDate,
+            'payload' => [
+                'type' => 'Nhập khi tạo sản phẩm',
+                'import_export_type' => 'IMPORT',
+            ],
+        ]);
+
+        (new MirrorRecord())->forTable('inventory_products')->newQuery()->create([
+            'mongo_id' => 'inv-line-tx-0001',
+            'code' => 'PX-TX-001-LINE',
+            'name' => 'Sản phẩm giao dịch test',
+            'type' => 'Xuất bán lẻ',
+            'branch_mongo_id' => (string) $this->branch->id,
+            'product_mongo_id' => $this->product->mongo_id,
+            'inventory_voucher_mongo_id' => 'voucher-tx-export-0001',
+            'business_date' => $businessDate,
+            'payload' => [
+                'qty' => 2,
+                'price' => 150000,
+                'prodCode' => 'SP-TX-01',
+                'prodName' => 'Sản phẩm giao dịch test',
+                'code' => 'PX-TX-001',
+                'source_row' => [
+                    'values' => [
+                        'C' => $this->branch->name,
+                        'D' => 'SP-TX-01',
+                        'E' => 'Sản phẩm giao dịch test',
+                        'F' => '8900000000011',
+                        'G' => '2',
+                        'H' => '150000',
+                        'I' => '300000',
+                        'J' => 'Xuất bán lẻ',
+                    ],
+                ],
+            ],
+        ]);
+
+        $meta = $this->getJson('/api/warehouse/transactions/meta');
+        $meta->assertOk()
+            ->assertJsonPath('warehouses.0.value', $this->branch->mongo_id)
+            ->assertJsonPath('types.0.value', 'IMPORT')
+            ->assertJsonPath('types.1.value', 'EXPORT');
+
+        $exportBills = $this->getJson('/api/warehouse/transactions/bills?type=EXPORT&fromDate='.$businessDate->toDateString().'&toDate='.$businessDate->toDateString().'&limit=20');
+        $exportBills->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('items.0.code', 'PX-TX-001')
+            ->assertJsonPath('items.0.type', 'EXPORT')
+            ->assertJsonPath('items.0.warehouseName', $this->branch->name)
+            ->assertJsonPath('items.0.directionTone', 'export');
+
+        $byWarehouse = $this->getJson('/api/warehouse/transactions/bills?warehouseId='.$this->branch->mongo_id.'&fromDate='.$businessDate->toDateString().'&toDate='.$businessDate->toDateString().'&limit=20');
+        $byWarehouse->assertOk()
+            ->assertJsonPath('total', 2);
+
+        $items = $this->getJson('/api/warehouse/transactions/items?productKeyword=SP-TX-01&fromDate='.$businessDate->toDateString().'&toDate='.$businessDate->toDateString().'&limit=20');
+        $items->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('items.0.productCode', 'SP-TX-01')
+            ->assertJsonPath('items.0.productName', 'Sản phẩm giao dịch test')
+            ->assertJsonPath('items.0.warehouseName', $this->branch->name)
+            ->assertJsonPath('items.0.quantity', 2)
+            ->assertJsonPath('items.0.unitPrice', 150000);
+
+        $detail = $this->getJson('/api/warehouse/transactions/bills/inventory-voucher/voucher-tx-export-0001');
+        $detail->assertOk()
+            ->assertJsonPath('code', 'PX-TX-001')
+            ->assertJsonPath('warehouseName', $this->branch->name)
+            ->assertJsonPath('items.0.productCode', 'SP-TX-01')
+            ->assertJsonPath('items.0.productName', 'Sản phẩm giao dịch test');
+    }
 }
