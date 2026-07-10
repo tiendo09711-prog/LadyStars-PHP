@@ -72,6 +72,7 @@ import './styles/ls-theme.css';
 import './styles/app.css';
 import './styles/phase-rescue.css';
 import './styles/ui-contract.css';
+import './styles/inventory-compact-theme.css';
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },

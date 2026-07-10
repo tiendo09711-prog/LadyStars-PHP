@@ -23,54 +23,46 @@ export function ProductMainPage() {
     setSearchParams(tab === 'products' ? {} : { tab }, { replace: true });
   };
 
+  const currentTitle = activeTab === 'history' ? 'Lịch sử sửa/xóa sản phẩm' : 'Danh sách sản phẩm';
+
+  const headerSlot = barcodeWorkspaceOpen ? null : (
+    <div className="products-compact-head">
+      <h1 className="products-compact-heading-sr">{currentTitle}</h1>
+
+      <div className="products-tabs-row products-tabs-row--title-slot">
+        <div className="products-tabbar is-compact" role="tablist" aria-label="Product tabs">
+          {TAB_LIST.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`products-panel-${tab.key}`}
+                className={`products-tab is-compact ${isActive ? 'is-active' : ''}`}
+                onClick={() => handleTabChange(tab.key)}
+              >
+                <Icon size={15} aria-hidden="true" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="page-stack inventory-page-shell products-root">
-      {!barcodeWorkspaceOpen ? (
-        <section className="data-card inventory-toolbar-card">
-          <div className="inv-header">
-            <span className="inv-badge">PRODUCTS</span>
-            <h1 className="inv-title">
-              {activeTab === 'history' ? 'Lịch sử sửa/xóa sản phẩm' : 'Danh sách sản phẩm'}
-            </h1>
-            <p className="inv-desc">
-              {activeTab === 'history'
-                ? 'Theo dõi người sửa, kiểu thao tác và thời điểm thay đổi sản phẩm.'
-                : 'Quản lý sản phẩm, barcode, giá bán và trạng thái.'}
-            </p>
-          </div>
-
-          <div className="products-tabs-row">
-            <div className="products-tabbar is-compact" role="tablist" aria-label="Product tabs">
-              {TAB_LIST.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={`products-panel-${tab.key}`}
-                    className={`products-tab is-compact ${isActive ? 'is-active' : ''}`}
-                    onClick={() => handleTabChange(tab.key)}
-                  >
-                    <Icon size={15} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
       {activeTab === 'products' ? (
         <div id="products-panel-products" role="tabpanel">
-          <ProductList onBarcodeWorkspaceChange={setBarcodeWorkspaceOpen} />
+          <ProductList onBarcodeWorkspaceChange={setBarcodeWorkspaceOpen} headerSlot={headerSlot} />
         </div>
       ) : (
         <div id="products-panel-history" role="tabpanel">
-          <ProductHistory />
+          <ProductHistory headerSlot={headerSlot} />
         </div>
       )}
     </div>

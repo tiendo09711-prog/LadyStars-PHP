@@ -235,7 +235,7 @@ export function WarehouseTransferCreatePage() {
     finally { setSaving(false); }
   };
 
-  return <form className="workspace-page wr-transfer-create" onSubmit={submit}>
+  return <form className="workspace-page wr-transfer-create compact-page" onSubmit={submit}>
     <div className="page-heading wr-transfer-hero">
       <div className="page-title-block"><button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transfers')}><ArrowLeft size={16} /> Quay lại</button><div className="page-icon"><Shuffle size={22} /></div><div><h1>{editMode ? 'Sửa đơn chuyển kho' : 'Tạo đơn chuyển kho'}</h1><p>Đơn lưu ở trạng thái Chờ xác nhận xuất. Backend sẽ kiểm tra tồn kho lại khi xác nhận xuất.</p></div></div>
       <div className="page-actions"><button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transfers')}>Hủy</button><button className="btn btn-primary" type="submit" disabled={saving || !warehousesValid || !lines.length}>{saving ? 'Đang lưu...' : (editMode ? 'Cập nhật đơn' : 'Tạo đơn cần duyệt')}</button></div>

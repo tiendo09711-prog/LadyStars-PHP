@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import {
@@ -68,7 +69,7 @@ export function StorageDurationPage() {
   // Action Dialogs
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
-  const actionMenuRef = useRef<HTMLDivElement | null>(null);
+  const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -91,21 +92,33 @@ export function StorageDurationPage() {
   useEffect(() => {
     if (!openActionMenu) return;
     const handlePointerDown = (event: MouseEvent) => {
-      const root = actionMenuRef.current;
-      if (root && event.target instanceof Node && !root.contains(event.target)) {
+      const target = event.target;
+      const isActionMenu = target instanceof Element ? target.closest('.storage-row-action-menu') != null : false;
+      const isActionTrigger = target instanceof Element ? target.closest('.storage-row-menu-button') != null : false;
+      if (!isActionMenu && !isActionTrigger) {
         setOpenActionMenu(null);
+        setRowMenuPos(null);
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpenActionMenu(null);
+        setRowMenuPos(null);
       }
+    };
+    const handleViewportChange = () => {
+      setOpenActionMenu(null);
+      setRowMenuPos(null);
     };
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleViewportChange);
+    document.addEventListener('scroll', handleViewportChange, true);
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleViewportChange);
+      document.removeEventListener('scroll', handleViewportChange, true);
     };
   }, [openActionMenu]);
 
@@ -508,6 +521,40 @@ export function StorageDurationPage() {
     branches.find((b) => b._id === selectedBranch)?.name || (selectedBranch ? selectedBranch : 'Tất cả chi nhánh');
   const formatKpiMoney = (val?: number) =>
     `${Number(val || 0).toLocaleString('vi-VN')} đ`;
+  const activeTabLabel = activeTab === 'all' ? 'Tất cả' : activeTab === 'unsold_long' ? 'Tồn lâu' : 'Bán chậm';
+  const hasActiveFilters = Boolean(
+    search ||
+    selectedCategory ||
+    selectedBranch ||
+    minStartDays ||
+    minSoldDays ||
+    minStock ||
+    activeTab !== 'all',
+  );
+  const openRowActionMenu = (productId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (openActionMenu === productId) {
+      setOpenActionMenu(null);
+      setRowMenuPos(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 232;
+    const menuHeight = 176;
+    const gap = 6;
+    let left = rect.right - menuWidth;
+    let top = rect.bottom + gap;
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - gap);
+    }
+    setRowMenuPos({ top, left });
+    setOpenActionMenu(productId);
+  };
+  const openActionItem = openActionMenu ? items.find((item) => item._id === openActionMenu) ?? null : null;
 
   return (
     <div className="product-compact-shell storage-duration-page">

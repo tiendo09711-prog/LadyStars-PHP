@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRef } from 'react';
 import { Clock3, FileDown, Filter, RefreshCw, Search } from 'lucide-react';
@@ -44,7 +45,7 @@ function safeFormatDate(value: any): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleString('vi-VN');
 }
 
-export function ProductHistory(_props: { actionSlot?: React.RefObject<HTMLDivElement | null> } = {}) {
+export function ProductHistory({ headerSlot }: { actionSlot?: React.RefObject<HTMLDivElement | null>; headerSlot?: ReactNode } = {}) {
   const [items, setItems] = useState<IProductHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftFilters, setDraftFilters] = useState<HistoryFilters>(() => defaultHistoryFilters());
@@ -220,29 +221,22 @@ export function ProductHistory(_props: { actionSlot?: React.RefObject<HTMLDivEle
 
   return (
     <div className="products-list-stack">
-      <section className="data-card inventory-toolbar-card">
-        <div className="inv-kpi-row">
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Tổng bản ghi</div>
+      <section className="data-card inventory-toolbar-card products-sticky-toolbar products-history-toolbar">
+        {headerSlot ? <div className="products-toolbar-header-slot">{headerSlot}</div> : null}
+
+        <div className="inv-kpi-row products-summary-strip" aria-label="Tóm tắt lịch sử sản phẩm">
+          <div className="inv-kpi-card products-summary-chip">
+            <div className="inv-kpi-label">Bản ghi</div>
             <div className="inv-kpi-value">{total.toLocaleString('vi-VN')}</div>
-            <div className="inv-kpi-sub">
-              Trang {page} / {Math.max(1, Math.ceil(total / limit))}
-            </div>
+            <div className="inv-kpi-sub">Trang {page}/{Math.max(1, Math.ceil(total / limit))}</div>
           </div>
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Bộ lọc đang áp dụng</div>
+          <div className="inv-kpi-card products-summary-chip">
+            <div className="inv-kpi-label">Bộ lọc</div>
             <div className="inv-kpi-value">{activeFilterCount}</div>
-            <div className="inv-kpi-sub">Trường filter có giá trị</div>
           </div>
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Loại log</div>
-            <div className="inv-kpi-value" style={{ fontSize: 13 }}>
-              {appliedFilters.logType || 'Tất cả'}
-            </div>
-          </div>
-          <div className="inv-kpi-card inv-kpi-card--value">
+          <div className="inv-kpi-card inv-kpi-card--value products-summary-chip products-summary-chip--wide">
             <div className="inv-kpi-label">Khoảng ngày</div>
-            <div className="inv-kpi-value" style={{ fontSize: 13 }}>
+            <div className="inv-kpi-value is-compact">
               {appliedFilters.fromDate || '—'} → {appliedFilters.toDate || '—'}
             </div>
           </div>
@@ -336,18 +330,15 @@ export function ProductHistory(_props: { actionSlot?: React.RefObject<HTMLDivEle
       </section>
 
       <section className="data-card inventory-table-card">
-        <div
-          className="data-card-header inventory-table-header"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}
-        >
+        <div className="data-card-header inventory-table-header products-table-heading">
           <div>
-            <h2 style={{ margin: 0, fontSize: 15 }}>Bảng lịch sử thay đổi</h2>
-            <p className="inventory-table-subtitle" style={{ margin: '2px 0 0', fontSize: 12 }}>
+            <h2 className="products-table-title">Bảng lịch sử thay đổi</h2>
+            <p className="inventory-table-subtitle">
               Theo dõi người sửa, kiểu sửa và thời điểm
             </p>
           </div>
           <span className="products-selected-count">
-            <Clock3 size={12} />
+            <Clock3 size={12} aria-hidden="true" />
             {total.toLocaleString('vi-VN')} bản ghi
           </span>
         </div>

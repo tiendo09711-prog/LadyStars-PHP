@@ -125,7 +125,7 @@ export function VoucherExcelImportPage() {
   };
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page compact-page">
       <div className="page-heading">
         <div className="page-title-block">
           <div className="page-icon" style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}><FileUp size={22} /></div>

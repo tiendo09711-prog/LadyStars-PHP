@@ -50,15 +50,15 @@ export function SalesChannelPage() {
   } as React.CSSProperties;
 
   return (
-    <div className="workspace-page sc-page" style={pageStyle}>
+    <div className="workspace-page sc-page compact-page" style={pageStyle}>
       {/* Hero */}
-      <div className="page-heading sc-hero">
-        <div className="page-title-block">
+      <div className="page-heading sc-hero compact-toolbar-card">
+        <div className="page-title-block compact-header">
+          <span className="compact-badge sc-eyebrow">Kênh bán</span>
           <div className="page-icon sc-hero-icon">{meta.icon}</div>
           <div className="sc-hero-copy">
-            <span className="sc-eyebrow">Kênh bán</span>
-            <h1>{meta.label}</h1>
-            <p>
+            <h1 className="compact-title">{meta.label}</h1>
+            <p className="compact-desc">
               Quản lý tất cả hoạt động bán hàng qua kênh <strong>{meta.label}</strong>
             </p>
           </div>

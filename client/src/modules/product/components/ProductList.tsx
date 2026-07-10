@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
@@ -2154,9 +2155,11 @@ function BarcodePrintWorkspace({
 export function ProductList({
   onBarcodeWorkspaceChange,
   actionSlot,
+  headerSlot,
 }: {
   onBarcodeWorkspaceChange?: (open: boolean) => void;
   actionSlot?: React.RefObject<HTMLDivElement | null>;
+  headerSlot?: ReactNode;
 }) {
   const navigate = useNavigate();
   const [items, setItems] = useState<IProduct[]>([]);
@@ -2658,24 +2661,8 @@ export function ProductList({
     );
   }
 
-  const statusFilterLabel = appliedStatus || 'Tất cả';
-  const warehouseFilterLabel =
-    warehouseOptions.find((w) => w._id === appliedWarehouseId)?.name ||
-    (appliedWarehouseId ? appliedWarehouseId : 'Tất cả kho');
-  const sellingOnPage = items.filter((item) => {
-    const s = (item.status || '').toLowerCase();
-    return s === 'đang bán' || s === 'mới' || s === 'active';
-  }).length;
-  const outOfStockOnPage = items.filter((item) => {
-    const s = (item.status || '').toLowerCase();
-    return s === 'hết hàng' || Number(item.qty || 0) <= 0;
-  }).length;
-
-  const applyQuickStatus = (value: string) => {
-    setDraftStatus(value);
-    setAppliedStatus(value);
-    setPage(1);
-  };
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const hasActiveFilters = Boolean(appliedStatus || appliedWarehouseId);
 
   const openRowActionMenu = (productId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -2705,31 +2692,27 @@ export function ProductList({
 
   return (
     <div className="products-list-stack">
-      <section className="data-card inventory-toolbar-card">
-        <div className="inv-kpi-row">
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Tổng sản phẩm</div>
-            <div className="inv-kpi-value">{total.toLocaleString('vi-VN')}</div>
-            <div className="inv-kpi-sub">
-              Trang {page} / {Math.max(1, Math.ceil(total / limit))}
-            </div>
-          </div>
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Trên trang · đang bán</div>
-            <div className="inv-kpi-value">{sellingOnPage.toLocaleString('vi-VN')}</div>
-            <div className="inv-kpi-sub">Theo trang hiện tại</div>
-          </div>
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Trên trang · hết/0 tồn</div>
-            <div className="inv-kpi-value">{outOfStockOnPage.toLocaleString('vi-VN')}</div>
-            <div className="inv-kpi-sub">Hết hàng hoặc tồn ≤ 0</div>
-          </div>
-          <div className="inv-kpi-card inv-kpi-card--value">
-            <div className="inv-kpi-label">Đã chọn / bộ lọc</div>
-            <div className="inv-kpi-value">{selectedIds.size.toLocaleString('vi-VN')}</div>
-            <div className="inv-kpi-sub">
-              {statusFilterLabel} · {warehouseFilterLabel}
-            </div>
+      <section className="data-card inventory-toolbar-card products-sticky-toolbar">
+        {headerSlot ? <div className="products-toolbar-header-slot">{headerSlot}</div> : null}
+
+        <div className="products-summary-strip products-summary-strip--single" aria-label="Tóm tắt danh sách sản phẩm">
+          <div className="products-summary-cluster">
+            <span className="products-summary-main">
+              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <span>sản phẩm</span>
+            </span>
+            {selectedIds.size > 0 ? (
+              <>
+                <span className="products-summary-divider" aria-hidden="true" />
+                <span>{selectedIds.size.toLocaleString('vi-VN')} đã chọn</span>
+              </>
+            ) : null}
+            {hasActiveFilters ? (
+              <>
+                <span className="products-summary-divider" aria-hidden="true" />
+                <span className="products-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -2869,36 +2852,24 @@ export function ProductList({
               ) : null}
             </div>
 
-            <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
+            {selectedIds.size > 0 ? (
+              <span className="products-selected-count">Đã chọn {selectedIds.size.toLocaleString('vi-VN')}</span>
+            ) : null}
           </div>
         </form>
 
-        <div className="inv-quick-pills">
-          <button type="button" className={!appliedStatus ? 'active' : ''} onClick={() => applyQuickStatus('')}>
-            Tất cả
-          </button>
-          <button type="button" className={appliedStatus === 'Đang bán' ? 'active' : ''} onClick={() => applyQuickStatus('Đang bán')}>
-            Đang bán
-          </button>
-          <button type="button" className={appliedStatus === 'Hết hàng' ? 'active' : ''} onClick={() => applyQuickStatus('Hết hàng')}>
-            Hết hàng
-          </button>
-          <button type="button" className={appliedStatus === 'Ngừng bán' ? 'active' : ''} onClick={() => applyQuickStatus('Ngừng bán')}>
-            Ngừng bán
-          </button>
-        </div>
       </section>
 
       <section className="data-card inventory-table-card">
-        <div className="data-card-header inventory-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+        <div className="data-card-header inventory-table-header products-table-heading">
           <div>
-            <h2 style={{ margin: 0, fontSize: 15 }}>Bảng dữ liệu sản phẩm</h2>
-            <p className="inventory-table-subtitle" style={{ margin: '2px 0 0', fontSize: 12 }}>
+            <h2 className="products-table-title">Bảng dữ liệu sản phẩm</h2>
+            <p className="inventory-table-subtitle">
               {total.toLocaleString('vi-VN')} bản ghi · Sắp xếp {sortField} ({sortOrder === 'asc' ? 'tăng' : 'giảm'})
             </p>
           </div>
           <span className="products-selected-count">
-            <ArrowUpDown size={12} />
+            <ArrowUpDown size={12} aria-hidden="true" />
             {sortField}
           </span>
         </div>

@@ -1,11 +1,13 @@
 /* Care page reuse customer-list-page.css for shared layout classes.
    This file only adds care-specific pieces (the action split-button menu). */
 .customer-care-page {
-  --customer-border: rgba(226, 232, 240, 0.92);
+  --customer-border: #e2e8f0;
+  gap: 12px;
 }
 
 .customer-care-actions {
   flex-wrap: wrap;
+  gap: 6px;
 }
 
 .customer-care-action-menu {
@@ -16,9 +18,9 @@
 .customer-care-action-toggle {
   display: inline-flex;
   align-items: stretch;
-  border-radius: 12px;
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 14px 28px rgba(16, 185, 129, 0.24);
+  box-shadow: none;
 }
 
 .customer-care-action-toggle .btn {

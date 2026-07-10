@@ -16,11 +16,13 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  AlertTriangle,
   ArrowUpRight,
+  BarChart3,
   ChevronDown,
   DollarSign,
   Filter,
-  RotateCcw,
+  Package,
   RefreshCw,
   ShoppingBag,
   Store,
@@ -57,12 +59,9 @@ const DASHBOARD_FILTER_STORAGE = {
 type DropdownOption = { value: string; label: string };
 type DashboardData = {
   totals: Record<string, number>;
-  salesChannels: any[];
   inventory: { totalQty: number; totalCostValue: number; totalSaleValue: number };
   topProducts: any[];
   chartData: { date: string; fullDate: string; revenue: number; prevRevenue: number }[];
-  wallets: { zaloOA: number; shopeeWallet: number; zaloWallet: number; adsWallet: number };
-  walletItems?: { code: string; name: string; balance: number }[];
   recentSales: any[];
   availableStores?: string[];
 };
@@ -362,7 +361,7 @@ export function DashboardPage() {
         </div>
         <div className="dv-hero-actions">
           <div className="dv-store-picker" ref={storeMenuRef}>
-            <button type="button" className="dv-store-trigger" onClick={() => setStoreMenuOpen((value) => !value)} data-testid="store-filter-button" aria-expanded={storeMenuOpen} aria-haspopup="dialog">
+            <button type="button" className={`dv-store-trigger${storeMenuOpen ? ' is-open' : ''}`} onClick={() => setStoreMenuOpen((value) => !value)} data-testid="store-filter-button" aria-expanded={storeMenuOpen} aria-haspopup="dialog">
               <Filter size={16} aria-hidden="true" />
               <span>{selectedStoreLabel}</span>
               <ChevronDown size={16} aria-hidden="true" />
@@ -436,7 +435,12 @@ export function DashboardPage() {
                 <div><span>Đỉnh doanh thu</span><strong>{chartPeak && chartPeak.revenue > 0 ? `${fmt(chartPeak.revenue)} · ${chartPeak.date}` : 'Chưa có dữ liệu'}</strong></div>
               </div>
               <div className={`dv-chart ${loading ? 'is-loading' : ''}`}>
-                {initialLoading ? <div className="dv-chart-skeleton" /> : !chartHasData && <div className="dv-chart-empty" data-testid="chart-empty-state">Khoảng này chưa có doanh thu để vẽ biểu đồ.</div>}
+                {initialLoading ? <div className="dv-chart-skeleton" /> : !chartHasData && (
+                  <div className="dv-chart-empty" data-testid="chart-empty-state">
+                    <span className="dv-empty-icon" aria-hidden="true"><BarChart3 size={22} /></span>
+                    <span>Khoảng này chưa có doanh thu để vẽ biểu đồ.</span>
+                  </div>
+                )}
                 <ResponsiveContainer width="100%" height={320}>
                   {chartType === 'area' ? (
                     <AreaChart data={chartData} onClick={openDailyProducts}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" /><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} /><YAxis tickFormatter={fmtCompact} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} /><Tooltip content={<ChartTooltip />} /><Legend iconType="circle" /><Area dataKey="prevRevenue" name="Kỳ trước" stroke="#a7f3d0" fill="transparent" strokeWidth={2} /><Area dataKey="revenue" name="Kỳ này" stroke="#059669" fill="#d1fae5" strokeWidth={2} /></AreaChart>
@@ -466,13 +470,22 @@ export function DashboardPage() {
                   {topProducts.map((product) => (
                     <tr key={`${product.rank}-${product.code}`}>
                       <td>{product.rank}</td>
-                      <td className="dv-product-name">{product.name}<span>{product.code}</span></td>
+                      <td className="dv-product-name" title={product.name}><span className="dv-product-title">{product.name}</span><span className="dv-product-code">{product.code}</span></td>
                       <td>{fmt(product.qtySold)}</td>
                       <td className={product.qtyReturned ? 'is-danger' : ''}>{product.qtyReturned ? fmt(product.qtyReturned) : ''}</td>
                       <td>{fmt(product.revenue)}</td>
                     </tr>
                   ))}
-                  {!initialLoading && !topProducts.length && <tr><td colSpan={5} className="dv-empty">Chưa có dữ liệu</td></tr>}
+                  {!initialLoading && !topProducts.length && (
+                    <tr>
+                      <td colSpan={5}>
+                        <div className="dv-empty-state compact">
+                          <span className="dv-empty-icon" aria-hidden="true"><Package size={20} /></span>
+                          <p>Chưa có dữ liệu sản phẩm bán chạy trong khoảng này.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -489,8 +502,18 @@ export function DashboardPage() {
 
           <section className="dv-surface dv-card-storage dv-storage-alert-card">
             <div className="dv-surface-head"><div><h2>Cảnh báo tồn kho</h2><p>Hàng chưa bán hoặc bán chậm trên {storageSummary?.thresholdDays || 30} ngày.</p></div><Link className="dv-head-tag" to="/products/storage-duration">Xem tất cả</Link></div>
-            {storageLoading && !storageSummary ? <div className="dv-empty">Đang tải cảnh báo tồn kho...</div> : null}
-            {storageError ? <div className="dv-empty">{storageError}</div> : null}
+            {storageLoading && !storageSummary ? (
+              <div className="dv-empty-state compact">
+                <span className="dv-empty-icon" aria-hidden="true"><Package size={20} /></span>
+                <p>Đang tải cảnh báo tồn kho...</p>
+              </div>
+            ) : null}
+            {storageError ? (
+              <div className="dv-empty-state is-error compact">
+                <span className="dv-empty-icon" aria-hidden="true"><AlertTriangle size={20} /></span>
+                <p>{storageError}</p>
+              </div>
+            ) : null}
             {!storageLoading && !storageError && storageSummary ? (
               <>
                 <div className="dv-stack-metrics dv-inventory-row">
@@ -502,7 +525,12 @@ export function DashboardPage() {
                   {[...(storageSummary.topUnsoldLong || []), ...(storageSummary.topSlowSelling || [])].slice(0, 5).map((item) => (
                     <Link key={item._id} to={`/products/storage-duration?q=${encodeURIComponent(item.code)}`}><span>{item.code} · {item.name}</span><strong>{item.daysFromLastSold === null ? `${item.daysFromStart} ngày chưa bán` : `${item.daysFromLastSold} ngày chưa bán lại`}</strong></Link>
                   ))}
-                  {![...(storageSummary.topUnsoldLong || []), ...(storageSummary.topSlowSelling || [])].length ? <div className="dv-empty">Chưa có dữ liệu tồn lâu đáng chú ý.</div> : null}
+                  {![...(storageSummary.topUnsoldLong || []), ...(storageSummary.topSlowSelling || [])].length ? (
+                    <div className="dv-empty-state compact">
+                      <span className="dv-empty-icon" aria-hidden="true"><Package size={20} /></span>
+                      <p>Chưa có dữ liệu tồn lâu đáng chú ý.</p>
+                    </div>
+                  ) : null}
                 </div>
               </>
             ) : null}
@@ -521,7 +549,12 @@ export function DashboardPage() {
                   <span className="dv-recent-value">{fmt(sale.value)}</span>
                 </div>
               ))}
-              {!initialLoading && !filteredRecentSales.length && <div className="dv-empty-state">Chưa có giao dịch hoàn tất nào để hiển thị.</div>}
+              {!initialLoading && !filteredRecentSales.length && (
+                <div className="dv-empty-state">
+                  <span className="dv-empty-icon" aria-hidden="true"><ShoppingBag size={22} /></span>
+                  <p>Chưa có giao dịch hoàn tất nào để hiển thị.</p>
+                </div>
+              )}
             </div>
           </section>
       </section>
@@ -603,7 +636,7 @@ function Dropdown({ value, options, onChange, testId, wide = false, disabled = f
   }, [open, options.length, wide, disabled]);
   return (
     <div className={`dv-select-menu ${wide ? 'wide' : ''}`} ref={ref} data-testid={testId}>
-      <button type="button" className="dv-select-button" disabled={disabled} aria-expanded={open} aria-haspopup="listbox" onClick={disabled ? undefined : () => setOpen((value) => !value)}><span>{label}</span><ChevronDown size={16} aria-hidden="true" /></button>
+      <button type="button" className={`dv-select-button${open ? ' is-open' : ''}`} disabled={disabled} aria-expanded={open} aria-haspopup="listbox" onClick={disabled ? undefined : () => setOpen((value) => !value)}><span>{label}</span><ChevronDown size={16} aria-hidden="true" /></button>
       {open && pos && createPortal(
         <div className={`dv-select-options ${pos.dropUp ? 'open-up' : ''}`} style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }} onClick={() => setOpen(false)}>
           {options.map((option) => <button type="button" key={option.value} className={option.value === value ? 'active' : ''} onClick={(e) => { e.stopPropagation(); onChange(option.value); setOpen(false); }}>{option.label}</button>)}

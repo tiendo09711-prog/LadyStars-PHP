@@ -186,42 +186,50 @@ export function RevenueByTimePage() {
   }
 
   return (
-    <div className="revenue-time-container">
-      {/* Filters */}
-      <div className="filter-bar" style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
-        <div className="filter-group">
-          <label>Hiển thị</label>
-          <select value={displayType} onChange={(e) => setDisplayType(e.target.value)}>
-            <option value="Theo ngày">Theo ngày</option>
-            <option value="Theo tháng">Theo tháng</option>
-          </select>
+    <div className="revenue-time-container compact-page">
+      <section className="compact-toolbar-card">
+        <div className="compact-header">
+          <span className="compact-badge">REPORT</span>
+          <h1 className="compact-title">Doanh thu theo thời gian</h1>
+          <p className="compact-desc">Báo cáo doanh thu, chi phí và lợi nhuận theo ngày/tháng.</p>
         </div>
-        <div className="filter-group" style={{ position: 'relative', width: '250px' }}>
-          <DateRangePicker value={dateRange} onChange={setDateRange} />
+        <div className="filter-bar compact-filter-bar" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="filter-group compact-filter-field">
+            <label>Hiển thị</label>
+            <select className="compact-select" value={displayType} onChange={(e) => setDisplayType(e.target.value)}>
+              <option value="Theo ngày">Theo ngày</option>
+              <option value="Theo tháng">Theo tháng</option>
+            </select>
+          </div>
+          <div className="filter-group compact-filter-field" style={{ position: 'relative', width: '250px' }}>
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
+          </div>
+          <div className="filter-group compact-filter-field">
+            <label>Kho hàng</label>
+            <select className="compact-select" value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
+              <option value="">Kho hàng</option>
+              {warehouses.map(w => (
+                <option key={w._id} value={w._id}>{w.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group compact-filter-field">
+            <label>Danh mục</label>
+            <select className="compact-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              <option value="">Danh mục</option>
+              {categories.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="compact-actions">
+            <button className="btn-filter compact-btn compact-btn-primary" onClick={handleFilter} style={{ marginBottom: '0' }}>Lọc</button>
+          </div>
         </div>
-        <div className="filter-group">
-          <label>Kho hàng</label>
-          <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
-            <option value="">Kho hàng</option>
-            {warehouses.map(w => (
-              <option key={w._id} value={w._id}>{w.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Danh mục</label>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">Danh mục</option>
-            {categories.map(c => (
-              <option key={c._id} value={c._id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <button className="btn-filter" onClick={handleFilter} style={{ marginBottom: '0' }}>Lọc</button>
-      </div>
+      </section>
 
       {/* Chart */}
-      <div className="chart-container">
+      <div className="chart-container compact-form-card">
         <div style={{ height: 300, width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -251,23 +259,24 @@ export function RevenueByTimePage() {
       </div>
 
       {/* Actions */}
-      <div className="actions-bar">
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn-outline" onClick={handleExportData}>
-            <FileDown size={16} /> Xuất dữ liệu
+      <div className="actions-bar compact-actions" style={{ marginLeft: 0 }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <button className="btn-outline compact-btn compact-btn-secondary" onClick={handleExportData}>
+            <FileDown size={14} /> Xuất dữ liệu
           </button>
-          <button className="btn-outline" onClick={handlePrint}>
-            <Printer size={16} /> In báo cáo
+          <button className="btn-outline compact-btn compact-btn-secondary" onClick={handlePrint}>
+            <Printer size={14} /> In báo cáo
           </button>
         </div>
-        <button className="btn-outline" onClick={() => alert('Chức năng đổi giao diện bảng đang được phát triển!')}>
-          <LayoutGrid size={16} />
+        <button className="btn-outline compact-btn compact-btn-secondary" onClick={() => alert('Chức năng đổi giao diện bảng đang được phát triển!')}>
+          <LayoutGrid size={14} />
         </button>
       </div>
 
       {/* Table */}
-      <div className="table-container">
-        <table className="revenue-table">
+      <div className="table-container compact-table-card">
+        <div className="compact-table-wrap">
+        <table className="revenue-table compact-table">
           <thead>
             <tr>
               <th>#<span className="col-number">[1]</span></th>
@@ -337,6 +346,7 @@ export function RevenueByTimePage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

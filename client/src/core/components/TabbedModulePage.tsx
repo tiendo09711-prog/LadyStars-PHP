@@ -18,7 +18,7 @@ export function TabbedModulePage({ tabs }: TabbedModulePageProps) {
   const { key: tabKey, label: _label, ...pageProps } = activeTab;
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page compact-page">
       <div className="workspace-tabs" role="tablist" aria-label="Module tabs">
         {tabs.map((tab) => (
           <button

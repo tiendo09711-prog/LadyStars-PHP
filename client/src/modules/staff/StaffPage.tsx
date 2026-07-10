@@ -463,7 +463,7 @@ export function StaffPage() {
   if (!ready) return <div className="workspace-page">Đang tải quản lý nhân viên...</div>;
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page compact-page">
       <div className="workspace-tabs" role="tablist" aria-label="Quản lý nhân viên">
         {tabs.map((item) => {
           const Icon = item.icon;
