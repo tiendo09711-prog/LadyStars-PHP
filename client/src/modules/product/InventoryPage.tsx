@@ -3,7 +3,7 @@ import { InventoryList } from './components/InventoryList';
 
 export function InventoryPage() {
   return (
-    <div className="workspace-page">
+    <div className="workspace-page inventory-root">
       <InventoryList />
     </div>
   );

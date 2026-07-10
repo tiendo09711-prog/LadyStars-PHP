@@ -273,6 +273,7 @@ export function StorageDurationPage() {
 
   const handleStopClearance = async (product: IStorageDuration) => {
     setOpenActionMenu(null);
+    setRowMenuPos(null);
     const confirmed = window.confirm('Bỏ giá xả hàng cho sản phẩm này? Giá bán chính không thay đổi.');
     if (!confirmed) return;
     try {
@@ -292,6 +293,7 @@ export function StorageDurationPage() {
   // Discount (Xả hàng) Action handlers
   const handleOpenDiscount = (product: IStorageDuration) => {
     setOpenActionMenu(null);
+    setRowMenuPos(null);
     setDiscountProduct(product);
     setDiscountType('percent');
     setDiscountVal('10');
@@ -581,41 +583,69 @@ export function StorageDurationPage() {
         </div>
       )}
 
-      <section className="data-card product-compact-card">
-        <div className="product-compact-header">
-          <span className="product-compact-badge">STORAGE DURATION</span>
-          <h1 className="product-compact-title">Hàng tồn lâu &amp; bán chậm</h1>
-          <p className="product-compact-desc">
-            Theo dõi SKU còn tồn, lưu kho lâu, chưa bán hoặc bán chậm. Ngưỡng {kpis.thresholdDays || STORAGE_ALERT_DAYS} ngày.
-          </p>
-        </div>
-
-        <div className="product-compact-kpi-row">
-          <div className="product-compact-kpi-card">
-            <div className="product-compact-kpi-label">Tổng trong báo cáo</div>
-            <div className="product-compact-kpi-value">{Number(kpis.totalProducts || 0).toLocaleString('vi-VN')}</div>
-            <div className="product-compact-kpi-sub">Theo bộ lọc hiện tại</div>
-          </div>
-          <div className="product-compact-kpi-card">
-            <div className="product-compact-kpi-label">Tồn lâu / chưa bán</div>
-            <div className="product-compact-kpi-value">{Number(kpis.unsoldLong || 0).toLocaleString('vi-VN')}</div>
-            <div className="product-compact-kpi-sub">Bán chậm: {Number(kpis.slowSelling || 0).toLocaleString('vi-VN')}</div>
-          </div>
-          <div className="product-compact-kpi-card product-compact-kpi-card--value">
-            <div className="product-compact-kpi-label">Giá trị tồn</div>
-            <div className="product-compact-kpi-value">{formatKpiMoney(kpis.totalValue)}</div>
-          </div>
-          <div className="product-compact-kpi-card">
-            <div className="product-compact-kpi-label">Bộ lọc</div>
-            <div className="product-compact-kpi-value" style={{ fontSize: 13 }}>{branchFilterLabel}</div>
-            <div className="product-compact-kpi-sub">
-              Tab: {activeTab === 'all' ? 'Tất cả' : activeTab === 'unsold_long' ? 'Tồn lâu' : 'Bán chậm'}
+      <section className="data-card storage-toolbar-card storage-sticky-toolbar">
+        <div className="storage-toolbar-header-slot">
+          <div className="storage-compact-head">
+            <h1 className="storage-compact-heading-sr">Hàng tồn lâu &amp; bán chậm</h1>
+            <div className="storage-tabs-row storage-tabs-row--title-slot">
+              <span className="storage-toolbar-eyebrow">STORAGE DURATION</span>
+              <div className="storage-tabbar is-compact" role="tablist" aria-label="Hàng tồn lâu tabs">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'all'}
+                  aria-controls="storage-duration-table"
+                  className={`storage-tab is-compact${activeTab === 'all' ? ' is-active' : ''}`}
+                  onClick={() => { setActiveTab('all'); setPage(1); }}
+                >
+                  Tất cả ({Number(kpis.totalProducts || 0).toLocaleString('vi-VN')})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'unsold_long'}
+                  aria-controls="storage-duration-table"
+                  className={`storage-tab is-compact${activeTab === 'unsold_long' ? ' is-active' : ''}`}
+                  onClick={() => { setActiveTab('unsold_long'); setPage(1); }}
+                >
+                  Tồn lâu ({Number(kpis.unsoldLong || 0).toLocaleString('vi-VN')})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'slow_selling'}
+                  aria-controls="storage-duration-table"
+                  className={`storage-tab is-compact${activeTab === 'slow_selling' ? ' is-active' : ''}`}
+                  onClick={() => { setActiveTab('slow_selling'); setPage(1); }}
+                >
+                  Bán chậm ({Number(kpis.slowSelling || 0).toLocaleString('vi-VN')})
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <form className="product-compact-filter-bar" onSubmit={handleSearchSubmit}>
-          <div className="product-compact-search">
+        <div className="storage-summary-strip" aria-label="Tóm tắt Hàng tồn lâu">
+          <div className="storage-summary-cluster">
+            <span className="storage-summary-main">
+              <strong>{Number(total || 0).toLocaleString('vi-VN')}</strong>
+              <span>dòng</span>
+            </span>
+            <span className="storage-summary-divider" aria-hidden="true" />
+            <span>{activeTabLabel}</span>
+            {hasActiveFilters ? (
+              <>
+                <span className="storage-summary-divider" aria-hidden="true" />
+                <span className="storage-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
+            <span className="storage-summary-divider" aria-hidden="true" />
+            <span className="storage-summary-value">{formatKpiMoney(kpis.totalValue)}</span>
+          </div>
+        </div>
+
+        <form className="storage-filter-bar" onSubmit={handleSearchSubmit}>
+          <div className="storage-search">
             <Search size={15} />
             <input
               value={tempSearch}
@@ -628,7 +658,7 @@ export function StorageDurationPage() {
           </div>
 
           <select
-            className="product-compact-select"
+            className="storage-filter-select"
             value={selectedBranch}
             onChange={(e) => { setSelectedBranch(e.target.value); setPage(1); }}
             title="Chi nhánh"
@@ -641,7 +671,7 @@ export function StorageDurationPage() {
           </select>
 
           <select
-            className="product-compact-select"
+            className="storage-filter-select"
             value={selectedCategory}
             onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
             title="Nhóm sản phẩm"
@@ -652,38 +682,50 @@ export function StorageDurationPage() {
             ))}
           </select>
 
-          <div className="product-compact-actions">
+          <div className="storage-filter-actions">
             <button
-              className="product-compact-btn product-compact-btn-secondary"
+              className="storage-btn storage-btn-secondary"
               type="button"
               onClick={() => setShowAdvancedFilters((v) => !v)}
             >
               <Filter size={14} />
               {showAdvancedFilters ? 'Ẩn nâng cao' : 'Bộ lọc nâng cao'}
             </button>
-            <button className="product-compact-btn product-compact-btn-primary" type="submit">
+            <button
+              className={`storage-btn storage-btn-secondary${Number(minStartDays) >= (kpis.thresholdDays || STORAGE_ALERT_DAYS) ? ' is-active' : ''}`}
+              type="button"
+              onClick={() => {
+                const thr = String(kpis.thresholdDays || STORAGE_ALERT_DAYS);
+                setMinStartDays(thr);
+                setPage(1);
+                setShowAdvancedFilters(true);
+              }}
+            >
+              Tuổi cao
+            </button>
+            <button className="storage-btn storage-btn-primary" type="submit">
               Lọc
             </button>
-            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={handleClearFilters} title="Đặt lại bộ lọc và làm mới">
+            <button className="storage-btn storage-btn-secondary" type="button" onClick={handleClearFilters} title="Đặt lại bộ lọc và làm mới">
               <RefreshCw size={14} /> Làm mới
             </button>
-            <button className="product-compact-btn product-compact-btn-accent" type="button" onClick={() => setShowExportModal(true)}>
+            <button className="storage-btn storage-btn-accent" type="button" onClick={() => setShowExportModal(true)}>
               <FileDown size={14} /> Xuất
             </button>
-            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={() => navigate('/products')}>
+            <button className="storage-btn storage-btn-secondary" type="button" onClick={() => navigate('/products')}>
               Sản phẩm
             </button>
-            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={() => navigate('/products/inventory')}>
+            <button className="storage-btn storage-btn-secondary" type="button" onClick={() => navigate('/products/inventory')}>
               Tồn kho
             </button>
           </div>
         </form>
 
-        <div className={`product-compact-advanced${showAdvancedFilters ? ' is-open' : ''}`}>
+        <div className={`storage-advanced-filters${showAdvancedFilters ? ' is-open' : ''}`} aria-hidden={!showAdvancedFilters}>
           <label>
             Nhập đầu ≥
             <input
-              className="product-compact-input"
+              className="storage-filter-input"
               type="number"
               min="0"
               value={minStartDays}
@@ -694,7 +736,7 @@ export function StorageDurationPage() {
           <label>
             Chưa bán ≥
             <input
-              className="product-compact-input"
+              className="storage-filter-input"
               type="number"
               min="0"
               value={minSoldDays}
@@ -705,7 +747,7 @@ export function StorageDurationPage() {
           <label>
             Tồn ≥
             <input
-              className="product-compact-input"
+              className="storage-filter-input"
               type="number"
               min="1"
               value={minStock}
@@ -715,59 +757,25 @@ export function StorageDurationPage() {
           </label>
         </div>
 
-        <div className="product-compact-pills" role="tablist" aria-label="Storage tabs">
-          <button
-            type="button"
-            className={activeTab === 'all' ? 'active' : ''}
-            onClick={() => { setActiveTab('all'); setPage(1); }}
-          >
-            Tất cả ({kpis.totalProducts})
-          </button>
-          <button
-            type="button"
-            className={activeTab === 'unsold_long' ? 'active' : ''}
-            onClick={() => { setActiveTab('unsold_long'); setPage(1); }}
-          >
-            Tồn lâu ({kpis.unsoldLong})
-          </button>
-          <button
-            type="button"
-            className={activeTab === 'slow_selling' ? 'active' : ''}
-            onClick={() => { setActiveTab('slow_selling'); setPage(1); }}
-          >
-            Cần xử lý / bán chậm ({kpis.slowSelling})
-          </button>
-          <button
-            type="button"
-            className={Number(minStartDays) >= (kpis.thresholdDays || STORAGE_ALERT_DAYS) ? 'active' : ''}
-            onClick={() => {
-              const thr = String(kpis.thresholdDays || STORAGE_ALERT_DAYS);
-              setMinStartDays(thr);
-              setPage(1);
-              setShowAdvancedFilters(true);
-            }}
-          >
-            Giá trị / tuổi cao
-          </button>
-        </div>
-
-        <p className="product-compact-info-note">
+        <p className="storage-info-note">
           <strong>Cách đọc:</strong> Lưu từ nhập đầu = ngày từ lô nhập đầu; Lưu từ XNK cuối = từ giao dịch kho cuối;
-          Chưa bán ra = từ đơn bán gần nhất (hoặc “Chưa bán lần nào”). Cập nhật khi nhập/bán/chuyển kho/kiểm kho.
+          Chưa bán ra = từ đơn bán gần nhất (hoặc “Chưa bán lần nào”). Ngưỡng cảnh báo {kpis.thresholdDays || STORAGE_ALERT_DAYS} ngày.
         </p>
       </section>
 
-      <section className="storage-card product-compact-table-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        <div className="product-compact-table-header">
+      <section className="data-card storage-table-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div className="data-card-header storage-table-header">
           <div>
-            <strong>Chi tiết lưu kho hàng hóa</strong>
-            <p className="product-compact-table-meta">{total} sản phẩm thỏa mãn bộ lọc</p>
+            <h2 className="storage-table-title">Bảng dữ liệu Hàng tồn lâu</h2>
+            <p className="storage-table-subtitle">
+              {total.toLocaleString('vi-VN')} sản phẩm · Tab {activeTabLabel} · {branchFilterLabel}
+            </p>
           </div>
-          <span className="product-compact-table-count">{total.toLocaleString('vi-VN')} dòng</span>
+          <span className="storage-selected-count">{total.toLocaleString('vi-VN')} dòng</span>
         </div>
 
-        <div className="products-table-wrap product-compact-table-wrap">
-          <table className="data-table products-data-table product-compact-table">
+        <div className="table-scroll storage-table-scroll">
+          <table id="storage-duration-table" className="data-table storage-data-table">
             <colgroup>
               <col style={{ width: '9%' }} />
               <col />
@@ -779,7 +787,7 @@ export function StorageDurationPage() {
               <col style={{ width: '8%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
-              <col style={{ width: '56px' }} />
+              <col style={{ width: '68px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -797,17 +805,17 @@ export function StorageDurationPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={11} className="empty-cell">Đang tải dữ liệu...</td></tr>}
-              {!loading && items.length === 0 && <tr><td colSpan={11} className="empty-cell">Chưa có sản phẩm nào phù hợp. Trang này chỉ hiển thị sản phẩm còn tồn theo điều kiện lọc. Hãy thử giảm tồn tối thiểu, chọn Tất cả chi nhánh hoặc kiểm tra dữ liệu nhập/bán hàng.</td></tr>}
+              {loading && <tr><td colSpan={11} className="storage-empty-cell">Đang tải dữ liệu...</td></tr>}
+              {!loading && items.length === 0 && <tr><td colSpan={11} className="storage-empty-cell">Chưa có sản phẩm nào phù hợp. Trang này chỉ hiển thị sản phẩm còn tồn theo điều kiện lọc. Hãy thử giảm tồn tối thiểu, chọn Tất cả chi nhánh hoặc kiểm tra dữ liệu nhập/bán hàng.</td></tr>}
               {!loading && items.map((item) => (
                 <tr key={item._id}>
-                  <td><strong className="products-code">{item.code}</strong></td>
-                  <td className="products-name-cell" title={item.name}>
-                    <div className="products-name-main">{item.name}</div>
+                  <td><strong className="storage-code">{item.code}</strong></td>
+                  <td className="storage-name-cell" title={item.name}>
+                    <div className="storage-name-main">{item.name}</div>
                   </td>
                   <td>
                     <span>{item.categoryName || 'Chưa phân loại'}</span>
-                    <small className="products-name-sub">
+                    <small className="storage-name-sub">
                       NCC: {item.supplierName || 'Mặc định'}
                     </small>
                   </td>
@@ -855,51 +863,17 @@ export function StorageDurationPage() {
                     )}
                   </td>
                   <td className="action-cell storage-action-cell">
-                    <div className="storage-action-menu" ref={openActionMenu === item._id ? actionMenuRef : undefined}>
+                    <div className="storage-actions">
                       <button
-                        className="storage-action-trigger"
+                        className="storage-row-menu-button"
                         type="button"
                         aria-label={`Mở thao tác cho ${item.code}`}
                         aria-expanded={openActionMenu === item._id}
-                        onClick={() => setOpenActionMenu((current) => (current === item._id ? null : item._id))}
+                        aria-haspopup="menu"
+                        onClick={(event) => openRowActionMenu(item._id, event)}
                       >
                         <MoreHorizontal size={18} />
                       </button>
-                      {openActionMenu === item._id ? (
-                        <div className="storage-action-dropdown">
-                          <button
-                            className="storage-action-option storage-action-option-primary"
-                            type="button"
-                            onClick={() => handleOpenDiscount(item)}
-                          >
-                            <Percent size={12} />
-                            <span>Đặt giá xả hàng</span>
-                          </button>
-                          {item.clearanceActive ? (
-                            <button
-                              className="storage-action-option"
-                              type="button"
-                              onClick={() => handleStopClearance(item)}
-                            >
-                              Bỏ giá xả hàng
-                            </button>
-                          ) : null}
-                          <button
-                            className="storage-action-option"
-                            type="button"
-                            onClick={() => { setOpenActionMenu(null); openTransferDraft(item); }}
-                          >
-                            Đề xuất chuyển kho
-                          </button>
-                          <button
-                            className="storage-action-option"
-                            type="button"
-                            onClick={() => { setOpenActionMenu(null); openVendorReturnVoucher(item); }}
-                          >
-                            Mở phiếu xuất trả NCC
-                          </button>
-                        </div>
-                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -910,6 +884,50 @@ export function StorageDurationPage() {
 
         <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
       </section>
+
+      {openActionItem && rowMenuPos
+        ? createPortal(
+            <div
+              className="storage-row-action-menu storage-row-action-menu--portal"
+              role="menu"
+              style={{ top: rowMenuPos.top, left: rowMenuPos.left }}
+            >
+              <button
+                className="storage-action-option-primary"
+                type="button"
+                role="menuitem"
+                onClick={() => handleOpenDiscount(openActionItem)}
+              >
+                <Percent size={12} />
+                <span>Đặt giá xả hàng</span>
+              </button>
+              {openActionItem.clearanceActive ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleStopClearance(openActionItem)}
+                >
+                  Bỏ giá xả hàng
+                </button>
+              ) : null}
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setOpenActionMenu(null); setRowMenuPos(null); openTransferDraft(openActionItem); }}
+              >
+                Đề xuất chuyển kho
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setOpenActionMenu(null); setRowMenuPos(null); openVendorReturnVoucher(openActionItem); }}
+              >
+                Mở phiếu xuất trả NCC
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {/* MODAL 1: Discount (Khuyến mãi xả hàng) */}
       {discountProduct && (

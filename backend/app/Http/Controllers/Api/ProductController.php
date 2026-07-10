@@ -876,6 +876,8 @@ class ProductController extends Controller
         $hasProductId = Schema::hasColumn('inventory_products', 'product_id');
         $hasProductMongoId = Schema::hasColumn('inventory_products', 'product_mongo_id');
         $hasProductCode = Schema::hasColumn('inventory_products', 'product_code');
+        $hasBranchId = Schema::hasColumn('inventory_products', 'branch_id');
+        $hasBranchMongoId = Schema::hasColumn('inventory_products', 'branch_mongo_id');
 
         $productIds = $products->pluck('id')->map(fn ($id): int => (int) $id)->unique()->values()->all();
         $productMongoIds = $products->pluck('mongo_id')->filter()->unique()->values()->all();
@@ -890,6 +892,12 @@ class ProductController extends Controller
         $byCode = $products->filter(fn (Product $product): bool => filled($product->code))
             ->mapWithKeys(fn (Product $product): array => [(string) $product->code => (int) $product->id])
             ->all();
+        $branchMongoIdFilter = null;
+        if ($branchIdFilter && !$hasBranchId && $hasBranchMongoId) {
+            $branchMongoIdFilter = \App\Models\Branch::query()
+                ->whereKey($branchIdFilter)
+                ->value('mongo_id');
+        }
 
         $rows = \App\Models\MirrorRecord::query()
             ->from('inventory_products')
@@ -910,12 +918,14 @@ class ProductController extends Controller
                 }
             })
             ->whereNotNull('business_date')
-            ->when($branchIdFilter, fn ($q) => $q->where('branch_id', $branchIdFilter))
+            ->when($branchIdFilter && $hasBranchId, fn ($q) => $q->where('branch_id', $branchIdFilter))
+            ->when($branchIdFilter && !$hasBranchId && $branchMongoIdFilter, fn ($q) => $q->where('branch_mongo_id', $branchMongoIdFilter))
             ->get(array_values(array_filter([
                 $hasProductId ? 'product_id' : null,
                 $hasProductMongoId ? 'product_mongo_id' : null,
                 $hasProductCode ? 'product_code' : null,
-                'branch_id',
+                $hasBranchId ? 'branch_id' : null,
+                $hasBranchMongoId ? 'branch_mongo_id' : null,
                 'business_date',
             ])));
 

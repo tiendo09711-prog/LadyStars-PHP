@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import {
   ChevronDown,
@@ -98,6 +99,7 @@ export function CategoryList() {
   const [openBulkMenu, setOpenBulkMenu] = useState(false);
   const [openBulkStatusMenu, setOpenBulkStatusMenu] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [rowMenuPos, setRowMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [editorMode, setEditorMode] = useState<EditorMode>(null);
   const [editingCategory, setEditingCategory] = useState<ICategory | null>(null);
   const [categoryOptions, setCategoryOptions] = useState<ICategory[]>([]);
@@ -163,18 +165,43 @@ export function CategoryList() {
   }, [items]);
 
   useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (target.closest('.categories-floating-menu')) return;
+    const closeAllMenus = () => {
       setOpenAddMenu(false);
       setOpenBulkMenu(false);
       setOpenBulkStatusMenu(false);
       setOpenActionMenuId(null);
+      setRowMenuPos(null);
+    };
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest('.categories-floating-menu')) return;
+      if (target.closest('.categories-row-action-menu')) return;
+      if (target.closest('.categories-row-menu-button')) return;
+      closeAllMenus();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeAllMenus();
+    };
+
+    const handleViewportChange = () => {
+      setOpenActionMenuId(null);
+      setRowMenuPos(null);
     };
 
     document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleViewportChange);
+    document.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleViewportChange);
+      document.removeEventListener('scroll', handleViewportChange, true);
+    };
   }, []);
 
   const exportColumns: ColumnOption[] = useMemo(
@@ -274,6 +301,7 @@ export function CategoryList() {
     setEditingCategory(item);
     setEditorMode('edit');
     setOpenActionMenuId(null);
+    setRowMenuPos(null);
     setOpenBulkMenu(false);
   };
 
@@ -283,6 +311,7 @@ export function CategoryList() {
     try {
       await productApi.deleteCategory(item._id);
       setOpenActionMenuId(null);
+      setRowMenuPos(null);
       await load();
     } catch (err) {
       console.error(err);
@@ -474,6 +503,7 @@ export function CategoryList() {
   const showingFrom = total === 0 ? 0 : (page - 1) * limit + 1;
   const showingTo = total === 0 ? 0 : Math.min(page * limit, total);
   const hasSearch = search.trim().length > 0;
+  const hasActiveFilters = hasSearch || statusPill !== 'all';
 
   const visibleItems = useMemo(() => {
     if (statusPill === 'active') return items.filter((item) => item.isActive !== false);
@@ -481,6 +511,38 @@ export function CategoryList() {
     if (statusPill === 'parent') return items.filter((item) => !item.parentId);
     return items;
   }, [items, statusPill]);
+
+  const openRowActionMenu = (categoryId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (openActionMenuId === categoryId) {
+      setOpenActionMenuId(null);
+      setRowMenuPos(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 168;
+    const menuHeight = 132;
+    const gap = 6;
+    let left = rect.right - menuWidth;
+    let top = rect.bottom + gap;
+
+    if (left < 8) left = 8;
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - gap);
+    }
+
+    setOpenAddMenu(false);
+    setOpenBulkMenu(false);
+    setOpenBulkStatusMenu(false);
+    setRowMenuPos({ top, left });
+    setOpenActionMenuId(categoryId);
+  };
+
+  const openRowItem = openActionMenuId ? visibleItems.find((item) => item._id === openActionMenuId) ?? null : null;
 
   if (editorMode) {
     return (
@@ -504,66 +566,118 @@ export function CategoryList() {
 
   return (
     <div className="page-stack categories-page-shell categories-compact-list">
-      <section className="data-card categories-top-card product-compact-card">
-        <div className="product-compact-header">
-          <span className="product-compact-badge">CATEGORIES</span>
-          <h1 className="product-compact-title">Danh mục sản phẩm</h1>
-          <p className="product-compact-desc">Quản lý cây danh mục, trạng thái và số sản phẩm gắn kèm.</p>
-        </div>
-
-        <div className="product-compact-kpi-row">
-          <div className="product-compact-kpi-card">
-            <div className="product-compact-kpi-label">Tổng danh mục</div>
-            <div className="product-compact-kpi-value">{total.toLocaleString('vi-VN')}</div>
-            <div className="product-compact-kpi-sub">
-              Hiển thị {showingFrom.toLocaleString('vi-VN')}–{showingTo.toLocaleString('vi-VN')}
+      <section className="data-card categories-toolbar-card categories-sticky-toolbar">
+        <div className="categories-toolbar-header-slot">
+          <div className="categories-compact-head">
+            <h1 className="categories-compact-heading-sr">Danh mục sản phẩm</h1>
+            <div className="categories-tabs-row categories-tabs-row--title-slot">
+              <span className="categories-toolbar-eyebrow">CATEGORIES</span>
+              <div className="categories-tabbar is-compact" role="tablist" aria-label="Bộ lọc danh mục">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusPill === 'all'}
+                  aria-controls="categories-data-table"
+                  className={`categories-tab is-compact${statusPill === 'all' ? ' is-active' : ''}`}
+                  onClick={() => setStatusPill('all')}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusPill === 'active'}
+                  aria-controls="categories-data-table"
+                  className={`categories-tab is-compact${statusPill === 'active' ? ' is-active' : ''}`}
+                  onClick={() => setStatusPill('active')}
+                >
+                  Hoạt động
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusPill === 'inactive'}
+                  aria-controls="categories-data-table"
+                  className={`categories-tab is-compact${statusPill === 'inactive' ? ' is-active' : ''}`}
+                  onClick={() => setStatusPill('inactive')}
+                >
+                  Ngừng
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusPill === 'parent'}
+                  aria-controls="categories-data-table"
+                  className={`categories-tab is-compact${statusPill === 'parent' ? ' is-active' : ''}`}
+                  onClick={() => setStatusPill('parent')}
+                >
+                  Danh mục cha
+                </button>
+              </div>
             </div>
           </div>
-          <div className="product-compact-kpi-card">
-            <div className="product-compact-kpi-label">Đang hoạt động</div>
-            <div className="product-compact-kpi-value">{activeCount.toLocaleString('vi-VN')}</div>
-            <div className="product-compact-kpi-sub">Trên trang hiện tại</div>
-          </div>
-          <div className="product-compact-kpi-card">
-            <div className="product-compact-kpi-label">Ngừng hoạt động</div>
-            <div className="product-compact-kpi-value">{inactiveCount.toLocaleString('vi-VN')}</div>
-            <div className="product-compact-kpi-sub">Trên trang hiện tại</div>
-          </div>
-          <div className="product-compact-kpi-card product-compact-kpi-card--value">
-            <div className="product-compact-kpi-label">Cha / đã chọn</div>
-            <div className="product-compact-kpi-value">{parentCount.toLocaleString('vi-VN')}</div>
-            <div className="product-compact-kpi-sub">Đã chọn {selectedCount.toLocaleString('vi-VN')}</div>
+        </div>
+
+        <div className="categories-summary-strip" aria-label="Tóm tắt danh mục">
+          <div className="categories-summary-cluster">
+            <span className="categories-summary-main">
+              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <span>danh mục</span>
+            </span>
+            <span className="categories-summary-divider" aria-hidden="true" />
+            <span>
+              {showingFrom.toLocaleString('vi-VN')}–{showingTo.toLocaleString('vi-VN')}
+            </span>
+            {selectedCount > 0 ? (
+              <>
+                <span className="categories-summary-divider" aria-hidden="true" />
+                <span>{selectedCount.toLocaleString('vi-VN')} đã chọn</span>
+              </>
+            ) : null}
+            {hasActiveFilters ? (
+              <>
+                <span className="categories-summary-divider" aria-hidden="true" />
+                <span className="categories-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
           </div>
         </div>
 
-        <form className="product-compact-filter-bar" onSubmit={handleSearch}>
-          <div className="product-compact-search">
-            <Search size={15} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên danh mục, mã..." />
-          </div>
+        <form className="categories-filter-bar" onSubmit={handleSearch}>
+          <label className="categories-search">
+            <Search size={15} aria-hidden="true" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên danh mục, mã..." aria-label="Tìm danh mục" />
+          </label>
 
-          <div className="product-compact-actions">
-            <button className="product-compact-btn product-compact-btn-primary" type="submit">
-              <Filter size={14} />
+          <div className="categories-filter-actions">
+            <button className="categories-btn categories-btn-primary" type="submit">
+              <Filter size={14} aria-hidden="true" />
               Lọc
             </button>
-            <button className="product-compact-btn product-compact-btn-secondary" type="button" onClick={handleRefresh} title="Làm mới">
-              <RefreshCw size={14} />
+            <button className="categories-btn categories-btn-secondary" type="button" onClick={handleRefresh} title="Làm mới">
+              <RefreshCw size={14} aria-hidden="true" />
               Làm mới
             </button>
 
             <div className="categories-split-add categories-floating-menu">
-              <button className="categories-primary-button product-compact-btn product-compact-btn-primary" type="button" onClick={openCreateEditor}>
-                <Plus size={14} />
+              <button className="categories-btn categories-btn-primary categories-split-main" type="button" onClick={openCreateEditor}>
+                <Plus size={14} aria-hidden="true" />
                 <span>Thêm mới</span>
               </button>
-              <button className="categories-primary-button categories-split-toggle" type="button" aria-label="Mở menu thêm" onClick={() => setOpenAddMenu((current) => !current)}>
-                <ChevronDown size={14} />
+              <button
+                className="categories-btn categories-btn-primary categories-split-toggle"
+                type="button"
+                aria-label="Mở menu thêm"
+                aria-expanded={openAddMenu}
+                aria-haspopup="menu"
+                onClick={() => setOpenAddMenu((current) => !current)}
+              >
+                <ChevronDown size={14} aria-hidden="true" />
               </button>
               {openAddMenu && (
-                <div className="categories-floating-dropdown categories-add-dropdown">
-                  <button className="categories-dropdown-item" type="button" onClick={() => { setOpenAddMenu(false); setShowImportModal(true); }}>
-                    <Upload size={15} />
+                <div className="categories-floating-dropdown categories-add-dropdown" role="menu">
+                  <button className="categories-dropdown-item" type="button" role="menuitem" onClick={() => { setOpenAddMenu(false); setShowImportModal(true); }}>
+                    <Upload size={15} aria-hidden="true" />
                     <span>Nhập từ Excel</span>
                   </button>
                 </div>
@@ -571,31 +685,37 @@ export function CategoryList() {
             </div>
 
             <div className="categories-bulk-menu categories-floating-menu">
-              <button className="categories-dropdown-button product-compact-btn product-compact-btn-secondary" type="button" onClick={() => setOpenBulkMenu((current) => !current)}>
+              <button
+                className="categories-btn categories-btn-secondary"
+                type="button"
+                aria-expanded={openBulkMenu}
+                aria-haspopup="menu"
+                onClick={() => setOpenBulkMenu((current) => !current)}
+              >
                 <span>Thao tác</span>
-                <ChevronDown size={14} />
+                <ChevronDown size={14} aria-hidden="true" />
               </button>
               {openBulkMenu && (
-                <div className="categories-floating-dropdown categories-bulk-dropdown">
-                  <button className="categories-dropdown-item" type="button" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
-                    <FileDown size={15} />
+                <div className="categories-floating-dropdown categories-bulk-dropdown" role="menu">
+                  <button className="categories-dropdown-item" type="button" role="menuitem" onClick={() => { setOpenBulkMenu(false); setShowExportModal(true); }}>
+                    <FileDown size={15} aria-hidden="true" />
                     <span>Xuất dữ liệu</span>
                   </button>
                   <div className="categories-dropdown-group">
-                    <button className="categories-dropdown-item" type="button" onClick={() => setOpenBulkStatusMenu((current) => !current)}>
-                      <RefreshCw size={15} />
+                    <button className="categories-dropdown-item" type="button" role="menuitem" aria-expanded={openBulkStatusMenu} onClick={() => setOpenBulkStatusMenu((current) => !current)}>
+                      <RefreshCw size={15} aria-hidden="true" />
                       <span>Đổi trạng thái</span>
-                      <ChevronDown size={14} />
+                      <ChevronDown size={14} aria-hidden="true" />
                     </button>
                     {openBulkStatusMenu && (
-                      <div className="categories-sub-dropdown">
-                        <button className="categories-dropdown-item" type="button" disabled={actionLoading} onClick={() => handleBulkStatus(true)}>Hoạt động</button>
-                        <button className="categories-dropdown-item" type="button" disabled={actionLoading} onClick={() => handleBulkStatus(false)}>Ngừng hoạt động</button>
+                      <div className="categories-sub-dropdown" role="menu">
+                        <button className="categories-dropdown-item" type="button" role="menuitem" disabled={actionLoading} onClick={() => handleBulkStatus(true)}>Hoạt động</button>
+                        <button className="categories-dropdown-item" type="button" role="menuitem" disabled={actionLoading} onClick={() => handleBulkStatus(false)}>Ngừng hoạt động</button>
                       </div>
                     )}
                   </div>
-                  <button className="categories-dropdown-item danger" type="button" disabled={actionLoading} onClick={handleDeleteSelected}>
-                    <Trash2 size={15} />
+                  <button className="categories-dropdown-item danger" type="button" role="menuitem" disabled={actionLoading} onClick={handleDeleteSelected}>
+                    <Trash2 size={15} aria-hidden="true" />
                     <span>Xóa các dòng đã chọn</span>
                   </button>
                 </div>
@@ -603,50 +723,35 @@ export function CategoryList() {
             </div>
           </div>
         </form>
-
-        <div className="product-compact-pills">
-          <button type="button" className={statusPill === 'all' ? 'active' : ''} onClick={() => setStatusPill('all')}>
-            Tất cả
-          </button>
-          <button type="button" className={statusPill === 'active' ? 'active' : ''} onClick={() => setStatusPill('active')}>
-            Đang hoạt động
-          </button>
-          <button type="button" className={statusPill === 'inactive' ? 'active' : ''} onClick={() => setStatusPill('inactive')}>
-            Ngừng hoạt động
-          </button>
-          <button type="button" className={statusPill === 'parent' ? 'active' : ''} onClick={() => setStatusPill('parent')}>
-            Danh mục cha
-          </button>
-        </div>
       </section>
 
-      <section className="data-card categories-table-card product-compact-table-card">
-        <div className="product-compact-table-header">
+      <section className="data-card categories-table-card">
+        <div className="data-card-header categories-table-header">
           <div>
-            <strong>Danh sách danh mục</strong>
-            <p className="product-compact-table-meta">
+            <h2 className="categories-table-title">Bảng dữ liệu danh mục</h2>
+            <p className="categories-table-subtitle">
               {hasSearch ? `Tìm thấy ${total.toLocaleString('vi-VN')} kết quả` : `${total.toLocaleString('vi-VN')} danh mục`}
-              {statusPill !== 'all' ? ` · pill: ${visibleItems.length}` : ''}
+              {statusPill !== 'all' ? ` · Đang xem ${visibleItems.length.toLocaleString('vi-VN')} dòng` : ''}
             </p>
           </div>
-          <span className="product-compact-table-count">Đã chọn {selectedCount.toLocaleString('vi-VN')}</span>
+          <span className="categories-selected-count">Đã chọn {selectedCount.toLocaleString('vi-VN')}</span>
         </div>
 
-        <div className="table-scroll categories-table-scroll product-compact-table-wrap">
-          <table className="data-table categories-data-table product-compact-table">
+        <div className="table-scroll categories-table-scroll">
+          <table className="data-table categories-data-table" id="categories-data-table">
             <colgroup>
               <col style={{ width: '40px' }} />
-              <col style={{ width: '14%' }} />
+              <col style={{ width: '150px' }} />
               <col />
-              <col style={{ width: '14%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '56px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '128px' }} />
+              <col style={{ width: '68px' }} />
             </colgroup>
             <thead>
               <tr>
                 <th className="check-cell">
-                  <input type="checkbox" checked={allRowsSelected} onChange={(e) => handleToggleSelectPage(e.target.checked)} />
+                  <input type="checkbox" aria-label="Chọn tất cả danh mục trên trang" checked={allRowsSelected} onChange={(e) => handleToggleSelectPage(e.target.checked)} />
                 </th>
                 <th>Mã danh mục</th>
                 <th>Tên danh mục</th>
@@ -659,22 +764,25 @@ export function CategoryList() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="empty-cell">
+                  <td colSpan={7} className="empty-cell categories-empty-cell">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               )}
               {!loading && error && (
                 <tr>
-                  <td colSpan={7} className="empty-cell" style={{ color: '#b91c1c' }}>
+                  <td colSpan={7} className="empty-cell categories-empty-cell categories-empty-cell--error">
                     {error}
                   </td>
                 </tr>
               )}
               {!loading && !error && visibleItems.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="empty-cell">
-                    Chưa có dữ liệu.
+                  <td colSpan={7} className="empty-cell categories-empty-cell">
+                    <div className="categories-empty-state">
+                      <strong>Chưa có dữ liệu</strong>
+                      <span>Thử đổi bộ lọc hoặc thêm danh mục mới.</span>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -682,7 +790,12 @@ export function CategoryList() {
                 visibleItems.map((item) => (
                   <tr key={item._id}>
                     <td className="check-cell">
-                      <input type="checkbox" checked={selectedIds.includes(item._id)} onChange={() => handleToggleSelected(item._id)} />
+                      <input
+                        type="checkbox"
+                        aria-label={`Chọn danh mục ${item.name}`}
+                        checked={selectedIds.includes(item._id)}
+                        onChange={() => handleToggleSelected(item._id)}
+                      />
                     </td>
                     <td className="categories-code-cell">
                       <span className="categories-code-badge">{item.code || '-'}</span>
@@ -692,14 +805,14 @@ export function CategoryList() {
                         className="categories-link-button"
                         type="button"
                         onClick={() => setViewProductsCategory(item)}
-                        title={'B\u1ea5m \u0111\u1ec3 xem s\u1ea3n ph\u1ea9m thu\u1ed9c danh m\u1ee5c n\u00e0y'}
+                        title={'Bấm để xem sản phẩm thuộc danh mục này'}
                       >
                         <span className="categories-name-title">{item.name}</span>
-                        <span className="categories-name-meta">{item.url?.trim() ? item.url : 'Ch\u01b0a c\u00f3 \u0111\u01b0\u1eddng d\u1eabn / URL'}</span>
+                        <span className="categories-name-meta">{item.url?.trim() ? item.url : 'Chưa có đường dẫn / URL'}</span>
                       </button>
                     </td>
                     <td>
-                      <span className={`status-badge ${item.isActive !== false ? 'success' : 'danger'}`}>
+                      <span className={`status-badge categories-status-badge ${item.isActive !== false ? 'success' : 'danger'}`}>
                         {item.isActive !== false ? 'Đang hoạt động' : 'Ngừng hoạt động'}
                       </span>
                     </td>
@@ -708,61 +821,26 @@ export function CategoryList() {
                         className="categories-count-button"
                         type="button"
                         onClick={() => setViewProductsCategory(item)}
-                        title={'B\u1ea5m \u0111\u1ec3 xem s\u1ea3n ph\u1ea9m thu\u1ed9c danh m\u1ee5c n\u00e0y'}
+                        title={'Bấm để xem sản phẩm thuộc danh mục này'}
                       >
                         <strong>{Number(item.productCount || 0).toLocaleString('vi-VN')}</strong>
-                        <span>{'S\u1ea3n ph\u1ea9m'}</span>
+                        <span>{'Sản phẩm'}</span>
                       </button>
                     </td>
                     <td>{formatCategoryDate(item.createdAt)}</td>
                     <td className="action-cell categories-action-cell">
                       <div className="categories-row-actions">
-                        <div className="categories-floating-menu">
-                          <button
-                            className="categories-action-trigger"
-                            type="button"
-                            title="Thao tác"
-                            aria-label={`Thao tác danh mục ${item.name}`}
-                            onClick={() => setOpenActionMenuId((current) => (current === item._id ? null : item._id))}
-                            aria-expanded={openActionMenuId === item._id}
-                            aria-haspopup="menu"
-                          >
-                            <MoreHorizontal size={14} />
-                          </button>
-                          {openActionMenuId === item._id && (
-                            <div className="categories-action-dropdown" role="menu">
-                              <button
-                                className="categories-action-item categories-view-button"
-                                type="button"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setViewProductsCategory(item);
-                                }}
-                              >
-                                <Eye size={13} />
-                                <span>Xem sản phẩm</span>
-                              </button>
-                              <button
-                                className="categories-action-item categories-muted-action"
-                                type="button"
-                                role="menuitem"
-                                onClick={() => openEditEditor(item)}
-                              >
-                                <span>Sửa</span>
-                              </button>
-                              <button
-                                className="categories-action-item categories-delete-button"
-                                type="button"
-                                role="menuitem"
-                                onClick={() => handleDeleteCategory(item)}
-                              >
-                                <Trash2 size={13} />
-                                <span>Xóa</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          className="categories-row-menu-button"
+                          type="button"
+                          title="Thao tác"
+                          aria-label={`Thao tác danh mục ${item.name}`}
+                          onClick={(event) => openRowActionMenu(item._id, event)}
+                          aria-expanded={openActionMenuId === item._id}
+                          aria-haspopup="menu"
+                        >
+                          <MoreHorizontal size={16} aria-hidden="true" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -775,6 +853,52 @@ export function CategoryList() {
           <Pagination page={page} total={total} limit={limit} onPageChange={setPage} />
         </div>
       </section>
+
+      {openRowItem && rowMenuPos
+        ? createPortal(
+            <div
+              className="categories-row-action-menu categories-row-action-menu--portal"
+              role="menu"
+              style={{ top: rowMenuPos.top, left: rowMenuPos.left }}
+            >
+              <button
+                className="categories-action-item categories-view-button"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpenActionMenuId(null);
+                  setRowMenuPos(null);
+                  setViewProductsCategory(openRowItem);
+                }}
+              >
+                <Eye size={15} aria-hidden="true" />
+                <span>Xem sản phẩm</span>
+              </button>
+              <button
+                className="categories-action-item categories-muted-action"
+                type="button"
+                role="menuitem"
+                onClick={() => openEditEditor(openRowItem)}
+              >
+                <span>Sửa</span>
+              </button>
+              <button
+                className="categories-action-item categories-delete-button danger"
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpenActionMenuId(null);
+                  setRowMenuPos(null);
+                  handleDeleteCategory(openRowItem);
+                }}
+              >
+                <Trash2 size={15} aria-hidden="true" />
+                <span>Xóa</span>
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {showExportModal && (
         <ExportExcelModal
