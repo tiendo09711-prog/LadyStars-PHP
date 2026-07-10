@@ -672,7 +672,7 @@ export function WarehouseAuditCreatePage() {
 
   if (loading) {
     return (
-      <div className="workspace-page warehouse-records warehouse-audit-admin">
+      <div className="workspace-page warehouse-records warehouse-audit-admin compact-page">
         <section className="wr-card wr-detail-loading">
           <LoaderCircle size={18} className="spin" /> Đang tải phiếu kiểm kho...
         </section>
@@ -681,7 +681,7 @@ export function WarehouseAuditCreatePage() {
   }
 
   return (
-    <div className="workspace-page warehouse-records warehouse-audit-admin">
+    <div className="workspace-page warehouse-records warehouse-audit-admin compact-page">
       <section className="wr-card">
         <header className="wr-detail-header">
           <div>

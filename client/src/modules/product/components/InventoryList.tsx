@@ -226,48 +226,78 @@ export function InventoryList() {
     filterStockStatus === 'in_stock' ? 'Còn tồn' :
     filterStockStatus === 'sellable' ? 'Còn tồn có thể bán' :
     'Tất cả';
+  const hasActiveFilters = Boolean(search.trim() || filterWarehouse || filterStockStatus);
+  const sortLabelMap: Record<string, string> = {
+    code: 'Mã SP',
+    name: 'Sản phẩm',
+    cost: 'Giá nhập',
+    price: 'Giá bán',
+    totalStock: 'Tổng tồn',
+    createdAt: 'Ngày tạo',
+  };
+  const sortLabel = sortField.startsWith('stock_')
+    ? `Tồn ${branches.find(branch => sortField === `stock_${branch._id}`)?.name || 'theo kho'}`
+    : sortLabelMap[sortField] || sortField;
+  const sortDirectionLabel = sortOrder === 'asc' ? 'tăng dần' : 'giảm dần';
+  const columnCount = 5 + (branches.length || 0);
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <ArrowUpDown size={13} style={{ opacity: 0.32 }} />;
     return sortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />;
   };
 
-  const thStyle = { cursor: 'pointer', userSelect: 'none' as const };
-  const thInner = { display: 'flex', alignItems: 'center', gap: '6px' };
+  const getAriaSort = (field: string): 'ascending' | 'descending' | 'none' => {
+    if (sortField !== field) return 'none';
+    return sortOrder === 'asc' ? 'ascending' : 'descending';
+  };
+
+  const renderSortButton = (field: string, label: string) => (
+    <button
+      type="button"
+      className="inventory-sort-button"
+      onClick={() => handleSort(field)}
+      aria-label={`Sắp xếp theo ${label}`}
+    >
+      <SortIcon field={field} />
+      <span>{label}</span>
+    </button>
+  );
 
   return (
     <div className="page-stack inventory-page-shell">
-      <section className="data-card inventory-toolbar-card">
-        {/* Compact Header */}
-        <div className="inv-header">
-          <span className="inv-badge">INVENTORY OVERVIEW</span>
-          <h1 className="inv-title">Tồn kho theo kho hàng</h1>
-          <p className="inv-desc">Dữ liệu thực từ MySQL theo từng kho (giữ nguyên logic & API cũ).</p>
-        </div>
-
-        {/* Top KPI Metrics Row - compact horizontal (uses existing totals & labels) */}
-        <div className="inv-kpi-row">
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Tổng bản ghi</div>
-            <div className="inv-kpi-value">{total.toLocaleString('vi-VN')}</div>
-            <div className="inv-kpi-sub">Kho: {warehouseFilterLabel} | {stockStatusLabel}</div>
-          </div>
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Tổng tồn</div>
-            <div className="inv-kpi-value">{totalStockQuantity.toLocaleString('vi-VN')}</div>
-          </div>
-          <div className="inv-kpi-card inv-kpi-card--value">
-            <div className="inv-kpi-label">Tổng trị giá</div>
-            <div className="inv-kpi-value">{formatMoney(totalInventoryValue)}</div>
-          </div>
-          <div className="inv-kpi-card">
-            <div className="inv-kpi-label">Bộ lọc</div>
-            <div className="inv-kpi-value" style={{fontSize:'13px', fontWeight:600}}>{warehouseFilterLabel}</div>
-            <div className="inv-kpi-sub">{stockStatusLabel}</div>
+      <section className="data-card inventory-toolbar-card inventory-sticky-toolbar">
+        <div className="inventory-toolbar-header-slot">
+          <div className="inventory-compact-head">
+            <h1 className="inventory-compact-heading-sr">Tồn kho theo kho hàng</h1>
+            <div className="inventory-tabs-row inventory-tabs-row--title-slot">
+              <span className="inventory-toolbar-eyebrow">INVENTORY</span>
+              <span className="inventory-title-chip">Tồn kho chi tiết</span>
+            </div>
           </div>
         </div>
 
-        {/* Compact horizontal filter bar - exact same handlers & state as before */}
+        <div className="inventory-summary-strip" aria-label="Tóm tắt tồn kho">
+          <div className="inventory-summary-cluster">
+            <span className="inventory-summary-main">
+              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <span>bản ghi</span>
+            </span>
+            <span className="inventory-summary-divider" aria-hidden="true" />
+            <span className="inventory-summary-main">
+              <strong>{totalStockQuantity.toLocaleString('vi-VN')}</strong>
+              <span>tổng tồn</span>
+            </span>
+            <span className="inventory-summary-divider" aria-hidden="true" />
+            <span className="inventory-summary-value">{formatMoney(totalInventoryValue)}</span>
+            {hasActiveFilters ? (
+              <>
+                <span className="inventory-summary-divider" aria-hidden="true" />
+                <span className="inventory-summary-filter">Đang lọc</span>
+              </>
+            ) : null}
+          </div>
+        </div>
+
         <form className="inv-filter-bar" onSubmit={handleSearch}>
           <div className="inv-search">
             <Search size={15} />
@@ -311,7 +341,9 @@ export function InventoryList() {
           </select>
 
           <div className="inv-filter-actions">
-            <button type="submit" className="inv-btn inv-btn-primary">Lọc</button>
+            <button type="submit" className="inv-btn inv-btn-primary">
+              <Search size={14} /> Lọc
+            </button>
             <button type="button" className="inv-btn inv-btn-secondary" onClick={handleRefresh} title="Làm mới">
               <RefreshCw size={14} /> Làm mới
             </button>
@@ -321,20 +353,19 @@ export function InventoryList() {
           </div>
         </form>
 
-        {/* Error states (unchanged) */}
         {(branchesError || error) && (
-          <div className="inventory-error-bar" style={{ padding: '6px 10px', background: '#fff3cd', color: '#664d03', borderRadius: 4, marginBottom: 6, fontSize: 12 }}>
+          <div className="inventory-error-bar" role="alert">
             {branchesError && <div>⚠ {branchesError}</div>}
             {error && <div>⚠ {error}</div>}
-            <button className="btn btn-light" style={{ marginTop: 2, fontSize: 12 }} onClick={handleRefresh}>Thử lại</button>
+            <button type="button" className="inv-btn inv-btn-secondary" onClick={handleRefresh}>Thử lại</button>
           </div>
         )}
 
-        {/* Compact quick warehouse filter pills - exact same onClick logic */}
         <div className="inv-quick-pills">
           <button
             type="button"
             className={!filterWarehouse ? 'active' : ''}
+            aria-pressed={!filterWarehouse}
             onClick={() => {
               setFilterWarehouse('');
               setPage(1);
@@ -347,6 +378,7 @@ export function InventoryList() {
               key={b._id}
               type="button"
               className={filterWarehouse === b._id ? 'active' : ''}
+              aria-pressed={filterWarehouse === b._id}
               onClick={() => {
                 setFilterWarehouse(b._id);
                 setPage(1);
@@ -359,14 +391,14 @@ export function InventoryList() {
       </section>
 
       <section className="data-card inventory-table-card">
-        <div className="data-card-header inventory-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="data-card-header inventory-table-header">
           <div>
-            <h2 style={{ margin: 0, fontSize: '16px' }}>Tồn kho chi tiết</h2>
-            <p className="inventory-table-subtitle" style={{ margin: '2px 0 0', fontSize: '12px' }}>
-              Bảng chỉ chế độ xem (giữ nguyên cột kho động + logic cũ).
+            <h2 className="inventory-table-title">Bảng dữ liệu tồn kho</h2>
+            <p className="inventory-table-subtitle">
+              {total.toLocaleString('vi-VN')} bản ghi · Kho: {warehouseFilterLabel} · Trạng thái: {stockStatusLabel} · Sắp xếp {sortLabel} {sortDirectionLabel}
             </p>
           </div>
-          <button className="btn btn-light" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => navigate(`/products/storage-duration${filterWarehouse ? `?branchId=${filterWarehouse}` : ''}`)}>
+          <button type="button" className="inv-btn inv-btn-secondary inventory-table-link-button" onClick={() => navigate(`/products/storage-duration${filterWarehouse ? `?branchId=${filterWarehouse}` : ''}`)}>
             Xem tuổi tồn kho
           </button>
         </div>
@@ -375,43 +407,25 @@ export function InventoryList() {
           <table className="data-table inventory-data-table">
             <thead>
               <tr>
-                <th style={thStyle} onClick={() => handleSort('code')}>
-                  <div style={thInner}>
-                    <SortIcon field="code" />
-                    Mã SP
-                  </div>
+                <th aria-sort={getAriaSort('code')}>
+                  {renderSortButton('code', 'Mã SP')}
                 </th>
-                <th style={thStyle} onClick={() => handleSort('name')}>
-                  <div style={thInner}>
-                    <SortIcon field="name" />
-                    Sản phẩm
-                  </div>
+                <th aria-sort={getAriaSort('name')}>
+                  {renderSortButton('name', 'Sản phẩm')}
                 </th>
-                <th style={thStyle} onClick={() => handleSort('cost')}>
-                  <div style={thInner}>
-                    <SortIcon field="cost" />
-                    Giá nhập
-                  </div>
+                <th aria-sort={getAriaSort('cost')}>
+                  {renderSortButton('cost', 'Giá nhập')}
                 </th>
-                <th style={thStyle} onClick={() => handleSort('price')}>
-                  <div style={thInner}>
-                    <SortIcon field="price" />
-                    Giá bán
-                  </div>
+                <th aria-sort={getAriaSort('price')}>
+                  {renderSortButton('price', 'Giá bán')}
                 </th>
                 {branches.map(b => (
-                  <th key={b._id} style={thStyle} onClick={() => handleSort(`stock_${b._id}`)}>
-                    <div style={thInner}>
-                      <SortIcon field={`stock_${b._id}`} />
-                      {b.name}
-                    </div>
+                  <th key={b._id} aria-sort={getAriaSort(`stock_${b._id}`)}>
+                    {renderSortButton(`stock_${b._id}`, b.name)}
                   </th>
                 ))}
-                <th style={thStyle} onClick={() => handleSort('totalStock')}>
-                  <div style={thInner}>
-                    <SortIcon field="totalStock" />
-                    Tổng tồn
-                  </div>
+                <th aria-sort={getAriaSort('totalStock')}>
+                  {renderSortButton('totalStock', 'Tổng tồn')}
                 </th>
               </tr>
             </thead>
@@ -419,24 +433,33 @@ export function InventoryList() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={5 + (branches.length || 0)} className="empty-cell">
-                    Đang tải dữ liệu tồn kho...
+                  <td colSpan={columnCount} className="inventory-empty-cell">
+                    <div className="inventory-empty-state">
+                      <strong>Đang tải dữ liệu tồn kho...</strong>
+                      <span>Vui lòng chờ trong giây lát.</span>
+                    </div>
                   </td>
                 </tr>
               )}
 
               {!loading && branchesLoading && (
                 <tr>
-                  <td colSpan={5 + (branches.length || 0)} className="empty-cell">
-                    Đang tải danh sách kho...
+                  <td colSpan={columnCount} className="inventory-empty-cell">
+                    <div className="inventory-empty-state">
+                      <strong>Đang tải danh sách kho...</strong>
+                      <span>Các cột kho sẽ hiển thị sau khi tải xong.</span>
+                    </div>
                   </td>
                 </tr>
               )}
 
               {!loading && !branchesLoading && items.length === 0 && !error && (
                 <tr>
-                  <td colSpan={5 + (branches.length || 0)} className="empty-cell">
-                    Chưa có dữ liệu (có thể do filter hoặc kho chưa có sản phẩm).
+                  <td colSpan={columnCount} className="inventory-empty-cell">
+                    <div className="inventory-empty-state">
+                      <strong>Chưa có dữ liệu</strong>
+                      <span>Thử đổi bộ lọc hoặc làm mới danh sách tồn kho.</span>
+                    </div>
                   </td>
                 </tr>
               )}

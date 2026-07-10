@@ -1,0 +1,1787 @@
+/* ============================================================
+   INVENTORY COMPACT UI SYSTEM
+   Shared compact style based on /products/inventory
+   Loaded last (main.tsx) so it can densify legacy workspace UI
+   without changing business logic or inventory page structure.
+   ============================================================ */
+
+:root {
+  --compact-bg: #f8fafc;
+  --compact-surface: #ffffff;
+  --compact-border: #e2e8f0;
+  --compact-border-strong: #cbd5e1;
+  --compact-text: #0f172a;
+  --compact-muted: #64748b;
+  --compact-soft: #f8fafc;
+
+  --compact-green: #10b981;
+  --compact-green-dark: #0f766e;
+  --compact-green-soft: #f0fdf4;
+  --compact-teal-soft: #f0fdfa;
+  --compact-teal-border: #99f6e4;
+
+  --compact-danger: #ef4444;
+  --compact-warning: #f59e0b;
+  --compact-info: #0ea5e9;
+
+  --compact-radius-sm: 6px;
+  --compact-radius-md: 8px;
+  --compact-radius-lg: 12px;
+
+  --compact-shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+/* ---------- Utility classes (explicit usage) ---------- */
+
+.compact-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 76px);
+  padding: 12px clamp(12px, 3vw, 28px) 28px;
+  background:
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.08), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%);
+  color: var(--compact-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.compact-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.compact-toolbar-card {
+  position: relative;
+  overflow: visible;
+  padding: 14px 18px;
+  border: 1px solid #d8e1ec;
+  border-radius: var(--compact-radius-lg);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 34%),
+    linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: var(--compact-shadow-soft);
+}
+
+.compact-toolbar-card::before {
+  content: '';
+  position: absolute;
+  inset: auto -48px -70px auto;
+  width: 240px;
+  height: 240px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.18), rgba(34, 197, 94, 0));
+  pointer-events: none;
+}
+
+.compact-toolbar-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.compact-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.compact-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--compact-green-dark);
+  background: var(--compact-teal-soft);
+  border: 1px solid var(--compact-teal-border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.compact-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--compact-text);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.compact-desc {
+  margin: 0 0 0 8px;
+  font-size: 12px;
+  color: var(--compact-muted);
+  max-width: none;
+  line-height: 1.4;
+}
+
+.compact-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.compact-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.compact-kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--compact-border);
+  border-radius: var(--compact-radius-md);
+  padding: 8px 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.compact-kpi-card--value,
+.compact-kpi-card.success,
+.compact-kpi-card.primary {
+  background: linear-gradient(145deg, #f0fdf4 0%, #ecfdf5 100%);
+  border-color: #a7f3d0;
+}
+
+.compact-kpi-card.warning {
+  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+}
+
+.compact-kpi-card.danger {
+  background: linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fca5a5;
+}
+
+.compact-kpi-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--compact-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.compact-kpi-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--compact-text);
+  line-height: 1.15;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-kpi-sub {
+  font-size: 10px;
+  color: var(--compact-muted);
+  margin-top: 1px;
+  line-height: 1.1;
+}
+
+.compact-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--compact-soft);
+  border: 1px solid var(--compact-border);
+  border-radius: var(--compact-radius-md);
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.compact-search {
+  flex: 1 1 260px;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid var(--compact-border-strong);
+  border-radius: var(--compact-radius-sm);
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.compact-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  background: transparent;
+  color: var(--compact-text);
+  height: 24px;
+}
+
+.compact-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.compact-filter-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--compact-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.compact-select,
+.compact-input {
+  min-width: 120px;
+  font-size: 13px;
+  height: 32px;
+  border: 1px solid var(--compact-border-strong);
+  border-radius: var(--compact-radius-sm);
+  background: white;
+  padding: 0 8px;
+  color: var(--compact-text);
+}
+
+.compact-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.compact-btn,
+.compact-icon-btn {
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: var(--compact-radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  line-height: 1.2;
+  min-height: 28px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.compact-icon-btn {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.compact-btn:disabled,
+.compact-icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.compact-btn-primary {
+  background: var(--compact-green);
+  color: white;
+  border: 1px solid var(--compact-green);
+}
+
+.compact-btn-primary:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+}
+
+.compact-btn-secondary {
+  background: white;
+  color: #334155;
+  border: 1px solid var(--compact-border-strong);
+}
+
+.compact-btn-secondary:hover:not(:disabled) {
+  border-color: #a7f3d0;
+  background: var(--compact-green-soft);
+  color: var(--compact-green-dark);
+}
+
+.compact-btn-accent {
+  background: white;
+  color: var(--compact-green-dark);
+  border: 1px solid #a7f3d0;
+}
+
+.compact-btn-accent:hover:not(:disabled) {
+  background: var(--compact-teal-soft);
+}
+
+.compact-btn-danger {
+  background: #fff;
+  color: var(--compact-danger);
+  border: 1px solid #fecaca;
+}
+
+.compact-btn-danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.compact-pills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.compact-pill {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--compact-border);
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.compact-pill-active,
+.compact-pill.active,
+.compact-pill:hover {
+  background: var(--compact-green);
+  color: white;
+  border-color: var(--compact-green);
+}
+
+.compact-table-card {
+  overflow: hidden;
+  border: 1px solid #dbe2ea;
+  border-radius: var(--compact-radius-lg);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.compact-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eef2f7;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+}
+
+.compact-table-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--compact-text);
+}
+
+.compact-table-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.compact-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
+  border: 0;
+  background: transparent;
+}
+
+.compact-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  background: transparent;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 8px 10px;
+  line-height: 1.35;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.compact-table th {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  background: #f8fafc;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+  white-space: nowrap;
+}
+
+.compact-table tbody tr:hover {
+  background: #f0fdf4;
+}
+
+.compact-table .action-cell {
+  width: 72px;
+  max-width: 88px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.compact-table .number-cell,
+.compact-table .money-cell,
+.compact-table .quantity-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-line-clamp-2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.compact-form-card {
+  background: #fff;
+  border: 1px solid var(--compact-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.compact-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.compact-form-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--compact-muted);
+}
+
+.compact-form-field input,
+.compact-form-field select,
+.compact-form-field textarea {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid var(--compact-border-strong);
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+
+.compact-modal {
+  background: #fff;
+  border: 1px solid var(--compact-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16);
+  max-width: min(720px, calc(100vw - 24px));
+  width: 100%;
+  overflow: hidden;
+}
+
+.compact-modal-header,
+.compact-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--compact-border);
+}
+
+.compact-modal-footer {
+  border-bottom: 0;
+  border-top: 1px solid var(--compact-border);
+  justify-content: flex-end;
+}
+
+.compact-modal-body {
+  padding: 14px;
+}
+
+/* ============================================================
+   GLOBAL DENSIFY LAYER
+   Applies inventory-like density to shared workspace patterns.
+   Excludes inventory shell & product-compact (already tuned).
+   ============================================================ */
+
+/* Page shells */
+.main-content > .workspace-page:not(:has(.inventory-page-shell)):not(:has(.product-compact-shell)),
+.app-main > .workspace-page:not(:has(.inventory-page-shell)):not(:has(.product-compact-shell)),
+.workspace-page:not(:has(.inventory-page-shell)):not(:has(.product-compact-shell)) {
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)):not(:has(.product-compact-shell)) {
+  padding-top: 0;
+}
+
+/* DataModule / generic list pages */
+.page-stack.compact-stack,
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Compact page-heading → inventory toolbar look */
+.workspace-page:not(:has(.inventory-page-shell)) .page-heading,
+.page-stack .page-heading,
+.compact-page .page-heading {
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid #d8e1ec;
+  border-radius: var(--compact-radius-lg);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 34%),
+    linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: var(--compact-shadow-soft);
+  min-height: 0;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .page-heading h1,
+.page-stack .page-heading h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--compact-text);
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .page-heading p,
+.page-stack .page-heading p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--compact-muted);
+  max-width: none;
+  line-height: 1.4;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .page-icon,
+.page-stack .page-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .page-actions,
+.page-stack .page-actions {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Buttons compact */
+.workspace-page:not(:has(.inventory-page-shell)) .btn,
+.page-stack .btn,
+.compact-page .btn {
+  min-height: 28px;
+  height: auto;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  gap: 4px;
+  box-shadow: none;
+  transform: none;
+  letter-spacing: 0;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .btn:hover:not(:disabled),
+.page-stack .btn:hover:not(:disabled) {
+  transform: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .btn-primary,
+.page-stack .btn-primary {
+  background: var(--compact-green);
+  border: 1px solid var(--compact-green);
+  color: #fff;
+  box-shadow: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .btn-primary:hover:not(:disabled),
+.page-stack .btn-primary:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .btn-light,
+.workspace-page:not(:has(.inventory-page-shell)) .btn-outline,
+.page-stack .btn-light,
+.page-stack .btn-outline {
+  background: #fff;
+  border: 1px solid var(--compact-border-strong);
+  color: #334155;
+  box-shadow: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .btn-light:hover:not(:disabled),
+.page-stack .btn-light:hover:not(:disabled) {
+  border-color: #a7f3d0;
+  background: var(--compact-green-soft);
+  color: var(--compact-green-dark);
+}
+
+/* KPI / metrics */
+.workspace-page:not(:has(.inventory-page-shell)) .metric-row,
+.page-stack .metric-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .metric-card,
+.page-stack .metric-card {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--compact-border);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  min-height: 0;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .metric-card span,
+.page-stack .metric-card span {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--compact-muted);
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .metric-card strong,
+.page-stack .metric-card strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--compact-text);
+  margin-top: 2px;
+}
+
+/* Filter panel → horizontal compact strip when in module-grid */
+.workspace-page:not(:has(.inventory-page-shell)) .module-grid,
+.page-stack .module-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  grid-template-columns: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .filter-panel,
+.page-stack .filter-panel {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--compact-border);
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: none;
+  top: auto;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .filter-panel .panel-title,
+.page-stack .filter-panel .panel-title {
+  display: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .filter-panel .field-label,
+.page-stack .filter-panel .field-label {
+  display: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .filter-panel .search-box,
+.page-stack .filter-panel .search-box {
+  flex: 1 1 260px;
+  min-width: 180px;
+  min-height: 32px;
+  height: 32px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--compact-border-strong);
+  background: #fff;
+  gap: 6px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .filter-panel .search-box input,
+.page-stack .filter-panel .search-box input {
+  font-size: 13px;
+  height: 24px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .quick-filter-list,
+.page-stack .quick-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .quick-filter-list button,
+.page-stack .quick-filter-list button {
+  min-height: 26px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--compact-border);
+  background: #f8fafc;
+  color: #475569;
+  box-shadow: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .quick-filter-list button.active,
+.workspace-page:not(:has(.inventory-page-shell)) .quick-filter-list button:hover,
+.page-stack .quick-filter-list button.active,
+.page-stack .quick-filter-list button:hover {
+  background: var(--compact-green);
+  color: #fff;
+  border-color: var(--compact-green);
+}
+
+/* Cards & tables */
+.workspace-page:not(:has(.inventory-page-shell)) .data-card,
+.page-stack .data-card {
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-card-header,
+.page-stack .data-card-header {
+  padding: 10px 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+  gap: 8px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-card-header h2,
+.page-stack .data-card-header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .record-badge,
+.page-stack .record-badge {
+  min-height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .table-scroll,
+.page-stack .table-scroll,
+.compact-page .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-table,
+.page-stack .data-table,
+.compact-page .data-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-table th,
+.workspace-page:not(:has(.inventory-page-shell)) .data-table td,
+.page-stack .data-table th,
+.page-stack .data-table td {
+  padding: 8px 10px;
+  line-height: 1.35;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  max-width: none;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-table th,
+.page-stack .data-table th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5a6a7e;
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
+  white-space: nowrap;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-table tbody tr:hover td,
+.page-stack .data-table tbody tr:hover td {
+  background: linear-gradient(90deg, rgba(248, 250, 252, 0.94), rgba(236, 253, 245, 0.4));
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-table .check-cell,
+.page-stack .data-table .check-cell {
+  width: 40px;
+  min-width: 40px;
+  max-width: 44px;
+  text-align: center;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .data-table .action-cell,
+.page-stack .data-table .action-cell {
+  width: 72px;
+  min-width: 72px;
+  max-width: 88px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .icon-button,
+.page-stack .icon-button {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/* Modal densify */
+.workspace-page:not(:has(.inventory-page-shell)) .modal-card,
+.page-stack .modal-card {
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16);
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .modal-header,
+.page-stack .modal-header {
+  padding: 12px 14px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .modal-header h2,
+.page-stack .modal-header h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .form-grid,
+.page-stack .form-grid {
+  gap: 10px 12px;
+  padding: 12px 14px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .form-field span,
+.page-stack .form-field span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--compact-muted);
+  margin-bottom: 4px;
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .form-field input,
+.workspace-page:not(:has(.inventory-page-shell)) .form-field select,
+.workspace-page:not(:has(.inventory-page-shell)) .form-field textarea,
+.page-stack .form-field input,
+.page-stack .form-field select,
+.page-stack .form-field textarea {
+  min-height: 32px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--compact-border-strong);
+}
+
+.workspace-page:not(:has(.inventory-page-shell)) .modal-footer,
+.page-stack .modal-footer {
+  padding: 10px 14px;
+  gap: 6px;
+}
+
+/* Workspace tabs */
+.workspace-page .workspace-tabs,
+.workspace-tabs {
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  min-height: 0;
+}
+
+.workspace-page .workspace-tabs button,
+.workspace-tabs button,
+.workspace-tabs a {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   WAREHOUSE densify (override larger pilot paddings)
+   ============================================================ */
+
+.workspace-page.warehouse-records,
+.workspace-page.wr-transfer-create,
+.workspace-page.warehouse-audit-admin,
+.workspace-page.warehouse-audit-page,
+.workspace-page.warehouse-branches-page,
+.workspace-page:has(.voucher-form),
+.workspace-page:has(.import-export-page) {
+  min-height: calc(100vh - 76px);
+  padding: 12px clamp(12px, 3vw, 28px) 28px !important;
+  gap: 12px !important;
+  background:
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.08), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%) !important;
+}
+
+.warehouse-records .page-heading,
+.warehouse-audit-admin .page-heading,
+.warehouse-audit-page .page-heading,
+.warehouse-branches-page .page-heading,
+.wr-transfer-create .page-heading,
+.workspace-page:has(.voucher-form) .page-heading,
+.workspace-page:has(.import-export-page) .page-heading {
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  box-shadow: var(--compact-shadow-soft) !important;
+  border: 1px solid #d8e1ec !important;
+}
+
+.warehouse-records h1,
+.warehouse-audit-admin h1,
+.warehouse-audit-page h1,
+.warehouse-branches-page h1,
+.wr-transfer-create h1,
+.workspace-page:has(.voucher-form) h1,
+.workspace-page:has(.import-export-page) h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+}
+
+.warehouse-records .page-heading p,
+.warehouse-audit-admin .page-heading p,
+.warehouse-audit-page .page-heading p,
+.warehouse-branches-page .page-heading p,
+.wr-transfer-create .page-heading p,
+.workspace-page:has(.voucher-form) .page-heading p,
+.workspace-page:has(.import-export-page) .page-heading p,
+.wr-sub,
+.audit-sub,
+.branch-sub {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.warehouse-records .wr-card,
+.warehouse-audit-admin .wr-card,
+.warehouse-audit-page .wr-card,
+.warehouse-branches-page .wr-card,
+.wr-transfer-create .data-card,
+.wr-transfer-create .filter-panel,
+.workspace-page:has(.voucher-form) .data-card,
+.workspace-page:has(.import-export-page) .data-card,
+.audit-card,
+.branch-card {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05) !important;
+  border: 1px solid #dbe2ea !important;
+}
+
+.warehouse-records .btn,
+.warehouse-audit-admin .btn,
+.warehouse-audit-page .btn,
+.warehouse-branches-page .btn,
+.wr-transfer-create .btn,
+.workspace-page:has(.voucher-form) .btn,
+.workspace-page:has(.import-export-page) .btn,
+.wr-create-button {
+  min-height: 28px !important;
+  padding: 5px 11px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.warehouse-records .btn:hover:not(:disabled),
+.warehouse-audit-admin .btn:hover:not(:disabled),
+.warehouse-audit-page .btn:hover:not(:disabled),
+.warehouse-branches-page .btn:hover:not(:disabled),
+.wr-transfer-create .btn:hover:not(:disabled),
+.workspace-page:has(.voucher-form) .btn:hover:not(:disabled),
+.workspace-page:has(.import-export-page) .btn:hover:not(:disabled),
+.workspace-page.warehouse-records button:hover:not(:disabled),
+.workspace-page.wr-transfer-create button:hover:not(:disabled),
+.workspace-page.warehouse-audit-admin button:hover:not(:disabled),
+.workspace-page.warehouse-audit-page button:hover:not(:disabled),
+.workspace-page.warehouse-branches-page button:hover:not(:disabled) {
+  transform: none !important;
+}
+
+.warehouse-records .btn-primary,
+.warehouse-audit-admin .btn-primary,
+.warehouse-audit-page .btn-primary,
+.warehouse-branches-page .btn-primary,
+.wr-transfer-create .btn-primary,
+.workspace-page:has(.voucher-form) .btn-primary,
+.workspace-page:has(.import-export-page) .btn-primary,
+.wr-create-button {
+  background: var(--compact-green) !important;
+  border: 1px solid var(--compact-green) !important;
+  box-shadow: none !important;
+}
+
+.warehouse-records .wr-filters,
+.warehouse-audit-admin .wr-filters,
+.warehouse-records form.wr-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #f8fafc;
+  border: 1px solid var(--compact-border);
+  border-radius: 8px;
+}
+
+.warehouse-records .wr-search-field,
+.warehouse-records .wr-filter,
+.warehouse-audit-admin .wr-filter {
+  min-height: 32px;
+  height: 32px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid var(--compact-border-strong);
+  background: #fff;
+}
+
+.warehouse-records .wr-search-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+
+.warehouse-records .wr-search-field input {
+  border: 0;
+  outline: none;
+  font-size: 13px;
+  height: 28px;
+  background: transparent;
+  width: 100%;
+}
+
+.warehouse-records .wr-table-wrap,
+.warehouse-records .table-scroll,
+.warehouse-audit-admin .table-scroll,
+.wr-transfer-create .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.warehouse-records table,
+.warehouse-audit-admin table,
+.wr-transfer-create table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  font-size: 12.5px;
+}
+
+.warehouse-records table th,
+.warehouse-records table td,
+.warehouse-audit-admin table th,
+.warehouse-audit-admin table td,
+.wr-transfer-create table th,
+.wr-transfer-create table td {
+  padding: 8px 10px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.warehouse-records table th,
+.warehouse-audit-admin table th,
+.wr-transfer-create table th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+  color: #475569;
+  background: #f8fafc;
+  white-space: nowrap;
+}
+
+.warehouse-records .wr-transfer-tabbar,
+.warehouse-audit-admin .audit-tabs,
+.warehouse-records .workspace-tabs {
+  gap: 4px;
+  padding: 3px;
+}
+
+.warehouse-records .wr-transfer-tab,
+.warehouse-audit-admin .audit-tabs button {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.wr-transfer-create .wr-transfer-hero,
+.wr-detail-header {
+  padding: 12px 16px !important;
+  gap: 10px !important;
+}
+
+.wr-detail-header h2 {
+  font-size: 18px !important;
+  margin: 0 !important;
+}
+
+/* ============================================================
+   SALES CHANNEL densify
+   ============================================================ */
+
+.workspace-page.sc-page {
+  padding: 12px clamp(12px, 3vw, 28px) 28px !important;
+  gap: 12px !important;
+  background:
+    radial-gradient(circle at top left, rgba(var(--sc-accent-rgb, 16, 185, 129), 0.08), transparent 30%),
+    linear-gradient(180deg, #f7fcf9 0%, #f3faf6 100%) !important;
+}
+
+.sc-page .sc-hero,
+.sc-page .page-heading.sc-hero {
+  padding: 12px 16px !important;
+  gap: 12px !important;
+  border-radius: 12px !important;
+  box-shadow: var(--compact-shadow-soft) !important;
+}
+
+.sc-page .sc-hero h1,
+.sc-page .sc-hero-copy h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+}
+
+.sc-eyebrow {
+  min-height: 22px !important;
+  padding: 0 9px !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+}
+
+.sc-page .btn,
+.retail-page .btn,
+.ws-page .btn,
+.refund-page .btn {
+  min-height: 28px !important;
+  padding: 5px 11px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.retail-hero,
+.ws-hero {
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  gap: 12px !important;
+  box-shadow: var(--compact-shadow-soft) !important;
+}
+
+.retail-hero h1,
+.ws-hero h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.retail-hero p,
+.ws-hero p {
+  font-size: 12px !important;
+  margin: 2px 0 0 !important;
+}
+
+/* ============================================================
+   DASHBOARD densify
+   ============================================================ */
+
+.dv-page {
+  --dv-radius: 12px;
+  --dv-radius-sm: 8px;
+  --dv-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  margin: 0 !important;
+  padding: 12px clamp(12px, 3vw, 28px) 28px !important;
+}
+
+.dv-hero {
+  padding: 12px 16px !important;
+  gap: 12px !important;
+  border-radius: 12px !important;
+}
+
+.dv-hero h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  color: var(--compact-text) !important;
+}
+
+.dv-hero p {
+  margin: 2px 0 0 !important;
+  font-size: 12px !important;
+}
+
+.dv-eyebrow {
+  padding: 2px 9px !important;
+  margin-bottom: 6px !important;
+  font-size: 10px !important;
+  min-height: 0 !important;
+}
+
+.dv-surface {
+  border-radius: 12px !important;
+  box-shadow: var(--compact-shadow-soft) !important;
+}
+
+.dv-surface-head {
+  padding: 10px 14px !important;
+}
+
+.dv-surface-head h2 {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+/* ============================================================
+   REPORTS densify (common patterns)
+   ============================================================ */
+
+.revenue-time-container,
+.revenue-store-container,
+[class*="revenue-"][class*="container"],
+[class*="report-"][class*="container"],
+.report-page,
+.report-container {
+  padding: 12px clamp(12px, 3vw, 28px) 28px !important;
+  gap: 12px;
+  min-height: calc(100vh - 76px);
+  background:
+    radial-gradient(circle at top left, rgba(22, 163, 74, 0.08), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%) !important;
+  box-sizing: border-box;
+}
+
+.revenue-time-header,
+.revenue-store-header,
+[class*="revenue-"][class*="header"],
+.report-header {
+  margin-bottom: 10px !important;
+  padding: 12px 16px;
+  border: 1px solid #d8e1ec;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 34%),
+    linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: var(--compact-shadow-soft);
+  align-items: center;
+  gap: 10px;
+}
+
+.revenue-time-header h1,
+.revenue-store-header h1,
+.report-header h1,
+[class*="revenue-"][class*="header"] h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  margin-bottom: 12px !important;
+  border: 1px solid var(--compact-border);
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 11px !important;
+  font-weight: 600;
+  color: var(--compact-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px !important;
+}
+
+.filter-group select,
+.filter-group input {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px !important;
+  font-size: 13px !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--compact-border-strong) !important;
+  min-width: 120px;
+  background: #fff;
+}
+
+.btn-filter {
+  height: 32px !important;
+  min-height: 32px !important;
+  margin-top: 0 !important;
+  padding: 5px 11px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  background: var(--compact-green) !important;
+  align-self: flex-end;
+}
+
+.chart-container {
+  padding: 14px 16px !important;
+  border-radius: 12px !important;
+  margin-bottom: 12px !important;
+  border: 1px solid #dbe2ea;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05) !important;
+}
+
+.actions-bar {
+  margin-bottom: 10px !important;
+  gap: 6px;
+}
+
+.btn-outline {
+  min-height: 28px;
+  padding: 5px 11px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+}
+
+/* Report tables */
+.revenue-time-container table,
+.revenue-store-container table,
+.report-page table,
+.report-container table,
+[class*="revenue-"] table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+.revenue-time-container table th,
+.revenue-time-container table td,
+.revenue-store-container table th,
+.revenue-store-container table td,
+.report-page table th,
+.report-page table td,
+.report-container table th,
+.report-container table td,
+[class*="revenue-"] table th,
+[class*="revenue-"] table td {
+  padding: 8px 10px !important;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.revenue-time-container table th,
+.revenue-store-container table th,
+.report-page table th,
+.report-container table th,
+[class*="revenue-"] table th {
+  font-size: 11px !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+  color: #475569;
+  background: #f8fafc;
+}
+
+/* ============================================================
+   STAFF / SETTINGS densify
+   ============================================================ */
+
+.workspace-page:has(.staff-tabs),
+.workspace-page:has([role="tablist"][aria-label="Settings tabs"]),
+.workspace-page:has([aria-label="Settings tabs"]) {
+  gap: 12px;
+}
+
+/* ============================================================
+   CUSTOMER pages densify
+   ============================================================ */
+
+.customer-list-page,
+.customer-care-page,
+[class*="customer-"][class*="page"] {
+  gap: 12px;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 960px) {
+  .compact-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .compact-kpi-row,
+  .workspace-page:not(:has(.inventory-page-shell)) .metric-row,
+  .page-stack .metric-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compact-filter-bar {
+    flex-wrap: wrap;
+  }
+
+  .compact-search {
+    flex: 1 1 100%;
+  }
+
+  .compact-header-actions,
+  .compact-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .compact-table-wrap,
+  .workspace-page:not(:has(.inventory-page-shell)) .table-scroll,
+  .page-stack .table-scroll,
+  .warehouse-records .wr-table-wrap,
+  .warehouse-records .table-scroll {
+    overflow-x: auto;
+  }
+
+  .compact-table,
+  .workspace-page:not(:has(.inventory-page-shell)) .data-table,
+  .page-stack .data-table,
+  .warehouse-records table {
+    min-width: 720px;
+    table-layout: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .compact-kpi-row,
+  .workspace-page:not(:has(.inventory-page-shell)) .metric-row,
+  .page-stack .metric-row {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-page,
+  .dv-page,
+  .workspace-page.warehouse-records,
+  .workspace-page.sc-page {
+    padding: 10px 10px 20px !important;
+  }
+
+  .compact-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   PROTECT inventory & product-compact from unwanted densify
+   ============================================================ */
+
+.inventory-page-shell,
+.product-compact-shell {
+  /* keep module-owned spacing tokens */
+}
+
+/* Ensure inventory table still fits when global rules touch wrappers */
+.inventory-page-shell .inventory-table-wrapper,
+.inventory-page-shell .inventory-table-scroll {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Report placeholder stubs */
+.report-placeholder-page {
+  gap: 12px;
+}
+
+.report-placeholder-page .compact-table-card .btn,
+.report-placeholder-page .compact-table-card a.btn {
+  margin-top: 10px;
+  min-height: 28px;
+  padding: 5px 11px;
+  font-size: 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+/* Dashboard button densify */
+.dv-page .dv-select-button,
+.dv-page .dv-store-trigger,
+.dv-page .dv-modal-head button,
+.dv-page .dv-store-actions button,
+.dv-page .dv-sync-refresh {
+  height: 32px !important;
+  min-height: 32px;
+  padding: 0 11px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.dv-page .dv-sync-card {
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  gap: 8px !important;
+}
+
+.dv-page .dv-sync-card > span {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+}
+
+/* Staff / settings page-heading densify already covered via workspace-page */
+
+/* DataModule compact-page-module: avoid double card chrome on nested page-heading */
+.compact-page-module > .compact-toolbar-card > .page-heading {
+  padding: 0 !important;
+  margin: 0 0 10px !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.compact-page-module > .compact-toolbar-card > .compact-filter-bar.filter-panel {
+  margin-bottom: 0;
+}
+
+/* Customer list: table fit */
+.customer-list-page .table-scroll,
+.customer-list-page .data-table {
+  width: 100%;
+  max-width: 100%;
+}
+
+.customer-list-page .data-table {
+  table-layout: fixed;
+}
+
+/* Sales channel action grid densify */
+.sc-page .sc-action-grid {
+  gap: 10px !important;
+}
+
+.sc-page .sc-channel-banner {
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  gap: 10px !important;
+}
+
+/* Invoice create pages densify when using workspace-page */
+.workspace-page:has(.retail-create),
+.workspace-page:has(.wholesale-create),
+.workspace-page:has(.refund-create) {
+  gap: 12px;
+  padding: 12px clamp(12px, 3vw, 28px) 28px;
+}
+
+/* Retail / Wholesale invoice list pages (inline CSS modules) */
+.retail-invoice-page,
+.ws-invoice-page,
+[class*="invoice-page"] {
+  gap: 12px !important;
+  padding: 12px clamp(12px, 3vw, 28px) 28px !important;
+}
+
+.retail-hero,
+.ws-hero {
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  gap: 12px !important;
+  box-shadow: var(--compact-shadow-soft) !important;
+}
+
+.retail-hero h1,
+.ws-hero h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  color: var(--compact-text) !important;
+}
+
+.retail-hero p,
+.ws-hero p,
+.retail-eyebrow,
+.ws-eyebrow {
+  font-size: 12px !important;
+}
+
+.retail-hero-icon,
+.ws-hero-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.retail-filterbar,
+.ws-filterbar {
+  gap: 8px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  background: #f8fafc !important;
+  border: 1px solid var(--compact-border) !important;
+  box-shadow: none !important;
+}
+
+.retail-filter-button,
+.retail-reset-button,
+.ws-filter-button,
+.ws-reset-button,
+.retail-invoice-page .btn,
+.ws-invoice-page .btn {
+  min-height: 28px !important;
+  height: auto !important;
+  padding: 5px 11px !important;
+  font-size: 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.retail-invoice-page table,
+.ws-invoice-page table,
+.retail-invoice-page .data-table,
+.ws-invoice-page .data-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed;
+  font-size: 12.5px;
+}
+
+.retail-invoice-page table th,
+.retail-invoice-page table td,
+.ws-invoice-page table th,
+.ws-invoice-page table td {
+  padding: 8px 10px !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.refund-detail {
+  gap: 12px !important;
+}
+
+.refund-detail-card {
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  box-shadow: var(--compact-shadow-soft) !important;
+}
+
+/* Warehouse branches designer densify */
+.invoice-tpl-designer,
+.warehouse-branches-page {
+  gap: 12px;
+}
+
+.invoice-tpl-col-header {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}

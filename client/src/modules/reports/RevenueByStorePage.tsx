@@ -309,9 +309,15 @@ export function RevenueByStorePage() {
   }
 
   return (
-    <div className="revenue-store-container">
+    <div className="revenue-store-container compact-page">
+      <section className="compact-toolbar-card" style={{ marginBottom: 12 }}>
+        <div className="compact-header">
+          <span className="compact-badge">REPORT</span>
+          <h1 className="compact-title">Doanh thu theo cửa hàng</h1>
+          <p className="compact-desc">So sánh doanh thu, điểm và lợi nhuận theo chi nhánh.</p>
+        </div>
       {/* Filters */}
-      <div className="filter-bar">
+      <div className="filter-bar compact-filter-bar">
         <div className="filter-group">
           <label>Hiển thị</label>
           <CustomSelect value={displayType} onChange={setDisplayType} options={[{ value: 'Theo ngày', label: 'Theo ngày' }, { value: 'Theo tháng', label: 'Theo tháng' }]} />
@@ -337,8 +343,9 @@ export function RevenueByStorePage() {
         <div className="filter-group">
           <CustomSelect value={endMinute} onChange={setEndMinute} options={minuteOptions} placeholder="Phút kết thúc" width={120} />
         </div>
-        <button className="btn-filter" onClick={handleFilter} style={{ marginBottom: '0', marginTop: '0', alignSelf: 'flex-end' }}>Lọc</button>
+        <button className="btn-filter compact-btn compact-btn-primary" onClick={handleFilter} style={{ marginBottom: '0', marginTop: '0', alignSelf: 'flex-end' }}>Lọc</button>
       </div>
+      </section>
 
       <div className="tabs-bar">
         <div className={`tab-item ${tab === 'Kho hàng' ? 'active' : ''}`} onClick={() => setTab('Kho hàng')}>Kho hàng</div>

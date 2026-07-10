@@ -1,19 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  DollarSign, 
-  FileText, 
-  Phone, 
-  Save, 
-  Tag, 
-  User, 
-  Warehouse, 
-  Briefcase, 
-  Percent, 
-  CreditCard, 
+import {
+  ArrowLeft,
+  Calendar,
+  DollarSign,
+  FileText,
+  Phone,
+  Save,
+  Tag,
+  User,
+  Warehouse,
+  Briefcase,
+  Percent,
+  CreditCard,
   Info,
   CheckCircle,
   AlertCircle,
@@ -97,7 +97,7 @@ export function WholesaleInvoiceCreatePage() {
     wholesaleInvoiceLabel: '',
     orderSource: 'Trực tiếp',
     description: '',
-    
+
     // Customer Info (Individual)
     customerPhone: '',
     customerName: '',
@@ -106,30 +106,30 @@ export function WholesaleInvoiceCreatePage() {
     dob: '',
     addressLocation: '', // Tỉnh/Thành phố, Quận/Huyện, Phường/Xã
     address: '', // Địa chỉ chi tiết
-    
+
     // Customer Info (Enterprise)
     companyName: '',
     taxId: '',
     poContractNumber: '', // Số PO - Hợp đồng
     contractSigningDate: '', // Ngày ký hợp đồng
-    
+
     // VAT Invoice
     hasVat: false, // Trạng thái xuất hóa đơn VAT
     vatInvoiceNumber: '', // Số hóa đơn VAT
     vatInvoiceDate: '', // Ngày xuất hóa đơn
     vatPercent: 10, // VAT (%)
-    
+
     // Payments
     prepaidFromOrder: 0, // Đã thanh toán từ đơn hàng
     paymentCash: 0,      // Tiền mặt
     paymentTransfer: 0,  // Chuyển khoản
     paymentCard: 0,      // Quẹt thẻ
     paymentOther: 0,     // Khác
-    
+
     paymentMethod: 'Tiền mặt',
     orderDiscount: 0,    // Chiết khấu đơn hàng
     autoDiscount: true,  // Tự động chiết khấu
-    
+
     totalAmount: 0,
     paidAmount: 0,
     debtAmount: 0,
@@ -261,9 +261,9 @@ export function WholesaleInvoiceCreatePage() {
     // 1. Calculate individual product line totals
     let tempSubtotal = 0;
     let tempProductDiscount = 0;
-    
+
     const updatedProducts = products.map(prod => {
-      const discVal = prod.discountType === 'percentage' 
+      const discVal = prod.discountType === 'percentage'
         ? prod.price * (prod.discountValue / 100)
         : prod.discountValue;
       const lineTotal = Math.max(0, prod.price - discVal) * prod.qty;
@@ -536,7 +536,7 @@ export function WholesaleInvoiceCreatePage() {
           addressLocation: form.addressLocation,
           address: form.address,
         }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
-        
+
         if (createCustRes && createCustRes.data) {
           customerId = createCustRes.data._id;
           setCustomerSuggestions((current) => [createCustRes.data, ...current.filter((item) => item._id !== createCustRes.data._id)]);
@@ -636,22 +636,22 @@ export function WholesaleInvoiceCreatePage() {
 
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      
+
       {/* Top Banner and Navigation Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => navigate(`/sales-channels/${channel}/wholesale`)}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              width: '40px', 
-              height: '40px', 
-              borderRadius: '10px', 
-              border: '1px solid #e2e8f0', 
-              background: '#ffffff', 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              background: '#ffffff',
               cursor: 'pointer',
               color: '#475569',
               transition: 'all 0.2s'
@@ -665,7 +665,7 @@ export function WholesaleInvoiceCreatePage() {
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Warehouse size={14} color="#7c3aed" />
+                <Warehouse size={14} color="#10b981" />
                 <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
                   Kho xuất: {loadingBranch ? 'Đang tải...' : (branch ? `${branch.name} (${branch.code})` : 'Chưa chọn kho')}
                 </span>
@@ -681,27 +681,27 @@ export function WholesaleInvoiceCreatePage() {
         </div>
 
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
+          <button
             type="button"
             onClick={() => navigate(`/sales-channels/${channel}/wholesale`)}
             style={{ borderRadius: '10px', padding: '10px 20px', fontSize: '14px', border: '1px solid #cbd5e1', background: '#ffffff', fontWeight: '600', color: '#475569', cursor: 'pointer' }}
           >
             Hủy bỏ
           </button>
-          <button 
+          <button
             type="button"
             id="save-invoice-btn"
             disabled={isSaving || !activeBranchId}
             onClick={handleSave}
-            style={{ 
-              borderRadius: '10px', 
-              padding: '10px 24px', 
-              fontSize: '14px', 
-              fontWeight: '600', 
-              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', 
+            style={{
+              borderRadius: '10px',
+              padding: '10px 24px',
+              fontSize: '14px',
+              fontWeight: '600',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: '#ffffff',
-              border: 'none', 
-              boxShadow: '0 4px 14px rgba(124, 58, 237, 0.25)',
+              border: 'none',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -731,7 +731,7 @@ export function WholesaleInvoiceCreatePage() {
 
       {/* Main 70/30 Columns Layout */}
       <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '24px', alignItems: 'start' }}>
-        
+
         {/* Left Column (70%) - Search, Product Table, Notes, Staff */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '18px 20px' }}>
@@ -753,13 +753,13 @@ export function WholesaleInvoiceCreatePage() {
               </select>
             </label>
           </div>
-          
+
           {/* Product Search & Table Box */}
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-            
+
             {/* Header: Product Type Tabs & F3 Search Bar */}
             <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-              
+
               {/* Product Type Tabs */}
               <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '3px' }}>
                 <button
@@ -773,7 +773,7 @@ export function WholesaleInvoiceCreatePage() {
                     fontWeight: '600',
                     cursor: 'pointer',
                     background: productTypeTab === 'normal' ? '#ffffff' : 'transparent',
-                    color: productTypeTab === 'normal' ? '#7c3aed' : '#64748b',
+                    color: productTypeTab === 'normal' ? '#10b981' : '#64748b',
                     boxShadow: productTypeTab === 'normal' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                     transition: 'all 0.15s'
                   }}
@@ -791,7 +791,7 @@ export function WholesaleInvoiceCreatePage() {
                     fontWeight: '600',
                     cursor: 'pointer',
                     background: productTypeTab === 'imei' ? '#ffffff' : 'transparent',
-                    color: productTypeTab === 'imei' ? '#7c3aed' : '#64748b',
+                    color: productTypeTab === 'imei' ? '#10b981' : '#64748b',
                     boxShadow: productTypeTab === 'imei' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                     transition: 'all 0.15s'
                   }}
@@ -827,20 +827,20 @@ export function WholesaleInvoiceCreatePage() {
                         <div
                           onMouseDown={(e) => { e.preventDefault(); addProduct(prod); }}
                           style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#f5f3ff'}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#ecfdf5'}
                           onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
                         >
                           <div>
                             <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>{prod.name}</div>
                             <div style={{ fontSize: '11px', color: '#64748b' }}>Mã: {prod.code} | Tồn: {prod.qty ?? 0} | Giá: {(prod.price ?? 0).toLocaleString('vi-VN')} đ</div>
                           </div>
-                          <PlusCircle size={16} color="#7c3aed" />
+                          <PlusCircle size={16} color="#10b981" />
                         </div>
                       ))
                     ) : (
                       <div style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
                         <span>Không tìm thấy sản phẩm. </span>
-                        <button type="button" onClick={addCustomProduct} style={{ border: 'none', background: 'none', color: '#7c3aed', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
+                        <button type="button" onClick={addCustomProduct} style={{ border: 'none', background: 'none', color: '#10b981', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
                           Thêm sản phẩm mới sỉ
                         </button>
                       </div>
@@ -876,16 +876,16 @@ export function WholesaleInvoiceCreatePage() {
                   </thead>
                   <tbody>
                     {products.map((prod, idx) => (
-                      <tr 
-                        key={idx} 
-                        style={{ 
+                      <tr
+                        key={idx}
+                        style={{
                           borderBottom: '1px solid #f1f5f9',
                           background: idx % 2 === 0 ? '#ffffff' : '#fafafa'
                         }}
                       >
                         {/* Index */}
                         <td style={{ padding: '12px 8px', color: '#64748b', fontWeight: '500' }}>{idx + 1}</td>
-                        
+
                         {/* Image */}
                         <td style={{ padding: '12px 8px' }}>
                           <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', color: '#64748b' }}>
@@ -897,11 +897,11 @@ export function WholesaleInvoiceCreatePage() {
                         <td style={{ padding: '12px 8px' }}>
                           <div style={{ fontWeight: '600', color: '#1e293b' }}>{prod.name}</div>
                           <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Mã: {prod.code}</div>
-                          
+
                           {/* Conditionally render IMEI field based on tab selection */}
                           {(productTypeTab === 'imei' || prod.imei !== undefined) && (
                             <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <span style={{ fontSize: '10px', fontWeight: '700', color: '#6d28d9', background: '#f5f3ff', padding: '1px 4px', borderRadius: '3px' }}>IMEI</span>
+                              <span style={{ fontSize: '10px', fontWeight: '700', color: '#059669', background: '#ecfdf5', padding: '1px 4px', borderRadius: '3px' }}>IMEI</span>
                               <input
                                 type="text"
                                 placeholder="Nhập mã IMEI sản phẩm sỉ..."
@@ -1000,20 +1000,20 @@ export function WholesaleInvoiceCreatePage() {
           {/* Configuration & Order Meta Info */}
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: '#f5f3ff', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+              <div style={{ background: '#ecfdf5', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
                 <Briefcase size={15} />
               </div>
               <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Cấu Hình & Phân Loại Hóa Đơn Sỉ</h2>
             </div>
-            
+
             <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-              
+
               {/* Sales Person */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nhân viên bán hàng</span>
-                <select 
-                  value={form.salesperson} 
-                  onChange={(e) => handleChange('salesperson', e.target.value)} 
+                <select
+                  value={form.salesperson}
+                  onChange={(e) => handleChange('salesperson', e.target.value)}
                   style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff', fontSize: '13px' }}
                 >
                   <option value="">-- Chọn nhân viên --</option>
@@ -1026,20 +1026,20 @@ export function WholesaleInvoiceCreatePage() {
               {/* Invoice Label */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nhãn hóa đơn sỉ</span>
-                <input 
-                  type="text" 
-                  placeholder="Nhãn (ví dụ: Ưu tiên, Đại lý cấp 1...)" 
-                  value={form.wholesaleInvoiceLabel} 
-                  onChange={(e) => handleChange('wholesaleInvoiceLabel', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                <input
+                  type="text"
+                  placeholder="Nhãn (ví dụ: Ưu tiên, Đại lý cấp 1...)"
+                  value={form.wholesaleInvoiceLabel}
+                  onChange={(e) => handleChange('wholesaleInvoiceLabel', e.target.value)}
+                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                 />
               </div>
 
               {/* Order Source */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Nguồn đơn hàng</span>
-                <select 
-                  value={form.orderSource} 
+                <select
+                  value={form.orderSource}
                   onChange={(e) => handleChange('orderSource', e.target.value)}
                   style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', background: '#ffffff', fontSize: '13px' }}
                 >
@@ -1055,12 +1055,12 @@ export function WholesaleInvoiceCreatePage() {
               {/* General Note */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ghi chú hóa đơn</span>
-                <input 
-                  type="text" 
-                  placeholder="Ghi chú thêm về đơn hàng bán sỉ..." 
-                  value={form.description} 
-                  onChange={(e) => handleChange('description', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                <input
+                  type="text"
+                  placeholder="Ghi chú thêm về đơn hàng bán sỉ..."
+                  value={form.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                 />
               </div>
 
@@ -1070,35 +1070,35 @@ export function WholesaleInvoiceCreatePage() {
 
         {/* Right Column (30%) - Customer details, VAT, Payment summary */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
+
           {/* Customer Card */}
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ background: '#e0f2fe', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
+              <div style={{ background: '#d1fae5', width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
                 <User size={15} />
               </div>
               <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Khách Hàng Doanh Nghiệp</h2>
             </div>
 
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              
+
               {/* Phone number & Lookup action */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Số điện thoại (F4)</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
                   <Phone size={14} color="#94a3b8" />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     id="customer-phone-input"
-                    placeholder="Nhập SĐT tìm kiếm..." 
-                    value={form.customerPhone} 
+                    placeholder="Nhập SĐT tìm kiếm..."
+                    value={form.customerPhone}
                     onFocus={() => setShowCustomerDropdown(true)}
                     onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                     onChange={(e) => {
                       handleChange('customerPhone', e.target.value);
                       lookupCustomer(e.target.value);
-                    }} 
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b', fontSize: '13px' }} 
+                    }}
+                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '10px 0', width: '100%', color: '#1e293b', fontSize: '13px' }}
                   />
                 </div>
               </div>
@@ -1107,18 +1107,18 @@ export function WholesaleInvoiceCreatePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '12px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tên khách hàng <span style={{ color: '#ef4444' }}>*</span></span>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
-                    placeholder="Tên khách đại lý / sỉ" 
-                    value={form.customerName} 
+                    placeholder="Tên khách đại lý / sỉ"
+                    value={form.customerName}
                     onFocus={() => setShowCustomerDropdown(true)}
                     onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                     onChange={(e) => {
                       handleChange('customerName', e.target.value);
                       setShowCustomerDropdown(true);
-                    }} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                    }}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                   />
                   {showCustomerDropdown && (form.customerName.trim().length > 0 || form.customerPhone.trim().length > 0) && customerSuggestions.length > 0 && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto' }}>
@@ -1132,12 +1132,12 @@ export function WholesaleInvoiceCreatePage() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Mã thẻ</span>
-                  <input 
-                    type="text" 
-                    placeholder="Mã đại lý" 
-                    value={form.customerCode} 
-                    onChange={(e) => handleChange('customerCode', e.target.value)} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                  <input
+                    type="text"
+                    placeholder="Mã đại lý"
+                    value={form.customerCode}
+                    onChange={(e) => handleChange('customerCode', e.target.value)}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                   />
                 </div>
               </div>
@@ -1146,21 +1146,21 @@ export function WholesaleInvoiceCreatePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '12px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Email</span>
-                  <input 
-                    type="email" 
-                    placeholder="email@example.com" 
-                    value={form.email} 
-                    onChange={(e) => handleChange('email', e.target.value)} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                  <input
+                    type="email"
+                    placeholder="email@example.com"
+                    value={form.email}
+                    onChange={(e) => handleChange('email', e.target.value)}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Ngày sinh</span>
-                  <input 
-                    type="date" 
-                    value={form.dob} 
-                    onChange={(e) => handleChange('dob', e.target.value)} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '9px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                  <input
+                    type="date"
+                    value={form.dob}
+                    onChange={(e) => handleChange('dob', e.target.value)}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '9px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                   />
                 </div>
               </div>
@@ -1168,72 +1168,72 @@ export function WholesaleInvoiceCreatePage() {
               {/* Region & Detail Address */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Tỉnh/Thành phố, Quận/Huyện, Phường/Xã</span>
-                <input 
-                  type="text" 
-                  placeholder="Tỉnh/Thành phố, Phường/Xã" 
-                  value={form.addressLocation} 
-                  onChange={(e) => handleChange('addressLocation', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                <input
+                  type="text"
+                  placeholder="Tỉnh/Thành phố, Phường/Xã"
+                  value={form.addressLocation}
+                  onChange={(e) => handleChange('addressLocation', e.target.value)}
+                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>Địa chỉ cụ thể</span>
-                <input 
-                  type="text" 
-                  placeholder="Số nhà, tên đường..." 
-                  value={form.address} 
-                  onChange={(e) => handleChange('address', e.target.value)} 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                <input
+                  type="text"
+                  placeholder="Số nhà, tên đường..."
+                  value={form.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                 />
               </div>
 
               {/* Company Info for Wholesale Enterprises */}
               <div style={{ borderTop: '1px dashed #e2e8f0', marginTop: '10px', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Building size={14} color="#7c3aed" /> Thông tin doanh nghiệp sỉ
+                  <Building size={14} color="#10b981" /> Thông tin doanh nghiệp sỉ
                 </span>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Tên công ty</span>
-                  <input 
-                    type="text" 
-                    placeholder="Tên công ty xuất hóa đơn" 
-                    value={form.companyName} 
-                    onChange={(e) => handleChange('companyName', e.target.value)} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                  <input
+                    type="text"
+                    placeholder="Tên công ty xuất hóa đơn"
+                    value={form.companyName}
+                    onChange={(e) => handleChange('companyName', e.target.value)}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Mã số thuế</span>
-                  <input 
-                    type="text" 
-                    placeholder="Mã số thuế công ty sỉ" 
-                    value={form.taxId} 
-                    onChange={(e) => handleChange('taxId', e.target.value)} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                  <input
+                    type="text"
+                    placeholder="Mã số thuế công ty sỉ"
+                    value={form.taxId}
+                    onChange={(e) => handleChange('taxId', e.target.value)}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <span style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Số PO - Hợp đồng</span>
-                    <input 
-                      type="text" 
-                      placeholder="Số hợp đồng PO" 
-                      value={form.poContractNumber} 
-                      onChange={(e) => handleChange('poContractNumber', e.target.value)} 
-                      style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                    <input
+                      type="text"
+                      placeholder="Số hợp đồng PO"
+                      value={form.poContractNumber}
+                      onChange={(e) => handleChange('poContractNumber', e.target.value)}
+                      style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <span style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Ngày ký hợp đồng</span>
-                    <input 
-                      type="date" 
-                      value={form.contractSigningDate} 
-                      onChange={(e) => handleChange('contractSigningDate', e.target.value)} 
-                      style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '9px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }} 
+                    <input
+                      type="date"
+                      value={form.contractSigningDate}
+                      onChange={(e) => handleChange('contractSigningDate', e.target.value)}
+                      style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '9px 12px', outline: 'none', color: '#1e293b', fontSize: '13px' }}
                     />
                   </div>
                 </div>
@@ -1251,7 +1251,7 @@ export function WholesaleInvoiceCreatePage() {
                 </div>
                 <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Hóa đơn VAT</h2>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', color: '#6d28d9' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', color: '#059669' }}>
                 <input
                   type="checkbox"
                   checked={form.hasVat}
@@ -1266,21 +1266,21 @@ export function WholesaleInvoiceCreatePage() {
               <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', background: '#fffbeb' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Số hóa đơn VAT</span>
-                  <input 
-                    type="text" 
-                    placeholder="Số hóa đơn VAT đỏ" 
-                    value={form.vatInvoiceNumber} 
-                    onChange={(e) => handleChange('vatInvoiceNumber', e.target.value)} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px', background: '#ffffff' }} 
+                  <input
+                    type="text"
+                    placeholder="Số hóa đơn VAT đỏ"
+                    value={form.vatInvoiceNumber}
+                    onChange={(e) => handleChange('vatInvoiceNumber', e.target.value)}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', outline: 'none', color: '#1e293b', fontSize: '13px', background: '#ffffff' }}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Ngày xuất hóa đơn</span>
-                  <input 
-                    type="date" 
-                    value={form.vatInvoiceDate} 
-                    onChange={(e) => handleChange('vatInvoiceDate', e.target.value)} 
-                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '9px 12px', outline: 'none', color: '#1e293b', fontSize: '13px', background: '#ffffff' }} 
+                  <input
+                    type="date"
+                    value={form.vatInvoiceDate}
+                    onChange={(e) => handleChange('vatInvoiceDate', e.target.value)}
+                    style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '9px 12px', outline: 'none', color: '#1e293b', fontSize: '13px', background: '#ffffff' }}
                   />
                 </div>
               </div>
@@ -1297,10 +1297,10 @@ export function WholesaleInvoiceCreatePage() {
             </div>
 
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
+
               {/* Order discount, VAT% and auto checkbox */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
-                
+
                 {/* Auto discount toggle */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>Bỏ chiết khấu tự động</span>
@@ -1323,8 +1323,8 @@ export function WholesaleInvoiceCreatePage() {
                 {/* Order Discount Input */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#64748b' }}>Chiết khấu đơn (đ):</span>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min={0}
                     value={form.orderDiscount || ''}
                     onChange={(e) => handleChange('orderDiscount', Number(e.target.value) || 0)}
@@ -1336,8 +1336,8 @@ export function WholesaleInvoiceCreatePage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#64748b' }}>Thuế VAT (%):</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       min={0}
                       max={100}
                       disabled={!form.hasVat}
@@ -1360,8 +1360,8 @@ export function WholesaleInvoiceCreatePage() {
                 {/* Cash */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#475569' }}>Tiền mặt (đ):</span>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min={0}
                     placeholder="0"
                     value={form.paymentCash || ''}
@@ -1373,8 +1373,8 @@ export function WholesaleInvoiceCreatePage() {
                 {/* Transfer */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#475569' }}>Chuyển khoản (đ):</span>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min={0}
                     placeholder="0"
                     value={form.paymentTransfer || ''}
@@ -1386,8 +1386,8 @@ export function WholesaleInvoiceCreatePage() {
                 {/* Card */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#475569' }}>Quẹt thẻ (đ):</span>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min={0}
                     placeholder="0"
                     value={form.paymentCard || ''}
@@ -1399,8 +1399,8 @@ export function WholesaleInvoiceCreatePage() {
                 {/* Other */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', color: '#475569' }}>Khác (đ):</span>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min={0}
                     placeholder="0"
                     value={form.paymentOther || ''}
@@ -1414,8 +1414,8 @@ export function WholesaleInvoiceCreatePage() {
                   <span style={{ fontSize: '13px', color: '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
                     Đã thanh toán từ đơn hàng (đ):
                   </span>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min={0}
                     placeholder="0"
                     value={form.prepaidFromOrder || ''}
@@ -1428,11 +1428,11 @@ export function WholesaleInvoiceCreatePage() {
 
               {/* Total Paid & Debt Outputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                
+
                 {/* Total amount payable */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>Tổng tiền phải thanh toán:</span>
-                  <span style={{ fontSize: '18px', fontWeight: '800', color: '#7c3aed' }}>
+                  <span style={{ fontSize: '18px', fontWeight: '800', color: '#10b981' }}>
                     {form.totalAmount.toLocaleString('vi-VN')} đ
                   </span>
                 </div>
@@ -1467,19 +1467,19 @@ export function WholesaleInvoiceCreatePage() {
                   Tự động in sau khi lưu hóa đơn (F10)
                 </label>
 
-                <button 
+                <button
                   type="submit"
                   disabled={isSaving}
-                  style={{ 
+                  style={{
                     width: '100%',
-                    borderRadius: '10px', 
-                    padding: '12px 24px', 
-                    fontSize: '15px', 
-                    fontWeight: '700', 
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', 
+                    borderRadius: '10px',
+                    padding: '12px 24px',
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     color: '#ffffff',
-                    border: 'none', 
-                    boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)',
+                    border: 'none',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

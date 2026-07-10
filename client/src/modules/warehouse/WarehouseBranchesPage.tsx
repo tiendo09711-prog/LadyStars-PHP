@@ -733,8 +733,8 @@ export function WarehouseBranchesPage() {
   }
 
   return (
-    <div className="warehouse-branches-page">
-      <div className="warehouse-branches-header card-shell">
+    <div className="warehouse-branches-page compact-page">
+      <div className="warehouse-branches-header card-shell compact-toolbar-card">
         <div>
           <h1>Cấu hình kho hàng</h1>
           <p>Quản lý kho vận hành, dữ liệu chi nhánh và thông tin in hóa đơn.</p>

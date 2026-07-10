@@ -4,7 +4,6 @@ import {
   ChevronDown,
   FileDown,
   FileUp,
-  Filter,
   Inbox,
   MoreHorizontal,
   Pencil,
@@ -407,150 +406,150 @@ export function DataModulePage({
   };
 
   return (
-    <div className="page-stack">
-      <div className="page-heading">
-        <div className="page-title-block">
-          <div className="page-icon">{icon}</div>
-          <div>
-            <h1>{title}</h1>
-            <p>{subtitle}</p>
-          </div>
-        </div>
-        <div className="page-actions">
-          {extraHeaderButtons}
-          {canCreate && (
-            <div className={`primary-action-split ${hasPrimaryActions ? 'has-menu' : ''}`}>
-              <button className="btn btn-primary primary-action-main" type="button" onClick={runPrimaryCreate}>
-                <Plus size={16} /> {primaryActionLabel}
-              </button>
-              {hasPrimaryActions && (
-                <>
-                  <button
-                    className="btn btn-primary primary-action-toggle"
-                    type="button"
-                    aria-label="Mở lựa chọn tạo mới"
-                    aria-expanded={showPrimaryDropdown}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setShowPrimaryDropdown((current) => !current);
-                      setShowToolsDropdown(false);
-                      if (onImportExcel) {
-                        onImportExcel();
-                        return;
-                      }
-                    }}
-                  >
-                    <ChevronDown size={16} />
-                  </button>
-                  {showPrimaryDropdown && (
-                    <div className="dropdown-menu primary-action-menu">
-                      <button className="dropdown-item" type="button" onClick={runPrimaryCreate}>
-                        <Plus size={16} />
-                        <span>{primaryActionLabel}</span>
-                      </button>
-                      <div className="dropdown-separator" />
-                      {primaryActions?.map((action, index) => (
-                        <button
-                          key={`${action.label}-${index}`}
-                          className="dropdown-item"
-                          type="button"
-                          onClick={() => {
-                            setShowPrimaryDropdown(false);
-                            action.onClick();
-                          }}
-                        >
-                          {action.icon}
-                          <span>{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
+    <div className="page-stack compact-stack compact-page-module">
+      <section className="compact-toolbar-card">
+        <div className="compact-header page-heading">
+          <span className="compact-badge">MODULE</span>
+          <div className="page-title-block">
+            <div className="page-icon">{icon}</div>
+            <div>
+              <h1 className="compact-title">{title}</h1>
+              <p className="compact-desc">{subtitle}</p>
             </div>
-          )}
-          <div className="dropdown-container">
-            <button
-              className="btn btn-light"
-              type="button"
-              aria-expanded={showToolsDropdown}
-              onClick={(event) => {
-                event.stopPropagation();
-                setShowToolsDropdown((current) => !current);
-                setShowPrimaryDropdown(false);
-              }}
-            >
-              <Wrench size={16} /> Công cụ
-            </button>
-            {showToolsDropdown && (
-              <div className="dropdown-menu tools-menu">
-                <button className="dropdown-item" type="button" onClick={() => { setSearch(''); setAppliedSearch(''); setQuickFilter(''); setPage(1); setRefreshKey((value) => value + 1); }}>
-                  <RefreshCw size={16} /> Làm mới
+          </div>
+          <div className="compact-header-actions page-actions">
+            {extraHeaderButtons}
+            {canCreate && (
+              <div className={`primary-action-split ${hasPrimaryActions ? 'has-menu' : ''}`}>
+                <button className="btn btn-primary compact-btn compact-btn-primary primary-action-main" type="button" onClick={runPrimaryCreate}>
+                  <Plus size={14} /> {primaryActionLabel}
                 </button>
-                <button className="dropdown-item" type="button" onClick={() => setShowExportModal(true)}>
-                  <FileDown size={16} /> Xuất dữ liệu
-                </button>
-                {!hideImport && (
-                  <button
-                    className="dropdown-item"
-                    type="button"
-                    onClick={() => {
-                      setShowToolsDropdown(false);
-                      alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.');
-                    }}
-                  >
-                    <FileUp size={16} /> Nhập dữ liệu
-                  </button>
+                {hasPrimaryActions && (
+                  <>
+                    <button
+                      className="btn btn-primary compact-btn compact-btn-primary primary-action-toggle"
+                      type="button"
+                      aria-label="Mở lựa chọn tạo mới"
+                      aria-expanded={showPrimaryDropdown}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setShowPrimaryDropdown((current) => !current);
+                        setShowToolsDropdown(false);
+                        if (onImportExcel) {
+                          onImportExcel();
+                          return;
+                        }
+                      }}
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                    {showPrimaryDropdown && (
+                      <div className="dropdown-menu primary-action-menu">
+                        <button className="dropdown-item" type="button" onClick={runPrimaryCreate}>
+                          <Plus size={14} />
+                          <span>{primaryActionLabel}</span>
+                        </button>
+                        <div className="dropdown-separator" />
+                        {primaryActions?.map((action, index) => (
+                          <button
+                            key={`${action.label}-${index}`}
+                            className="dropdown-item"
+                            type="button"
+                            onClick={() => {
+                              setShowPrimaryDropdown(false);
+                              action.onClick();
+                            }}
+                          >
+                            {action.icon}
+                            <span>{action.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {metrics.length > 0 && (
-        <div className="metric-row">
-          {metrics.map((metric) => (
-            <div className={`metric-card ${metric.tone ?? 'neutral'}`} key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
+            <div className="dropdown-container">
+              <button
+                className="btn btn-light compact-btn compact-btn-secondary"
+                type="button"
+                aria-expanded={showToolsDropdown}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShowToolsDropdown((current) => !current);
+                  setShowPrimaryDropdown(false);
+                }}
+              >
+                <Wrench size={14} /> Công cụ
+              </button>
+              {showToolsDropdown && (
+                <div className="dropdown-menu tools-menu">
+                  <button className="dropdown-item" type="button" onClick={() => { setSearch(''); setAppliedSearch(''); setQuickFilter(''); setPage(1); setRefreshKey((value) => value + 1); }}>
+                    <RefreshCw size={14} /> Làm mới
+                  </button>
+                  <button className="dropdown-item" type="button" onClick={() => setShowExportModal(true)}>
+                    <FileDown size={14} /> Xuất dữ liệu
+                  </button>
+                  {!hideImport && (
+                    <button
+                      className="dropdown-item"
+                      type="button"
+                      onClick={() => {
+                        setShowToolsDropdown(false);
+                        alert('Dùng API CRUD hoặc npm run load để nạp dữ liệu mẫu lên MongoDB Atlas.');
+                      }}
+                    >
+                      <FileUp size={14} /> Nhập dữ liệu
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-
-      <div className="module-grid">
-        <aside className="filter-panel">
-          <div className="panel-title">
-            <Filter size={18} />
-            <span>Bộ lọc</span>
           </div>
-          <label className="field-label">Tìm kiếm</label>
-          <div className="search-box">
-            <Search size={16} />
+        </div>
+
+        {metrics.length > 0 && (
+          <div className="compact-kpi-row metric-row">
+            {metrics.map((metric) => (
+              <div className={`compact-kpi-card metric-card ${metric.tone ?? 'neutral'}`} key={metric.label}>
+                <span className="compact-kpi-label">{metric.label}</span>
+                <strong className="compact-kpi-value">{metric.value}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="compact-filter-bar filter-panel">
+          <div className="compact-search search-box">
+            <Search size={14} />
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Mã, tên, số điện thoại..." />
           </div>
           {quickFilters.length > 0 && (
-            <>
-              <label className="field-label">Lọc nhanh</label>
-              <div className="quick-filter-list" role="list" aria-label="Lọc nhanh">
-                <button className={!quickFilter ? 'active' : ''} type="button" onClick={() => setQuickFilter('')}>Tất cả</button>
-                {quickFilters.map((filter) => (
-                  <button className={quickFilter === filter.value ? 'active' : ''} key={filter.value} type="button" onClick={() => setQuickFilter(filter.value)}>
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-            </>
+            <div className="compact-pills quick-filter-list" role="list" aria-label="Lọc nhanh">
+              <button className={`compact-pill ${!quickFilter ? 'compact-pill-active active' : ''}`} type="button" onClick={() => setQuickFilter('')}>Tất cả</button>
+              {quickFilters.map((filter) => (
+                <button
+                  className={`compact-pill ${quickFilter === filter.value ? 'compact-pill-active active' : ''}`}
+                  key={filter.value}
+                  type="button"
+                  onClick={() => setQuickFilter(filter.value)}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
           )}
-        </aside>
+        </div>
+      </section>
 
-        <section className="data-card">
-          <div className="data-card-header">
+      <div className="module-grid compact-stack">
+        <section className="data-card compact-table-card">
+          <div className="data-card-header compact-table-header">
             <div>
-              <h2>{title}</h2>
+              <h2 className="compact-table-title">{title}</h2>
               <div className="data-card-meta">
-                <span className="record-badge">{total} bản ghi</span>
+                <span className="record-badge compact-table-count">{total} bản ghi</span>
                 {selectedIds.size > 0 && <span className="selected-badge">{selectedIds.size} đã chọn</span>}
               </div>
             </div>
@@ -591,8 +590,8 @@ export function DataModulePage({
             </div>
           )}
 
-          <div className="table-scroll">
-            <table className="data-table">
+          <div className="table-scroll compact-table-wrap">
+            <table className="data-table compact-table">
               <thead>
                 <tr>
                   <th className="check-cell">

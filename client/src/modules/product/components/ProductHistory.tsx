@@ -1,8 +1,8 @@
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRef } from 'react';
 import { Clock3, FileDown, Filter, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { createPortal } from 'react-dom';
 import { productApi } from '../../../core/api/product.api';
 import { Pagination } from '../../../core/components/Pagination';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
@@ -45,7 +45,7 @@ function safeFormatDate(value: any): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleString('vi-VN');
 }
 
-export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HTMLDivElement | null> } = {}) {
+export function ProductHistory({ headerSlot }: { actionSlot?: React.RefObject<HTMLDivElement | null>; headerSlot?: ReactNode } = {}) {
   const [items, setItems] = useState<IProductHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [draftFilters, setDraftFilters] = useState<HistoryFilters>(() => defaultHistoryFilters());
@@ -66,6 +66,7 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const limit = 15;
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const exportColumns: ColumnOption[] = useMemo(
     () => [
@@ -85,7 +86,6 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
 
   const load = async () => {
     setLoading(true);
-
     try {
       const response = await productApi.getProductLogs({
         page,
@@ -97,10 +97,8 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
         fromDate: appliedFilters.fromDate || undefined,
         toDate: appliedFilters.toDate || undefined,
       });
-
-      setItems(response.items);
-      setTotal(response.total);
-
+      setItems(response.items || []);
+      setTotal(response.total || 0);
       if (response.meta) {
         setFilterOptions({
           logTypes: response.meta.logTypes || [],
@@ -111,6 +109,8 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
       }
     } catch (error) {
       console.error('Lỗi tải lịch sử sản phẩm:', error);
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -118,7 +118,16 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
 
   useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, appliedFilters]);
+
+  useProductScanTarget(searchRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setDraftFilters((current) => ({ ...current, search: query }));
+    setAppliedFilters((current) => ({ ...current, search: query }));
+    setPage(1);
+  });
 
   const handleApplyFilters = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -129,20 +138,10 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
     });
   };
 
-  const searchRef = useRef<HTMLInputElement>(null);
-  useProductScanTarget(searchRef, (rawBarcode) => {
-    const query = rawBarcode.trim();
-    if (!query) return;
-    setDraftFilters((current) => ({ ...current, search: query }));
-    setAppliedFilters((current) => ({ ...current, search: query }));
-    setPage(1);
-  });
-
   const handleReset = () => {
-    const emptyFilters = defaultHistoryFilters();
-
-    setDraftFilters(emptyFilters);
-    setAppliedFilters(emptyFilters);
+    const next = defaultHistoryFilters();
+    setDraftFilters(next);
+    setAppliedFilters(next);
     setPage(1);
   };
 
@@ -150,13 +149,11 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
     exportType: 'current' | 'all',
     filename: string,
     sheetName: string,
-    selectedColumns: { key: string; customLabel: string }[],
+    selectedCols: { key: string; customLabel: string }[],
   ) => {
     setExportLoading(true);
-
     try {
       let dataToExport: IProductHistory[] = [];
-
       if (exportType === 'current') {
         dataToExport = items;
       } else {
@@ -171,11 +168,10 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
           fromDate: appliedFilters.fromDate || undefined,
           toDate: appliedFilters.toDate || undefined,
         });
-
-        let allItems = [...firstPage.items];
-        const pagesToFetch = Math.ceil(firstPage.total / pageSize);
-
-        if (pagesToFetch > 1) {
+        let allItems = [...(firstPage.items || [])];
+        const totalItems = firstPage.total || 0;
+        if (totalItems > pageSize) {
+          const pagesToFetch = Math.ceil(totalItems / pageSize);
           const responses = await Promise.all(
             Array.from({ length: pagesToFetch - 1 }, (_, index) =>
               productApi.getProductLogs({
@@ -190,32 +186,30 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
               }),
             ),
           );
-
-          responses.forEach((response) => {
-            allItems = allItems.concat(response.items);
+          responses.forEach((res) => {
+            allItems = allItems.concat(res.items || []);
           });
         }
-
         dataToExport = allItems;
       }
 
-      const mappedRows = dataToExport.map((item) => {
+      const mappedData = dataToExport.map((item) => {
         const row: Record<string, unknown> = {};
-        selectedColumns.forEach((column) => {
-          const exportColumn = exportColumns.find((option) => option.key === column.key);
-          row[column.customLabel] = exportColumn ? exportColumn.getValue(item) : '';
+        selectedCols.forEach((col) => {
+          const matchingCol = exportColumns.find((column) => column.key === col.key);
+          row[col.customLabel] = matchingCol ? matchingCol.getValue(item) : '';
         });
         return row;
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(mappedRows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      const ws = XLSX.utils.json_to_sheet(mappedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      XLSX.writeFile(wb, `${filename}.xlsx`);
       setShowExportModal(false);
-    } catch (error) {
-      console.error('Lỗi xuất Excel lịch sử sản phẩm:', error);
-      alert('Xuất Excel thất bại.');
+    } catch (err) {
+      console.error(err);
+      alert('Xuất file thất bại!');
     } finally {
       setExportLoading(false);
     }
@@ -226,157 +220,131 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
   }, [appliedFilters]);
 
   return (
-    <div className="products-panel">
-      <section className="products-control-card">
-        <div className="products-stat-row">
-          <span className="record-badge">{total.toLocaleString('vi-VN')} bản ghi</span>
-          <span className="products-stat-chip">
-            <Clock3 size={14} />
-            Trang {page} / {Math.max(1, Math.ceil(total / limit))}
-          </span>
-          <span className="products-stat-chip">
-            <Filter size={14} />
-            {activeFilterCount} bộ lọc đang áp dụng
-          </span>
+    <div className="products-list-stack">
+      <section className="data-card inventory-toolbar-card products-sticky-toolbar products-history-toolbar">
+        {headerSlot ? <div className="products-toolbar-header-slot">{headerSlot}</div> : null}
+
+        <div className="inv-kpi-row products-summary-strip" aria-label="Tóm tắt lịch sử sản phẩm">
+          <div className="inv-kpi-card products-summary-chip">
+            <div className="inv-kpi-label">Bản ghi</div>
+            <div className="inv-kpi-value">{total.toLocaleString('vi-VN')}</div>
+            <div className="inv-kpi-sub">Trang {page}/{Math.max(1, Math.ceil(total / limit))}</div>
+          </div>
+          <div className="inv-kpi-card products-summary-chip">
+            <div className="inv-kpi-label">Bộ lọc</div>
+            <div className="inv-kpi-value">{activeFilterCount}</div>
+          </div>
+          <div className="inv-kpi-card inv-kpi-card--value products-summary-chip products-summary-chip--wide">
+            <div className="inv-kpi-label">Khoảng ngày</div>
+            <div className="inv-kpi-value is-compact">
+              {appliedFilters.fromDate || '—'} → {appliedFilters.toDate || '—'}
+            </div>
+          </div>
         </div>
 
-        {actionSlot?.current
-          ? createPortal(
-              <div className="products-action-row">
-                <button className="btn btn-light" type="button" onClick={handleReset}>
-                  <RefreshCw size={15} />
-                  Làm mới
-                </button>
-                <button
-                  className="btn btn-light"
-                  type="button"
-                  style={{ borderColor: '#bbf7d0', color: '#047857' }}
-                  onClick={() => setShowExportModal(true)}
-                >
-                  <FileDown size={15} />
-                  Xuất Excel
-                </button>
-              </div>,
-              actionSlot.current,
-            )
-          : null}
-        <form className="products-filter-form" onSubmit={handleApplyFilters}>
-          <div className="products-filter-grid products-grid-history">
-            <label className="products-inline-field">
-              <span>Sản phẩm</span>
-              <div className="products-inline-control">
-                <Search size={16} />
-                <input
-                  value={draftFilters.search}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))}
-                  ref={searchRef}
-                  data-product-search-scan="true" data-product-search-primary="true" placeholder="Mã hoặc tên sản phẩm..."
-                />
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Loại log</span>
-              <div className="products-inline-control">
-                <select
-                  value={draftFilters.logType}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, logType: event.target.value }))}
-                >
-                  <option value="">Tất cả</option>
-                  {filterOptions.logTypes.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Kiểu log</span>
-              <div className="products-inline-control">
-                <select
-                  value={draftFilters.logAction}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, logAction: event.target.value }))}
-                >
-                  <option value="">Tất cả</option>
-                  {filterOptions.logActions.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Người sửa</span>
-              <div className="products-inline-control">
-                <select
-                  value={draftFilters.createdBy}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, createdBy: event.target.value }))}
-                >
-                  <option value="">Tất cả</option>
-                  {filterOptions.editors.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Từ ngày</span>
-              <div className="products-inline-control">
-                <input
-                  type="date"
-                  value={draftFilters.fromDate}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, fromDate: event.target.value }))}
-                />
-              </div>
-            </label>
-
-            <label className="products-inline-field">
-              <span>Đến ngày</span>
-              <div className="products-inline-control">
-                <input
-                  type="date"
-                  value={draftFilters.toDate}
-                  onChange={(event) => setDraftFilters((current) => ({ ...current, toDate: event.target.value }))}
-                />
-              </div>
-            </label>
-
-            <button className="btn btn-primary products-filter-submit" type="submit">
-              <Search size={15} />
-              Lọc
-            </button>
-
-            <button className="btn btn-light products-filter-submit" type="button" onClick={handleReset}>
-              Reset
-            </button>
+        <form className="inv-filter-bar" onSubmit={handleApplyFilters}>
+          <div className="inv-search">
+            <Search size={15} />
+            <input
+              value={draftFilters.search}
+              onChange={(event) => setDraftFilters((current) => ({ ...current, search: event.target.value }))}
+              ref={searchRef}
+              data-product-search-scan="true"
+              data-product-search-primary="true"
+              placeholder="Mã hoặc tên sản phẩm..."
+            />
           </div>
 
-          <div className="products-filter-note">
+          <select
+            className="inv-filter-select"
+            value={draftFilters.logType}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, logType: event.target.value }))}
+            title="Loại log"
+          >
+            <option value="">Loại log</option>
+            {filterOptions.logTypes.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="inv-filter-select"
+            value={draftFilters.logAction}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, logAction: event.target.value }))}
+            title="Kiểu log"
+          >
+            <option value="">Kiểu log</option>
+            {filterOptions.logActions.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="inv-filter-select"
+            value={draftFilters.createdBy}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, createdBy: event.target.value }))}
+            title="Người sửa"
+          >
+            <option value="">Người sửa</option>
+            {filterOptions.editors.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+
+          <input
+            className="inv-filter-select"
+            type="date"
+            value={draftFilters.fromDate}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, fromDate: event.target.value }))}
+            title="Từ ngày"
+          />
+          <input
+            className="inv-filter-select"
+            type="date"
+            value={draftFilters.toDate}
+            onChange={(event) => setDraftFilters((current) => ({ ...current, toDate: event.target.value }))}
+            title="Đến ngày"
+          />
+
+          <div className="products-filter-actions inv-filter-actions">
+            <button type="submit" className="inv-btn inv-btn-primary">
+              <Filter size={14} />
+              Lọc
+            </button>
+            <button type="button" className="inv-btn inv-btn-secondary" onClick={handleReset}>
+              <RefreshCw size={14} />
+              Làm mới
+            </button>
+            <button type="button" className="inv-btn inv-btn-accent" onClick={() => setShowExportModal(true)}>
+              <FileDown size={14} />
+              Xuất Excel
+            </button>
           </div>
         </form>
       </section>
 
-      <section className="products-table-card">
-        <div className="products-table-topbar">
+      <section className="data-card inventory-table-card">
+        <div className="data-card-header inventory-table-header products-table-heading">
           <div>
-            <strong>Bảng lịch sử thay đổi</strong>
-
+            <h2 className="products-table-title">Bảng lịch sử thay đổi</h2>
+            <p className="inventory-table-subtitle">
+              Theo dõi người sửa, kiểu sửa và thời điểm
+            </p>
           </div>
-          <div className="products-table-hint">
-            <Clock3 size={14} />
-            Theo dõi người sửa, kiểu sửa và thời điểm
-          </div>
+          <span className="products-selected-count">
+            <Clock3 size={12} aria-hidden="true" />
+            {total.toLocaleString('vi-VN')} bản ghi
+          </span>
         </div>
 
-        <div className="products-table-wrap">
-          <table className="data-table">
+        <div className="table-scroll inventory-table-scroll">
+          <table className="data-table products-data-table">
             <thead>
               <tr>
                 <th>Mã SP</th>
@@ -414,17 +382,13 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
                         <div className="products-name-main">{item.productName || '-'}</div>
                       </td>
                       <td>
-                        <span
-                          className={`status-badge ${filterOptions.toneByLogType[item.logType] || ''}`}
-                        >
+                        <span className={`status-badge ${filterOptions.toneByLogType[item.logType] || ''}`}>
                           {item.logType || 'Hệ thống'}
                         </span>
                       </td>
                       <td>{item.logAction || '-'}</td>
                       <td>{item.createdBy || '-'}</td>
-                      <td className="products-history-time">
-                        {safeFormatDate(item.createdAt)}
-                      </td>
+                      <td className="products-history-time">{safeFormatDate(item.createdAt)}</td>
                     </tr>
                   ))
                 : null}
@@ -439,8 +403,8 @@ export function ProductHistory({ actionSlot }: { actionSlot?: React.RefObject<HT
         <ExportExcelModal
           isOpen={showExportModal}
           onClose={() => setShowExportModal(false)}
-          title="Xuất Excel - Lịch sử sửa xóa"
-          defaultFilename={`lich-su-sua-xoa-san-pham-${new Date().toISOString().slice(0, 10)}`}
+          title="Xuất Excel - Lịch sử sản phẩm"
+          defaultFilename={`lich-su-san-pham-${new Date().toISOString().slice(0, 10)}`}
           columns={exportColumns}
           onExport={handleExcelExport}
           loading={exportLoading}

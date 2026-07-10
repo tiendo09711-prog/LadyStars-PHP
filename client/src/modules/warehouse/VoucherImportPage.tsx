@@ -369,7 +369,7 @@ export function VoucherImportPage() {
   };
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page compact-page">
       {/* Page Heading */}
       <div className="page-heading">
         <div className="page-title-block">

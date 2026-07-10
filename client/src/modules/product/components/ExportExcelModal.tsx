@@ -221,7 +221,7 @@ export function ExportExcelModal({
           border: 2px solid #cbd5e1;
           border-radius: 50%;
           cursor: pointer;
-          accent-color: #2563eb;
+          accent-color: #10b981;
         }
 
         .export-tabs {
@@ -243,7 +243,7 @@ export function ExportExcelModal({
         }
 
         .export-tab.active {
-          color: #2563eb;
+          color: #10b981;
         }
 
         .export-tab.active::after {
@@ -253,7 +253,7 @@ export function ExportExcelModal({
           left: 0;
           right: 0;
           height: 2px;
-          background: #2563eb;
+          background: #10b981;
           border-radius: 2px;
         }
 
@@ -291,8 +291,8 @@ export function ExportExcelModal({
         }
 
         .export-text-input:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+          border-color: #34d399;
+          box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
         }
 
         .export-columns-header {
@@ -320,7 +320,7 @@ export function ExportExcelModal({
         }
 
         .export-columns-search input:focus {
-          border-color: #3b82f6;
+          border-color: #34d399;
         }
 
         .export-columns-search svg {
@@ -399,7 +399,7 @@ export function ExportExcelModal({
         .export-checkbox-input {
           width: 16px;
           height: 16px;
-          accent-color: #2563eb;
+          accent-color: #10b981;
           cursor: pointer;
         }
 
@@ -415,7 +415,7 @@ export function ExportExcelModal({
         }
 
         .export-column-rename-input:focus {
-          border-color: #3b82f6;
+          border-color: #34d399;
           background: #ffffff;
         }
 
@@ -444,13 +444,13 @@ export function ExportExcelModal({
         }
 
         .export-btn-primary {
-          background: #2563eb;
+          background: #10b981;
           color: #ffffff;
         }
 
         .export-btn-primary:hover:not(:disabled) {
-          background: #1d4ed8;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+          background: #059669;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
 
         .export-btn-primary:disabled {

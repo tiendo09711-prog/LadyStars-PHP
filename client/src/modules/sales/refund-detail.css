@@ -14,16 +14,17 @@
   background: var(--danger-soft, #fff2f1);
 }
 .refund-detail-card {
-  border: 1px solid var(--border, #eef2f7);
-  border-radius: 14px;
+  border: 1px solid var(--border, #d7e5de);
+  border-radius: 20px;
   overflow: hidden;
   background: #fff;
+  box-shadow: var(--shadow-soft, 0 8px 22px rgba(15, 23, 42, .06));
 }
 .refund-detail-card h3 {
   margin: 0;
   padding: 12px 16px;
-  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-  border-bottom: 1px solid var(--border, #eef2f7);
+  background: linear-gradient(180deg, #f6fbf8, #eef8f3);
+  border-bottom: 1px solid var(--border, #d7e5de);
   font-size: 13px;
   font-weight: 800;
   color: #334155;

@@ -179,7 +179,7 @@ export function SalesPage() {
   const genericPageProps = genericTab ? (({ key: _key, label: _label, ...props }) => props)(genericTab) : null;
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page compact-page">
       <div className="workspace-tabs" role="tablist" aria-label="Sales tabs">
         {tabs.map((tab) => (
           <button className={tab.key === activeKey ? 'active' : ''} key={tab.key} type="button" onClick={() => setActiveKey(tab.key)}>

@@ -847,16 +847,17 @@ export function CustomerListPage() {
     }
   };
   return (
-    <div className="page-stack customer-list-page" data-testid="customers-list-page">
-      <div className="page-heading customer-list-heading">
-        <div className="page-title-block">
-          <div className="page-icon"><Users size={24} /></div>
+    <div className="page-stack customer-list-page compact-page" data-testid="customers-list-page">
+      <div className="page-heading customer-list-heading compact-toolbar-card">
+        <div className="page-title-block compact-header">
+          <span className="compact-badge">CUSTOMERS</span>
+          <div className="page-icon"><Users size={20} /></div>
           <div>
-            <h1>Khách hàng</h1>
-            <p>Danh sách khách hàng dùng chung cho bán lẻ, bán sỉ và các luồng chọn khách trong hệ thống.</p>
+            <h1 className="compact-title">Khách hàng</h1>
+            <p className="compact-desc">Danh sách khách hàng dùng chung cho bán lẻ, bán sỉ và các luồng chọn khách trong hệ thống.</p>
           </div>
         </div>
-        <div className="page-actions customer-list-actions">
+        <div className="page-actions customer-list-actions compact-header-actions">
           {isAdmin && (
             <button
               className="btn btn-outline"

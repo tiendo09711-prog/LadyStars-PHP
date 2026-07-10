@@ -530,7 +530,7 @@ export function WarehouseTransactionPage() {
   );
 
   return (
-    <div className="workspace-page warehouse-records" ref={menuRootRef}>
+    <div className="workspace-page warehouse-records compact-page" ref={menuRootRef}>
       <section className="wr-card">
         <div className="wr-transfer-tabbar" role="tablist" aria-label="Xuất nhập kho">
           {TRANSACTION_TABS.map((tab) => {

@@ -157,7 +157,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="workspace-page">
+    <div className="workspace-page compact-page">
       <div className="workspace-tabs" role="tablist" aria-label="Settings tabs">
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;

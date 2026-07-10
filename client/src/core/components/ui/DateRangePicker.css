@@ -9,28 +9,37 @@
 }
 
 .drp-input {
-  border: 1px solid #0ea5e9;
+  border: 1px solid #d7e5de;
   padding: 10px 12px;
-  border-radius: 4px;
+  border-radius: 14px;
   outline: none;
   font-size: 14px;
   background: white;
   width: 220px;
+  min-height: 42px;
   cursor: pointer;
   color: #334155;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.drp-input:focus,
+.drp-trigger:focus-within .drp-input {
+  border-color: #34d399;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, .14);
 }
 
 .drp-popover {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #d7e5de;
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
   z-index: 100;
   display: flex;
   min-width: 600px;
+  overflow: hidden;
 }
 
 .drp-sidebar {
@@ -48,7 +57,7 @@
 
 .drp-quick-item:hover {
   background: #f8fafc;
-  color: #0ea5e9;
+  color: #34d399;
 }
 
 .drp-main {
@@ -151,7 +160,7 @@
 }
 
 .cal-day.selected {
-  background: #0ea5e9;
+  background: #34d399;
   color: white;
   font-weight: 500;
 }
@@ -173,7 +182,7 @@
 }
 
 .drp-btn-apply {
-  background: #0ea5e9;
+  background: #34d399;
   color: white;
   border: none;
   padding: 6px 16px;
@@ -183,5 +192,5 @@
 }
 
 .drp-btn-apply:hover {
-  background: #0284c7;
+  background: #059669;
 }

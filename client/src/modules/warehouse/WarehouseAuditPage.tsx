@@ -987,7 +987,7 @@ export function WarehouseAuditPage() {
   );
 
   return (
-    <div className="workspace-page warehouse-records warehouse-audit-admin" ref={rootRef}>
+    <div className="workspace-page warehouse-records warehouse-audit-admin compact-page" ref={rootRef}>
       <section className="wr-card">
         {dashboard ? (
           <div className="audit-dashboard">

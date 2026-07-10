@@ -6,19 +6,19 @@ import {
 import './sales-channel-page.css';
 
 const CHANNEL_META: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
-  store:         { label: 'Cửa hàng',            icon: <Store size={28} />,        color: '#2563eb', bg: '#eff6ff' },
+  store:         { label: 'Cửa hàng',            icon: <Store size={28} />,        color: '#10b981', bg: '#ecfdf5' },
   shopee:        { label: 'Shopee',              icon: <ShoppingBag size={28} />,  color: '#ea580c', bg: '#fff7ed' },
   tiktok:        { label: 'TikTok',              icon: <Music2 size={28} />,       color: '#0f172a', bg: '#f8fafc' },
-  lazada:        { label: 'Lazada',              icon: <Globe size={28} />,        color: '#7c3aed', bg: '#f5f3ff' },
-  tiki:          { label: 'Tiki',                icon: <ShoppingCart size={28} />, color: '#0284c7', bg: '#f0f9ff' },
-  facebook:      { label: 'Facebook Shop',       icon: <Facebook size={28} />,     color: '#1d4ed8', bg: '#eff6ff' },
+  lazada:        { label: 'Lazada',              icon: <Globe size={28} />,        color: '#10b981', bg: '#ecfdf5' },
+  tiki:          { label: 'Tiki',                icon: <ShoppingCart size={28} />, color: '#059669', bg: '#f0f9ff' },
+  facebook:      { label: 'Facebook Shop',       icon: <Facebook size={28} />,     color: '#059669', bg: '#ecfdf5' },
   'ecom-finance':{ label: 'Tài chính sàn TMDT',  icon: <WalletCards size={28} />,  color: '#059669', bg: '#ecfdf5' },
 };
 
 const ACTIONS = [
-  { key: 'find',      label: 'Tìm hóa đơn', desc: 'Tra cứu, tìm kiếm hóa đơn theo nhiều tiêu chí', icon: <Search size={26} />,        color: '#2563eb', bg: '#eff6ff' },
+  { key: 'find',      label: 'Tìm hóa đơn', desc: 'Tra cứu, tìm kiếm hóa đơn theo nhiều tiêu chí', icon: <Search size={26} />,        color: '#10b981', bg: '#ecfdf5' },
   { key: 'retail',    label: 'Bán lẻ',      desc: 'Tạo đơn bán lẻ trực tiếp cho khách hàng',        icon: <ShoppingCart size={26} />,  color: '#059669', bg: '#ecfdf5' },
-  { key: 'wholesale', label: 'Bán sỉ',      desc: 'Tạo đơn bán sỉ với giá đặc biệt theo số lượng', icon: <ShoppingBag size={26} />,   color: '#7c3aed', bg: '#f5f3ff' },
+  { key: 'wholesale', label: 'Bán sỉ',      desc: 'Tạo đơn bán sỉ với giá đặc biệt theo số lượng', icon: <ShoppingBag size={26} />,   color: '#10b981', bg: '#ecfdf5' },
   { key: 'refund',    label: 'Trả hàng',    desc: 'Xử lý đơn trả hàng, hoàn tiền khách hàng',      icon: <RotateCcw size={26} />,     color: '#dc2626', bg: '#fef2f2' },
 ];
 
@@ -50,15 +50,15 @@ export function SalesChannelPage() {
   } as React.CSSProperties;
 
   return (
-    <div className="workspace-page sc-page" style={pageStyle}>
+    <div className="workspace-page sc-page compact-page" style={pageStyle}>
       {/* Hero */}
-      <div className="page-heading sc-hero">
-        <div className="page-title-block">
+      <div className="page-heading sc-hero compact-toolbar-card">
+        <div className="page-title-block compact-header">
+          <span className="compact-badge sc-eyebrow">Kênh bán</span>
           <div className="page-icon sc-hero-icon">{meta.icon}</div>
           <div className="sc-hero-copy">
-            <span className="sc-eyebrow">Kênh bán</span>
-            <h1>{meta.label}</h1>
-            <p>
+            <h1 className="compact-title">{meta.label}</h1>
+            <p className="compact-desc">
               Quản lý tất cả hoạt động bán hàng qua kênh <strong>{meta.label}</strong>
             </p>
           </div>

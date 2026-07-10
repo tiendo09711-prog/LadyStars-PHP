@@ -21,7 +21,9 @@
     "xlsx": "npm:@e965/xlsx@0.20.3"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.2",
     "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2"
+    "@types/react-dom": "^19.0.2",
+    "tailwindcss": "^4.3.2"
   }
 }
