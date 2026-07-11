@@ -1,0 +1,2111 @@
+{
+  "methods": {
+    "GET": 317,
+    "POST": 1,
+    "PUT": 0,
+    "PATCH": 0,
+    "DELETE": 0,
+    "OTHER": 0
+  },
+  "status4xx": [],
+  "status5xx": [
+    {
+      "status": 500,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/products/refunds?channel=store&page=1&limit=15",
+      "t": 1783790715927
+    }
+  ],
+  "failed": [
+    {
+      "url": "http://127.0.0.1:8000/api/products/refunds?channel=store&page=1&limit=15",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790586452
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620513
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620513
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620514
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620514
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620515
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/dashboard?chartRange=7+ng%C3%A0y&topRange=7+ng%C3%A0y&topLimit=10",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620515
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620515
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620515
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790620516
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/dashboard?chartRange=7+ng%C3%A0y&topRange=7+ng%C3%A0y&topLimit=10",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790626344
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/refunds?channel=store&page=1&limit=15",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790660547
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790691920
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790706472
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790710125
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790710125
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790710126
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790710126
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790710126
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790710126
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790713856
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790713856
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790713856
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790713857
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790719384
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790719384
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790719384
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790719384
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790724793
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790724793
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790724793
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790724793
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790737751
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790737751
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790737751
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790737759
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790778061
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790778061
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790778061
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790778061
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790793352
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790793353
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790793354
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790793354
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790801938
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790801938
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790801938
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790801970
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790807898
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790807898
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790807898
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790807898
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906427
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/sales/fa106e3cd265bfd4cc36eca4",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906427
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906428
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906428
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906428
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906429
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906429
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/sales/fa106e3cd265bfd4cc36eca4",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906429
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906429
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790906429
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911591
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911591
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911609
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911609
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911609
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911609
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911612
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911613
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911615
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911615
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911615
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790911615
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915973
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790915974
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921227
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921228
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790921228
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/sales?page=1&limit=15&channel=store&type=retail",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790926296
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930638
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930639
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930640
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/products/sales?type=wholesale&page=1&limit=500&channel=store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930641
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930641
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930646
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930649
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930649
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790930649
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790933813
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790933813
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790933813
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790933813
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790936446
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790936447
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790936448
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790936449
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790940487
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790940488
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790940490
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790940490
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790944208
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790944209
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790944210
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790944210
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790947842
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790947842
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790947842
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790947842
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790952303
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790952303
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/me",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790952303
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/settings/store",
+      "method": "GET",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790952303
+    }
+  ],
+  "sample": [
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/sales-channels/store/refund",
+      "t": 1783790584062
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/@vite/client",
+      "t": 1783790584100
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/main.tsx",
+      "t": 1783790584102
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/@react-refresh",
+      "t": 1783790584116
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/vite/dist/client/env.mjs",
+      "t": 1783790584331
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react.js?v=eeaa2570",
+      "t": 1783790584332
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6c10d8a5",
+      "t": 1783790584534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/layout/AppLayout.tsx",
+      "t": 1783790584534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/auth/LoginPage.tsx",
+      "t": 1783790584534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/dashboard/DashboardPage.tsx",
+      "t": 1783790584534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/ProductsPage.tsx",
+      "t": 1783790584534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/StorageDurationPage.tsx",
+      "t": 1783790584565
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/InventoryPage.tsx",
+      "t": 1783790584567
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/CategoriesPage.tsx",
+      "t": 1783790584568
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/SalesPage.tsx",
+      "t": 1783790584568
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerPage.tsx",
+      "t": 1783790584568
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerListPage.tsx",
+      "t": 1783790584568
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerDetailPage.tsx",
+      "t": 1783790584568
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/staff/StaffPage.tsx",
+      "t": 1783790584568
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/settings/SettingsPage.tsx",
+      "t": 1783790584568
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransactionPage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransferPage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransferCreatePage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransferDetailPage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseAuditPage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerCarePage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseAuditCreatePage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseBranchesPage.tsx",
+      "t": 1783790584572
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6805e568",
+      "t": 1783790584573
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/VoucherImportPage.tsx",
+      "t": 1783790584581
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/VoucherExportPage.tsx",
+      "t": 1783790584581
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/VoucherExcelImportPage.tsx",
+      "t": 1783790584581
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByTimePage.tsx",
+      "t": 1783790584581
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByStorePage.tsx",
+      "t": 1783790584629
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByBrandPage.tsx",
+      "t": 1783790584630
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByStaffPage.tsx",
+      "t": 1783790584631
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByDepartmentPage.tsx",
+      "t": 1783790584632
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByCategoryPage.tsx",
+      "t": 1783790584632
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByInternalCategoryPage.tsx",
+      "t": 1783790584633
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByProductPage.tsx",
+      "t": 1783790584633
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByVendorPage.tsx",
+      "t": 1783790584633
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByCustomerPage.tsx",
+      "t": 1783790584635
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueInventoryRatioPage.tsx",
+      "t": 1783790584635
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailOverviewPage.tsx",
+      "t": 1783790584635
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByCustomerSourcePage.tsx",
+      "t": 1783790584635
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByStaffPage.tsx",
+      "t": 1783790584636
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByStorePage.tsx",
+      "t": 1783790584636
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailCardSwipeDetailsPage.tsx",
+      "t": 1783790584636
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByInvoiceValuePage.tsx",
+      "t": 1783790584637
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailShiftEndPage.tsx",
+      "t": 1783790584638
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailInvoiceVisitorRatioPage.tsx",
+      "t": 1783790584638
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/WholesaleOverviewPage.tsx",
+      "t": 1783790584638
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutByProductPage.tsx",
+      "t": 1783790584638
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/WholesaleByStaffPage.tsx",
+      "t": 1783790584639
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutDetailsPage.tsx",
+      "t": 1783790584639
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutTotalPage.tsx",
+      "t": 1783790584640
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutByStorePage.tsx",
+      "t": 1783790584640
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByVendorPage.tsx",
+      "t": 1783790584641
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryProductCategoryPage.tsx",
+      "t": 1783790584641
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryStockQuantityPage.tsx",
+      "t": 1783790584641
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryUnconfirmedTransfersPage.tsx",
+      "t": 1783790584641
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByProductStatusPage.tsx",
+      "t": 1783790584642
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByStoreStatusPage.tsx",
+      "t": 1783790584642
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByBatchPage.tsx",
+      "t": 1783790584642
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryTransfersByProductPage.tsx",
+      "t": 1783790584642
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/SalesChannelSubPage.tsx",
+      "t": 1783790584643
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/SalesChannelPage.tsx",
+      "t": 1783790584643
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/RetailInvoiceCreatePage.tsx",
+      "t": 1783790584644
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/WholesaleInvoiceCreatePage.tsx",
+      "t": 1783790584644
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/RefundInvoiceDetailPage.tsx",
+      "t": 1783790584650
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/styles/app.css",
+      "t": 1783790584650
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/RefundInvoiceCreatePage.tsx",
+      "t": 1783790584652
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/styles/ls-theme.css",
+      "t": 1783790584653
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/styles/phase-rescue.css",
+      "t": 1783790584653
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/styles/inventory-compact-theme.css",
+      "t": 1783790584655
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=eeaa2570",
+      "t": 1783790584655
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/rolldown-runtime-B-1-B7_t.js?v=a2672470",
+      "t": 1783790584655
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react-dom.js?v=eeaa2570",
+      "t": 1783790584655
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/styles/ui-contract.css",
+      "t": 1783790584656
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/api/http.ts",
+      "t": 1783790584656
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/auth/access.ts",
+      "t": 1783790584656
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/hooks/productScanner.ts",
+      "t": 1783790584656
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/api/product.api.ts",
+      "t": 1783790584788
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/dashboard/dashboard.css",
+      "t": 1783790584789
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/ProductMainPage.tsx",
+      "t": 1783790584789
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/components/Pagination.tsx",
+      "t": 1783790584877
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/lucide-react.js?v=d67259d3",
+      "t": 1783790584877
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/recharts.js?v=eeaa2570",
+      "t": 1783790584920
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/components/ExportExcelModal.tsx",
+      "t": 1783790584952
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/product-compact.css",
+      "t": 1783790584952
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/products-page.css",
+      "t": 1783790584952
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/inventory-page.css",
+      "t": 1783790584953
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/components/InventoryList.tsx",
+      "t": 1783790584991
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/categories-page.css",
+      "t": 1783790585099
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/warehouseRecords.css",
+      "t": 1783790585102
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/xlsx.js?v=09feb136",
+      "t": 1783790585103
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/components/CategoryList.tsx",
+      "t": 1783790585103
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/components/DataModulePage.tsx",
+      "t": 1783790585103
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/components/TabbedModulePage.tsx",
+      "t": 1783790585103
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/customer-list-page.css",
+      "t": 1783790585103
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/warehouse-transactions-page.css",
+      "t": 1783790585150
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/warehouse-transfer-list-ui.css",
+      "t": 1783790585152
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/transferPrint.ts",
+      "t": 1783790585154
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/customer-care-page.css",
+      "t": 1783790585154
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/warehouseAudit.css",
+      "t": 1783790585154
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/api/branch.api.ts",
+      "t": 1783790585154
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/components/CustomerCareActionModal.tsx",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/warehouseBranchesPage.css",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/invoicePrint.ts",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByTimePage.css",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/components/ui/DateRangePicker.tsx",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/components/ui/CustomSelect.tsx",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByStorePage.css",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/sales-channel-page.css",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/refund-detail.css",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/RetailInvoicePage.tsx",
+      "t": 1783790585155
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/RefundInvoicePage.tsx",
+      "t": 1783790585166
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/WholesaleInvoicePage.tsx",
+      "t": 1783790585168
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/components/ProductHistory.tsx",
+      "t": 1783790585171
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/products-list-ui.css",
+      "t": 1783790585173
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/components/inventoryStock.ts",
+      "t": 1783790585189
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/axios.js?v=a44b1b36",
+      "t": 1783790585189
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/components/ProductList.tsx",
+      "t": 1783790585189
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/components/ui/DateRangePicker.css",
+      "t": 1783790585225
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/components/ui/CustomSelect.css",
+      "t": 1783790585229
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/invoiceHelpers.ts",
+      "t": 1783790585230
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/retail-invoice-page.css",
+      "t": 1783790585232
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/refund-invoice-page.css",
+      "t": 1783790585235
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/wholesale-invoice-page.css",
+      "t": 1783790585235
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/@bwip-js_generic.js?v=71790473",
+      "t": 1783790585684
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/logo.jpg",
+      "t": 1783790586520
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/login",
+      "t": 1783790589473
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/@vite/client",
+      "t": 1783790589543
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/main.tsx",
+      "t": 1783790589552
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/@react-refresh",
+      "t": 1783790589552
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/vite/dist/client/env.mjs",
+      "t": 1783790589610
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react.js?v=eeaa2570",
+      "t": 1783790589611
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/core/layout/AppLayout.tsx",
+      "t": 1783790589731
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/auth/LoginPage.tsx",
+      "t": 1783790589731
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/dashboard/DashboardPage.tsx",
+      "t": 1783790589734
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/ProductsPage.tsx",
+      "t": 1783790589735
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/StorageDurationPage.tsx",
+      "t": 1783790589735
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/InventoryPage.tsx",
+      "t": 1783790589737
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/CategoriesPage.tsx",
+      "t": 1783790589737
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6c10d8a5",
+      "t": 1783790589785
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/product/SalesPage.tsx",
+      "t": 1783790589852
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerPage.tsx",
+      "t": 1783790589852
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6805e568",
+      "t": 1783790589868
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerListPage.tsx",
+      "t": 1783790590042
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerDetailPage.tsx",
+      "t": 1783790590042
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/customer/CustomerCarePage.tsx",
+      "t": 1783790590043
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/staff/StaffPage.tsx",
+      "t": 1783790590043
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/settings/SettingsPage.tsx",
+      "t": 1783790590044
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransactionPage.tsx",
+      "t": 1783790590083
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransferPage.tsx",
+      "t": 1783790590121
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransferCreatePage.tsx",
+      "t": 1783790590151
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseTransferDetailPage.tsx",
+      "t": 1783790590161
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseAuditPage.tsx",
+      "t": 1783790590204
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseAuditCreatePage.tsx",
+      "t": 1783790590255
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/VoucherExportPage.tsx",
+      "t": 1783790590315
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/WarehouseBranchesPage.tsx",
+      "t": 1783790590317
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/VoucherExcelImportPage.tsx",
+      "t": 1783790590365
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByTimePage.tsx",
+      "t": 1783790590366
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/warehouse/VoucherImportPage.tsx",
+      "t": 1783790590446
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByBrandPage.tsx",
+      "t": 1783790590448
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByStorePage.tsx",
+      "t": 1783790590453
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByStaffPage.tsx",
+      "t": 1783790590453
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByDepartmentPage.tsx",
+      "t": 1783790590453
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByCategoryPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByInternalCategoryPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByProductPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByVendorPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueInventoryRatioPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailOverviewPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByStorePage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailCardSwipeDetailsPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByStaffPage.tsx",
+      "t": 1783790590454
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByCustomerSourcePage.tsx",
+      "t": 1783790590455
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailByInvoiceValuePage.tsx",
+      "t": 1783790590455
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailInvoiceVisitorRatioPage.tsx",
+      "t": 1783790590455
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RetailShiftEndPage.tsx",
+      "t": 1783790590514
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/WholesaleByStaffPage.tsx",
+      "t": 1783790590515
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/WholesaleOverviewPage.tsx",
+      "t": 1783790590515
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/RevenueByCustomerPage.tsx",
+      "t": 1783790590515
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutByProductPage.tsx",
+      "t": 1783790590521
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutDetailsPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutTotalPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryInOutByStorePage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByVendorPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryProductCategoryPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryStockQuantityPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryUnconfirmedTransfersPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByStoreStatusPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByProductStatusPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryByBatchPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/reports/InventoryTransfersByProductPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/SalesChannelPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/SalesChannelSubPage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/RetailInvoiceCreatePage.tsx",
+      "t": 1783790590534
+    },
+    {
+      "status": 200,
+      "method": "GET",
+      "url": "http://localhost:5173/src/modules/sales/WholesaleInvoiceCreatePage.tsx",
+      "t": 1783790590534
+    }
+  ]
+}

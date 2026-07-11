@@ -54,8 +54,7 @@ class BranchController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->requireAdminUser($request);
-        $this->validateAdminPassword($request);
+        $this->requireConfirmedAdmin($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -84,8 +83,7 @@ class BranchController extends Controller
 
     public function update(Request $request, string $branch): JsonResponse
     {
-        $this->requireAdminUser($request);
-        $this->validateAdminPassword($request);
+        $this->requireConfirmedAdmin($request);
 
         $branch = $this->findBranch($branch);
 
@@ -108,8 +106,7 @@ class BranchController extends Controller
 
     public function activate(Request $request, string $branch): JsonResponse
     {
-        $this->requireAdminUser($request);
-        $this->validateAdminPassword($request);
+        $this->requireConfirmedAdmin($request);
 
         $branch = $this->findBranch($branch);
         $branch->update(['is_active' => true]);
@@ -119,8 +116,7 @@ class BranchController extends Controller
 
     public function deactivate(Request $request, string $branch): JsonResponse
     {
-        $this->requireAdminUser($request);
-        $this->validateAdminPassword($request);
+        $this->requireConfirmedAdmin($request);
 
         $branch = $this->findBranch($branch);
         $branch->update(['is_active' => false]);
@@ -130,8 +126,7 @@ class BranchController extends Controller
 
     public function destroy(Request $request, string $branch): JsonResponse
     {
-        $this->requireAdminUser($request);
-        $this->validateAdminPassword($request);
+        $this->requireConfirmedAdmin($request);
 
         $branch = $this->findBranch($branch);
         $usage = $this->computeUsage($branch);
@@ -164,16 +159,24 @@ class BranchController extends Controller
     }
 
     /**
-     * Enforce that caller must be authenticated as ADMIN or root owner (via local token or fallback).
-     * This protects write routes at backend (previously only password + FE canAccessPath).
-     * Combined with validateAdminPassword for double confirmation.
+     * Resolve caller from local-laravel-token-{id}, require ADMIN/root, then re-confirm
+     * password of THAT same user. No loose fallbacks (no "admin", no length-based bypass).
      */
-    private function requireAdminUser(Request $request): void
+    private function requireConfirmedAdmin(Request $request): User
     {
-        // Writes REQUIRE a valid login token (local-laravel-token-ID) that resolves to ADMIN/root.
-        // No broad unauthenticated fallback here (unlike /auth/me which bootstraps UI).
-        // This ensures backend protection independent of FE menu hiding.
-        $authHeader = $request->header('Authorization', '');
+        $user = $this->requireAdminUser($request);
+        $this->validateAdminPassword($request, $user);
+
+        return $user;
+    }
+
+    /**
+     * Writes REQUIRE a valid login token (local-laravel-token-ID) that resolves to ADMIN/root.
+     * No unauthenticated fallback (unlike /auth/me which bootstraps UI).
+     */
+    private function requireAdminUser(Request $request): User
+    {
+        $authHeader = (string) $request->header('Authorization', '');
         $user = null;
 
         if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
@@ -183,29 +186,69 @@ class BranchController extends Controller
         if (!$user || (! $user->is_root_owner && strtoupper((string) $user->role) !== 'ADMIN')) {
             abort(403, 'Chỉ quản trị viên (ADMIN/root) mới được thực hiện thao tác quản lý kho hàng.');
         }
+
+        // Align with login: locked / inactive accounts cannot perform privileged writes.
+        if (($user->status === 'LOCKED') || ($user->is_active === false)) {
+            abort(403, 'Chỉ quản trị viên (ADMIN/root) mới được thực hiện thao tác quản lý kho hàng.');
+        }
+
+        return $user;
     }
 
-    private function validateAdminPassword(Request $request): void
+    /**
+     * Re-confirm password of the authenticated caller only (not any other ADMIN/root).
+     */
+    private function validateAdminPassword(Request $request, User $user): void
     {
         $password = trim((string) $request->input('adminPassword', ''));
         if ($password === '') {
             abort(422, 'Vui lòng nhập mật khẩu Admin để xác nhận thao tác.');
         }
 
-        $rootUser = User::query()
-            ->where(fn ($q) => $q->where('is_root_owner', true)->orWhere('role', 'ADMIN'))
-            ->first();
-
-        if ($rootUser && !empty($rootUser->password)) {
-            if (!Hash::check($password, $rootUser->password)) {
-                // Only allow loose 'admin' fallback when NO hashed password is set (fresh local dev).
-                // In production with proper root password hash, strict match is required.
-                if ($password !== 'admin' && strlen($password) < 4) {
-                    abort(403, 'Mật khẩu Admin không đúng.');
-                }
-            }
+        if (! $this->passwordMatches($user, $password)) {
+            abort(403, 'Mật khẩu Admin không đúng.');
         }
-        // No root password set: dev mode accepts reasonably long non-empty (documented in UI for local only)
+    }
+
+    /**
+     * Match password against the caller's stored credential:
+     * - bcrypt/argon via Hash::check when stored value is a hash
+     * - exact equality only for legacy non-hash stored passwords
+     * - empty stored password always fails
+     * - never length-based or hard-coded "admin" fallbacks
+     */
+    private function passwordMatches(User $user, string $password): bool
+    {
+        $stored = (string) ($user->getAuthPassword() ?? $user->password ?? '');
+        if ($stored === '') {
+            return false;
+        }
+
+        try {
+            if (Hash::check($password, $stored)) {
+                return true;
+            }
+            // Valid hash that does not match → reject (no loose fallback).
+            if ($this->looksLikePasswordHash($stored)) {
+                return false;
+            }
+
+            // Legacy plaintext / non-bcrypt storage: exact match only.
+            return hash_equals($stored, $password);
+        } catch (\Throwable $e) {
+            // Hash driver cannot process stored value → legacy exact match only.
+            return hash_equals($stored, $password);
+        }
+    }
+
+    private function looksLikePasswordHash(string $stored): bool
+    {
+        return str_starts_with($stored, '$2y$')
+            || str_starts_with($stored, '$2a$')
+            || str_starts_with($stored, '$2b$')
+            || str_starts_with($stored, '$argon2id$')
+            || str_starts_with($stored, '$argon2i$')
+            || str_starts_with($stored, '$argon2d$');
     }
 
     private function computeUsage(Branch $branch): array

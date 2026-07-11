@@ -311,20 +311,24 @@ function DeleteConfirm({
   product,
   onConfirm,
   onCancel,
+  error,
+  loading,
 }: {
   product: IProduct;
   onConfirm: () => void;
   onCancel: () => void;
+  error?: string;
+  loading?: boolean;
 }) {
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
+    <div className="modal-backdrop" onClick={loading ? undefined : onCancel}>
       <div className="modal-card" style={{ maxWidth: 460 }} onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
           <div>
             <h2 style={{ color: '#b91c1c' }}>Xác nhận xóa</h2>
             <p>Hành động này không thể hoàn tác.</p>
           </div>
-          <button className="icon-button" onClick={onCancel} type="button">
+          <button className="icon-button" onClick={onCancel} type="button" disabled={loading} aria-label="Đóng">
             <X size={18} />
           </button>
         </div>
@@ -333,10 +337,15 @@ function DeleteConfirm({
           <p style={{ margin: 0, lineHeight: 1.6 }}>
             Bạn có chắc muốn xóa sản phẩm <strong>{product.name}</strong> ({product.code}) không?
           </p>
+          {error ? (
+            <div className="form-error" role="alert" style={{ marginTop: 12 }}>
+              {error}
+            </div>
+          ) : null}
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-light" type="button" onClick={onCancel}>
+          <button className="btn btn-light" type="button" onClick={onCancel} disabled={loading}>
             Hủy
           </button>
           <button
@@ -344,9 +353,10 @@ function DeleteConfirm({
             type="button"
             style={{ background: '#ef4444', borderColor: '#ef4444' }}
             onClick={onConfirm}
+            disabled={loading}
           >
             <Trash2 size={16} />
-            Xóa
+            {loading ? 'Đang xóa...' : 'Xóa'}
           </button>
         </div>
       </div>
@@ -2181,6 +2191,8 @@ export function ProductList({
   const [detailItem, setDetailItem] = useState<IProduct | null>(null);
   const [editItem, setEditItem] = useState<IProduct | null | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<IProduct | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -2273,15 +2285,24 @@ export function ProductList({
       setOpenRowActionId(null);
       setRowMenuPos(null);
     };
+    // Only close row menu when the product table itself scrolls — not every nested/document scroll
+    // (capture-phase document scroll closed menus mid-click when switching rows).
+    const handleTableScroll = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest('.inventory-table-scroll, .table-scroll, .products-data-table')) {
+        handleViewportChange();
+      }
+    };
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('resize', handleViewportChange);
-    document.addEventListener('scroll', handleViewportChange, true);
+    document.addEventListener('scroll', handleTableScroll, true);
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', handleViewportChange);
-      document.removeEventListener('scroll', handleViewportChange, true);
+      document.removeEventListener('scroll', handleTableScroll, true);
     };
   }, []);
 
@@ -2472,19 +2493,29 @@ export function ProductList({
   };
 
   const handleDelete = async () => {
-    if (!deleteItem) return;
+    if (!deleteItem || deleteLoading) return;
     if (!canManageProducts) {
       alert('Chỉ tài khoản admin mới được xóa sản phẩm.');
       return;
     }
 
+    setDeleteLoading(true);
+    setDeleteError('');
     try {
       await productApi.deleteProduct(deleteItem._id);
       setDeleteItem(null);
+      setDeleteError('');
       await load();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi xóa sản phẩm:', error);
-      alert('Xóa sản phẩm thất bại.');
+      const backendMessage = error?.response?.data?.message;
+      setDeleteError(
+        typeof backendMessage === 'string' && backendMessage.trim()
+          ? backendMessage
+          : 'Xóa sản phẩm thất bại. Vui lòng thử lại hoặc đóng hộp thoại để tiếp tục.',
+      );
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -2496,11 +2527,22 @@ export function ProductList({
     if (!requireSelection()) return;
     setBulkLoading(true);
     try {
-      await Promise.all(Array.from(selectedIds).map((id) => productApi.updateProduct(id, { status })));
+      const ids = Array.from(selectedIds);
+      const outcomes = await Promise.allSettled(ids.map((id) => productApi.updateProduct(id, { status })));
+      const failed = outcomes.filter((item) => item.status === 'rejected') as PromiseRejectedResult[];
+      const succeeded = outcomes.filter((item) => item.status === 'fulfilled').length;
       setShowBulkStatusModal(false);
       setOpenBulkMenu(false);
       setOpenBulkStatusMenu(false);
       await load();
+      if (failed.length > 0) {
+        const firstMessage = (failed[0]?.reason as any)?.response?.data?.message;
+        alert(
+          typeof firstMessage === 'string' && firstMessage.trim()
+            ? `Đã cập nhật ${succeeded}/${ids.length} sản phẩm. ${firstMessage}`
+            : `Đã cập nhật ${succeeded}/${ids.length} sản phẩm. Một số dòng thất bại.`,
+        );
+      }
     } catch (error: any) {
       console.error('Lỗi đổi trạng thái sản phẩm:', error);
       alert(error?.response?.data?.message || 'Đổi trạng thái sản phẩm thất bại.');
@@ -2517,13 +2559,26 @@ export function ProductList({
     if (!requireSelection()) return;
     setBulkLoading(true);
     try {
-      await Promise.all(Array.from(selectedIds).map((id) => productApi.updateProduct(id, { categoryId: category._id, categoryName: category.name })));
+      const ids = Array.from(selectedIds);
+      const outcomes = await Promise.allSettled(
+        ids.map((id) => productApi.updateProduct(id, { categoryId: category._id, categoryName: category.name })),
+      );
+      const failed = outcomes.filter((item) => item.status === 'rejected') as PromiseRejectedResult[];
+      const succeeded = outcomes.filter((item) => item.status === 'fulfilled').length;
       setShowBulkCategoryModal(false);
       setOpenBulkMenu(false);
       await load();
-    } catch (error) {
+      if (failed.length > 0) {
+        const firstMessage = (failed[0]?.reason as any)?.response?.data?.message;
+        alert(
+          typeof firstMessage === 'string' && firstMessage.trim()
+            ? `Đã cập nhật ${succeeded}/${ids.length} sản phẩm. ${firstMessage}`
+            : `Đã cập nhật ${succeeded}/${ids.length} sản phẩm. Một số dòng thất bại.`,
+        );
+      }
+    } catch (error: any) {
       console.error('Lỗi cập nhật danh mục sản phẩm:', error);
-      alert('Cập nhật danh mục thất bại.');
+      alert(error?.response?.data?.message || 'Cập nhật danh mục thất bại.');
     } finally {
       setBulkLoading(false);
     }
@@ -2540,13 +2595,26 @@ export function ProductList({
 
     setBulkLoading(true);
     try {
-      await Promise.all(Array.from(selectedIds).map((id) => productApi.deleteProduct(id)));
-      setSelectedIds(new Set());
-      setOpenBulkMenu(false);
+      const ids = Array.from(selectedIds);
+      const outcomes = await Promise.allSettled(ids.map((id) => productApi.deleteProduct(id)));
+      const failed = outcomes.filter((item) => item.status === 'rejected') as PromiseRejectedResult[];
+      const succeeded = outcomes.filter((item) => item.status === 'fulfilled').length;
+      if (failed.length === 0) {
+        setSelectedIds(new Set());
+        setOpenBulkMenu(false);
+        await load();
+        return;
+      }
+      const firstMessage = (failed[0]?.reason as any)?.response?.data?.message;
       await load();
-    } catch (error) {
+      alert(
+        typeof firstMessage === 'string' && firstMessage.trim()
+          ? `Đã xóa ${succeeded}/${ids.length} sản phẩm. ${firstMessage}`
+          : `Đã xóa ${succeeded}/${ids.length} sản phẩm. Một số dòng không xóa được.`,
+      );
+    } catch (error: any) {
       console.error('Lỗi xóa nhiều sản phẩm:', error);
-      alert('Xóa các dòng đã chọn thất bại.');
+      alert(error?.response?.data?.message || 'Xóa các dòng đã chọn thất bại.');
     } finally {
       setBulkLoading(false);
     }
@@ -2662,7 +2730,10 @@ export function ProductList({
   }
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
-  const hasActiveFilters = Boolean(appliedStatus || appliedWarehouseId);
+  // Applied filters only (not draft inputs). Search counts after submit/trim.
+  const hasActiveFilters = Boolean(
+    (appliedSearch && appliedSearch.trim()) || appliedStatus || appliedWarehouseId,
+  );
 
   const openRowActionMenu = (productId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -2675,14 +2746,16 @@ export function ProductList({
     const menuWidth = 168;
     const menuHeight = 150;
     const gap = 6;
+    // Prefer opening ABOVE the trigger so the portal does not cover action buttons of rows below.
+    let top = rect.top - menuHeight - gap;
+    if (top < 8) {
+      top = rect.bottom + gap;
+    }
+    // Keep menu to the left of the trigger's right edge (into the row), not past the viewport.
     let left = rect.right - menuWidth;
-    let top = rect.bottom + gap;
     if (left < 8) left = 8;
     if (left + menuWidth > window.innerWidth - 8) {
       left = Math.max(8, window.innerWidth - menuWidth - 8);
-    }
-    if (top + menuHeight > window.innerHeight - 8) {
-      top = Math.max(8, rect.top - menuHeight - gap);
     }
     setRowMenuPos({ top, left });
     setOpenRowActionId(productId);
@@ -3074,6 +3147,7 @@ export function ProductList({
                   type="button"
                   role="menuitem"
                   onClick={() => {
+                    setDeleteError('');
                     setDeleteItem(openRowItem);
                     setOpenRowActionId(null);
                     setRowMenuPos(null);
@@ -3101,7 +3175,19 @@ export function ProductList({
         />
       ) : null}
 
-      {deleteItem ? <DeleteConfirm product={deleteItem} onConfirm={() => void handleDelete()} onCancel={() => setDeleteItem(null)} /> : null}
+      {deleteItem ? (
+        <DeleteConfirm
+          product={deleteItem}
+          onConfirm={() => void handleDelete()}
+          onCancel={() => {
+            if (deleteLoading) return;
+            setDeleteItem(null);
+            setDeleteError('');
+          }}
+          error={deleteError}
+          loading={deleteLoading}
+        />
+      ) : null}
 
       {showImport ? (
         <ImportModal

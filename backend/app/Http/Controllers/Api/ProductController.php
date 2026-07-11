@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\MirrorRecord;
 use App\Models\Product;
@@ -345,7 +346,8 @@ class ProductController extends Controller
     {
         $perPage = min(max((int) $request->query('limit', $request->query('perPage', 50)), 1), 5000);
         $search = trim((string) $request->query('q', $request->query('search', '')));
-        $branchId = $request->query('branchId');
+        // Resolve mongo_id / code / local id → branches.id so transfer create (meta uses mongo_id) works.
+        $branchId = $this->resolveBranchLocalId($request->query('branchId'));
         $categoryId = $request->query('categoryId');
         $stockStatus = (string) $request->query('stockStatus', '');
         $sort = (string) $request->query('sort', 'createdAt');
@@ -1050,7 +1052,7 @@ class ProductController extends Controller
         if ($product->stocks()->where(function ($query): void {
             $query->where('qty', '>', 0)->orWhere('locked_quantity', '>', 0);
         })->exists()) {
-            return 'Kh?ng th? x?a s?n ph?m ?ang c?n t?n kho ho?c t?n kh?a. H?y ??a t?n v? 0 tr??c.';
+            return 'Không thể xóa sản phẩm đang còn tồn kho hoặc tồn khóa. Hãy đưa tồn về 0 trước.';
         }
 
         $mirrorChecks = [
@@ -1065,15 +1067,15 @@ class ProductController extends Controller
         foreach ($mirrorChecks as [$table, $column]) {
             $query = (new MirrorRecord())->forTable($table)->newQuery();
             if (in_array($column, ['product_id'], true) && $query->where('product_id', $product->id)->exists()) {
-                return 'Kh?ng th? x?a s?n ph?m ?? c? ch?ng t?/log nghi?p v? li?n quan.';
+                return 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.';
             }
 
             if ($query->where('product_mongo_id', $product->mongo_id)->exists()) {
-                return 'Kh?ng th? x?a s?n ph?m ?? c? ch?ng t?/log nghi?p v? li?n quan.';
+                return 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.';
             }
 
             if ($column !== 'product_id' && $query->where('payload', 'like', '%'.$product->code.'%')->exists()) {
-                return 'Kh?ng th? x?a s?n ph?m ?? c? ch?ng t?/log nghi?p v? li?n quan.';
+                return 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.';
             }
         }
 
@@ -1123,39 +1125,60 @@ class ProductController extends Controller
 
     private function validatedPayload(Request $request, ?Product $product = null): array
     {
+        $isUpdate = $product !== null;
         $id = $product?->id;
-        $data = $request->validate([
-            'code' => ['nullable', 'string', 'max:255', Rule::unique('products', 'code')->ignore($id)],
-            'barcode' => ['nullable', 'string', 'max:255', Rule::unique('products', 'barcode')->ignore($id)],
-            'type' => ['nullable', Rule::in(['product', 'service', 'combo'])],
-            'name' => ['required', 'string', 'max:255'],
-            'unit' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'max:255'],
-            'categoryId' => ['nullable', 'integer', 'exists:categories,id'],
-            'categoryName' => ['nullable', 'string', 'max:255'],
-            'cost' => ['nullable', 'numeric', 'min:0'],
-            'price' => ['nullable', 'numeric', 'min:0'],
-            'wholesalePrice' => ['nullable', 'numeric', 'min:0'],
-            'clearancePrice' => ['nullable', 'numeric', 'min:0'],
-            'clearanceActive' => ['nullable', 'boolean'],
-            'clearanceNote' => ['nullable', 'string'],
-            'weight' => ['nullable', 'numeric', 'min:0'],
-            'weightType' => ['nullable', Rule::in(['gram', 'kg'])],
-            'allowsSale' => ['nullable', 'boolean'],
-            'minQuantity' => ['nullable', 'numeric', 'min:0'],
-            'maxQuantity' => ['nullable', 'numeric', 'min:0'],
-            'description' => ['nullable', 'string'],
-            'note' => ['nullable', 'string'],
-            'origin' => ['nullable', 'string', 'max:255'],
-            'color' => ['nullable', 'string', 'max:255'],
-            'size' => ['nullable', 'string', 'max:255'],
-            'parentCode' => ['nullable', 'string', 'max:255'],
-            'parentName' => ['nullable', 'string', 'max:255'],
-            'initialStocks' => ['nullable', 'array'],
+
+        // Create: name required, mapper applies create defaults.
+        // Update: only fields present in the request are validated and written (partial PATCH safe).
+        $rules = [
+            'code' => [$isUpdate ? 'sometimes' : 'nullable', 'string', 'max:255', Rule::unique('products', 'code')->ignore($id)],
+            'barcode' => [$isUpdate ? 'sometimes' : 'nullable', 'string', 'max:255', Rule::unique('products', 'barcode')->ignore($id)],
+            'type' => [$isUpdate ? 'sometimes' : 'nullable', Rule::in(['product', 'service', 'combo'])],
+            'name' => $isUpdate
+                ? ['sometimes', 'required', 'string', 'max:255']
+                : ['required', 'string', 'max:255'],
+            'unit' => [$isUpdate ? 'sometimes' : 'nullable', 'string', 'max:255'],
+            'status' => [$isUpdate ? 'sometimes' : 'nullable', 'string', 'max:255'],
+            'categoryId' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'integer', 'exists:categories,id'],
+            'categoryName' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string', 'max:255'],
+            'cost' => [$isUpdate ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
+            'price' => [$isUpdate ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
+            'wholesalePrice' => [$isUpdate ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
+            'clearancePrice' => [$isUpdate ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
+            'clearanceActive' => [$isUpdate ? 'sometimes' : 'nullable', 'boolean'],
+            'clearanceNote' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string'],
+            'clearanceStartedAt' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'date'],
+            'weight' => [$isUpdate ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
+            'weightType' => [$isUpdate ? 'sometimes' : 'nullable', Rule::in(['gram', 'kg'])],
+            'allowsSale' => [$isUpdate ? 'sometimes' : 'nullable', 'boolean'],
+            'minQuantity' => [$isUpdate ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
+            'maxQuantity' => [$isUpdate ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
+            'description' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string'],
+            'note' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string'],
+            'origin' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string', 'max:255'],
+            'color' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string', 'max:255'],
+            'size' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string', 'max:255'],
+            'parentCode' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string', 'max:255'],
+            'parentName' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'string', 'max:255'],
+            'initialStocks' => [$isUpdate ? 'sometimes' : 'nullable', 'nullable', 'array'],
             'initialStocks.*.warehouseId' => ['required_with:initialStocks', 'integer', 'exists:branches,id'],
             'initialStocks.*.quantity' => ['required_with:initialStocks', 'numeric', 'min:0'],
-        ]);
+        ];
 
+        $data = $request->validate($rules);
+
+        if ($isUpdate) {
+            return $this->mapUpdatePayload($request, $data);
+        }
+
+        return $this->mapCreatePayload($data);
+    }
+
+    /**
+     * Full create payload with defaults (POST /products).
+     */
+    private function mapCreatePayload(array $data): array
+    {
         $category = !empty($data['categoryId']) ? Category::query()->find($data['categoryId']) : null;
 
         return [
@@ -1173,6 +1196,9 @@ class ProductController extends Controller
             'clearance_price' => $data['clearancePrice'] ?? 0,
             'clearance_active' => $data['clearanceActive'] ?? false,
             'clearance_note' => $data['clearanceNote'] ?? null,
+            'clearance_started_at' => array_key_exists('clearanceStartedAt', $data)
+                ? ($data['clearanceStartedAt'] ?: null)
+                : null,
             'weight' => $data['weight'] ?? null,
             'weight_type' => $data['weightType'] ?? 'gram',
             'allows_sale' => $data['allowsSale'] ?? true,
@@ -1189,6 +1215,105 @@ class ProductController extends Controller
         ];
     }
 
+    /**
+     * Partial update payload: only keys present in the HTTP request body are mapped.
+     * Does not apply create defaults (avoids wiping fields on PATCH {status}).
+     */
+    private function mapUpdatePayload(Request $request, array $data): array
+    {
+        $payload = [];
+
+        if ($request->exists('code')) {
+            $payload['code'] = trim((string) ($data['code'] ?? ''));
+        }
+        if ($request->exists('barcode')) {
+            $payload['barcode'] = trim((string) ($data['barcode'] ?? '')) ?: null;
+        }
+        if ($request->exists('type')) {
+            $payload['type'] = $data['type'] ?? 'product';
+        }
+        if ($request->exists('name')) {
+            $payload['name'] = trim((string) ($data['name'] ?? ''));
+        }
+        if ($request->exists('unit')) {
+            $payload['unit'] = $data['unit'] ?? null;
+        }
+        if ($request->exists('status')) {
+            $payload['status'] = $data['status'] ?? null;
+        }
+        if ($request->exists('categoryId') || $request->exists('categoryName')) {
+            $category = !empty($data['categoryId']) ? Category::query()->find($data['categoryId']) : null;
+            if ($request->exists('categoryId')) {
+                $payload['category_id'] = $data['categoryId'] ?? null;
+            }
+            if ($request->exists('categoryName') || $request->exists('categoryId')) {
+                $payload['category_name'] = $data['categoryName'] ?? $category?->name;
+            }
+        }
+        if ($request->exists('cost')) {
+            $payload['cost'] = $data['cost'] ?? 0;
+        }
+        if ($request->exists('price')) {
+            $payload['price'] = $data['price'] ?? 0;
+        }
+        if ($request->exists('wholesalePrice')) {
+            $payload['wholesale_price'] = $data['wholesalePrice'] ?? 0;
+        }
+        if ($request->exists('clearancePrice')) {
+            $payload['clearance_price'] = $data['clearancePrice'] ?? 0;
+        }
+        if ($request->exists('clearanceActive')) {
+            $payload['clearance_active'] = $data['clearanceActive'] ?? false;
+        }
+        if ($request->exists('clearanceNote')) {
+            $payload['clearance_note'] = $data['clearanceNote'] ?? null;
+        }
+        if ($request->exists('clearanceStartedAt')) {
+            $payload['clearance_started_at'] = $data['clearanceStartedAt'] ?? null;
+        }
+        if ($request->exists('weight')) {
+            $payload['weight'] = $data['weight'] ?? null;
+        }
+        if ($request->exists('weightType')) {
+            $payload['weight_type'] = $data['weightType'] ?? 'gram';
+        }
+        if ($request->exists('allowsSale')) {
+            $payload['allows_sale'] = $data['allowsSale'] ?? true;
+        }
+        if ($request->exists('minQuantity')) {
+            $payload['min_quantity'] = $data['minQuantity'] ?? 0;
+        }
+        if ($request->exists('maxQuantity')) {
+            $payload['max_quantity'] = $data['maxQuantity'] ?? 999999999;
+        }
+        if ($request->exists('description')) {
+            $payload['description'] = $data['description'] ?? null;
+        }
+        if ($request->exists('note')) {
+            $payload['note'] = $data['note'] ?? null;
+        }
+        if ($request->exists('origin')) {
+            $payload['origin'] = $data['origin'] ?? null;
+        }
+        if ($request->exists('color')) {
+            $payload['color'] = $data['color'] ?? null;
+        }
+        if ($request->exists('size')) {
+            $payload['size'] = $data['size'] ?? null;
+        }
+        if ($request->exists('parentCode')) {
+            $payload['parent_code'] = $data['parentCode'] ?? null;
+        }
+        if ($request->exists('parentName')) {
+            $payload['parent_name'] = $data['parentName'] ?? null;
+        }
+        if ($request->exists('initialStocks')) {
+            $payload['initialStocks'] = $data['initialStocks'] ?? [];
+        }
+
+        return $payload;
+    }
+
     private function syncInitialStocks(Product $product, array $stocks): void
     {
         foreach ($stocks as $line) {
@@ -1197,6 +1322,34 @@ class ProductController extends Controller
                 ['qty' => (float) $line['quantity'], 'locked_quantity' => 0, 'min_quantity' => 0, 'max_quantity' => 999999999]
             );
         }
+    }
+
+    /**
+     * Map FE branch identifiers (local id, mongo_id, code) to product_branch_stocks.branch_id.
+     * Warehouse transfer meta returns warehouses.value = mongo_id; inventories must accept that.
+     */
+    private function resolveBranchLocalId(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $raw = is_string($value) ? trim($value) : $value;
+        if ($raw === '' || $raw === null) {
+            return null;
+        }
+
+        $branch = Branch::query()
+            ->where(function ($query) use ($raw): void {
+                if (is_numeric($raw)) {
+                    $query->where('id', (int) $raw);
+                }
+                $query->orWhere('mongo_id', (string) $raw)
+                    ->orWhere('code', (string) $raw);
+            })
+            ->first();
+
+        return $branch?->id;
     }
 
     private function refreshProductQty(Product $product): void

@@ -8,6 +8,7 @@ use App\Models\MirrorRecord;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class InventoryAuditController extends Controller
@@ -23,6 +24,7 @@ class InventoryAuditController extends Controller
     private const STATUSES = [
         ['value' => 'DRAFT', 'label' => 'Nháp'],
         ['value' => 'COUNTING', 'label' => 'Đang kiểm'],
+        ['value' => 'SUBMITTED', 'label' => 'Đã nộp'],
         ['value' => 'RECONCILED', 'label' => 'Đã bù trừ'],
         ['value' => 'CANCELLED', 'label' => 'Đã hủy'],
     ];
@@ -44,10 +46,24 @@ class InventoryAuditController extends Controller
 
     public function meta(): JsonResponse
     {
-        $warehouses = Branch::query()
+        $context = $this->resolveCallerContext(request());
+        $activeBranches = Branch::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'mongo_id', 'name', 'code'])
+            ->get(['id', 'mongo_id', 'name', 'code']);
+
+        // Admin/root: all active warehouses. Employee: assigned / default / branch only.
+        $scopedBranches = $activeBranches;
+        if (!$context['isAdminOrRoot'] && !empty($context['localBranchIds'])) {
+            $allowed = array_flip($context['localBranchIds']);
+            $scopedBranches = $activeBranches->filter(
+                fn (Branch $branch): bool => isset($allowed[(int) $branch->id])
+            )->values();
+        } elseif (!$context['isAdminOrRoot'] && empty($context['localBranchIds']) && $context['user'] !== null) {
+            $scopedBranches = collect();
+        }
+
+        $warehouses = $scopedBranches
             ->map(fn (Branch $branch): array => [
                 'value' => (string) $branch->id,
                 'label' => $branch->name,
@@ -55,9 +71,16 @@ class InventoryAuditController extends Controller
             ])
             ->values();
 
+        $userWarehouseIds = $scopedBranches
+            ->map(fn (Branch $branch): string => (string) $branch->id)
+            ->values()
+            ->all();
+
         return response()->json([
-            'role' => 'ADMIN',
-            'userWarehouseIds' => [],
+            'role' => $context['role'],
+            'isRootOwner' => $context['isRootOwner'],
+            'isAdmin' => $context['isAdminOrRoot'],
+            'userWarehouseIds' => $userWarehouseIds,
             'warehouses' => $warehouses,
             'auditTypes' => self::AUDIT_TYPES,
             'statuses' => self::STATUSES,
@@ -371,8 +394,15 @@ class InventoryAuditController extends Controller
             $audit = $this->findAudit($auditId);
             $prodColumns = collect(Schema::getColumnListing('inventory_check_products'))->flip();
             $branchIdForQuery = $audit->branch_id ?? ($audit->branch_mongo_id ?? null);
-            $query->where(function ($builder) use ($audit, $prodColumns, $branchIdForQuery): void {
-                $builder->where('code', $audit->code);
+            $auditKey = (string) ($audit->mongo_id ?: $audit->id);
+            $query->where(function ($builder) use ($audit, $prodColumns, $branchIdForQuery, $auditKey): void {
+                // Parent code (legacy single-row) or per-line codes "{code}#{index}" + payload.auditId
+                if ($audit->code) {
+                    $builder->where('code', $audit->code)
+                        ->orWhere('code', 'like', $audit->code.'#%')
+                        ->orWhere('payload->auditCode', $audit->code);
+                }
+                $builder->orWhere('payload->auditId', $auditKey);
                 if ($audit->mongo_id) {
                     $builder->orWhere('mongo_id', $audit->mongo_id);
                 }
@@ -490,9 +520,16 @@ class InventoryAuditController extends Controller
         $table = 'inventory_check_products';
         $columns = collect(Schema::getColumnListing($table))->flip();
         $branchIdForQuery = $audit->branch_id ?? ($audit->branch_mongo_id ?? null);
+        $auditKey = (string) ($audit->mongo_id ?: $audit->id);
+
         return (new MirrorRecord())->forTable($table)->newQuery()
-            ->where(function ($query) use ($audit, $columns, $branchIdForQuery): void {
-                $query->where('code', $audit->code);
+            ->where(function ($query) use ($audit, $columns, $branchIdForQuery, $auditKey): void {
+                if ($audit->code) {
+                    $query->where('code', $audit->code)
+                        ->orWhere('code', 'like', $audit->code.'#%')
+                        ->orWhere('payload->auditCode', $audit->code);
+                }
+                $query->orWhere('payload->auditId', $auditKey);
                 if ($audit->mongo_id) {
                     $query->orWhere('mongo_id', $audit->mongo_id);
                 }
@@ -515,9 +552,25 @@ class InventoryAuditController extends Controller
 
     private function legacyAuditForItem(MirrorRecord $record): ?MirrorRecord
     {
-        if ($record->code) {
+        $payload = is_array($record->payload) ? $record->payload : [];
+        $auditId = trim((string) ($payload['auditId'] ?? ''));
+        if ($auditId !== '') {
+            try {
+                return $this->findAudit($auditId);
+            } catch (\Throwable) {
+                // fall through
+            }
+        }
+        $auditCode = trim((string) ($payload['auditCode'] ?? ''));
+        $lineCode = (string) ($record->code ?? '');
+        // Per-line codes use "{auditCode}#{index}"
+        if (str_contains($lineCode, '#')) {
+            $auditCode = $auditCode !== '' ? $auditCode : explode('#', $lineCode, 2)[0];
+        }
+        $lookupCode = $auditCode !== '' ? $auditCode : $lineCode;
+        if ($lookupCode !== '') {
             $direct = (new MirrorRecord())->forTable('inventory_checks')->newQuery()
-                ->where('code', $record->code)
+                ->where('code', $lookupCode)
                 ->first();
             if ($direct) {
                 return $direct;
@@ -574,7 +627,8 @@ class InventoryAuditController extends Controller
         $linkedCodes = $payload['linkedInventoryBillCodes'] ?? [];
         $mergedInto = $payload['mergedIntoAuditId'] ?? null;
 
-        [$summary, $actions] = $this->summaryAndActions($status, $items);
+        $caller = $this->resolveCallerContext(request());
+        [$summary, $actions] = $this->summaryAndActions($status, $items, $caller['isAdminOrRoot'], (bool) $mergedInto);
 
         return [
             '_id' => (string) ($record->mongo_id ?: $record->id),
@@ -620,10 +674,15 @@ class InventoryAuditController extends Controller
             if ($b) $warehouseName = $b->name ?? '';
         }
 
+        $rawCode = (string) ($payload['auditCode'] ?? $record->code ?: $audit?->code ?: '');
+        if (str_contains($rawCode, '#')) {
+            $rawCode = explode('#', $rawCode, 2)[0];
+        }
+
         return [
             '_id' => (string) ($record->mongo_id ?: $record->id),
             'auditId' => (string) ($payload['auditId'] ?? ($audit?->mongo_id ?: $audit?->id ?: '')),
-            'auditCode' => (string) ($record->code ?: $audit?->code ?: ''),
+            'auditCode' => $rawCode,
             'warehouseId' => $warehouseId,
             'warehouseName' => $warehouseName,
             'createdAt' => $payload['createdAt'] ?? optional($record->business_date)->toISOString() ?? optional($record->created_at)->toISOString(),
@@ -675,7 +734,62 @@ class InventoryAuditController extends Controller
         ];
     }
 
-    private function summaryAndActions(string $status, array $items): array
+    /**
+     * Resolve caller from local-laravel-token-{userId}. No hard-coded ADMIN.
+     * Unauthenticated: role GUEST (do not pretend ADMIN).
+     *
+     * @return array{user: ?User, role: string, isRootOwner: bool, isAdminOrRoot: bool, localBranchIds: array<int>}
+     */
+    private function resolveCallerContext(Request $request): array
+    {
+        $authHeader = (string) $request->header('Authorization', '');
+        $user = null;
+        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            $user = User::find((int) $matches[1]);
+        }
+
+        if (!$user) {
+            return [
+                'user' => null,
+                'role' => 'GUEST',
+                'isRootOwner' => false,
+                'isAdminOrRoot' => false,
+                'localBranchIds' => [],
+            ];
+        }
+
+        $isRootOwner = (bool) $user->is_root_owner;
+        $roleRaw = strtoupper((string) ($user->role ?: 'EMPLOYEE'));
+        $isAdminOrRoot = $isRootOwner || $roleRaw === 'ADMIN';
+        $role = $isAdminOrRoot ? 'ADMIN' : ($roleRaw !== '' ? $roleRaw : 'EMPLOYEE');
+
+        $localBranchIds = [];
+        if ($user->default_warehouse_id) {
+            $localBranchIds[] = (int) $user->default_warehouse_id;
+        }
+        if ($user->branch_id) {
+            $localBranchIds[] = (int) $user->branch_id;
+        }
+        if (Schema::hasTable('user_warehouse_assignments')) {
+            $assigned = DB::table('user_warehouse_assignments')
+                ->where('user_id', $user->id)
+                ->pluck('branch_id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+            $localBranchIds = array_merge($localBranchIds, $assigned);
+        }
+        $localBranchIds = array_values(array_unique(array_filter($localBranchIds)));
+
+        return [
+            'user' => $user,
+            'role' => $role,
+            'isRootOwner' => $isRootOwner,
+            'isAdminOrRoot' => $isAdminOrRoot,
+            'localBranchIds' => $localBranchIds,
+        ];
+    }
+
+    private function summaryAndActions(string $status, array $items, bool $isAdminOrRoot = false, bool $mergedInto = false): array
     {
         $summary = [
             'itemCount' => count($items),
@@ -713,18 +827,29 @@ class InventoryAuditController extends Controller
             }
         }
 
+        // Merged source audits: no mutating actions.
+        if ($mergedInto) {
+            return [$summary, []];
+        }
+
         $actions = [];
+        // DRAFT / COUNTING: submit + cancel; COUNTING also resnapshot.
         if (in_array($status, ['DRAFT', 'COUNTING'], true)) {
             $actions[] = ['action' => 'submit', 'label' => 'Nộp kiểm'];
             $actions[] = ['action' => 'cancel', 'label' => 'Hủy phiếu', 'needsReason' => true, 'danger' => true];
         }
-        if (in_array($status, ['COUNTING'], true)) {
+        if ($status === 'COUNTING') {
             $actions[] = ['action' => 'resnapshot', 'label' => 'Chụp lại snapshot'];
         }
-        if (in_array($status, ['COUNTING', 'RECONCILED'], true)) {
-            $actions[] = ['action' => 'reconcile', 'label' => 'Bù trừ kiểm kho'];
+        // SUBMITTED: cancel + reconcile (admin/root only for reconcile).
+        if ($status === 'SUBMITTED') {
+            $actions[] = ['action' => 'cancel', 'label' => 'Hủy phiếu', 'needsReason' => true, 'danger' => true];
+            if ($isAdminOrRoot) {
+                $actions[] = ['action' => 'reconcile', 'label' => 'Bù trừ kiểm kho'];
+            }
         }
-        if ($status === 'RECONCILED') {
+        // RECONCILED: reverse only for admin/root.
+        if ($status === 'RECONCILED' && $isAdminOrRoot) {
             $actions[] = ['action' => 'reverse-reconcile', 'label' => 'Đảo bù trừ', 'needsReason' => true, 'danger' => true];
         }
         if ($status === 'DRAFT') {

@@ -288,19 +288,40 @@ class LocalWriteApiTest extends TestCase
                 ],
             ],
         ];
+        $admin = User::query()->where('email', 'admin.local@example.test')->first();
+        $this->assertNotNull($admin);
+        $adminToken = 'local-laravel-token-'.$admin->id;
+        $adminHeaders = ['Authorization' => 'Bearer '.$adminToken];
+
         $draft = $this->postJson('/api/inventory-audits', $draftPayload);
         $draft->assertCreated()->assertJsonPath('code', 'KK-DRAFT')->assertJsonPath('status', 'DRAFT');
         $draftId = $draft->json('_id');
 
-        // Submit -> COUNTING
+        // Submit DRAFT -> SUBMITTED (state machine)
         $submitResp = $this->postJson('/api/inventory-audits/'.$draftId.'/submit');
-        $submitResp->assertOk()->assertJsonPath('status', 'COUNTING');
+        $submitResp->assertOk()->assertJsonPath('status', 'SUBMITTED');
+
+        // COUNTING cannot reconcile; only SUBMITTED can (with admin token)
+        $counting = $this->postJson('/api/inventory-audits', [
+            'code' => 'KK-COUNT',
+            'warehouseId' => (string) $this->branch->id,
+            'auditType' => 'BY_PRODUCT',
+            'status' => 'COUNTING',
+            'items' => [
+                ['productId' => (string) $this->product->id, 'productCodeSnapshot' => 'SP', 'productNameSnapshot' => 'SP', 'systemQuantitySnapshot' => 1, 'physicalQuantity' => 1, 'varianceQuantity' => 0],
+            ],
+        ]);
+        $countingId = $counting->json('_id');
+        $this->withHeaders($adminHeaders)
+            ->postJson('/api/inventory-audits/'.$countingId.'/reconcile')
+            ->assertStatus(422);
 
         // Verify enrichment on read path (GET uses auditRow with branch lookup)
-        $draftRead = $this->getJson('/api/inventory-audits/' . $draftId);
+        $draftRead = $this->withHeaders($adminHeaders)->getJson('/api/inventory-audits/'.$draftId);
         $draftRead->assertOk()->assertJsonPath('warehouseName', 'Kho Local');
+        $this->assertTrue(collect($draftRead->json('availableActions') ?? [])->contains(fn ($a) => ($a['action'] ?? '') === 'reconcile'));
 
-        // Create FULL type, submit, then reconcile
+        // Create FULL type, submit, then reconcile as admin
         $fullPayload = [
             'code' => 'KK-FULL',
             'warehouseId' => (string) $this->branch->id,
@@ -312,11 +333,11 @@ class LocalWriteApiTest extends TestCase
         ];
         $full = $this->postJson('/api/inventory-audits', $fullPayload);
         $fullId = $full->json('_id');
-        $this->postJson('/api/inventory-audits/'.$fullId.'/submit')->assertOk();
-        $reconcile = $this->postJson('/api/inventory-audits/'.$fullId.'/reconcile');
+        $this->postJson('/api/inventory-audits/'.$fullId.'/submit')->assertOk()->assertJsonPath('status', 'SUBMITTED');
+        $reconcile = $this->withHeaders($adminHeaders)->postJson('/api/inventory-audits/'.$fullId.'/reconcile');
         $reconcile->assertOk()->assertJsonPath('status', 'RECONCILED');
 
-        // Create then cancel
+        // Create then cancel (after submit -> SUBMITTED still cancellable)
         $cancelPayload = [
             'code' => 'KK-CANCEL',
             'warehouseId' => (string) $this->branch->id,
@@ -405,16 +426,16 @@ class LocalWriteApiTest extends TestCase
         $this->assertNotNull($reco);
     }
 
-    // --- Branch write flow tests (targeted for /warehouse/branches, using RefreshDatabase isolation) ---
+    // --- Branch write flow tests (strict password confirmation on SQLite :memory:) ---
 
-    private function createAdminUser(string $role = 'ADMIN', bool $isRoot = false): User
+    private const BRANCH_CONFIRM_PASSWORD = 'branch-confirm-pass';
+
+    private function createAdminUser(string $role = 'ADMIN', bool $isRoot = false, string $password = self::BRANCH_CONFIRM_PASSWORD): User
     {
-        // Provide a password so NOT NULL constraint is satisfied in sqlite test.
-        // The 'admin' loose path in write may still be exercised in other tests.
         return User::create([
             'name' => 'Test Admin',
-            'email' => 'admin-branch-test-' . uniqid() . '@local.test',
-            'password' => 'admin',
+            'email' => 'admin-branch-test-'.uniqid('', true).'@local.test',
+            'password' => $password, // hashed via User model cast
             'role' => $role,
             'status' => 'ACTIVE',
             'is_root_owner' => $isRoot,
@@ -422,129 +443,365 @@ class LocalWriteApiTest extends TestCase
         ]);
     }
 
+    private function adminAuthHeaders(User $admin): array
+    {
+        return ['Authorization' => 'Bearer local-laravel-token-'.$admin->id];
+    }
+
     public function test_branch_list_and_usage_endpoints_work(): void
     {
         $admin = $this->createAdminUser();
-        $token = 'local-laravel-token-' . $admin->id;
+        $headers = $this->adminAuthHeaders($admin);
 
-        $list = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $list = $this->withHeaders($headers)
             ->getJson('/api/system/branches?limit=10&includeInactive=true');
         $list->assertOk()
             ->assertJsonStructure(['items', 'total', 'page', 'limit']);
 
         $branchId = $this->branch->id;
-        $usage = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $usage = $this->withHeaders($headers)
             ->getJson("/api/system/branches/{$branchId}/usage");
         $usage->assertOk()
             ->assertJsonStructure(['branchId', 'branchName', 'isActive', 'totalLinked', 'links']);
     }
 
-    public function test_branch_create_requires_admin_context_and_password(): void
+    /** BE-BR-AUTH-001 */
+    public function test_branch_create_without_token_is_forbidden(): void
     {
-        // No token -> should 403 from requireAdminUser
+        $before = Branch::count();
         $this->postJson('/api/system/branches', [
-            'name' => 'New Branch',
-            'code' => 'NEW1',
+            'name' => 'No Token Branch',
+            'code' => 'NOTOKEN',
             'address' => 'Addr',
             'phone' => '0909',
-            'adminPassword' => 'admin',
+            'adminPassword' => self::BRANCH_CONFIRM_PASSWORD,
         ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
+    }
 
-        $admin = $this->createAdminUser();
-        $token = 'local-laravel-token-' . $admin->id;
-
-        // Missing password
-        $this->withHeaders(['Authorization' => 'Bearer ' . $token])
-            ->postJson('/api/system/branches', [
-                'name' => 'New Branch',
-                'code' => 'NEW2',
-                'adminPassword' => '',
-            ])->assertStatus(422);
-
-        // Create a separate admin WITH password hash to test strict rejection
-        $strictAdmin = User::create([
-            'name' => 'Strict Admin',
-            'email' => 'strict-' . uniqid() . '@local.test',
-            'password' => \Illuminate\Support\Facades\Hash::make('realpass123'),
-            'role' => 'ADMIN',
+    /** BE-BR-AUTH-002 */
+    public function test_branch_create_with_employee_token_is_forbidden(): void
+    {
+        $employee = User::create([
+            'name' => 'Employee',
+            'email' => 'emp-branch-'.uniqid('', true).'@local.test',
+            'password' => 'employee-pass-123',
+            'role' => 'EMPLOYEE',
             'status' => 'ACTIVE',
             'is_root_owner' => false,
             'is_active' => true,
         ]);
-        $strictToken = 'local-laravel-token-' . $strictAdmin->id;
-
-        $resp = $this->withHeaders(['Authorization' => 'Bearer ' . $strictToken])
+        $before = Branch::count();
+        $this->withHeaders($this->adminAuthHeaders($employee))
             ->postJson('/api/system/branches', [
-                'name' => 'New Branch Strict',
-                'code' => 'NEW3',
-                'address' => 'Test',
-                'phone' => '0123',
-                'adminPassword' => 'xx',  // short + not 'admin' => abort even in loose path
-            ]);
-        // With hash + short non-admin pass: must 403 (strict path or the <4 len rule)
-        $resp->assertStatus(403);
+                'name' => 'Emp Branch',
+                'code' => 'EMPBR1',
+                'address' => 'Addr',
+                'phone' => '0909',
+                'adminPassword' => 'employee-pass-123',
+            ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
     }
 
+    /** BE-BR-AUTH-003 */
+    public function test_branch_create_missing_password_returns_422(): void
+    {
+        $admin = $this->createAdminUser();
+        $before = Branch::count();
+        $this->withHeaders($this->adminAuthHeaders($admin))
+            ->postJson('/api/system/branches', [
+                'name' => 'Missing Password',
+                'code' => 'MISS1',
+                'adminPassword' => '',
+            ])->assertStatus(422);
+        $this->assertSame($before, Branch::count());
+    }
+
+    /** BE-BR-AUTH-004 + duplicate code */
     public function test_branch_create_success_and_duplicate_code_block(): void
     {
-        $admin = $this->createAdminUser('ADMIN', true); // root to ease
-        $token = 'local-laravel-token-' . $admin->id;
+        $admin = $this->createAdminUser('ADMIN', true);
+        $headers = $this->adminAuthHeaders($admin);
 
-        $create = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $create = $this->withHeaders($headers)
             ->postJson('/api/system/branches', [
                 'name' => 'Branch Test Create',
                 'code' => 'TSTCREATE',
                 'address' => 'Test Addr',
                 'phone' => '0987',
-                'adminPassword' => 'admin', // loose ok since may not strict hash on this user? but root
+                'adminPassword' => self::BRANCH_CONFIRM_PASSWORD,
             ]);
         $create->assertStatus(201)
             ->assertJsonPath('code', 'TSTCREATE')
             ->assertJsonPath('name', 'Branch Test Create');
 
-        // duplicate code
-        $dup = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $dup = $this->withHeaders($headers)
             ->postJson('/api/system/branches', [
                 'name' => 'Dup',
                 'code' => 'TSTCREATE',
-                'adminPassword' => 'admin',
+                'adminPassword' => self::BRANCH_CONFIRM_PASSWORD,
             ]);
         $dup->assertStatus(422)
             ->assertJsonPath('message', 'Mã kho đã tồn tại.');
     }
 
-    public function test_branch_activate_deactivate_and_delete_guard(): void
+    /** BE-BR-AUTH-005 — long wrong password must not bypass */
+    public function test_branch_create_rejects_long_wrong_password(): void
+    {
+        $admin = $this->createAdminUser(password: 'realpass123');
+        $before = Branch::count();
+        $this->withHeaders($this->adminAuthHeaders($admin))
+            ->postJson('/api/system/branches', [
+                'name' => 'Wrong Long',
+                'code' => 'WRONGLONG',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'definitely-wrong-password',
+            ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
+    }
+
+    /** BE-BR-AUTH-006 — literal "admin" is not a bypass */
+    public function test_branch_create_rejects_admin_literal_bypass(): void
+    {
+        $admin = $this->createAdminUser(password: 'realpass123');
+        $before = Branch::count();
+        $this->withHeaders($this->adminAuthHeaders($admin))
+            ->postJson('/api/system/branches', [
+                'name' => 'Admin Bypass',
+                'code' => 'ADMINBYP',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'admin',
+            ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
+    }
+
+    /** BE-BR-AUTH-007 — password must match token owner, not another admin */
+    public function test_branch_create_requires_password_of_token_owner_not_other_admin(): void
+    {
+        $adminA = $this->createAdminUser(password: 'password-of-admin-a');
+        $adminB = $this->createAdminUser(password: 'password-of-admin-b');
+        $headersA = $this->adminAuthHeaders($adminA);
+        $before = Branch::count();
+
+        $this->withHeaders($headersA)
+            ->postJson('/api/system/branches', [
+                'name' => 'Cross Admin',
+                'code' => 'CROSSA1',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'password-of-admin-b',
+            ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
+
+        $this->withHeaders($headersA)
+            ->postJson('/api/system/branches', [
+                'name' => 'Owner Admin',
+                'code' => 'OWNERA1',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'password-of-admin-a',
+            ])->assertStatus(201)
+            ->assertJsonPath('code', 'OWNERA1');
+    }
+
+    /** BE-BR-AUTH-008 — DB order of admins does not matter */
+    public function test_branch_create_password_not_tied_to_first_admin_in_db(): void
+    {
+        $adminB = $this->createAdminUser(password: 'password-of-b-first');
+        $adminA = $this->createAdminUser(password: 'password-of-a-second');
+        $this->assertTrue($adminB->id < $adminA->id);
+
+        $headersA = $this->adminAuthHeaders($adminA);
+        $before = Branch::count();
+
+        $this->withHeaders($headersA)
+            ->postJson('/api/system/branches', [
+                'name' => 'B Password',
+                'code' => 'ORDERB1',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'password-of-b-first',
+            ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
+
+        $this->withHeaders($headersA)
+            ->postJson('/api/system/branches', [
+                'name' => 'A Password',
+                'code' => 'ORDERA1',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'password-of-a-second',
+            ])->assertStatus(201);
+    }
+
+    /** BE-BR-AUTH-009 — empty stored password rejects all */
+    public function test_branch_create_rejects_when_user_password_empty(): void
     {
         $admin = $this->createAdminUser();
-        $token = 'local-laravel-token-' . $admin->id;
-        $headers = ['Authorization' => 'Bearer ' . $token];
+        \Illuminate\Support\Facades\DB::table('users')->where('id', $admin->id)->update(['password' => '']);
+        $admin->refresh();
 
-        // create inactive-ish
+        $before = Branch::count();
+        $this->withHeaders($this->adminAuthHeaders($admin))
+            ->postJson('/api/system/branches', [
+                'name' => 'Empty Hash',
+                'code' => 'EMPTY1',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => self::BRANCH_CONFIRM_PASSWORD,
+            ])->assertStatus(403);
+        $this->withHeaders($this->adminAuthHeaders($admin))
+            ->postJson('/api/system/branches', [
+                'name' => 'Empty Hash 2',
+                'code' => 'EMPTY2',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'admin',
+            ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
+    }
+
+    /** BE-BR-AUTH-010 — legacy plaintext exact match only */
+    public function test_branch_create_supports_legacy_plaintext_exact_match_only(): void
+    {
+        $now = now();
+        $id = \Illuminate\Support\Facades\DB::table('users')->insertGetId([
+            'name' => 'Legacy Admin',
+            'email' => 'legacy-branch-'.uniqid('', true).'@local.test',
+            'password' => 'legacy-plain-pass',
+            'role' => 'ADMIN',
+            'status' => 'ACTIVE',
+            'is_root_owner' => false,
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $admin = User::findOrFail($id);
+        $headers = $this->adminAuthHeaders($admin);
+        $before = Branch::count();
+
+        $this->withHeaders($headers)
+            ->postJson('/api/system/branches', [
+                'name' => 'Legacy Wrong',
+                'code' => 'LEGWR1',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'wrong-but-long-enough-pass',
+            ])->assertStatus(403);
+        $this->assertSame($before, Branch::count());
+
+        $this->withHeaders($headers)
+            ->postJson('/api/system/branches', [
+                'name' => 'Legacy Ok',
+                'code' => 'LEGOK1',
+                'address' => 'Addr',
+                'phone' => '0901',
+                'adminPassword' => 'legacy-plain-pass',
+            ])->assertStatus(201);
+
+        // Confirmation must not upgrade password on its own.
+        $stored = \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->value('password');
+        $this->assertSame('legacy-plain-pass', $stored);
+    }
+
+    /** BE-BR-AUTH-011 */
+    public function test_branch_update_requires_strict_password_of_caller(): void
+    {
+        $admin = $this->createAdminUser(password: 'update-pass-ok');
+        $headers = $this->adminAuthHeaders($admin);
+        $originalName = $this->branch->name;
+
+        $this->withHeaders($headers)
+            ->patchJson('/api/system/branches/'.$this->branch->id, [
+                'name' => 'Should Not Change',
+                'address' => 'X',
+                'phone' => '0901',
+                'adminPassword' => 'wrong-update-password',
+            ])->assertStatus(403);
+        $this->assertSame($originalName, $this->branch->fresh()->name);
+
+        $this->withHeaders($headers)
+            ->patchJson('/api/system/branches/'.$this->branch->id, [
+                'name' => 'Updated Name',
+                'address' => 'New Addr',
+                'phone' => '0901',
+                'adminPassword' => 'update-pass-ok',
+            ])->assertOk()
+            ->assertJsonPath('name', 'Updated Name');
+    }
+
+    /** BE-BR-AUTH-012 */
+    public function test_branch_activate_deactivate_require_strict_password(): void
+    {
+        $admin = $this->createAdminUser();
+        $headers = $this->adminAuthHeaders($admin);
         $created = $this->withHeaders($headers)->postJson('/api/system/branches', [
             'name' => 'To Toggle',
             'code' => 'TOGGLE1',
-            'adminPassword' => 'admin',
+            'address' => 'Addr',
+            'phone' => '0901',
+            'adminPassword' => self::BRANCH_CONFIRM_PASSWORD,
         ])->assertStatus(201);
         $id = $created->json('_id') ?? $created->json('id');
 
-        // deactivate
-        $deact = $this->withHeaders($headers)->postJson("/api/system/branches/{$id}/deactivate", ['adminPassword' => 'admin']);
-        $deact->assertOk()->assertJsonPath('isActive', false);
+        $this->withHeaders($headers)
+            ->postJson("/api/system/branches/{$id}/deactivate", ['adminPassword' => 'wrong-deactivate-pass'])
+            ->assertStatus(403);
+        $this->assertTrue((bool) Branch::find($id)?->is_active);
 
-        // activate
-        $act = $this->withHeaders($headers)->postJson("/api/system/branches/{$id}/activate", ['adminPassword' => 'admin']);
-        $act->assertOk()->assertJsonPath('isActive', true);
+        $this->withHeaders($headers)
+            ->postJson("/api/system/branches/{$id}/deactivate", ['adminPassword' => self::BRANCH_CONFIRM_PASSWORD])
+            ->assertOk()
+            ->assertJsonPath('isActive', false);
 
-        // usage
-        $usage = $this->withHeaders($headers)->getJson("/api/system/branches/{$id}/usage");
-        $usage->assertOk();
+        $this->withHeaders($headers)
+            ->postJson("/api/system/branches/{$id}/activate", ['adminPassword' => 'wrong-activate-pass'])
+            ->assertStatus(403);
+        $this->assertFalse((bool) Branch::find($id)?->is_active);
 
-        // delete should be allowed if no links (new branch)
-        $del = $this->withHeaders($headers)->deleteJson("/api/system/branches/{$id}", ['adminPassword' => 'admin']);
-        $del->assertOk()->assertJson(['ok' => true]);
+        $this->withHeaders($headers)
+            ->postJson("/api/system/branches/{$id}/activate", ['adminPassword' => self::BRANCH_CONFIRM_PASSWORD])
+            ->assertOk()
+            ->assertJsonPath('isActive', true);
+    }
 
-        // try delete non exist
-        $this->withHeaders($headers)->deleteJson("/api/system/branches/999999", ['adminPassword' => 'admin'])
-            ->assertStatus(404); // firstOrFail
+    /** BE-BR-AUTH-013 + 014 */
+    public function test_branch_delete_strict_password_and_linked_guard(): void
+    {
+        $admin = $this->createAdminUser();
+        $headers = $this->adminAuthHeaders($admin);
+
+        $created = $this->withHeaders($headers)->postJson('/api/system/branches', [
+            'name' => 'To Delete',
+            'code' => 'DEL1',
+            'address' => 'Addr',
+            'phone' => '0901',
+            'adminPassword' => self::BRANCH_CONFIRM_PASSWORD,
+        ])->assertStatus(201);
+        $id = $created->json('_id') ?? $created->json('id');
+
+        $this->withHeaders($headers)
+            ->deleteJson("/api/system/branches/{$id}", ['adminPassword' => 'wrong-delete-pass'])
+            ->assertStatus(403);
+        $this->assertNotNull(Branch::find($id));
+
+        $this->withHeaders($headers)
+            ->deleteJson("/api/system/branches/{$id}", ['adminPassword' => self::BRANCH_CONFIRM_PASSWORD])
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+        $this->assertNull(Branch::find($id));
+
+        // Linked branch (setUp product stock) cannot be deleted even with correct password.
+        $this->withHeaders($headers)
+            ->deleteJson('/api/system/branches/'.$this->branch->id, ['adminPassword' => self::BRANCH_CONFIRM_PASSWORD])
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Không thể xóa kho hàng vì còn dữ liệu liên kết.');
+        $this->assertNotNull($this->branch->fresh());
+
+        $this->withHeaders($headers)
+            ->deleteJson('/api/system/branches/999999', ['adminPassword' => self::BRANCH_CONFIRM_PASSWORD])
+            ->assertStatus(404);
     }
 }

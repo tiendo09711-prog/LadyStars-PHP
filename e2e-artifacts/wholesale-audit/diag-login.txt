@@ -1,0 +1,41 @@
+console debug [vite] connecting...
+resp 200 GET http://localhost:5173/src/core/api/http.ts
+resp 200 GET http://localhost:5173/src/core/api/product.api.ts
+resp 200 GET http://localhost:5173/src/core/api/branch.api.ts
+console debug [vite] connected.
+console info %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+url1 http://localhost:5173/login
+email count 1
+body1 LadyStars ERP
+
+Đăng nhập hệ thống quản trị
+
+Email
+Mật khẩu
+Đăng nhập
+
+© 2026 LadyStars
+resp 200 POST http://127.0.0.1:8000/api/auth/login
+login status 200 {"token":"local-laravel-token-1","user":{"_id":"1","id":1,"email":"admin@gmail.com","name":"Admin","role":"ADMIN","status":"ACTIVE","phone":null,"defaultWarehouseId":null,"isActive":true,"isRootOwner"
+token true url2 http://localhost:5173/
+body2 A
+Admin
+Tổng quan
+Sản phẩm
+Kho hàng
+Kênh bán - Cửa hàng
+Khách hàng
+TỔNG QUAN
+Xin chào
+
+Chủ Nhật, 12/07/2026 · Tất cả cửa hàng
+
+Tất cả cửa hàng
+Trạng thái dữ liệu
+Đang đồng bộ...
+Làm mới
+Doanh thu theo thời gian
+
+7 ngày gần nhất, dạng cột so sánh.
+
+TỪ

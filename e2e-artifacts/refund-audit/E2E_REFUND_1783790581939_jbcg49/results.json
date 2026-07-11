@@ -1,0 +1,2541 @@
+{
+  "runId": "E2E_REFUND_1783790581939_jbcg49",
+  "startedAt": "2026-07-11T17:23:01.942Z",
+  "endedAt": "2026-07-11T17:29:23.073Z",
+  "env": {
+    "BASE": "http://localhost:5173",
+    "API": "http://127.0.0.1:8000",
+    "RUN_ID": "E2E_REFUND_1783790581939_jbcg49",
+    "playwright": "1.51.0",
+    "APP_ENV": "local",
+    "DB_CONNECTION": "mysql",
+    "DB_HOST": "127.0.0.1",
+    "DB_DATABASE": "ladystars_php",
+    "isolated": false,
+    "hasLiveTestLocal": false
+  },
+  "safetyGate": true,
+  "summary": {
+    "total": 79,
+    "PASS": 61,
+    "FAIL": 3,
+    "BLOCKED_WRITE_ISOLATION": 10,
+    "BLOCKED_SAFETY": 10,
+    "BLOCKED_DATA": 0,
+    "BLOCKED_AUTH": 0,
+    "BLOCKED_ENVIRONMENT": 0,
+    "SKIPPED_DEPENDENCY": 1,
+    "NOT_RUN": 0,
+    "OBSERVATION": 4,
+    "BLOCKED": 10
+  },
+  "groups": {
+    "ENV": {
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "OTHER": 0,
+      "total": 3
+    },
+    "A": {
+      "PASS": 7,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 7
+    },
+    "DATA": {
+      "PASS": 1,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 1
+    },
+    "B": {
+      "PASS": 10,
+      "FAIL": 2,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 12
+    },
+    "C": {
+      "PASS": 8,
+      "FAIL": 1,
+      "BLOCKED": 0,
+      "OTHER": 1,
+      "total": 10
+    },
+    "D": {
+      "PASS": 4,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 4
+    },
+    "E": {
+      "PASS": 3,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 3
+    },
+    "F": {
+      "PASS": 6,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 6
+    },
+    "G": {
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 2
+    },
+    "H": {
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 2
+    },
+    "I": {
+      "PASS": 1,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 1,
+      "total": 2
+    },
+    "J": {
+      "PASS": 5,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "OTHER": 0,
+      "total": 6
+    },
+    "K": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 8,
+      "OTHER": 0,
+      "total": 8
+    },
+    "L": {
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 2
+    },
+    "M": {
+      "PASS": 4,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 4
+    },
+    "N": {
+      "PASS": 3,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 3
+    },
+    "O": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 3,
+      "total": 3
+    },
+    "P": {
+      "PASS": 1,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "OTHER": 0,
+      "total": 1
+    }
+  },
+  "results": [
+    {
+      "id": "RF-ENV01",
+      "group": "ENV",
+      "name": "Frontend availability",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "http://localhost:5173 phản hồi",
+      "actual": "feOk=true",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-ENV02",
+      "group": "ENV",
+      "name": "Backend availability",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "API :8000 phản hồi",
+      "actual": "beOk=true",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-ENV03",
+      "group": "ENV",
+      "name": "DB isolation gate",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "DB test cô lập trước khi mutation",
+      "actual": "DB=ladystars_php; isolated=false; no live-test.local",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Chỉ READ-ONLY + mock UI; không lưu phiếu trả / đổi tồn",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-A01",
+      "group": "A",
+      "name": "Truy cập trực tiếp khi chưa đăng nhập",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [
+        "Mở context sạch",
+        "goto /sales-channels/store/refund"
+      ],
+      "expected": "Redirect login / guard; không lộ dữ liệu trả hàng",
+      "actual": "url=http://localhost:5173/login; isLogin=true; blank=false; hasTableData=false",
+      "url": "http://localhost:5173/login",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-A01-unauth.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-A02",
+      "group": "A",
+      "name": "Đăng nhập hợp lệ",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Session token tồn tại (không log giá trị)",
+      "actual": "hasToken=true; url=http://localhost:5173/",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Password/token không ghi vào report",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-A03",
+      "group": "A",
+      "name": "Truy cập trang qua menu Trả hàng",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "URL /sales-channels/store/refund; menu trỏ đúng",
+      "actual": "url=http://localhost:5173/sales-channels/store/refund; menuLinks=1; activeHint=1",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-A03-menu.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-A04",
+      "group": "A",
+      "name": "Reload trực tiếp trang refund",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không 404; giữ auth; trang render",
+      "actual": "url=http://localhost:5173/sales-channels/store/refund; hasPage=true; hasToken=true",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-A04-reload.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-DATA01",
+      "group": "DATA",
+      "name": "Probe GET /products/refunds live",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "200 + shape items/total",
+      "actual": "{\"status\":200,\"total\":0,\"count\":0,\"first\":null,\"shape\":\"object\",\"keys\":[\"items\",\"data\",\"total\",\"page\",\"limit\",\"per_page\",\"current_page\",\"last_page\"]}",
+      "url": "",
+      "api": [
+        "GET /api/products/refunds?channel=store&page=1&limit=15"
+      ],
+      "evidence": [],
+      "notes": "Live empty → một số UI matrix dùng mock list",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-A05",
+      "group": "A",
+      "name": "Back/forward browser list↔detail",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "URL/màn hình đồng bộ history",
+      "actual": "list=http://localhost:5173/sales-channels/store/refund; detail=http://localhost:5173/sales-channels/store/refund/mock-rf-1; back=http://localhost:5173/sales-channels/store/refund; fwd=http://localhost:5173/sales-channels/store/refund/mock-rf-1",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-A05-history.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-A06",
+      "group": "A",
+      "name": "Route refund ID không tồn tại",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Lỗi thân thiện, không crash trắng",
+      "actual": "errEl=0; blank=false; crash=false; bodySnippet=A\nAdmin\nTổng quan\nSản phẩm\nKho hàng\nKênh bán - Cửa hàng\nKhách hàng\nBáo Cáo\nQuản lý nhân viên\nCài đặt\nChi tiết đơn trả hà",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-A06-missing-id.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-A07",
+      "group": "A",
+      "name": "Route create không có saleId",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Nút lưu disabled hoặc validation chặn; không POST return-exchange",
+      "actual": "title=Tạo Mới Hóa Đơn Trả Hàng; disabled=true; postSeen=false",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-A07-create-no-sale.png"
+      ],
+      "notes": "Source: disabled khi !saleId || !resolvedBranchId",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-B09",
+      "group": "B",
+      "name": "Loading state skeleton",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Skeleton khi chờ; biến mất sau load",
+      "actual": "skeletonDuring=0; skeletonAfter=0",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B09-loading.png"
+      ],
+      "notes": "Có thể miss skeleton nếu API quá nhanh sau delay",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-B01",
+      "group": "B",
+      "name": "Load mặc định danh sách",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Loading kết thúc; bảng hoặc empty",
+      "actual": "page ready; skeletonAfter=0; url=http://localhost:5173/sales-channels/store/refund",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B09-loading.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-B10",
+      "group": "B",
+      "name": "API error state 500",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Alert lỗi + nút Thử lại; không crash",
+      "actual": "hasAlert=true; hasRetry=true",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B10-error.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-B11",
+      "group": "B",
+      "name": "Retry sau lỗi",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Thử lại tải lại dữ liệu",
+      "actual": "hasRetry=true; recovered=true",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B11-retry.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-B08",
+      "group": "B",
+      "name": "Empty state",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Thông báo chưa có dữ liệu; pagination ẩn khi total=0",
+      "actual": "empty=1; pagination=0; text=Chưa có dữ liệu\nThử đổi bộ lọc, từ khóa tìm kiếm hoặc tạo phiếu trả từ hóa đơn b",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B08-empty.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-B02",
+      "group": "B",
+      "name": "API danh sách params",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "GET channel=store, page, limit=15",
+      "actual": "params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\"}; meta={\"status\":200,\"params\":{\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\"},\"path\":\"/api/products/refunds\"}",
+      "url": "",
+      "api": [
+        "GET /api/products/refunds"
+      ],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B02-api.png"
+      ],
+      "notes": "Mock route có thể không populate lastRefundMeta từ response listener path",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-B03",
+      "group": "B",
+      "name": "Header và tổng quan",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Tiêu đề Trả hàng, chip Hóa đơn trả hàng, tổng số phiếu",
+      "actual": "eyebrow=TRẢ HÀNG; chip=Hóa đơn trả hàng; summary=3\nphiếu trả; h1=Hóa đơn trả hàng",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B03-header.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-B04",
+      "group": "B",
+      "name": "Toolbar controls",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Search, filter status, Tìm, Làm mới, Xuất Excel",
+      "actual": "search=1; status=1; find=1; refresh=1; export=1",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B04-toolbar.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-B05",
+      "group": "B",
+      "name": "Bảng dữ liệu cột",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Checkbox + các cột chuẩn",
+      "actual": "headers=[\"\",\"Ngày\",\"Mã trả hàng\",\"Hóa đơn gốc\",\"Khách hàng\",\"Số lượng\",\"Tiền trả khách\",\"Trạng thái\",\"Thao tác\"]; missing=[]; hasCheck=true",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B05-table.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-B06",
+      "group": "B",
+      "name": "Mapping dữ liệu bản ghi",
+      "status": "FAIL",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "code/status/money/date hiển thị hợp lệ",
+      "actual": "code=TH-100001; status=Hoàn tất; firstCodeProbe=TH-100001; issues=mojibake",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B05-table.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-B07",
+      "group": "B",
+      "name": "Format null/undefined/NaN",
+      "status": "FAIL",
+      "severity": "MEDIUM",
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không undefined/null/NaN/[object Object]",
+      "actual": "issues=[\"mojibake\"]; snippet checks on page text",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-B12",
+      "group": "B",
+      "name": "Abort/race filter nhanh",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không crash; stale data không phá UI (AbortController trong source)",
+      "actual": "stillOk=true; recentPageErrors=0; source uses AbortController",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-B12-race.png"
+      ],
+      "notes": "Fact: load() abort on deps change in RefundInvoicePage",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C01",
+      "group": "C",
+      "name": "Tìm theo mã trả hàng",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "q=exact code; kết quả liên quan",
+      "actual": "code=TH-100001; params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"q\":\"TH-100001\"}; shown=[\"TH-100001\",\"TH-100002\",\"TH-100003\"]",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C01-code.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-C02",
+      "group": "C",
+      "name": "Tìm theo một phần mã",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "q=substring",
+      "actual": "sub=TH-1; params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"q\":\"TH-1\"}",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C02-partial.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C03",
+      "group": "C",
+      "name": "Tìm theo mã hóa đơn gốc",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "q chứa hóa đơn gốc (nếu backend search hỗ trợ)",
+      "actual": "orig=HDBL-900001; params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"q\":\"HDBL-900001\"}",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C03-orig.png"
+      ],
+      "notes": "UI placeholder hứa tìm hóa đơn gốc; phụ thuộc backend q search",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C04",
+      "group": "C",
+      "name": "Tìm theo tên khách hàng",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "q chứa tên khách",
+      "actual": "kw=Khách ; params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"q\":\"Khách\"}",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C04-customer.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C05",
+      "group": "C",
+      "name": "Tìm theo SĐT",
+      "status": "OBSERVATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Nếu API hỗ trợ phone trong q",
+      "actual": "Placeholder UI: \"Mã trả hàng, hóa đơn gốc, khách hàng...\" — không nêu SĐT rõ; backend search phụ thuộc index payload",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không FAIL khi chưa chứng minh API promise phone search",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C06",
+      "group": "C",
+      "name": "Trim khoảng trắng search",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "q được trim (source setAppliedSearch(search.trim()))",
+      "actual": "params.q=TH-100001",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C06-trim.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C07",
+      "group": "C",
+      "name": "Debounce search",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không spam request vô hạn (debounce 300ms)",
+      "actual": "getRequestsDuringType=1",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C07-debounce.png"
+      ],
+      "notes": "Source debounce 300ms on search → appliedSearch",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C08",
+      "group": "C",
+      "name": "Nhấn Enter search",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Enter submit form giống nút Tìm",
+      "actual": "params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"q\":\"TH-100001\"}",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C08-enter.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C09",
+      "group": "C",
+      "name": "Ký tự đặc biệt / XSS search",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không XSS/crash; query encode",
+      "actual": "still=true; params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"q\":\"'\\\"%_<>script>\"}",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C09-special.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-C10",
+      "group": "C",
+      "name": "Không tìm thấy",
+      "status": "FAIL",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Empty state / total 0",
+      "actual": "empty=0; summary=3\nphiếu trả",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-C10-notfound.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-D01",
+      "group": "D",
+      "name": "Lọc trạng thái Tất cả",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "không gửi status",
+      "actual": "params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\"}; filteringChip=0",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-D01.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-D02",
+      "group": "D",
+      "name": "Lọc trạng thái Hoàn tất",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "status=completed",
+      "actual": "params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"status\":\"completed\"}; filteringChip=1",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-D02.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-D03",
+      "group": "D",
+      "name": "Lọc trạng thái Nháp",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "status=draft",
+      "actual": "params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"status\":\"draft\"}; filteringChip=1",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-D03.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-D04",
+      "group": "D",
+      "name": "Lọc trạng thái Đã hủy",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "status=cancelled",
+      "actual": "params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\",\"status\":\"cancelled\"}; filteringChip=1",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-D04.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-E01",
+      "group": "E",
+      "name": "Chọn một dòng",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Hiển thị 1 đã chọn",
+      "actual": "1 đã chọn",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-E01-one.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-E02",
+      "group": "E",
+      "name": "Chọn tất cả",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chọn hết dòng trang hiện tại",
+      "actual": "3 đã chọn",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-E02-all.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-E03",
+      "group": "E",
+      "name": "Bỏ chọn tất cả",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chưa chọn dòng",
+      "actual": "Chưa chọn dòng",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-F01",
+      "group": "F",
+      "name": "Mở menu thao tác dòng",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Menu Xem chi tiết / In",
+      "actual": "open=true; items=[\"Xem chi tiết\",\"In\"]",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-F01-menu.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-F02",
+      "group": "F",
+      "name": "Đóng menu bằng Escape",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Menu đóng",
+      "actual": "closed=true",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-F03",
+      "group": "F",
+      "name": "Đóng menu click outside",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Menu đóng khi click ngoài",
+      "actual": "closed=true",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-F04",
+      "group": "F",
+      "name": "Xem chi tiết từ menu",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Navigate detail page",
+      "actual": "url=http://localhost:5173/sales-channels/store/refund/mock-rf-1; title=Chi tiết đơn trả hàng",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-F04-detail.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-F05",
+      "group": "F",
+      "name": "Quay lại từ chi tiết",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Về danh sách",
+      "actual": "url=http://localhost:5173/sales-channels/store/refund",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-F06",
+      "group": "F",
+      "name": "In từ menu (popup)",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Mở popup in / HTML receipt",
+      "actual": "popup=true; htmlLen=4388",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-F06-print.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-G01",
+      "group": "G",
+      "name": "Chi tiết: sections",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Thông tin chung + SP trả + tổng hợp; không bad token",
+      "actual": "general=true; products=true; summary=true; issues=",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-G01-detail.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-G02",
+      "group": "G",
+      "name": "In từ trang chi tiết",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Nút In hoạt động (popup optional headless)",
+      "actual": "popup=true",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-H01",
+      "group": "H",
+      "name": "Mở modal Xuất Excel",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Modal export mở",
+      "actual": "visibleHints=3",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-H01-export-modal.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-H02",
+      "group": "H",
+      "name": "Đóng modal export",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Đóng được modal",
+      "actual": "afterEscape stillTitle=0",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Export file download is client-side XLSX; allowed (no backend write)",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-I01",
+      "group": "I",
+      "name": "Phân trang UI",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Hiển thị range; prev disabled ở trang 1",
+      "actual": "text=Hiển thị 1–3 / 3\nTrang 1 / 1; prevDisabled=true",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-I01-pag.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-I02",
+      "group": "I",
+      "name": "Sang trang sau",
+      "status": "SKIPPED_DEPENDENCY",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "",
+      "actual": "Chỉ 1 trang dữ liệu",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-J00",
+      "group": "J",
+      "name": "Probe sale eligible for refund form",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Đọc sales completed",
+      "actual": "{\"status\":200,\"count\":20,\"eligible\":{\"id\":\"fa106e3cd265bfd4cc36eca4\",\"code\":\"BH260706084144\",\"refundStatus\":\"none\",\"remaining\":1,\"branchId\":\"75e4968f8399e1e9d014e6d8\"}}",
+      "url": "",
+      "api": [
+        "GET /api/products/sales"
+      ],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-J01",
+      "group": "J",
+      "name": "Mở create với saleId eligible (read-only)",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Form load sale; có thể enabled save nhưng KHÔNG bấm lưu ghi",
+      "actual": "title=Tạo Mới Hóa Đơn Trả Hàng; guard=0; saveDisabled=true; hasCustomer=true",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-J01-create-with-sale.png"
+      ],
+      "notes": "Không bấm Lưu — BLOCKED write isolation",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-J02",
+      "group": "J",
+      "name": "Nút Lưu bị chặn ghi thật",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không POST return-exchange lên DB operational",
+      "actual": "Safety gate: không xác nhận lưu; harness abort POST non-login",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Cần DB isolated + fixture RUN_ID để test save/stock",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-J03",
+      "group": "J",
+      "name": "Guard sale cancelled",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Guard message + save disabled (/đã hủy/i)",
+      "actual": "saveDisabled=true; match=true; snippet=Hóa đơn đã hủy nên không thể đổi trả.",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-J03.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-J04",
+      "group": "J",
+      "name": "Guard sale not completed",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Guard message + save disabled (/hoàn tất/i)",
+      "actual": "saveDisabled=true; match=true; snippet=",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-J04.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-J05",
+      "group": "J",
+      "name": "Guard sale full refund",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Guard message + save disabled (/toàn bộ|không thể đổi trả/i)",
+      "actual": "saveDisabled=true; match=true; snippet=Hóa đơn đã hoàn toàn bộ nên không thể đổi trả t",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-J05.png"
+      ],
+      "notes": "",
+      "mode": "mocked-ui",
+      "testData": ""
+    },
+    {
+      "id": "RF-K01",
+      "group": "K",
+      "name": "Lưu phiếu trả (return-exchange) ghi DB",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-K02",
+      "group": "K",
+      "name": "Tạo hóa đơn hàng đổi / replacement sale",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-K03",
+      "group": "K",
+      "name": "Cập nhật refundStatus hóa đơn gốc",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-K04",
+      "group": "K",
+      "name": "Nhập lại tồn SP trả",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-K05",
+      "group": "K",
+      "name": "Trừ tồn SP mua mới",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-K06",
+      "group": "K",
+      "name": "Thanh toán / hoàn tiền thật",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-K07",
+      "group": "K",
+      "name": "Complete product-refunds",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-K08",
+      "group": "K",
+      "name": "POST /products/refunds create",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Chỉ chạy khi DB isolated + fixture RUN_ID",
+      "actual": "DB=ladystars_php operational; harness blocks non-login POST",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Không phải lỗi app — safety policy",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-L01",
+      "group": "L",
+      "name": "Entry Đổi trả từ Bán lẻ (UI)",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Có action Đổi trả hàng (enable theo refundActionState)",
+      "actual": "refundButtons=0",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-L01-retail-entry.png"
+      ],
+      "notes": "Không bấm tạo phiếu ghi; chỉ xác nhận UI entry",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-L02",
+      "group": "L",
+      "name": "Entry Đổi trả từ Bán sỉ (UI)",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Có action Đổi trả (nếu có HĐ)",
+      "actual": "refundButtons=0",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-L02-ws-entry.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-M01",
+      "group": "M",
+      "name": "Responsive Desktop 1440x900",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Trang render; hạn chế overflow-x",
+      "actual": "hasPage=true; overflowX=false; sw=1440; cw=1440",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-M01.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-M02",
+      "group": "M",
+      "name": "Responsive Tablet 768x1024",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Trang render; hạn chế overflow-x",
+      "actual": "hasPage=true; overflowX=false; sw=768; cw=768",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-M02.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-M03",
+      "group": "M",
+      "name": "Responsive Mobile 390x844",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Trang render; hạn chế overflow-x",
+      "actual": "hasPage=true; overflowX=false; sw=390; cw=390",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-M03.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-M04",
+      "group": "M",
+      "name": "Keyboard focus toolbar",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Tab di chuyển focus",
+      "actual": "active=SELECT:Lọc trạng thái",
+      "url": "",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790581939_jbcg49\\screenshots\\RF-M04-a11y.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-N01",
+      "group": "N",
+      "name": "Console errors trên load list",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không console.error nghiêm trọng khi load",
+      "actual": "count=0; sample=[]",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-N02",
+      "group": "N",
+      "name": "Page errors trên load list",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Không pageerror",
+      "actual": "count=0; sample=[]",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-N03",
+      "group": "N",
+      "name": "Không mutation return-exchange lọt backend",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "0 POST return-exchange allowed",
+      "actual": "leaked=0; blockedMutations=0; loginAllowed=0",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-O01",
+      "group": "O",
+      "name": "Invariant: refundActionState only completed+remaining",
+      "status": "OBSERVATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "invoiceHelpers.refundActionState",
+      "actual": "Source verified: cancelled/not-completed/full/remaining<=0 disable",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "client/src/modules/sales/invoiceHelpers.ts",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-O02",
+      "group": "O",
+      "name": "Invariant: list API channel strict",
+      "status": "OBSERVATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "product-refunds channel filter strict",
+      "actual": "MirrorRecordController filters product-refunds by channel strictly",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "backend MirrorRecordController",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-O03",
+      "group": "O",
+      "name": "Invariant: return-exchange writes stock+refund",
+      "status": "OBSERVATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "LocalWriteController return-exchange side effects",
+      "actual": "Source: create product-refunds, optional replacement sale, applySaleStock",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "BLOCKED live verification",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-P01",
+      "group": "P",
+      "name": "Nút Làm mới",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "Reload list, clear filters",
+      "actual": "params={\"channel\":\"store\",\"page\":\"1\",\"limit\":\"15\"}; url=http://localhost:5173/sales-channels/store/refund",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    }
+  ],
+  "bugs": [
+    {
+      "id": "BUG-RF-001",
+      "tc": "RF-B07",
+      "title": "Format null/undefined/NaN",
+      "severity": "MEDIUM",
+      "expected": "Không undefined/null/NaN/[object Object]",
+      "actual": "issues=[\"mojibake\"]; snippet checks on page text",
+      "sourceHint": ""
+    }
+  ],
+  "network": {
+    "methods": {
+      "GET": 317,
+      "POST": 1,
+      "PUT": 0,
+      "PATCH": 0,
+      "DELETE": 0,
+      "OTHER": 0
+    },
+    "status4xx": [],
+    "status5xx": [
+      {
+        "status": 500,
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/api/products/refunds?channel=store&page=1&limit=15",
+        "t": 1783790715927
+      }
+    ],
+    "failed": [
+      {
+        "url": "http://127.0.0.1:8000/api/products/refunds?channel=store&page=1&limit=15",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790586452
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620513
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620513
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620514
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620514
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620515
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/dashboard?chartRange=7+ng%C3%A0y&topRange=7+ng%C3%A0y&topLimit=10",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620515
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620515
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620515
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790620516
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/dashboard?chartRange=7+ng%C3%A0y&topRange=7+ng%C3%A0y&topLimit=10",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790626344
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/refunds?channel=store&page=1&limit=15",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/storage-duration?page=1&limit=5",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790660547
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790691920
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790706472
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790710125
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790710125
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790710126
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790710126
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790710126
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790710126
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790713856
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790713856
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790713856
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790713857
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790719384
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790719384
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790719384
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790719384
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790724793
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790724793
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790724793
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790724793
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790737751
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790737751
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790737751
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790737759
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790778061
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790778061
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790778061
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790778061
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790793352
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790793353
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790793354
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790793354
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790801938
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790801938
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790801938
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790801970
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790807898
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790807898
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790807898
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790807898
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906427
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/sales/fa106e3cd265bfd4cc36eca4",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906427
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906428
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906428
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906428
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906429
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906429
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/sales/fa106e3cd265bfd4cc36eca4",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906429
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906429
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790906429
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911591
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911591
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911609
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911609
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911609
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911609
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911612
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911613
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911615
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911615
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911615
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790911615
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915973
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790915974
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches/mock-branch-1",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/payment-methods?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921227
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921228
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790921228
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/sales?page=1&limit=15&channel=store&type=retail",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790926296
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930638
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930639
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930640
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/products/sales?type=wholesale&page=1&limit=500&channel=store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930641
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930641
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930646
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930649
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930649
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/system/branches?limit=5000",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790930649
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790933813
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790933813
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790933813
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790933813
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790936446
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790936447
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790936448
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790936449
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790940487
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790940488
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790940490
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790940490
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790944208
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790944209
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790944210
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790944210
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790947842
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790947842
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790947842
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790947842
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790952303
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790952303
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/me",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790952303
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/settings/store",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790952303
+      }
+    ],
+    "apiCallCount": 3978
+  },
+  "mutationLog": [],
+  "consoleErrors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "url": "http://localhost:5173/sales-channels/store/refund",
+      "t": 1783790715927
+    }
+  ],
+  "pageErrors": [],
+  "verdict": "PARTIAL_BLOCKED_SAFETY"
+}

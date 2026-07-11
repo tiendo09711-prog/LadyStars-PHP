@@ -130,6 +130,16 @@ class LocalWriteController extends Controller
         $table = $this->table($resource);
         $payload = $request->all();
 
+        if ($resource === 'inventory-checks') {
+            $warehouseId = trim((string) ($payload['warehouseId'] ?? $payload['branchId'] ?? $payload['warehouse'] ?? ''));
+            if ($warehouseId === '') {
+                return response()->json(['message' => 'Vui lòng chọn kho hàng.'], 422);
+            }
+            if (!$this->branch($warehouseId)) {
+                return response()->json(['message' => 'Kho hàng không hợp lệ.'], 422);
+            }
+        }
+
         // Ensure channel (from sales-channels routing) is captured even if not in body
         // This fixes sales created from /sales-channels/{channel}/... not having 'channel' in payload
         if (empty($payload['channel'])) {
@@ -139,7 +149,14 @@ class LocalWriteController extends Controller
             }
         }
 
-        $record = DB::transaction(fn () => $this->createRecord($table, $payload, $resource));
+        $record = DB::transaction(function () use ($table, $payload, $resource) {
+            $created = $this->createRecord($table, $payload, $resource);
+            if ($resource === 'inventory-checks') {
+                $this->syncInventoryCheckProducts($created, $payload['items'] ?? $payload['lines'] ?? []);
+            }
+
+            return $created;
+        });
 
         return response()->json($this->serialize($record), 201);
     }
@@ -152,6 +169,23 @@ class LocalWriteController extends Controller
         $record = $this->findRecord($table, $id);
         $payload = array_merge(is_array($record->payload) ? $record->payload : [], $request->all());
 
+        if ($resource === 'inventory-checks') {
+            $currentStatus = strtoupper((string) ($record->status ?? (is_array($record->payload) ? ($record->payload['status'] ?? 'DRAFT') : 'DRAFT')));
+            // Terminal / submitted audits are not editable via PATCH.
+            if (in_array($currentStatus, ['SUBMITTED', 'RECONCILED', 'CANCELLED'], true)) {
+                return response()->json([
+                    'message' => 'Không thể sửa phiếu kiểm kho ở trạng thái '.$currentStatus.'.',
+                ], 422);
+            }
+            $warehouseId = trim((string) ($payload['warehouseId'] ?? $payload['branchId'] ?? $payload['warehouse'] ?? ''));
+            if ($warehouseId === '') {
+                return response()->json(['message' => 'Vui lòng chọn kho hàng.'], 422);
+            }
+            if (!$this->branch($warehouseId)) {
+                return response()->json(['message' => 'Kho hàng không hợp lệ.'], 422);
+            }
+        }
+
         // Capture channel on update/edit too
         if (empty($payload['channel'])) {
             $ch = $request->query('channel') ?? $request->input('channel') ?? $request->input('orderSource');
@@ -160,7 +194,16 @@ class LocalWriteController extends Controller
             }
         }
 
-        $record->forceFill($this->attributes($table, $payload, $resource, $record))->save();
+        $requestBody = $request->all();
+        DB::transaction(function () use ($record, $table, $payload, $resource, $requestBody): void {
+            $record->forceFill($this->attributes($table, $payload, $resource, $record))->save();
+            // Sync product lines when client sends items/lines (create/edit audit form).
+            if ($resource === 'inventory-checks' && (array_key_exists('items', $requestBody) || array_key_exists('lines', $requestBody))) {
+                $this->syncInventoryCheckProducts($record, $payload['items'] ?? $payload['lines'] ?? []);
+            }
+        });
+
+        $record->refresh();
 
         return response()->json($this->serialize($record));
     }
@@ -173,13 +216,36 @@ class LocalWriteController extends Controller
         $record = $this->findRecord($table, $id);
 
         if ($resource === 'warehouse-transfers') {
+            $currentStatus = strtoupper((string) ($record->status ?? ''));
+            if ($currentStatus !== 'DRAFT') {
+                return response()->json([
+                    'message' => 'Chỉ được hủy đơn chuyển kho ở trạng thái Chờ xác nhận xuất (DRAFT).',
+                ], 422);
+            }
+
             $payload = is_array($record->payload) ? $record->payload : [];
             $payload['status'] = 'CANCELLED';
             $payload['cancelledAt'] = now()->toISOString();
-            if ($request->filled('reason')) $payload['cancelReason'] = $request->input('reason');
+            $payload['lockedQuantity'] = 0;
+            $payload['lines'] = $this->withLineLockedQuantity($payload['lines'] ?? [], 0);
+            if ($request->filled('reason')) {
+                $payload['cancelReason'] = $request->input('reason');
+            }
             $record->forceFill(['status' => 'CANCELLED', 'payload' => $payload])->save();
 
             return response()->json($this->serialize($record));
+        }
+
+        if ($resource === 'inventory-checks') {
+            $payload = is_array($record->payload) ? $record->payload : [];
+            $currentStatus = strtoupper((string) ($record->status ?? $payload['status'] ?? 'DRAFT'));
+            if ($currentStatus !== 'DRAFT') {
+                return response()->json([
+                    'message' => 'Chỉ được xóa phiếu kiểm kho ở trạng thái nháp (DRAFT).',
+                ], 422);
+            }
+            // Remove product lines tied to this audit only (by code + mongo_id).
+            $this->deleteInventoryCheckProducts($record);
         }
 
         $record->delete();
@@ -196,15 +262,56 @@ class LocalWriteController extends Controller
         $record = $this->findRecord($table, $id);
         $payload = is_array($record->payload) ? $record->payload : [];
         $originalStatus = $record->status;
+
+        // Warehouse transfers: dedicated state machine + stock effects (isolated from other resources).
+        if ($resource === 'warehouse-transfers') {
+            return $this->actionWarehouseTransfer($request, $record, $action);
+        }
+
         if ($resource === 'inventory-checks') {
-            $status = match ($action) {
-                'submit' => 'COUNTING',
-                'reconcile' => 'RECONCILED',
-                'cancel' => 'CANCELLED',
-                'reverse-reconcile' => 'COUNTING',
-                'resnapshot' => $record->status,
-                default => $record->status,
-            };
+            $currentStatus = strtoupper((string) ($record->status ?? $payload['status'] ?? 'DRAFT'));
+
+            // Permission gates: reconcile / reverse-reconcile require ADMIN or root owner.
+            if (in_array($action, ['reconcile', 'reverse-reconcile'], true) && !$this->isInventoryAuditAdmin($request)) {
+                return response()->json([
+                    'message' => 'Chỉ quản trị viên (ADMIN/root) mới được thực hiện thao tác bù trừ / đảo bù trừ kiểm kho.',
+                ], 403);
+            }
+
+            if ($action === 'submit') {
+                if (!in_array($currentStatus, ['DRAFT', 'COUNTING'], true)) {
+                    return response()->json(['message' => 'Không thể submit phiếu ở trạng thái hiện tại.'], 422);
+                }
+                $status = 'SUBMITTED';
+            } elseif ($action === 'reconcile') {
+                if ($currentStatus === 'RECONCILED') {
+                    return response()->json(['message' => 'Phiếu kiểm kho đã được bù trừ, không thể bù trừ lại.'], 422);
+                }
+                if ($currentStatus !== 'SUBMITTED') {
+                    return response()->json(['message' => 'Chỉ bù trừ được phiếu đã nộp (SUBMITTED).'], 422);
+                }
+                $status = 'RECONCILED';
+            } elseif ($action === 'reverse-reconcile') {
+                if ($currentStatus !== 'RECONCILED') {
+                    return response()->json(['message' => 'Chỉ đảo bù trừ được phiếu đã bù trừ.'], 422);
+                }
+                $status = 'COUNTING';
+            } elseif ($action === 'cancel') {
+                if (in_array($currentStatus, ['RECONCILED', 'CANCELLED'], true)) {
+                    return response()->json(['message' => 'Không thể hủy phiếu đã bù trừ hoặc đã hủy.'], 422);
+                }
+                if (!in_array($currentStatus, ['DRAFT', 'COUNTING', 'SUBMITTED'], true)) {
+                    return response()->json(['message' => 'Không thể hủy phiếu ở trạng thái hiện tại.'], 422);
+                }
+                $status = 'CANCELLED';
+            } elseif ($action === 'resnapshot') {
+                if ($currentStatus !== 'COUNTING') {
+                    return response()->json(['message' => 'Chỉ chụp lại snapshot được phiếu đang kiểm (COUNTING).'], 422);
+                }
+                $status = 'COUNTING';
+            } else {
+                $status = $record->status;
+            }
         } else {
             $status = match ($action) {
                 'confirm-destination' => 'COMPLETED',
@@ -337,22 +444,280 @@ class LocalWriteController extends Controller
         }
         $record->forceFill($updates)->save();
 
-        if ($action === 'return' && $resource === 'warehouse-transfers') {
-            $return = $this->createRecord($table, array_merge($payload, [
-                'code' => 'TR-'.$this->nextSuffix(),
-                'status' => 'DRAFT',
-                'type' => 'return',
-                'sourceWarehouseId' => $payload['destinationWarehouseId'] ?? null,
-                'destinationWarehouseId' => $payload['sourceWarehouseId'] ?? null,
-            ]), $resource);
-            return response()->json(['ok' => true, 'returnTransfer' => $this->serialize($return)]);
-        }
-
         $base = $this->serialize($record);
         if ($replacementSale) {
             $base['replacementSale'] = $replacementSale;
         }
         return response()->json($base);
+    }
+
+    /**
+     * State machine + stock/lock effects for warehouse-transfers only.
+     *
+     * NORMAL_TRANSFER:
+     * - confirm-source (DRAFT→IN_TRANSIT): lock source available qty
+     * - confirm-destination (IN_TRANSIT→COMPLETED): move stock source→dest and unlock
+     * - return (IN_TRANSIT→RETURN_IN_PROGRESS): create RETURN_OF_TRANSFER, keep lock, no stock move
+     *
+     * RETURN_OF_TRANSFER:
+     * - confirm-source (DRAFT→IN_TRANSIT): no stock lock (goods never left original source)
+     * - confirm-destination (IN_TRANSIT→COMPLETED): unlock original source only; original→RETURNED
+     */
+    private function actionWarehouseTransfer(Request $request, MirrorRecord $record, string $action): JsonResponse
+    {
+        $table = $this->table('warehouse-transfers');
+        $payload = is_array($record->payload) ? $record->payload : [];
+        $status = strtoupper((string) ($record->status ?? $payload['status'] ?? ''));
+        $kind = $this->transferKind($payload);
+        $allowed = ['confirm-source', 'confirm-destination', 'return'];
+
+        if (! in_array($action, $allowed, true)) {
+            return response()->json([
+                'message' => 'Thao tác chuyển kho không được hỗ trợ: '.$action,
+            ], 422);
+        }
+
+        try {
+            return match ($action) {
+                'confirm-source' => $this->warehouseTransferConfirmSource($record, $payload, $status, $kind),
+                'confirm-destination' => $this->warehouseTransferConfirmDestination($record, $payload, $status, $kind),
+                'return' => $this->warehouseTransferReturn($request, $record, $payload, $status, $kind, $table),
+                default => response()->json(['message' => 'Thao tác chuyển kho không được hỗ trợ.'], 422),
+            };
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    private function transferKind(array $payload): string
+    {
+        $raw = strtoupper((string) ($payload['kind'] ?? $payload['type'] ?? 'NORMAL_TRANSFER'));
+
+        return in_array($raw, ['RETURN', 'RETURN_OF_TRANSFER'], true)
+            ? 'RETURN_OF_TRANSFER'
+            : 'NORMAL_TRANSFER';
+    }
+
+    private function withLineLockedQuantity(mixed $lines, float $lockedPerLineOrZero): array
+    {
+        if (! is_array($lines)) {
+            return [];
+        }
+
+        return array_values(array_map(function ($line) use ($lockedPerLineOrZero) {
+            if (! is_array($line)) {
+                return $line;
+            }
+            $line['lockedQuantity'] = $lockedPerLineOrZero;
+
+            return $line;
+        }, $lines));
+    }
+
+    private function withLinesLockedToRequested(mixed $lines): array
+    {
+        if (! is_array($lines)) {
+            return [];
+        }
+
+        return array_values(array_map(function ($line) {
+            if (! is_array($line)) {
+                return $line;
+            }
+            $qty = (float) ($line['requestedQuantity'] ?? $line['quantity'] ?? $line['amount'] ?? 0);
+            $line['lockedQuantity'] = $qty;
+
+            return $line;
+        }, $lines));
+    }
+
+    private function warehouseTransferConfirmSource(
+        MirrorRecord $record,
+        array $payload,
+        string $status,
+        string $kind
+    ): JsonResponse {
+        if ($status !== 'DRAFT') {
+            return response()->json([
+                'message' => 'Chỉ xác nhận xuất được đơn ở trạng thái Chờ xác nhận xuất (DRAFT).',
+            ], 422);
+        }
+
+        if ($kind === 'RETURN_OF_TRANSFER') {
+            // Return doc: no physical lock at return-source (goods never left original source).
+            $payload['status'] = 'IN_TRANSIT';
+            $payload['kind'] = 'RETURN_OF_TRANSFER';
+            $payload['type'] = $payload['type'] ?? 'return';
+            $payload['sourceConfirmedAt'] = now()->toISOString();
+            $payload['lockedQuantity'] = 0;
+            $payload['lines'] = $this->withLineLockedQuantity($payload['lines'] ?? [], 0);
+            $record->forceFill(['status' => 'IN_TRANSIT', 'payload' => $payload])->save();
+
+            return response()->json($this->serialize($record));
+        }
+
+        $this->applyTransferSourceLock($payload, true);
+        $payload['status'] = 'IN_TRANSIT';
+        $payload['sourceConfirmedAt'] = now()->toISOString();
+        $payload['lines'] = $this->withLinesLockedToRequested($payload['lines'] ?? []);
+        $payload['lockedQuantity'] = collect($payload['lines'])->sum(
+            fn ($line) => (float) (is_array($line) ? ($line['lockedQuantity'] ?? 0) : 0)
+        );
+        $record->forceFill(['status' => 'IN_TRANSIT', 'payload' => $payload])->save();
+
+        return response()->json($this->serialize($record));
+    }
+
+    private function warehouseTransferConfirmDestination(
+        MirrorRecord $record,
+        array $payload,
+        string $status,
+        string $kind
+    ): JsonResponse {
+        if ($status !== 'IN_TRANSIT') {
+            return response()->json([
+                'message' => 'Chỉ xác nhận nhận hàng được đơn đang chuyển (IN_TRANSIT).',
+            ], 422);
+        }
+
+        if ($kind === 'RETURN_OF_TRANSFER') {
+            return $this->warehouseTransferReceiveReturn($record, $payload);
+        }
+
+        $this->applyTransferReceive($payload);
+        $payload['status'] = 'COMPLETED';
+        $payload['destinationConfirmedAt'] = now()->toISOString();
+        $payload['lockedQuantity'] = 0;
+        $payload['lines'] = $this->withLineLockedQuantity($payload['lines'] ?? [], 0);
+        $record->forceFill(['status' => 'COMPLETED', 'payload' => $payload])->save();
+
+        return response()->json($this->serialize($record));
+    }
+
+    private function warehouseTransferReceiveReturn(MirrorRecord $returnRecord, array $returnPayload): JsonResponse
+    {
+        $originId = (string) ($returnPayload['originTransferId'] ?? '');
+        if ($originId === '') {
+            throw new \InvalidArgumentException('Đơn trả hàng thiếu liên kết đơn gốc (originTransferId).');
+        }
+
+        $table = $this->table('warehouse-transfers');
+        $original = $this->findRecord($table, $originId);
+        $originalPayload = is_array($original->payload) ? $original->payload : [];
+        $originalStatus = strtoupper((string) ($original->status ?? $originalPayload['status'] ?? ''));
+
+        if ($originalStatus !== 'RETURN_IN_PROGRESS') {
+            throw new \InvalidArgumentException(
+                'Đơn gốc phải ở trạng thái Đang chờ nhận lại hàng trả (RETURN_IN_PROGRESS).'
+            );
+        }
+
+        // Unlock stock at ORIGINAL source only — no physical qty move (goods never left source).
+        $this->applyTransferSourceLock($originalPayload, false);
+
+        $originalPayload['status'] = 'RETURNED';
+        $originalPayload['lockedQuantity'] = 0;
+        $originalPayload['lines'] = $this->withLineLockedQuantity($originalPayload['lines'] ?? [], 0);
+        $originalPayload['returnReceivedAt'] = now()->toISOString();
+        $originalPayload['returnTransferId'] = $originalPayload['returnTransferId']
+            ?? ($returnRecord->mongo_id ?: (string) $returnRecord->id);
+        $original->forceFill(['status' => 'RETURNED', 'payload' => $originalPayload])->save();
+
+        $returnPayload['status'] = 'COMPLETED';
+        $returnPayload['kind'] = 'RETURN_OF_TRANSFER';
+        $returnPayload['destinationConfirmedAt'] = now()->toISOString();
+        $returnPayload['lockedQuantity'] = 0;
+        $returnPayload['lines'] = $this->withLineLockedQuantity($returnPayload['lines'] ?? [], 0);
+        $returnPayload['originTransferId'] = $returnPayload['originTransferId']
+            ?? ($original->mongo_id ?: (string) $original->id);
+        $returnRecord->forceFill(['status' => 'COMPLETED', 'payload' => $returnPayload])->save();
+
+        $base = $this->serialize($returnRecord);
+        $base['originTransfer'] = $this->serialize($original);
+
+        return response()->json($base);
+    }
+
+    private function warehouseTransferReturn(
+        Request $request,
+        MirrorRecord $record,
+        array $payload,
+        string $status,
+        string $kind,
+        string $table
+    ): JsonResponse {
+        if ($status !== 'IN_TRANSIT') {
+            return response()->json([
+                'message' => 'Chỉ báo hoàn chuyển được đơn đang chuyển (IN_TRANSIT).',
+            ], 422);
+        }
+
+        if ($kind === 'RETURN_OF_TRANSFER') {
+            return response()->json([
+                'message' => 'Không thể hoàn chuyển trên đơn trả hàng.',
+            ], 422);
+        }
+
+        $reason = trim((string) $request->input('reason', ''));
+        if ($reason === '') {
+            return response()->json([
+                'message' => 'Vui lòng nhập lý do trả hàng / không nhận.',
+            ], 422);
+        }
+
+        if (! empty($payload['returnTransferId'])) {
+            return response()->json([
+                'message' => 'Đơn chuyển này đã có đơn trả hàng, không tạo thêm.',
+            ], 422);
+        }
+
+        $lines = is_array($payload['lines'] ?? null) ? $payload['lines'] : [];
+        $returnCode = 'TR-'.$this->nextSuffix();
+
+        $return = DB::transaction(function () use ($record, $payload, $table, $lines, $reason, $returnCode) {
+            $returnPayload = [
+                'code' => $returnCode,
+                'id' => $returnCode,
+                'status' => 'IN_TRANSIT',
+                'type' => 'return',
+                'kind' => 'RETURN_OF_TRANSFER',
+                'originTransferId' => $record->mongo_id ?: (string) $record->id,
+                'sourceWarehouseId' => $payload['destinationWarehouseId'] ?? null,
+                'destinationWarehouseId' => $payload['sourceWarehouseId'] ?? null,
+                'sourceWarehouseName' => $payload['destinationWarehouseName'] ?? null,
+                'destinationWarehouseName' => $payload['sourceWarehouseName'] ?? null,
+                'lines' => $this->withLineLockedQuantity($lines, 0),
+                'qty' => $payload['qty'] ?? collect($lines)->sum(
+                    fn ($l) => (float) (is_array($l) ? ($l['requestedQuantity'] ?? $l['quantity'] ?? 0) : 0)
+                ),
+                'spCount' => $payload['spCount'] ?? count($lines),
+                'reason' => $reason,
+                'lockedQuantity' => 0,
+                'note' => $payload['note'] ?? '',
+            ];
+
+            $returnRecord = $this->createRecord($table, $returnPayload, 'warehouse-transfers');
+
+            $payload['status'] = 'RETURN_IN_PROGRESS';
+            $payload['reason'] = $reason;
+            $payload['returnAt'] = now()->toISOString();
+            $payload['returnTransferId'] = $returnRecord->mongo_id ?: (string) $returnRecord->id;
+            // Keep line locks on original while awaiting return receive.
+            $payload['lines'] = $this->withLinesLockedToRequested($payload['lines'] ?? []);
+            $payload['lockedQuantity'] = collect($payload['lines'])->sum(
+                fn ($line) => (float) (is_array($line) ? ($line['lockedQuantity'] ?? 0) : 0)
+            );
+            $record->forceFill(['status' => 'RETURN_IN_PROGRESS', 'payload' => $payload])->save();
+
+            return $returnRecord;
+        });
+
+        return response()->json([
+            'ok' => true,
+            'status' => 'RETURN_IN_PROGRESS',
+            'returnTransfer' => $this->serialize($return),
+            'originTransfer' => $this->serialize($record->fresh()),
+        ]);
     }
 
     private function createRecord(string $table, array $payload, string $resource): MirrorRecord
@@ -371,6 +736,56 @@ class LocalWriteController extends Controller
         $customer = $this->customer($payload['customerId'] ?? null);
         $product = $this->product($payload['productId'] ?? null);
         $items = $payload['items'] ?? $payload['lines'] ?? null;
+
+        // Warehouse transfers: persist display fields in payload (table may lack name/qty/lines columns).
+        if ($resource === 'warehouse-transfers') {
+            $fromBranch = $this->branch($payload['sourceWarehouseId'] ?? null);
+            $toBranch = $this->branch($payload['destinationWarehouseId'] ?? null);
+            $normalizedLines = [];
+            foreach (is_array($items) ? $items : [] as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+                $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+                $lineProduct = $this->product($pid);
+                $qty = (float) ($line['requestedQuantity'] ?? $line['quantity'] ?? $line['amount'] ?? 0);
+                // DRAFT (and default create) must not pretent stock is locked; actions set locks later.
+                $lineLock = array_key_exists('lockedQuantity', $line) || array_key_exists('locked_quantity', $line)
+                    ? (float) ($line['lockedQuantity'] ?? $line['locked_quantity'] ?? 0)
+                    : 0.0;
+                $statusUpper = strtoupper((string) ($payload['status'] ?? $status ?? 'DRAFT'));
+                if (in_array($statusUpper, ['DRAFT', 'COMPLETED', 'RETURNED', 'CANCELLED'], true)) {
+                    $lineLock = 0.0;
+                }
+                $normalizedLines[] = array_merge($line, [
+                    'productId' => $lineProduct?->mongo_id ?? $pid,
+                    'productCode' => $line['productCode'] ?? $lineProduct?->code,
+                    'productName' => $line['productName'] ?? $lineProduct?->name,
+                    'unit' => $line['unit'] ?? $lineProduct?->unit ?? '',
+                    'quantity' => $qty,
+                    'requestedQuantity' => $qty,
+                    'dispatchedQuantity' => (float) ($line['dispatchedQuantity'] ?? $qty),
+                    'receivedQuantity' => (float) ($line['receivedQuantity'] ?? $qty),
+                    'lockedQuantity' => $lineLock,
+                    'note' => $line['note'] ?? '',
+                ]);
+            }
+            $items = $normalizedLines;
+            $payload['lines'] = $normalizedLines;
+            $payload['sourceWarehouseId'] = $fromBranch?->mongo_id ?? ($payload['sourceWarehouseId'] ?? null);
+            $payload['destinationWarehouseId'] = $toBranch?->mongo_id ?? ($payload['destinationWarehouseId'] ?? null);
+            $payload['sourceWarehouseName'] = $fromBranch?->name ?? ($payload['sourceWarehouseName'] ?? null);
+            $payload['destinationWarehouseName'] = $toBranch?->name ?? ($payload['destinationWarehouseName'] ?? null);
+            $payload['kind'] = $payload['kind']
+                ?? (in_array(strtoupper((string) ($payload['type'] ?? '')), ['RETURN', 'RETURN_OF_TRANSFER'], true)
+                    ? 'RETURN_OF_TRANSFER'
+                    : 'NORMAL_TRANSFER');
+            $payload['qty'] = collect($normalizedLines)->sum(fn (array $line): float => (float) ($line['requestedQuantity'] ?? 0));
+            $payload['spCount'] = count($normalizedLines);
+            $payload['lockedQuantity'] = collect($normalizedLines)->sum(fn (array $line): float => (float) ($line['lockedQuantity'] ?? 0));
+            $payload['id'] = $payload['id'] ?? $code;
+        }
 
         $payload = array_merge($payload, [
             '_id' => $record?->mongo_id ?? ($payload['_id'] ?? null),
@@ -492,7 +907,12 @@ class LocalWriteController extends Controller
                 'warehouse_name' => $branch?->name,
                 'creator' => $payload['creator'] ?? null,
                 'sp_count' => is_array($items) ? count($items) : null,
-                'qty' => collect($items ?? [])->sum(fn ($i) => (float) ($i['actualStock'] ?? $i['actual_stock'] ?? 0)),
+                'qty' => collect($items ?? [])->sum(fn ($i) => (float) (
+                    $i['physicalQuantity']
+                    ?? $i['actualStock']
+                    ?? $i['actual_stock']
+                    ?? 0
+                )),
                 'note' => $payload['note'] ?? null,
                 'missing_sp' => $payload['missingSp'] ?? null,
                 'balance' => $payload['balance'] ?? null,
@@ -500,6 +920,121 @@ class LocalWriteController extends Controller
         ][$table] ?? [];
 
         return $this->onlyExisting($table, array_merge($attrs, $extra));
+    }
+
+    /**
+     * Lock (or unlock) transfer quantities at source warehouse without changing on-hand qty.
+     * @param  bool  $lock  true = lock on confirm-source, false = unlock (rollback helper)
+     */
+    private function applyTransferSourceLock(array $payload, bool $lock): void
+    {
+        $source = $this->branch($payload['sourceWarehouseId'] ?? null);
+        if (!$source) {
+            throw new \InvalidArgumentException('Không xác định được kho nguồn để khóa tồn.');
+        }
+
+        $lines = is_array($payload['lines'] ?? null) ? $payload['lines'] : [];
+        if ($lines === []) {
+            throw new \InvalidArgumentException('Đơn chuyển kho không có dòng sản phẩm.');
+        }
+
+        DB::transaction(function () use ($lines, $source, $lock): void {
+            foreach ($lines as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+                $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+                $product = $this->product($pid);
+                if (!$product || $product->type === 'service') {
+                    continue;
+                }
+                $qty = (float) ($line['requestedQuantity'] ?? $line['quantity'] ?? $line['amount'] ?? 0);
+                if ($qty <= 0) {
+                    continue;
+                }
+
+                $stock = ProductBranchStock::query()->firstOrCreate(
+                    ['product_id' => $product->id, 'branch_id' => $source->id],
+                    ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
+                );
+
+                $onHand = (float) $stock->qty;
+                $locked = (float) $stock->locked_quantity;
+                if ($lock) {
+                    $available = $onHand - $locked;
+                    if ($available + 1e-9 < $qty) {
+                        throw new \InvalidArgumentException(
+                            "Không đủ tồn khả dụng để xuất {$product->code}: cần {$qty}, còn {$available}."
+                        );
+                    }
+                    $stock->forceFill(['locked_quantity' => $locked + $qty])->save();
+                } else {
+                    $stock->forceFill(['locked_quantity' => max(0, $locked - $qty)])->save();
+                }
+            }
+        });
+    }
+
+    /**
+     * Receive transfer at destination: deduct+unlock source, add destination on-hand.
+     */
+    private function applyTransferReceive(array $payload): void
+    {
+        $source = $this->branch($payload['sourceWarehouseId'] ?? null);
+        $destination = $this->branch($payload['destinationWarehouseId'] ?? null);
+        if (!$source || !$destination) {
+            throw new \InvalidArgumentException('Không xác định được kho nguồn/kho đích để nhận hàng.');
+        }
+
+        $lines = is_array($payload['lines'] ?? null) ? $payload['lines'] : [];
+        if ($lines === []) {
+            throw new \InvalidArgumentException('Đơn chuyển kho không có dòng sản phẩm.');
+        }
+
+        DB::transaction(function () use ($lines, $source, $destination): void {
+            foreach ($lines as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+                $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+                $product = $this->product($pid);
+                if (!$product || $product->type === 'service') {
+                    continue;
+                }
+                $qty = (float) ($line['requestedQuantity'] ?? $line['quantity'] ?? $line['amount'] ?? 0);
+                if ($qty <= 0) {
+                    continue;
+                }
+
+                $sourceStock = ProductBranchStock::query()->firstOrCreate(
+                    ['product_id' => $product->id, 'branch_id' => $source->id],
+                    ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
+                );
+                $destStock = ProductBranchStock::query()->firstOrCreate(
+                    ['product_id' => $product->id, 'branch_id' => $destination->id],
+                    ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
+                );
+
+                $sourceQty = (float) $sourceStock->qty;
+                $sourceLocked = (float) $sourceStock->locked_quantity;
+                if ($sourceQty + 1e-9 < $qty) {
+                    throw new \InvalidArgumentException(
+                        "Không đủ tồn kho nguồn để hoàn tất {$product->code}: cần {$qty}, còn {$sourceQty}."
+                    );
+                }
+
+                $sourceStock->forceFill([
+                    'qty' => max(0, $sourceQty - $qty),
+                    'locked_quantity' => max(0, $sourceLocked - $qty),
+                ])->save();
+                $destStock->forceFill([
+                    'qty' => (float) $destStock->qty + $qty,
+                ])->save();
+                $product->forceFill(['qty' => (float) $product->stocks()->sum('qty')])->save();
+            }
+        });
     }
 
     private function applySaleStock(array $payload, int $direction): void
@@ -553,10 +1088,133 @@ class LocalWriteController extends Controller
         ]);
     }
 
+    /**
+     * Keep inventory_check_products in sync so /inventory-audit-items list is not empty
+     * when items live primarily in the parent audit payload.
+     */
+    private function syncInventoryCheckProducts(MirrorRecord $audit, mixed $items): void
+    {
+        if (!is_array($items)) {
+            $items = [];
+        }
+
+        $this->deleteInventoryCheckProducts($audit);
+
+        $branch = $this->branch($audit->branch_id ?? $audit->branch_mongo_id ?? null);
+        $payloadRoot = is_array($audit->payload) ? $audit->payload : [];
+        $warehouseId = (string) ($payloadRoot['warehouseId'] ?? $branch?->id ?? $audit->branch_id ?? '');
+        $warehouseName = (string) ($payloadRoot['warehouseName'] ?? $payloadRoot['warehouse'] ?? $branch?->name ?? $audit->warehouse_name ?? '');
+
+        foreach ($items as $index => $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $productId = $line['productId'] ?? $line['product_id'] ?? null;
+            $product = $this->product($productId);
+            $system = (float) ($line['systemQuantitySnapshot'] ?? $line['stock'] ?? $line['system_quantity'] ?? 0);
+            $physicalRaw = $line['physicalQuantity'] ?? $line['actualStock'] ?? $line['actual_stock'] ?? null;
+            $physical = ($physicalRaw === null || $physicalRaw === '') ? null : (float) $physicalRaw;
+            $variance = (float) ($line['varianceQuantity'] ?? $line['difference'] ?? (
+                $physical === null ? 0 : ($physical - $system)
+            ));
+
+            $linePayload = array_merge($line, [
+                'auditId' => (string) ($audit->mongo_id ?: $audit->id),
+                'auditCode' => (string) ($audit->code ?? ''),
+                'warehouseId' => $warehouseId,
+                'warehouse' => $warehouseName,
+                'warehouseName' => $warehouseName,
+                'productId' => (string) ($product?->id ?? $productId ?? ''),
+                'productCode' => (string) ($line['productCodeSnapshot'] ?? $line['productCode'] ?? $line['product_code'] ?? $product?->code ?? ''),
+                'productName' => (string) ($line['productNameSnapshot'] ?? $line['productName'] ?? $line['product_name'] ?? $product?->name ?? ''),
+                'barcode' => (string) ($line['barcodeSnapshot'] ?? $line['barcode'] ?? $product?->barcode ?? ''),
+                'stock' => $system,
+                'systemQuantitySnapshot' => $system,
+                'actualStock' => $physical,
+                'physicalQuantity' => $physical,
+                'difference' => $variance,
+                'varianceQuantity' => $variance,
+                'description' => (string) ($line['note'] ?? $line['description'] ?? ''),
+                'createdAt' => now()->toISOString(),
+            ]);
+
+            // `code` is UNIQUE on mirror tables — use per-line code, keep parent audit code in payload.
+            $lineCode = trim((string) ($audit->code ?? ''));
+            $lineCode = $lineCode !== '' ? ($lineCode.'#'.$index) : ('LINE-'.$this->nextSuffix().'-'.$index);
+
+            $attrs = $this->onlyExisting('inventory_check_products', [
+                'mongo_id' => $this->localMongoId(),
+                'code' => $lineCode,
+                'name' => $linePayload['productName'] ?: null,
+                'status' => (string) ($audit->status ?? 'DRAFT'),
+                'type' => null,
+                'amount' => $physical,
+                'value' => null,
+                'total' => null,
+                'branch_mongo_id' => $branch?->mongo_id ?? $audit->branch_mongo_id,
+                'product_mongo_id' => $product?->mongo_id,
+                'business_date' => $audit->business_date ?? now(),
+                'payload' => $linePayload,
+                'branch_id' => $branch?->id ?? $audit->branch_id,
+                'product_id' => $product?->id,
+                'product_code' => $linePayload['productCode'] ?: null,
+                'product_name' => $linePayload['productName'] ?: null,
+                'barcode' => $linePayload['barcode'] ?: null,
+                'stock' => $system,
+                'actual_stock' => $physical,
+                'difference' => $variance,
+                'warehouse_name' => $warehouseName ?: null,
+            ]);
+
+            (new MirrorRecord())->forTable('inventory_check_products')->newQuery()->create($attrs);
+        }
+    }
+
+    private function deleteInventoryCheckProducts(MirrorRecord $audit): void
+    {
+        $code = trim((string) ($audit->code ?? ''));
+        $auditKey = (string) ($audit->mongo_id ?: $audit->id);
+        if ($code === '' && $auditKey === '') {
+            return;
+        }
+
+        // Strict scope: parent code, per-line "{code}#n", or payload.auditId.
+        (new MirrorRecord())->forTable('inventory_check_products')->newQuery()
+            ->where(function ($builder) use ($code, $auditKey): void {
+                if ($code !== '') {
+                    $builder->where('code', $code)
+                        ->orWhere('code', 'like', $code.'#%')
+                        ->orWhere('payload->auditCode', $code);
+                }
+                if ($auditKey !== '') {
+                    $builder->orWhere('payload->auditId', $auditKey);
+                }
+            })
+            ->delete();
+    }
+
     private function onlyExisting(string $table, array $attrs): array
     {
         $columns = array_flip(Schema::getColumnListing($table));
         return array_filter($attrs, fn ($key) => isset($columns[$key]), ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
+     * Inventory audit admin gate: requires valid local-laravel-token-{id} for ADMIN or root owner.
+     * Does not use unauthenticated ADMIN fallback (unlike /auth/me).
+     */
+    private function isInventoryAuditAdmin(Request $request): bool
+    {
+        $authHeader = (string) $request->header('Authorization', '');
+        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            return false;
+        }
+        $user = User::find((int) $matches[1]);
+        if (!$user) {
+            return false;
+        }
+
+        return (bool) $user->is_root_owner || strtoupper((string) $user->role) === 'ADMIN';
     }
 
     private function branch(mixed $id): ?Branch

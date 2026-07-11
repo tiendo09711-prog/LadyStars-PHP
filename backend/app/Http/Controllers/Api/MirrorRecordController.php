@@ -86,12 +86,44 @@ class MirrorRecordController extends Controller
             'product-refunds' => $this->enrichRefund($serialized),
             'sale-payments' => $this->enrichSalePayment($serialized),
             'warehouse-transfers' => $this->enrichWarehouseTransfer($serialized),
+            'payment-methods' => $this->enrichPaymentMethod($serialized),
             default => $serialized,
         };
 
         if ($resource === 'customer-cares') {
             $serialized = $this->enrichCustomerCare($serialized);
         }
+
+        return $serialized;
+    }
+
+    /**
+     * Normalize payment method mirror rows for FE consumers
+     * (RetailInvoiceCreatePage, RefundInvoiceCreatePage, SalesPage).
+     */
+    private function enrichPaymentMethod(array $serialized): array
+    {
+        $code = (string) ($serialized['code'] ?? '');
+        $name = (string) ($serialized['name'] ?? '');
+
+        $isActive = true;
+        if (array_key_exists('isActive', $serialized)) {
+            $isActive = (bool) $serialized['isActive'];
+        } elseif (array_key_exists('is_active', $serialized)) {
+            $isActive = (bool) $serialized['is_active'];
+        } elseif (isset($serialized['status'])) {
+            $status = strtolower((string) $serialized['status']);
+            $isActive = !in_array($status, ['inactive', 'disabled', '0', 'false'], true);
+        }
+
+        $sortOrder = (int) ($serialized['sortOrder'] ?? $serialized['sort_order'] ?? 0);
+
+        $serialized['code'] = $code;
+        $serialized['name'] = $name !== '' ? $name : ($code !== '' ? $code : 'Phương thức thanh toán');
+        $serialized['isActive'] = $isActive;
+        $serialized['is_active'] = $isActive;
+        $serialized['sortOrder'] = $sortOrder;
+        $serialized['sort_order'] = $sortOrder;
 
         return $serialized;
     }
@@ -118,9 +150,13 @@ class MirrorRecordController extends Controller
         };
     }
 
-    private function normalizeTransferLine(array $line): array
+    private function normalizeTransferLine(array $line, string $status = '', string $kind = 'NORMAL_TRANSFER'): array
     {
         $quantity = (float) ($line['requestedQuantity'] ?? $line['quantity'] ?? $line['amount'] ?? 0);
+        $hasExplicitLock = array_key_exists('lockedQuantity', $line) || array_key_exists('locked_quantity', $line);
+        $rawLock = $hasExplicitLock
+            ? (float) ($line['lockedQuantity'] ?? $line['locked_quantity'] ?? 0)
+            : null;
 
         return array_merge($line, [
             'productId' => $line['productId'] ?? $line['product_id'] ?? null,
@@ -130,9 +166,37 @@ class MirrorRecordController extends Controller
             'requestedQuantity' => (float) ($line['requestedQuantity'] ?? $quantity),
             'dispatchedQuantity' => (float) ($line['dispatchedQuantity'] ?? $line['dispatched_quantity'] ?? $quantity),
             'receivedQuantity' => (float) ($line['receivedQuantity'] ?? $line['received_quantity'] ?? $quantity),
-            'lockedQuantity' => (float) ($line['lockedQuantity'] ?? $line['locked_quantity'] ?? $quantity),
+            // Effective lock is status-aware — never default terminal/draft lines to requested qty.
+            'lockedQuantity' => $this->effectiveTransferLineLock($status, $kind, $quantity, $rawLock),
             'note' => $line['note'] ?? '',
         ]);
+    }
+
+    /**
+     * Effective locked quantity for display/invariants.
+     * DRAFT/COMPLETED/RETURNED/CANCELLED => 0.
+     * RETURN_OF_TRANSFER docs do not hold the stock lock (original does).
+     * IN_TRANSIT / RETURN_IN_PROGRESS normal: explicit lock, else legacy fallback = requested qty.
+     */
+    private function effectiveTransferLineLock(string $status, string $kind, float $quantity, ?float $rawLock): float
+    {
+        if (in_array($status, ['DRAFT', 'COMPLETED', 'RETURNED', 'CANCELLED'], true)) {
+            return 0.0;
+        }
+
+        if ($kind === 'RETURN_OF_TRANSFER') {
+            return 0.0;
+        }
+
+        if (in_array($status, ['IN_TRANSIT', 'RETURN_IN_PROGRESS'], true)) {
+            if ($rawLock !== null) {
+                return max(0.0, $rawLock);
+            }
+
+            return max(0.0, $quantity);
+        }
+
+        return 0.0;
     }
 
     private function enrichWarehouseTransfer(array $serialized): array
@@ -141,8 +205,12 @@ class MirrorRecordController extends Controller
         $rawKind = strtoupper((string) ($serialized['kind'] ?? $serialized['type'] ?? 'NORMAL_TRANSFER'));
         $kind = in_array($rawKind, ['RETURN', 'RETURN_OF_TRANSFER'], true) ? 'RETURN_OF_TRANSFER' : 'NORMAL_TRANSFER';
         $lines = is_array($serialized['lines'] ?? null) ? $serialized['lines'] : [];
-        $lines = array_values(array_map(fn ($line): array => $this->normalizeTransferLine(is_array($line) ? $line : []), $lines));
+        $lines = array_values(array_map(
+            fn ($line): array => $this->normalizeTransferLine(is_array($line) ? $line : [], $status, $kind),
+            $lines
+        ));
         $qty = array_sum(array_map(fn (array $line): float => (float) ($line['requestedQuantity'] ?? 0), $lines));
+        $lockedQty = array_sum(array_map(fn (array $line): float => (float) ($line['lockedQuantity'] ?? 0), $lines));
 
         $serialized['status'] = $status;
         $serialized['statusLabel'] = $this->transferStatusLabel($status);
@@ -151,11 +219,34 @@ class MirrorRecordController extends Controller
         $serialized['lines'] = $lines;
         $serialized['spCount'] = (int) ($serialized['spCount'] ?? $serialized['sp_count'] ?? count($lines));
         $serialized['qty'] = (float) ($serialized['qty'] ?? $qty);
-        $serialized['lockedQuantity'] = (float) ($serialized['lockedQuantity'] ?? array_sum(array_map(fn (array $line): float => (float) ($line['lockedQuantity'] ?? 0), $lines)));
+        // Always recompute from status-aware line locks — do not trust stale payload lockedQuantity.
+        $serialized['lockedQuantity'] = $lockedQty;
         $serialized['sourceWarehouseId'] = $serialized['sourceWarehouseId'] ?? $serialized['from_branch_mongo_id'] ?? null;
         $serialized['destinationWarehouseId'] = $serialized['destinationWarehouseId'] ?? $serialized['to_branch_mongo_id'] ?? null;
         $serialized['sourceWarehouseName'] = $serialized['sourceWarehouseName'] ?? $serialized['source_warehouse_name'] ?? null;
         $serialized['destinationWarehouseName'] = $serialized['destinationWarehouseName'] ?? $serialized['destination_warehouse_name'] ?? null;
+
+        // Resolve warehouse display names from MySQL branches when payload/legacy rows lack names.
+        if (empty($serialized['sourceWarehouseName']) && !empty($serialized['sourceWarehouseId'])) {
+            $sourceBranch = Branch::query()
+                ->where('mongo_id', $serialized['sourceWarehouseId'])
+                ->orWhere('id', $serialized['sourceWarehouseId'])
+                ->first();
+            if ($sourceBranch) {
+                $serialized['sourceWarehouseName'] = $sourceBranch->name;
+                $serialized['sourceWarehouseId'] = $sourceBranch->mongo_id ?: (string) $sourceBranch->id;
+            }
+        }
+        if (empty($serialized['destinationWarehouseName']) && !empty($serialized['destinationWarehouseId'])) {
+            $destBranch = Branch::query()
+                ->where('mongo_id', $serialized['destinationWarehouseId'])
+                ->orWhere('id', $serialized['destinationWarehouseId'])
+                ->first();
+            if ($destBranch) {
+                $serialized['destinationWarehouseName'] = $destBranch->name;
+                $serialized['destinationWarehouseId'] = $destBranch->mongo_id ?: (string) $destBranch->id;
+            }
+        }
         $serialized['sourceExportBillId'] = $serialized['sourceExportBillId'] ?? $serialized['source_export_bill_mongo_id'] ?? null;
         $serialized['destinationImportBillId'] = $serialized['destinationImportBillId'] ?? $serialized['destination_import_bill_mongo_id'] ?? null;
 
@@ -266,6 +357,18 @@ class MirrorRecordController extends Controller
             }
         }
 
+        // Legacy import rows often only have denormalized customerName/phone in payload.
+        if (empty($serialized['customerId']) || (!is_array($serialized['customerId']) && !$serialized['customerId'])) {
+            $customerName = $serialized['customerName'] ?? $serialized['customer_name'] ?? null;
+            $customerPhone = $serialized['customerPhone'] ?? $serialized['customer_phone'] ?? null;
+            if ($customerName || $customerPhone) {
+                $serialized['customerId'] = [
+                    'name' => $customerName ?: 'Khách lẻ',
+                    'phone' => $customerPhone,
+                ];
+            }
+        }
+
         // Enrich creator/author name from users table (MySQL) so retail list/detail/export shows real staff name instead of '—'
         $authorIdRaw = $serialized['author_id'] ?? $serialized['user_id'] ?? $serialized['authorId'] ?? $serialized['userId'] ?? null;
         $authorId = is_array($authorIdRaw) ? ($authorIdRaw['id'] ?? $authorIdRaw['_id'] ?? null) : $authorIdRaw;
@@ -284,9 +387,20 @@ class MirrorRecordController extends Controller
             }
         }
 
+        // Creator string from legacy import when user join is unavailable.
+        if (empty($serialized['authorId']) && !empty($serialized['creator'])) {
+            $serialized['authorId'] = [
+                'name' => (string) $serialized['creator'],
+            ];
+            $serialized['userId'] = $serialized['authorId'];
+        }
+
         $items = $serialized['items'] ?? [];
         if (is_array($items)) {
             foreach ($items as $index => $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
                 $productId = $item['productId'] ?? null;
                 if (is_string($productId) && strlen($productId) === 24) {
                     $product = $this->lookupProduct($productId);
@@ -298,9 +412,94 @@ class MirrorRecordController extends Controller
                         ];
                     }
                 }
+                // Normalize line totals for list gross / print.
+                if (!isset($item['value']) && isset($item['price'])) {
+                    $item['value'] = $item['price'];
+                }
+                if (!isset($item['productName']) && isset($item['name'])) {
+                    $item['productName'] = $item['name'];
+                }
                 $items[$index] = $item;
             }
             $serialized['items'] = $items;
+        }
+
+        // Monetary normalization: legacy import uses totalAmount / valuePayment; column value may be null.
+        $value = $serialized['value'] ?? null;
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            $value = $serialized['totalAmount'] ?? $serialized['total_amount'] ?? null;
+        }
+        if (($value === null || $value === '' || !is_numeric($value)) && is_array($serialized['items'] ?? null)) {
+            $value = 0;
+            foreach ($serialized['items'] as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $lineTotal = $item['total'] ?? null;
+                if ($lineTotal === null || $lineTotal === '' || !is_numeric($lineTotal)) {
+                    $unit = (float) ($item['value'] ?? $item['price'] ?? 0);
+                    $qty = (float) ($item['amount'] ?? $item['quantity'] ?? 0);
+                    $lineTotal = $unit * $qty;
+                }
+                $value += (float) $lineTotal;
+            }
+        }
+        $serialized['value'] = (float) ($value ?? 0);
+
+        $paid = $serialized['valuePayment'] ?? $serialized['value_payment'] ?? null;
+        if ($paid === null || $paid === '' || !is_numeric($paid)) {
+            $paid = $serialized['value'];
+        }
+        $serialized['valuePayment'] = (float) $paid;
+        $serialized['value_payment'] = $serialized['valuePayment'];
+
+        $discount = $serialized['discountValue'] ?? $serialized['discount_value'] ?? $serialized['discount'] ?? 0;
+        $serialized['discountValue'] = is_numeric($discount) ? (float) $discount : 0;
+        $serialized['discountType'] = $serialized['discountType']
+            ?? $serialized['discount_type']
+            ?? (isset($serialized['discount']) && is_numeric($serialized['discount']) ? 'number' : 'number');
+
+        // Normalize payment lines for FE paymentRows (expects typePayment[].methodId.name + amount).
+        if (empty($serialized['typePayment']) && !empty($serialized['payment_lines']) && is_array($serialized['payment_lines'])) {
+            $serialized['typePayment'] = array_values(array_filter(array_map(function ($line) {
+                if (!is_array($line)) {
+                    return null;
+                }
+                $amount = (float) ($line['amount'] ?? 0);
+                if ($amount <= 0) {
+                    return null;
+                }
+                $label = $line['methodId']['name'] ?? $line['method'] ?? $line['name'] ?? 'Thanh toán';
+
+                return [
+                    'methodId' => is_array($line['methodId'] ?? null)
+                        ? $line['methodId']
+                        : ['name' => (string) $label, 'code' => $line['code'] ?? null],
+                    'amount' => $amount,
+                ];
+            }, $serialized['payment_lines'])));
+        }
+
+        // Build typePayment rows from legacy paymentMethod label when structured lines are missing.
+        if (empty($serialized['typePayment'])) {
+            $methodLabel = $serialized['paymentMethod'] ?? $serialized['payment_method'] ?? null;
+            if ($methodLabel && $serialized['valuePayment'] > 0) {
+                $serialized['typePayment'] = [[
+                    'methodId' => [
+                        'name' => (string) $methodLabel,
+                        'code' => null,
+                    ],
+                    'amount' => $serialized['valuePayment'],
+                ]];
+            }
+        }
+
+        $serialized['createdAt'] = $serialized['createdAt']
+            ?? $serialized['created_at']
+            ?? $serialized['business_date']
+            ?? null;
+        if (!isset($serialized['created_at']) || $serialized['created_at'] === null) {
+            $serialized['created_at'] = $serialized['createdAt'];
         }
 
         // Compute refund linkage so Retail list + guards (refundStatus, remaining, activeCount) stay in sync

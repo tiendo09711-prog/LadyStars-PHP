@@ -16,14 +16,68 @@ class WarehouseTransactionController extends Controller
 
     private array $voucherMongoIdCache = [];
 
+    /** @var array<string, Branch>|null */
+    private ?array $warehousesByMongoId = null;
+
+    /** @var array<string, Branch>|null */
+    private ?array $warehousesByNumericId = null;
+
     private function warehouseMap(): array
     {
-        return Branch::query()
+        if ($this->warehousesByMongoId !== null) {
+            return $this->warehousesByMongoId;
+        }
+
+        $branches = Branch::query()
             ->orderBy('name')
-            ->get(['mongo_id', 'name', 'code'])
-            ->filter(fn ($branch) => $branch->mongo_id !== null)
-            ->keyBy('mongo_id')
+            ->get(['id', 'mongo_id', 'name', 'code']);
+
+        $this->warehousesByMongoId = $branches
+            ->filter(fn ($branch) => $branch->mongo_id !== null && $branch->mongo_id !== '')
+            ->keyBy(fn ($branch) => (string) $branch->mongo_id)
             ->all();
+
+        $this->warehousesByNumericId = $branches
+            ->keyBy(fn ($branch) => (string) $branch->id)
+            ->all();
+
+        return $this->warehousesByMongoId;
+    }
+
+    private function resolveBranch(?string $key): ?Branch
+    {
+        $key = trim((string) $key);
+        if ($key === '') {
+            return null;
+        }
+
+        $this->warehouseMap();
+
+        return $this->warehousesByMongoId[$key]
+            ?? $this->warehousesByNumericId[$key]
+            ?? null;
+    }
+
+    private function resolveWarehouseName(?string $key, array $payload = [], array $sourceRow = []): ?string
+    {
+        $fromPayload = $payload['warehouse_name']
+            ?? $payload['warehouseName']
+            ?? $payload['warehouse']
+            ?? $payload['sourceWarehouseName']
+            ?? $payload['destinationWarehouseName']
+            ?? $payload['source_warehouse_name']
+            ?? $payload['destination_warehouse_name']
+            ?? null;
+        if (is_string($fromPayload) && trim($fromPayload) !== '') {
+            return trim($fromPayload);
+        }
+
+        $fromRow = $sourceRow['C'] ?? $sourceRow['c'] ?? null;
+        if (is_string($fromRow) && trim($fromRow) !== '') {
+            return trim($fromRow);
+        }
+
+        return $this->resolveBranch($key)?->name;
     }
 
     public function meta(): JsonResponse
@@ -45,6 +99,7 @@ class WarehouseTransactionController extends Controller
         ])->map(fn ($label, $value): array => ['value' => $value, 'label' => $label])->values();
 
         // Build kinds safely to avoid merge/unique mixing arrays and strings (was causing incorrect filter options)
+        // Values stay stable for filtering; only display labels are normalized for known aliases.
         $kindMap = collect([
             'IMPORT' => 'Nhập kho',
             'EXPORT' => 'Xuất kho',
@@ -55,7 +110,7 @@ class WarehouseTransactionController extends Controller
             if ($t === '' || $kindMap->has($t)) {
                 continue;
             }
-            $kindMap->put($t, $t);
+            $kindMap->put($t, $this->kindDisplayLabel($t));
         }
         $kinds = $kindMap
             ->map(fn ($label, $value): array => ['value' => (string) $value, 'label' => (string) $label])
@@ -70,19 +125,24 @@ class WarehouseTransactionController extends Controller
 
     public function index(Request $request, string $tab): JsonResponse
     {
-        $tab = $tab === 'items' ? 'items' : 'bills';
-        $warehouses = $this->warehouseMap();
-        $rows = $tab === 'bills'
-            ? $this->buildBillRows($request, $warehouses)
-            : $this->buildItemRows($request, $warehouses);
+        if ($message = $this->validateDateRange($request)) {
+            return response()->json([
+                'ok' => false,
+                'message' => $message,
+            ], 422);
+        }
 
-        $total = $rows->count();
+        $tab = $tab === 'items' ? 'items' : 'bills';
         $limit = (int) min(max((int) $request->query('limit', $request->query('perPage', self::LIMIT)), 1), self::MAX_LIMIT);
         $page = max((int) $request->query('page', 1), 1);
-        $items = $rows
-            ->forPage($page, $limit)
-            ->values()
-            ->all();
+        $warehouses = $this->warehouseMap();
+        $filters = $this->filters($request);
+
+        if ($tab === 'bills') {
+            ['items' => $items, 'total' => $total] = $this->paginateBillRows($filters, $warehouses, $page, $limit);
+        } else {
+            ['items' => $items, 'total' => $total] = $this->paginateItemRows($filters, $warehouses, $page, $limit);
+        }
 
         return response()->json([
             'items' => $items,
@@ -96,47 +156,178 @@ class WarehouseTransactionController extends Controller
         ]);
     }
 
-    private function buildBillRows(Request $request, array $warehouses)
+    /**
+     * Reject inverted date ranges. Compare YYYY-MM-DD lexicographically when both match the format
+     * to avoid timezone drift from Carbon parsing of date-only strings.
+     */
+    private function validateDateRange(Request $request): ?string
     {
-        $filters = $this->filters($request);
-        $vouchers = $this->queryVouchers($filters, $warehouses, false)
-            ->map(fn ($row) => $this->billRowFromVoucher($row, $warehouses));
-        $transfers = $this->queryTransfers($filters, $warehouses, false)
-            ->map(fn ($row) => $this->billRowFromTransfer($row, $warehouses));
+        $fromDate = trim((string) $request->query('fromDate', ''));
+        $toDate = trim((string) $request->query('toDate', ''));
+        if ($fromDate === '' || $toDate === '') {
+            return null;
+        }
 
-        return $vouchers->concat($transfers)
-            ->sortByDesc(fn (array $row): int => $this->sortTimestamp($row['date'] ?? null))
-            ->values();
+        $fromKey = $this->normalizeDateKey($fromDate);
+        $toKey = $this->normalizeDateKey($toDate);
+        if ($fromKey === null || $toKey === null) {
+            return null;
+        }
+
+        if ($fromKey > $toKey) {
+            return 'Từ ngày không được lớn hơn Đến ngày.';
+        }
+
+        return null;
     }
 
-    private function buildItemRows(Request $request, array $warehouses)
+    private function normalizeDateKey(string $value): ?string
     {
-        $filters = $this->filters($request);
+        $value = trim($value);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+            return $value;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function kindDisplayLabel(string $value): string
+    {
+        return match ($value) {
+            'IMPORT' => 'Nhập kho',
+            'EXPORT' => 'Xuất kho',
+            'TRANSFER', 'Chuyển kho' => 'Chuyển kho',
+            'IMPORT_TRANSFER' => 'Nhập chuyển kho',
+            'EXPORT_TRANSFER' => 'Xuất chuyển kho',
+            default => $value,
+        };
+    }
+
+    /**
+     * Bills = vouchers ∪ transfers (1 row each). Safe windowed merge:
+     * top (offset+limit) of merge ⊆ top (offset+limit) of each sorted source.
+     * Total uses exact SQL counts.
+     *
+     * @return array{items: list<array>, total: int}
+     */
+    private function paginateBillRows(array $filters, array $warehouses, int $page, int $limit): array
+    {
+        $offset = max(0, ($page - 1) * $limit);
+        $window = $offset + $limit;
+
+        $voucherTotal = $this->countVouchers($filters);
+        $transferTotal = $this->countTransfers($filters);
+        $total = $voucherTotal + $transferTotal;
+
+        if ($total === 0 || $offset >= $total) {
+            return ['items' => [], 'total' => $total];
+        }
+
+        // Bills list never filters by product keyword (field is items-tab only).
+        $billFilters = $filters;
+        $billFilters['productKeyword'] = '';
+
+        $vouchers = $this->queryVouchers($billFilters, $warehouses, false, $window)
+            ->map(fn ($row) => $this->billRowFromVoucher($row, $warehouses));
+        $transfers = $this->queryTransfers($billFilters, $warehouses, false, $window)
+            ->map(fn ($row) => $this->billRowFromTransfer($row, $warehouses));
+
+        $items = $vouchers->concat($transfers)
+            ->sortByDesc(fn (array $row): int => $this->sortTimestamp($row['date'] ?? null))
+            ->values()
+            ->slice($offset, $limit)
+            ->values()
+            ->all();
+
+        return ['items' => $items, 'total' => $total];
+    }
+
+    /**
+     * Items: inventory_products rows + expanded transfer lines.
+     * Fast SQL pagination when only one source can contribute (typed IMPORT/EXPORT/TRANSFER).
+     * Mixed sources keep full filtered load with N+1 voucher lookup batching.
+     *
+     * @return array{items: list<array>, total: int}
+     */
+    private function paginateItemRows(array $filters, array $warehouses, int $page, int $limit): array
+    {
+        $offset = max(0, ($page - 1) * $limit);
+        $type = $filters['type'];
+        $kind = $filters['kind'];
+
+        // Pure voucher-product path: transfers cannot contribute.
+        if ($type === 'IMPORT' || $type === 'EXPORT' || $kind === 'IMPORT' || $kind === 'EXPORT') {
+            $total = $this->countVoucherProducts($filters);
+            if ($total === 0 || $offset >= $total) {
+                return ['items' => [], 'total' => $total];
+            }
+            $this->warmVoucherCodeCacheForProducts($filters, $limit, $offset);
+            $items = $this->queryVoucherProducts($filters, $warehouses, $limit, $offset)
+                ->map(fn ($row) => $this->itemRowFromVoucherProduct($row, $warehouses))
+                ->values()
+                ->all();
+
+            return ['items' => $items, 'total' => $total];
+        }
+
+        // Pure transfer path: inventory products cannot contribute.
+        if ($type === 'TRANSFER' || $kind === 'TRANSFER') {
+            $lines = $this->queryTransfers($filters, $warehouses, false)
+                ->flatMap(fn ($row) => $this->itemRowsFromTransfer($row, $warehouses));
+            if ($filters['productKeyword'] !== '') {
+                $lines = $this->filterItemRowsByProductKeyword($lines, $filters['productKeyword']);
+            }
+            $sorted = $lines
+                ->sortByDesc(fn (array $row): int => $this->sortTimestamp($row['date'] ?? null))
+                ->values();
+            $total = $sorted->count();
+            $items = $sorted->slice($offset, $limit)->values()->all();
+
+            return ['items' => $items, 'total' => $total];
+        }
+
+        // Mixed sources: must expand transfer lines before global sort/paginate.
+        $this->warmVoucherCodeCacheForProducts($filters);
         $products = $this->queryVoucherProducts($filters, $warehouses)
             ->map(fn ($row) => $this->itemRowFromVoucherProduct($row, $warehouses));
         $transferLines = $this->queryTransfers($filters, $warehouses, false)
             ->flatMap(fn ($row) => $this->itemRowsFromTransfer($row, $warehouses));
 
         $combined = $products->concat($transferLines);
-
-        // Apply productKeyword filter to transfer lines too (previously only applied to voucher products).
-        // Without this, items tab with product search would mix in unrelated transfer lines.
         if ($filters['productKeyword'] !== '') {
-            $keyword = mb_strtolower(trim($filters['productKeyword']));
-            $combined = $combined->filter(function (array $row) use ($keyword): bool {
-                foreach (['productName', 'productCode', 'barcode'] as $field) {
-                    $val = mb_strtolower((string) ($row[$field] ?? ''));
-                    if ($val !== '' && str_contains($val, $keyword)) {
-                        return true;
-                    }
-                }
-                return false;
-            });
+            $combined = $this->filterItemRowsByProductKeyword($combined, $filters['productKeyword']);
         }
 
-        return $combined
+        $sorted = $combined
             ->sortByDesc(fn (array $row): int => $this->sortTimestamp($row['date'] ?? null))
             ->values();
+        $total = $sorted->count();
+        $items = $sorted->slice($offset, $limit)->values()->all();
+
+        return ['items' => $items, 'total' => $total];
+    }
+
+    private function filterItemRowsByProductKeyword($rows, string $productKeyword)
+    {
+        $keyword = mb_strtolower(trim($productKeyword));
+        if ($keyword === '') {
+            return $rows;
+        }
+
+        return $rows->filter(function (array $row) use ($keyword): bool {
+            foreach (['productName', 'productCode', 'barcode'] as $field) {
+                $val = mb_strtolower((string) ($row[$field] ?? ''));
+                if ($val !== '' && str_contains($val, $keyword)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
     }
 
     private function filters(Request $request): array
@@ -180,101 +371,383 @@ class WarehouseTransactionController extends Controller
         }
     }
 
-    private function queryVouchers(array $filters, array $warehouses, bool $byId)
+    /**
+     * Resolve warehouse filter against real DB shapes:
+     * - inventory_vouchers: warehouse_mongo_id often NULL, warehouse_name filled
+     * - inventory_products: branch_mongo_id often stores numeric branches.id
+     * - warehouse_transfers: from/to_branch_mongo_id stores Branch.mongo_id
+     */
+    private function applyWarehouseFilter($query, string $warehouseId, string $mode): void
     {
+        $warehouseId = trim($warehouseId);
+        if ($warehouseId === '') {
+            return;
+        }
+
+        $branch = $this->resolveBranch($warehouseId);
+        $keys = array_values(array_unique(array_filter([
+            $warehouseId,
+            $branch?->mongo_id ? (string) $branch->mongo_id : null,
+            $branch?->id !== null ? (string) $branch->id : null,
+        ], fn ($v) => $v !== null && $v !== '')));
+        $name = $branch?->name ? trim((string) $branch->name) : '';
+
+        if ($mode === 'voucher') {
+            $query->where(function ($builder) use ($keys, $name): void {
+                if ($keys !== []) {
+                    $builder->whereIn('warehouse_mongo_id', $keys)
+                        ->orWhereIn('branch_mongo_id', $keys);
+                }
+                if ($name !== '') {
+                    $builder->orWhere('warehouse_name', $name)
+                        ->orWhere('warehouse_name', 'like', $name.' →%')
+                        ->orWhere('warehouse_name', 'like', '%→ '.$name);
+                }
+            });
+
+            return;
+        }
+
+        if ($mode === 'product') {
+            $query->where(function ($builder) use ($keys, $name): void {
+                if ($keys !== []) {
+                    $builder->whereIn('branch_mongo_id', $keys);
+                }
+                // JSON payload may store warehouse label from legacy import
+                if ($name !== '') {
+                    $builder->orWhere('payload->source_row->values->C', $name)
+                        ->orWhere('payload', 'like', '%"C":"'.$name.'"%');
+                }
+            });
+
+            return;
+        }
+
+        // transfer
+        $query->where(function ($builder) use ($keys): void {
+            foreach ($keys as $key) {
+                $builder->orWhere('from_branch_mongo_id', $key)
+                    ->orWhere('to_branch_mongo_id', $key)
+                    ->orWhere('from_branch_id', $key)
+                    ->orWhere('to_branch_id', $key);
+            }
+        });
+    }
+
+    /**
+     * Type filter must accept both English enum (IMPORT/EXPORT) in import_export_type
+     * and Vietnamese labels in type (e.g. "Xuất bán lẻ", "Nhập khi tạo sản phẩm").
+     */
+    private function applyTypeFilter($query, string $type, array $columns): void
+    {
+        $type = trim($type);
+        if ($type === '' || $type === 'TRANSFER') {
+            return;
+        }
+
+        $patterns = $this->typeMatchPatterns($type);
+        $query->where(function ($builder) use ($columns, $patterns, $type): void {
+            foreach ($columns as $column) {
+                $builder->orWhere($column, $type);
+                foreach ($patterns as $pattern) {
+                    $builder->orWhere($column, 'like', $pattern);
+                }
+            }
+        });
+    }
+
+    private function applyKindFilter($query, string $kind, array $columns): void
+    {
+        $kind = trim($kind);
+        if ($kind === '' || $kind === 'TRANSFER') {
+            return;
+        }
+
+        // Built-in kind values IMPORT/EXPORT behave like type filter.
+        if (in_array($kind, ['IMPORT', 'EXPORT'], true)) {
+            $this->applyTypeFilter($query, $kind, $columns);
+
+            return;
+        }
+
+        $query->where(function ($builder) use ($columns, $kind): void {
+            foreach ($columns as $column) {
+                $builder->orWhere($column, $kind)
+                    ->orWhere($column, 'like', '%'.$kind.'%');
+            }
+        });
+    }
+
+    private function typeMatchPatterns(string $type): array
+    {
+        return match ($type) {
+            'IMPORT' => ['IMPORT%', 'Import%', 'Nhập%', 'nhập%', 'NHẬP%', '%trả hàng%', '%tra hang%'],
+            'EXPORT' => ['EXPORT%', 'Export%', 'Xuất%', 'xuất%', 'XUẤT%'],
+            default => ['%'.$type.'%'],
+        };
+    }
+
+    private function vouchersBaseQuery(array $filters)
+    {
+        if ($filters['type'] === 'TRANSFER' || $filters['kind'] === 'TRANSFER') {
+            return null;
+        }
+
         $query = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery();
         $this->applyDateFilter($query, $filters);
+        $this->applyWarehouseFilter($query, $filters['warehouseId'], 'voucher');
 
-        if ($filters['type'] === 'TRANSFER' || $filters['kind'] === 'TRANSFER') {
-            return collect();
-        }
-
-        if ($filters['warehouseId'] !== '') {
-            $query->where('warehouse_mongo_id', $filters['warehouseId']);
-        }
         if ($filters['billId'] !== '') {
             $keyword = $filters['billId'];
             $query->where(function ($builder) use ($keyword): void {
                 $builder->where('voucher_code', 'like', "%{$keyword}%")
                     ->orWhere('code', 'like', "%{$keyword}%")
-                    ->orWhere('mongo_id', $keyword);
-            });
-        }
-        if ($filters['type'] !== '' && $filters['type'] !== 'TRANSFER') {
-            $query->where('import_export_type', 'like', $this->typeKeyword($filters['type']));
-        }
-        if ($filters['kind'] !== '' && $filters['kind'] !== 'TRANSFER') {
-            $query->where(function ($builder) use ($filters): void {
-                $builder->where('type', $filters['kind'])
-                    ->orWhere('import_export_type', $filters['kind']);
-            });
-        }
-
-        return $query->orderByDesc('business_date')->get();
-    }
-
-    private function queryTransfers(array $filters, array $warehouses, bool $byId)
-    {
-        $query = (new MirrorRecord())->forTable('warehouse_transfers')->newQuery();
-        $this->applyDateFilter($query, $filters);
-
-        if ($filters['warehouseId'] !== '') {
-            $warehouseId = $filters['warehouseId'];
-            $query->where(function ($builder) use ($warehouseId): void {
-                $builder->where('from_branch_mongo_id', $warehouseId)
-                    ->orWhere('to_branch_mongo_id', $warehouseId);
-            });
-        }
-        if ($filters['billId'] !== '') {
-            $keyword = $filters['billId'];
-            $query->where(function ($builder) use ($keyword): void {
-                $builder->where('code', 'like', "%{$keyword}%")
-                    ->orWhere('mongo_id', $keyword);
-            });
-        }
-        if (($filters['type'] !== '' && $filters['type'] !== 'TRANSFER')
-            || ($filters['kind'] !== '' && $filters['kind'] !== 'TRANSFER')) {
-            $query->whereRaw('1=0');
-        }
-
-        return $query->orderByDesc('business_date')->get();
-    }
-
-    private function queryVoucherProducts(array $filters, array $warehouses)
-    {
-        $query = (new MirrorRecord())->forTable('inventory_products')->newQuery();
-        $this->applyDateFilter($query, $filters);
-
-        if ($filters['type'] === 'TRANSFER' || $filters['kind'] === 'TRANSFER') {
-            return collect();
-        }
-
-        if ($filters['warehouseId'] !== '') {
-            $query->where('branch_mongo_id', $filters['warehouseId']);
-        }
-        if ($filters['productKeyword'] !== '') {
-            $keyword = $filters['productKeyword'];
-            $query->where(function ($builder) use ($keyword): void {
-                $builder->where('product_name', 'like', "%{$keyword}%")
-                    ->orWhere('product_code', 'like', "%{$keyword}%")
-                    ->orWhere('barcode', 'like', "%{$keyword}%");
-            });
-        }
-        if ($filters['type'] !== '' && $filters['type'] !== 'TRANSFER') {
-            $query->where('type', 'like', $this->typeKeyword($filters['type']));
-        }
-        if ($filters['kind'] !== '' && $filters['kind'] !== 'TRANSFER') {
-            $query->where('type', $filters['kind']);
-        }
-        if ($filters['billId'] !== '') {
-            $keyword = $filters['billId'];
-            $query->where(function ($builder) use ($keyword): void {
-                $builder->where('inventory_voucher_mongo_id', $keyword)
+                    ->orWhere('mongo_id', $keyword)
                     ->orWhere('refer_code', 'like', "%{$keyword}%");
             });
         }
 
-        return $query->orderByDesc('business_date')->get();
+        $this->applyTypeFilter($query, $filters['type'], ['import_export_type', 'type']);
+        $this->applyKindFilter($query, $filters['kind'], ['import_export_type', 'type']);
+
+        return $query;
+    }
+
+    private function countVouchers(array $filters): int
+    {
+        $query = $this->vouchersBaseQuery($filters);
+        if ($query === null) {
+            return 0;
+        }
+
+        return (int) $query->count();
+    }
+
+    private function queryVouchers(array $filters, array $warehouses, bool $byId, ?int $limit = null)
+    {
+        $query = $this->vouchersBaseQuery($filters);
+        if ($query === null) {
+            return collect();
+        }
+
+        $query->orderByDesc('business_date')->orderByDesc('id');
+        if ($limit !== null) {
+            $query->limit(max(0, $limit));
+        }
+
+        return $query->get();
+    }
+
+    private function transfersBaseQuery(array $filters)
+    {
+        $query = (new MirrorRecord())->forTable('warehouse_transfers')->newQuery();
+        $this->applyDateFilter($query, $filters);
+        $this->applyWarehouseFilter($query, $filters['warehouseId'], 'transfer');
+
+        if ($filters['billId'] !== '') {
+            $keyword = $filters['billId'];
+            $query->where(function ($builder) use ($keyword): void {
+                $builder->where('code', 'like', "%{$keyword}%")
+                    ->orWhere('mongo_id', $keyword)
+                    ->orWhere('name', 'like', "%{$keyword}%");
+            });
+        }
+        if (($filters['type'] !== '' && $filters['type'] !== 'TRANSFER')
+            || ($filters['kind'] !== '' && $filters['kind'] !== 'TRANSFER')) {
+            $query->whereRaw('1 = 0');
+        }
+
+        // Pre-filter transfer payloads when searching product text (exact match still applied after expand).
+        if ($filters['productKeyword'] !== '') {
+            $keyword = $filters['productKeyword'];
+            $query->where('payload', 'like', '%'.$keyword.'%');
+        }
+
+        return $query;
+    }
+
+    private function countTransfers(array $filters): int
+    {
+        // Count transfer bills (not expanded lines). productKeyword prefilter is approximate for bills
+        // and must not affect bill totals — only apply for item-oriented callers via a flag.
+        $filtersForBills = $filters;
+        $filtersForBills['productKeyword'] = '';
+
+        return (int) $this->transfersBaseQuery($filtersForBills)->count();
+    }
+
+    private function queryTransfers(array $filters, array $warehouses, bool $byId, ?int $limit = null)
+    {
+        $query = $this->transfersBaseQuery($filters);
+        $query->orderByDesc('business_date')->orderByDesc('id');
+        if ($limit !== null) {
+            $query->limit(max(0, $limit));
+        }
+
+        return $query->get();
+    }
+
+    private function voucherProductsBaseQuery(array $filters)
+    {
+        if ($filters['type'] === 'TRANSFER' || $filters['kind'] === 'TRANSFER') {
+            return null;
+        }
+
+        $query = (new MirrorRecord())->forTable('inventory_products')->newQuery();
+        $this->applyDateFilter($query, $filters);
+        $this->applyWarehouseFilter($query, $filters['warehouseId'], 'product');
+
+        // inventory_products in this DB: name/code/type on columns; prodCode/prodName/price/qty in payload JSON.
+        if ($filters['productKeyword'] !== '') {
+            $keyword = $filters['productKeyword'];
+            $query->where(function ($builder) use ($keyword): void {
+                $builder->where('name', 'like', "%{$keyword}%")
+                    ->orWhere('code', 'like', "%{$keyword}%")
+                    ->orWhere('payload->prodName', 'like', "%{$keyword}%")
+                    ->orWhere('payload->prodCode', 'like', "%{$keyword}%")
+                    ->orWhere('payload->product_name', 'like', "%{$keyword}%")
+                    ->orWhere('payload->product_code', 'like', "%{$keyword}%")
+                    ->orWhere('payload->barcode', 'like', "%{$keyword}%")
+                    ->orWhere('payload', 'like', "%{$keyword}%");
+            });
+        }
+
+        $this->applyTypeFilter($query, $filters['type'], ['type']);
+        $this->applyKindFilter($query, $filters['kind'], ['type']);
+
+        if ($filters['billId'] !== '') {
+            $keyword = $filters['billId'];
+            $voucherKeys = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()
+                ->where(function ($builder) use ($keyword): void {
+                    $builder->where('voucher_code', 'like', "%{$keyword}%")
+                        ->orWhere('code', 'like', "%{$keyword}%")
+                        ->orWhere('mongo_id', $keyword)
+                        ->orWhere('refer_code', 'like', "%{$keyword}%");
+                })
+                ->get(['mongo_id', 'voucher_code', 'code', 'refer_code'])
+                ->flatMap(fn ($row) => [
+                    $row->mongo_id,
+                    $row->voucher_code,
+                    $row->code,
+                    $row->refer_code,
+                ])
+                ->filter(fn ($v) => $v !== null && trim((string) $v) !== '')
+                ->map(fn ($v) => (string) $v)
+                ->unique()
+                ->values()
+                ->all();
+
+            $query->where(function ($builder) use ($keyword, $voucherKeys): void {
+                $builder->where('inventory_voucher_mongo_id', $keyword)
+                    ->orWhere('inventory_voucher_mongo_id', 'like', "%{$keyword}%")
+                    ->orWhere('code', 'like', "%{$keyword}%")
+                    ->orWhere('payload->code', 'like', "%{$keyword}%");
+                if ($voucherKeys !== []) {
+                    $builder->orWhereIn('inventory_voucher_mongo_id', $voucherKeys);
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    private function countVoucherProducts(array $filters): int
+    {
+        $query = $this->voucherProductsBaseQuery($filters);
+        if ($query === null) {
+            return 0;
+        }
+
+        return (int) $query->count();
+    }
+
+    private function queryVoucherProducts(array $filters, array $warehouses, ?int $limit = null, ?int $offset = null)
+    {
+        $query = $this->voucherProductsBaseQuery($filters);
+        if ($query === null) {
+            return collect();
+        }
+
+        $query->orderByDesc('business_date')->orderByDesc('id');
+        if ($offset !== null) {
+            $query->offset(max(0, $offset));
+        }
+        if ($limit !== null) {
+            $query->limit(max(0, $limit));
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Batch-warm voucher code/id caches to avoid N+1 lookups while mapping product rows.
+     */
+    private function warmVoucherCodeCacheForProducts(array $filters, ?int $limit = null, ?int $offset = null): void
+    {
+        $query = $this->voucherProductsBaseQuery($filters);
+        if ($query === null) {
+            return;
+        }
+
+        $query->orderByDesc('business_date')->orderByDesc('id');
+        if ($offset !== null) {
+            $query->offset(max(0, $offset));
+        }
+        if ($limit !== null) {
+            $query->limit(max(0, $limit));
+        }
+
+        $refs = $query->get(['inventory_voucher_mongo_id', 'payload', 'code'])
+            ->flatMap(function ($row) {
+                $payload = is_array($row->payload) ? $row->payload : [];
+
+                return [
+                    $row->inventory_voucher_mongo_id,
+                    $payload['inventory_voucher_mongo_id'] ?? null,
+                    $payload['voucherId'] ?? null,
+                    $payload['code'] ?? null,
+                    $payload['voucher_code'] ?? null,
+                    $payload['refer_code'] ?? null,
+                ];
+            })
+            ->map(fn ($v) => trim((string) $v))
+            ->filter(fn ($v) => $v !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($refs === []) {
+            return;
+        }
+
+        $vouchers = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()
+            ->where(function ($builder) use ($refs): void {
+                $builder->whereIn('mongo_id', $refs)
+                    ->orWhereIn('voucher_code', $refs)
+                    ->orWhereIn('code', $refs)
+                    ->orWhereIn('refer_code', $refs);
+            })
+            ->get(['mongo_id', 'voucher_code', 'code', 'refer_code']);
+
+        foreach ($vouchers as $voucher) {
+            $mongoId = $voucher->mongo_id ? (string) $voucher->mongo_id : null;
+            $code = $voucher->voucher_code ?: $voucher->code;
+            $code = $code ? (string) $code : null;
+            if ($mongoId) {
+                $this->voucherMongoIdCache['code:'.$mongoId] = $code;
+                $this->voucherMongoIdCache['id:'.$mongoId] = $mongoId;
+            }
+            foreach ([$voucher->voucher_code, $voucher->code, $voucher->refer_code] as $key) {
+                $key = trim((string) $key);
+                if ($key === '') {
+                    continue;
+                }
+                $this->voucherMongoIdCache['id:'.$key] = $mongoId;
+                if ($code) {
+                    $this->voucherMongoIdCache['code:'.$key] = $code;
+                }
+            }
+        }
     }
 
     private function typeKeyword(string $type): string
@@ -291,14 +764,21 @@ class WarehouseTransactionController extends Controller
         $payload = is_array($record->payload) ? $record->payload : [];
         $type = $this->detectVoucherType($payload, $record);
         $voucherCode = $record->voucher_code ?: ($payload['voucher_code'] ?? $payload['code'] ?? $record->code ?? $record->mongo_id);
-        $warehouseId = $record->warehouse_mongo_id ?: ($payload['warehouse_mongo_id'] ?? null);
-        // Prefer specific extracted columns. Never fall back to generic $record->name (ambiguous across entities).
-        $warehouseName = $payload['warehouse_name'] ?? $record->warehouse_name ?? ($warehouses[$warehouseId] ?? null)?->name ?? null;
+        $warehouseId = $record->warehouse_mongo_id
+            ?: ($payload['warehouse_mongo_id'] ?? $record->branch_mongo_id ?? $payload['branch_mongo_id'] ?? null);
+        // Prefer warehouse_name column (always filled in this DB). Never invent names.
+        $warehouseName = $record->warehouse_name
+            ?: $this->resolveWarehouseName(
+                $warehouseId !== null ? (string) $warehouseId : null,
+                $payload,
+            );
 
         $isImport = $type === 'IMPORT';
         $isExport = $type === 'EXPORT';
-        $directionLabel = $isImport ? 'Nhập kho' : ($isExport ? 'Xuất kho' : ($payload['type'] ?? $payload['import_export_type'] ?? $record->import_export_type ?? $record->type ?? 'Không xác định'));
-        $directionTone = $isImport ? 'import' : ($isExport ? 'export' : 'unknown');
+        $kindLabel = $record->type
+            ?: ($payload['type'] ?? $record->import_export_type ?? $payload['import_export_type'] ?? 'Không xác định');
+        $directionLabel = $isImport ? 'Nhập kho' : ($isExport ? 'Xuất kho' : (string) $kindLabel);
+        $directionTone = $isImport ? 'import' : ($isExport ? 'export' : 'neutral');
 
         return [
             'rowKey' => 'inventory-voucher:' . $record->mongo_id,
@@ -311,16 +791,16 @@ class WarehouseTransactionController extends Controller
             'warehouseName' => $warehouseName,
             'totalProductLines' => (int) ($record->sp_count ?? $payload['sp_count'] ?? $payload['spCount'] ?? 0),
             'totalQuantity' => (int) $this->amountValue($record->qty ?? $payload['qty'] ?? 0, true),
-            'totalAmount' => $this->amountValue($record->total_amount ?? $payload['total_amount'] ?? $payload['totalAmount'] ?? $payload['total'] ?? null),
+            'totalAmount' => $this->amountValue($record->total_amount ?? $payload['total_amount'] ?? $payload['totalAmount'] ?? $payload['total'] ?? $record->total ?? null),
             'type' => $type,
             'kind' => $type === 'UNKNOWN' ? ($payload['type'] ?? $payload['import_export_type'] ?? $record->type ?? 'UNKNOWN') : $type,
-            'kindLabel' => $payload['type'] ?? $payload['import_export_type'] ?? $record->import_export_type ?? $record->type ?? 'Không xác định',
+            'kindLabel' => $kindLabel,
             'sourceModule' => 'inventory-voucher',
             'createdByName' => $record->creator ?? ($payload['creator'] ?? null),
             'customerName' => $payload['customer_name'] ?? $payload['customer'] ?? null,
-            'customerPhone' => $payload['customer_phone'] ?? null,
-            'relatedCode' => $payload['refer_code'] ?? null,
-            'note' => $payload['note'] ?? '',
+            'customerPhone' => $payload['customer_phone'] ?? $record->customer_phone ?? null,
+            'relatedCode' => $payload['refer_code'] ?? $record->refer_code ?? null,
+            'note' => $payload['note'] ?? $record->note ?? '',
             'status' => $record->status,
             'directionLabel' => $directionLabel,
             'directionTone' => $directionTone,
@@ -331,8 +811,22 @@ class WarehouseTransactionController extends Controller
     private function billRowFromTransfer(MirrorRecord $record, array $warehouses): array
     {
         $payload = is_array($record->payload) ? $record->payload : [];
-        $fromId = $payload['from_branch_mongo_id'] ?? $record->from_branch_mongo_id ?? null;
-        $toId = $payload['to_branch_mongo_id'] ?? $record->to_branch_mongo_id ?? null;
+        $fromId = $payload['sourceWarehouseId']
+            ?? $payload['from_branch_mongo_id']
+            ?? $record->from_branch_mongo_id
+            ?? null;
+        $toId = $payload['destinationWarehouseId']
+            ?? $payload['to_branch_mongo_id']
+            ?? $record->to_branch_mongo_id
+            ?? null;
+        $fromName = $payload['sourceWarehouseName']
+            ?? $payload['source_warehouse_name']
+            ?? ($record->source_warehouse_name ?? null)
+            ?? $this->resolveWarehouseName($fromId !== null ? (string) $fromId : null, $payload);
+        $toName = $payload['destinationWarehouseName']
+            ?? $payload['destination_warehouse_name']
+            ?? ($record->destination_warehouse_name ?? null)
+            ?? $this->resolveWarehouseName($toId !== null ? (string) $toId : null, $payload);
 
         return [
             'rowKey' => 'warehouse-transfer:' . $record->mongo_id,
@@ -342,20 +836,19 @@ class WarehouseTransactionController extends Controller
             'billCode' => $payload['code'] ?? $record->code ?? null,
             'date' => $this->dateValue($payload, $record),
             'fromWarehouseId' => $fromId,
-            // Prefer extracted mirror columns (source_warehouse_name etc) populated by extract migrations
-            'fromWarehouseName' => $payload['source_warehouse_name'] ?? $record->source_warehouse_name ?? ($warehouses[$fromId] ?? null)?->name,
+            'fromWarehouseName' => $fromName,
             'toWarehouseId' => $toId,
-            'toWarehouseName' => $payload['destination_warehouse_name'] ?? $record->destination_warehouse_name ?? ($warehouses[$toId] ?? null)?->name,
-            'totalProductLines' => (int) ($payload['sp_count'] ?? count($payload['lines'] ?? [])),
+            'toWarehouseName' => $toName,
+            'totalProductLines' => (int) ($payload['spCount'] ?? $payload['sp_count'] ?? count($payload['lines'] ?? [])),
             'totalQuantity' => (int) ($payload['qty'] ?? $this->transferQuantity($payload)),
-            'totalAmount' => $this->amountValue($payload['total_amount'] ?? $payload['totalAmount'] ?? $record->total_amount ?? null),
+            'totalAmount' => $this->amountValue($payload['total_amount'] ?? $payload['totalAmount'] ?? $record->total_amount ?? $record->total ?? null),
             'type' => 'TRANSFER',
             'kind' => 'TRANSFER',
-            'kindLabel' => $payload['type'] ?? 'Chuyển kho',
+            'kindLabel' => $payload['type'] ?? $record->type ?? 'Chuyển kho',
             'sourceModule' => 'warehouse-transfer',
             'createdByName' => $record->creator ?? ($payload['creator'] ?? null),
             'note' => $payload['note'] ?? '',
-            'status' => $record->status,
+            'status' => $record->status ?? ($payload['status'] ?? null),
             'directionLabel' => 'Chuyển kho',
             'directionTone' => 'transfer',
             'canDelete' => false,
@@ -365,38 +858,98 @@ class WarehouseTransactionController extends Controller
     private function itemRowFromVoucherProduct(MirrorRecord $record, array $warehouses): array
     {
         $payload = is_array($record->payload) ? $record->payload : [];
-        $type = $this->detectVoucherType($payload, $record);
-        $voucherCode = $record->inventory_voucher_mongo_id ?: ($payload['inventory_voucher_mongo_id'] ?? $payload['voucherId'] ?? null);
-        $voucherMongoId = $this->voucherMongoIdForCode($voucherCode) ?? $voucherCode;
+        $sourceRow = is_array($payload['source_row']['values'] ?? null) ? $payload['source_row']['values'] : [];
+        $type = $this->detectVoucherType($payload + ['type' => $record->type], $record);
+
+        $voucherRef = $record->inventory_voucher_mongo_id
+            ?: ($payload['inventory_voucher_mongo_id'] ?? $payload['voucherId'] ?? $payload['code'] ?? null);
+        $voucherMongoId = $this->voucherMongoIdForCode($voucherRef) ?? $voucherRef;
+
+        // Prefer human voucher code from linked voucher when available.
+        $displayBillCode = $payload['refer_code']
+            ?? $payload['voucher_code']
+            ?? null;
+        if ($voucherMongoId) {
+            $linked = $this->voucherCodeForMongoId((string) $voucherMongoId);
+            if ($linked) {
+                $displayBillCode = $linked;
+            }
+        }
+        if (!$displayBillCode) {
+            $displayBillCode = $voucherRef;
+        }
+
+        $branchKey = $record->branch_mongo_id ?: ($payload['warehouse_mongo_id'] ?? $payload['branch_mongo_id'] ?? null);
+        $warehouseName = $this->resolveWarehouseName(
+            $branchKey !== null ? (string) $branchKey : null,
+            $payload,
+            $sourceRow,
+        );
+
+        $productCode = $payload['prodCode']
+            ?? $payload['product_code']
+            ?? $payload['productCode']
+            ?? $sourceRow['D']
+            ?? $record->product_code
+            ?? null;
+        $productName = ($record->name !== null && trim((string) $record->name) !== '' ? $record->name : null)
+            ?? $payload['prodName']
+            ?? $payload['product_name']
+            ?? $payload['productName']
+            ?? $sourceRow['E']
+            ?? $record->product_name
+            ?? null;
+        $barcode = $payload['barcode'] ?? $sourceRow['F'] ?? $record->barcode ?? null;
+
+        $quantity = $this->amountValue(
+            $payload['qty'] ?? $sourceRow['G'] ?? $record->qty ?? $payload['export_qty'] ?? $payload['import_qty'] ?? $record->amount ?? 0,
+            true,
+        );
+        $unitPrice = $this->amountValue(
+            $payload['price'] ?? $sourceRow['H'] ?? $record->unit_price ?? $payload['unit_price'] ?? $payload['currentPrice'] ?? 0,
+            true,
+        );
+        $totalAmount = $this->amountValue(
+            $payload['total_amount']
+                ?? $payload['totalAmount']
+                ?? $sourceRow['I']
+                ?? $record->total_amount
+                ?? $record->total
+                ?? ($quantity * $unitPrice),
+            true,
+        );
+
+        $kindLabel = $record->type ?: ($payload['type'] ?? $sourceRow['J'] ?? $payload['import_export_type'] ?? 'Không xác định');
+        $directionLabel = $type === 'IMPORT' ? 'Nhập kho' : ($type === 'EXPORT' ? 'Xuất kho' : (string) $kindLabel);
+        $directionTone = $type === 'IMPORT' ? 'import' : ($type === 'EXPORT' ? 'export' : 'neutral');
 
         return [
             'rowKey' => 'inventory-product:' . $record->mongo_id,
             'source' => 'inventory-voucher',
             'sourceId' => $voucherMongoId,
             'itemSourceId' => $record->mongo_id,
-            'code' => $voucherCode,
-            'billCode' => $voucherCode ?: ($payload['refer_code'] ?? null),
+            'code' => $displayBillCode,
+            'billCode' => $displayBillCode,
             'date' => $this->dateValue($payload, $record),
-            'warehouseId' => $record->branch_mongo_id ?: ($payload['warehouse_mongo_id'] ?? null),
-            // Use extracted columns (warehouse_name, product_name, creator) when present
-            'warehouseName' => $payload['warehouse_name'] ?? $record->warehouse_name ?? $payload['warehouse'] ?? ($warehouses[$record->branch_mongo_id] ?? null)?->name,
+            'warehouseId' => $branchKey,
+            'warehouseName' => $warehouseName,
             'productId' => $record->product_mongo_id ?: ($payload['product_mongo_id'] ?? $payload['productId'] ?? null),
-            'productCode' => $record->product_code ?: ($payload['product_code'] ?? $payload['productCode'] ?? null),
-            'productName' => $record->product_name ?? ($payload['product_name'] ?? $payload['productName'] ?? null),
-            'barcode' => $record->barcode ?: ($payload['barcode'] ?? null),
+            'productCode' => $productCode,
+            'productName' => $productName,
+            'barcode' => $barcode,
             'imei' => $payload['imei'] ?? null,
-            'quantity' => $this->amountValue($record->qty ?? $payload['qty'] ?? $payload['export_qty'] ?? $payload['import_qty'] ?? 0, true),
-            'unitPrice' => $this->amountValue($record->unit_price ?? $payload['unit_price'] ?? $payload['price'] ?? $payload['currentPrice'] ?? 0, true),
-            'totalAmount' => $this->amountValue($record->total_amount ?? $payload['total_amount'] ?? $payload['totalAmount'] ?? 0, true),
+            'quantity' => $quantity,
+            'unitPrice' => $unitPrice,
+            'totalAmount' => $totalAmount,
             'type' => $type,
-            'kind' => $type,
-            'kindLabel' => $record->type ?: ($payload['type'] ?? $payload['import_export_type'] ?? 'Không xác định'),
+            'kind' => $type === 'UNKNOWN' ? (string) $kindLabel : $type,
+            'kindLabel' => $kindLabel,
             'sourceModule' => 'inventory-voucher',
             'createdByName' => $record->creator ?? ($payload['creator'] ?? null),
-            'note' => $payload['note'] ?? '',
+            'note' => $payload['note'] ?? ($sourceRow['K'] ?? ''),
             'status' => $record->status,
-            'directionLabel' => $type === 'IMPORT' ? 'Nhập kho' : 'Xuất kho',
-            'directionTone' => $type === 'IMPORT' ? 'import' : 'export',
+            'directionLabel' => $directionLabel,
+            'directionTone' => $directionTone,
             'canDelete' => false,
         ];
     }
@@ -405,13 +958,30 @@ class WarehouseTransactionController extends Controller
     {
         $payload = is_array($record->payload) ? $record->payload : [];
         $lines = $payload['lines'] ?? [];
-        $fromId = $payload['from_branch_mongo_id'] ?? $record->from_branch_mongo_id ?? null;
-        $toId = $payload['to_branch_mongo_id'] ?? $record->to_branch_mongo_id ?? null;
+        $fromId = $payload['sourceWarehouseId']
+            ?? $payload['from_branch_mongo_id']
+            ?? $record->from_branch_mongo_id
+            ?? null;
+        $toId = $payload['destinationWarehouseId']
+            ?? $payload['to_branch_mongo_id']
+            ?? $record->to_branch_mongo_id
+            ?? null;
+        $fromName = $payload['sourceWarehouseName']
+            ?? $payload['source_warehouse_name']
+            ?? ($record->source_warehouse_name ?? null)
+            ?? $this->resolveWarehouseName($fromId !== null ? (string) $fromId : null, $payload);
+        $toName = $payload['destinationWarehouseName']
+            ?? $payload['destination_warehouse_name']
+            ?? ($record->destination_warehouse_name ?? null)
+            ?? $this->resolveWarehouseName($toId !== null ? (string) $toId : null, $payload);
         $date = $this->dateValue($payload, $record);
         $creator = $record->creator ?? ($payload['creator'] ?? null);
         $billCode = $payload['code'] ?? $record->code ?? $record->mongo_id;
 
-        return collect($lines)->map(function ($line, $index) use ($record, $warehouses, $fromId, $toId, $date, $creator, $billCode): array {
+        return collect($lines)->map(function ($line, $index) use ($record, $fromId, $toId, $fromName, $toName, $date, $creator, $billCode): array {
+            $qty = $this->amountValue($line['receivedQuantity'] ?? $line['dispatchedQuantity'] ?? $line['approvedQuantity'] ?? $line['requestedQuantity'] ?? 0, true);
+            $unitPrice = $this->amountValue($line['unitCostSnapshot'] ?? $line['unitPrice'] ?? 0, true);
+
             return [
                 'rowKey' => 'warehouse-transfer:' . $record->mongo_id . ':' . $index,
                 'source' => 'warehouse-transfer',
@@ -421,17 +991,17 @@ class WarehouseTransactionController extends Controller
                 'billCode' => $billCode,
                 'date' => $date,
                 'fromWarehouseId' => $fromId,
-                'fromWarehouseName' => $payload['source_warehouse_name'] ?? $record->source_warehouse_name ?? ($warehouses[$fromId] ?? null)?->name,
+                'fromWarehouseName' => $fromName,
                 'toWarehouseId' => $toId,
-                'toWarehouseName' => $payload['destination_warehouse_name'] ?? $record->destination_warehouse_name ?? ($warehouses[$toId] ?? null)?->name,
+                'toWarehouseName' => $toName,
                 'productId' => $line['productId'] ?? null,
                 'productCode' => $line['productCode'] ?? null,
                 'productName' => $line['productName'] ?? null,
                 'barcode' => $line['barcode'] ?? null,
                 'imei' => $line['imei'] ?? null,
-                'quantity' => $this->amountValue($line['receivedQuantity'] ?? $line['dispatchedQuantity'] ?? $line['approvedQuantity'] ?? $line['requestedQuantity'] ?? 0, true),
-                'unitPrice' => $this->amountValue($line['unitCostSnapshot'] ?? 0, true),
-                'totalAmount' => 0,
+                'quantity' => $qty,
+                'unitPrice' => $unitPrice,
+                'totalAmount' => $this->amountValue($line['totalAmount'] ?? ($qty * $unitPrice), true),
                 'type' => 'TRANSFER',
                 'kind' => 'TRANSFER',
                 'kindLabel' => 'Chuyển kho',
@@ -448,18 +1018,36 @@ class WarehouseTransactionController extends Controller
 
     private function detectVoucherType(array $payload, MirrorRecord $record): string
     {
-        $type = $payload['type'] ?? $payload['import_export_type'] ?? $record->type ?? '';
-        $lower = mb_strtolower((string) $type);
+        $candidates = [
+            $record->import_export_type ?? null,
+            $payload['import_export_type'] ?? null,
+            $payload['type'] ?? null,
+            $record->type ?? null,
+        ];
 
-        if (str_contains($lower, 'nhập') || str_contains($lower, 'nhap')) {
-            return 'IMPORT';
-        }
-        if (str_contains($lower, 'xuất') || str_contains($lower, 'xuat')) {
-            return 'EXPORT';
+        foreach ($candidates as $type) {
+            $raw = trim((string) $type);
+            if ($raw === '') {
+                continue;
+            }
+            $upper = mb_strtoupper($raw);
+            $lower = mb_strtolower($raw);
+
+            if ($upper === 'IMPORT' || $upper === 'TRANSFER_IMPORT' || str_starts_with($upper, 'IMPORT')) {
+                return 'IMPORT';
+            }
+            if ($upper === 'EXPORT' || $upper === 'TRANSFER_EXPORT' || str_starts_with($upper, 'EXPORT')) {
+                return 'EXPORT';
+            }
+            if (str_contains($lower, 'nhập') || str_contains($lower, 'nhap') || str_contains($lower, 'trả hàng') || str_contains($lower, 'tra hang')) {
+                return 'IMPORT';
+            }
+            if (str_contains($lower, 'xuất') || str_contains($lower, 'xuat')) {
+                return 'EXPORT';
+            }
         }
 
         // Do not default unknown/missing to EXPORT (would fabricate transaction type).
-        // Return neutral marker so FE can display 'Không xác định'.
         return 'UNKNOWN';
     }
 
@@ -522,21 +1110,51 @@ class WarehouseTransactionController extends Controller
             return null;
         }
 
-        if (array_key_exists($voucherCode, $this->voucherMongoIdCache)) {
-            return $this->voucherMongoIdCache[$voucherCode];
+        $cacheKey = 'id:'.$voucherCode;
+        if (array_key_exists($cacheKey, $this->voucherMongoIdCache)) {
+            return $this->voucherMongoIdCache[$cacheKey];
         }
 
         $voucher = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()
             ->where(function ($builder) use ($voucherCode): void {
                 $builder->where('voucher_code', $voucherCode)
                     ->orWhere('code', $voucherCode)
-                    ->orWhere('mongo_id', $voucherCode);
+                    ->orWhere('mongo_id', $voucherCode)
+                    ->orWhere('refer_code', $voucherCode);
             })
-            ->first(['mongo_id']);
+            ->first(['mongo_id', 'voucher_code', 'code']);
 
-        $this->voucherMongoIdCache[$voucherCode] = $voucher?->mongo_id;
+        $this->voucherMongoIdCache[$cacheKey] = $voucher?->mongo_id;
+        if ($voucher?->mongo_id) {
+            $code = $voucher->voucher_code ?: $voucher->code;
+            if ($code) {
+                $this->voucherMongoIdCache['code:'.$voucher->mongo_id] = (string) $code;
+            }
+        }
 
-        return $this->voucherMongoIdCache[$voucherCode];
+        return $this->voucherMongoIdCache[$cacheKey];
+    }
+
+    private function voucherCodeForMongoId(string $mongoId): ?string
+    {
+        $mongoId = trim($mongoId);
+        if ($mongoId === '') {
+            return null;
+        }
+
+        $cacheKey = 'code:'.$mongoId;
+        if (array_key_exists($cacheKey, $this->voucherMongoIdCache)) {
+            return $this->voucherMongoIdCache[$cacheKey];
+        }
+
+        $voucher = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()
+            ->where('mongo_id', $mongoId)
+            ->first(['mongo_id', 'voucher_code', 'code']);
+
+        $code = $voucher?->voucher_code ?: $voucher?->code;
+        $this->voucherMongoIdCache[$cacheKey] = $code ? (string) $code : null;
+
+        return $this->voucherMongoIdCache[$cacheKey];
     }
 
     public function show(string $source, string $sourceId): JsonResponse
@@ -568,9 +1186,11 @@ class WarehouseTransactionController extends Controller
         $voucherCode = $record->voucher_code ?: ($payload['voucher_code'] ?? $payload['voucherId'] ?? $record->code ?? $record->mongo_id);
         $items = (new MirrorRecord())->forTable('inventory_products')->newQuery()
             ->where(function ($builder) use ($voucherCode, $record): void {
+                // inventory_products schema here only has inventory_voucher_mongo_id/code/payload (no refer_code column).
                 $builder->where('inventory_voucher_mongo_id', $voucherCode)
                     ->orWhere('inventory_voucher_mongo_id', $record->mongo_id)
-                    ->orWhere('refer_code', $voucherCode);
+                    ->orWhere('payload->code', $voucherCode)
+                    ->orWhere('code', 'like', $voucherCode.'%');
             })
             ->get()
             ->map(fn ($product) => $this->detailItemFromVoucherProduct($product))
@@ -603,16 +1223,39 @@ class WarehouseTransactionController extends Controller
     private function detailItemFromVoucherProduct(MirrorRecord $record): array
     {
         $payload = is_array($record->payload) ? $record->payload : [];
+        $sourceRow = is_array($payload['source_row']['values'] ?? null) ? $payload['source_row']['values'] : [];
+        $quantity = $this->amountValue(
+            $payload['qty'] ?? $sourceRow['G'] ?? $record->qty ?? $payload['export_qty'] ?? $payload['import_qty'] ?? $record->amount ?? 0,
+            true,
+        );
+        $unitPrice = $this->amountValue(
+            $payload['price'] ?? $sourceRow['H'] ?? $record->unit_price ?? $payload['unit_price'] ?? 0,
+            true,
+        );
 
         return [
             'rowKey' => 'inventory-product:' . $record->mongo_id,
-            'productCode' => $record->product_code ?: ($payload['product_code'] ?? $payload['productCode'] ?? ''),
-            'productName' => $record->product_name ?? ($payload['product_name'] ?? $payload['productName'] ?? ''),
-            'barcode' => $record->barcode ?: ($payload['barcode'] ?? ''),
-            'quantity' => $this->amountValue($record->qty ?? $payload['qty'] ?? $payload['export_qty'] ?? $payload['import_qty'] ?? 0, true),
-            'unitPrice' => $this->amountValue($record->unit_price ?? $payload['unit_price'] ?? $payload['price'] ?? 0, true),
-            'totalAmount' => $this->amountValue($record->total_amount ?? $payload['total_amount'] ?? $payload['totalAmount'] ?? 0, true),
-            'note' => $payload['note'] ?? '',
+            'productCode' => $payload['prodCode']
+                ?? $payload['product_code']
+                ?? $payload['productCode']
+                ?? $sourceRow['D']
+                ?? $record->product_code
+                ?? '',
+            'productName' => ($record->name !== null && trim((string) $record->name) !== '' ? $record->name : null)
+                ?? $payload['prodName']
+                ?? $payload['product_name']
+                ?? $payload['productName']
+                ?? $sourceRow['E']
+                ?? $record->product_name
+                ?? '',
+            'barcode' => $payload['barcode'] ?? $sourceRow['F'] ?? $record->barcode ?? '',
+            'quantity' => $quantity,
+            'unitPrice' => $unitPrice,
+            'totalAmount' => $this->amountValue(
+                $payload['total_amount'] ?? $payload['totalAmount'] ?? $sourceRow['I'] ?? $record->total_amount ?? $record->total ?? ($quantity * $unitPrice),
+                true,
+            ),
+            'note' => $payload['note'] ?? ($sourceRow['K'] ?? ''),
         ];
     }
 

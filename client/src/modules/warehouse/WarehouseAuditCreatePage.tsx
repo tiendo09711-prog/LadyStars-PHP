@@ -13,8 +13,9 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import { isAdminRole } from '../../core/auth/access';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import './warehouseRecords.css';
 import './warehouseAudit.css';
@@ -87,6 +88,8 @@ type AuditDetail = {
   reversalVoucherCodes?: string[];
   blindMode?: boolean;
   doubleCount?: boolean;
+  canDelete?: boolean;
+  availableActions?: Array<{ action: string; label: string; needsReason?: boolean; danger?: boolean }>;
   summary: {
     itemCount: number;
     countedItemCount: number;
@@ -254,9 +257,10 @@ function lineFromAuditItem(item: AuditDetail['items'][number]): AuditLine {
 export function WarehouseAuditCreatePage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const isCreateMode = !id;
   const [warehouses, setWarehouses] = useState<Option[]>([]);
-  const [role, setRole] = useState('EMPLOYEE');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [warehouseId, setWarehouseId] = useState('');
   const [auditType, setAuditType] = useState<'BY_PRODUCT' | 'FULL'>('BY_PRODUCT');
   const [note, setNote] = useState('');
@@ -277,6 +281,8 @@ export function WarehouseAuditCreatePage() {
   const [notice, setNotice] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const productSearchRef = useRef<HTMLInputElement>(null);
+  /** Idempotent prefill from ?warehouseId=&productId= (suggestion click). */
+  const prefillHandledRef = useRef(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [voucherViewer, setVoucherViewer] = useState<{
     codes: Array<{ id: string; code: string }>;
@@ -288,13 +294,23 @@ export function WarehouseAuditCreatePage() {
 
   const isEditable = status === 'DRAFT' || status === 'COUNTING';
   const allowStructureEdit = isCreateMode || status === 'DRAFT';
+  const hasAction = (actionName: string) =>
+    (audit?.availableActions || []).some((action) => action.action === actionName);
+  // Prefer backend availableActions; fallback for create mode / empty actions.
+  const canSubmit = !isCreateMode && isEditable && (hasAction('submit') || ['DRAFT', 'COUNTING'].includes(status));
+  const canResnapshot = !isCreateMode && (hasAction('resnapshot') || status === 'COUNTING');
+  const canReconcile = !isCreateMode && (hasAction('reconcile') || (status === 'SUBMITTED' && isAdmin));
+  const canReverse = !isCreateMode && (hasAction('reverse-reconcile') || (status === 'RECONCILED' && isAdmin));
+  const canCancel = !isCreateMode && (hasAction('cancel') || ['DRAFT', 'COUNTING', 'SUBMITTED'].includes(status));
 
   const loadMeta = async () => {
     const response = await http.get('/inventory-audits/meta');
     const nextWarehouses = response.data.warehouses || [];
-    setRole(response.data.role || 'EMPLOYEE');
+    const nextRole = response.data.role || 'EMPLOYEE';
+    setIsAdmin(Boolean(response.data.isAdmin) || isAdminRole(nextRole) || Boolean(response.data.isRootOwner));
     setWarehouses(nextWarehouses);
     setVarianceReasons(response.data.varianceReasons || VARIANCE_REASON_FALLBACKS);
+    return { warehouses: nextWarehouses as Option[] };
   };
 
   const loadAudit = async () => {
@@ -379,9 +395,17 @@ export function WarehouseAuditCreatePage() {
       setLoading(true);
       setError('');
       try {
-        await loadMeta();
+        const meta = await loadMeta();
         await loadShelves();
-        if (id) await loadAudit();
+        if (id) {
+          await loadAudit();
+        } else {
+          // Prefill warehouse from query (suggestion / deep-link) only in create mode.
+          const qWh = searchParams.get('warehouseId')?.trim() || '';
+          if (qWh && meta.warehouses.some((w) => w.value === qWh)) {
+            setWarehouseId(qWh);
+          }
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || 'Không tải được dữ liệu kiểm kho.');
       } finally {
@@ -389,6 +413,7 @@ export function WarehouseAuditCreatePage() {
       }
     };
     void bootstrap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-bootstrap when route id changes
   }, [id]);
 
   useEffect(() => {
@@ -396,6 +421,35 @@ export function WarehouseAuditCreatePage() {
     void loadInventories(warehouseId);
     void loadAssignableUsers(warehouseId);
   }, [warehouseId]);
+
+  // Suggestion prefill: after inventories for the query warehouse load, add product once.
+  useEffect(() => {
+    if (!isCreateMode || prefillHandledRef.current || inventoryLoading) return;
+    const qProductId = searchParams.get('productId')?.trim() || '';
+    const qWarehouseId = searchParams.get('warehouseId')?.trim() || '';
+    if (!qProductId) return;
+    // Wait until warehouse matches query (or query has no warehouse) and options loaded.
+    if (qWarehouseId && warehouseId !== qWarehouseId) return;
+    if (!warehouseId || inventoryOptions.length === 0) {
+      // Inventories finished empty for this warehouse — mark handled with notice.
+      if (!inventoryLoading && warehouseId && qWarehouseId && warehouseId === qWarehouseId) {
+        prefillHandledRef.current = true;
+        setNotice('Không tìm thấy sản phẩm gợi ý trong kho đã chọn. Bạn có thể thêm thủ công.');
+      }
+      return;
+    }
+    const product = inventoryOptions.find((p) => p._id === qProductId);
+    prefillHandledRef.current = true;
+    if (!product) {
+      setNotice('Không tìm thấy sản phẩm gợi ý trong kho đã chọn. Bạn có thể thêm thủ công.');
+      return;
+    }
+    setLines((current) => {
+      if (current.some((line) => line.productId === product._id)) return current;
+      return [...current, lineFromInventory(product)];
+    });
+    setNotice(`Đã thêm sản phẩm gợi ý: ${product.name || product.code}`);
+  }, [isCreateMode, inventoryLoading, inventoryOptions, warehouseId, searchParams]);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -824,9 +878,6 @@ export function WarehouseAuditCreatePage() {
               </label>
               <div className="audit-toolbar">
                 <button className="btn btn-light" type="button" onClick={printBlankCountSheet} disabled={!lines.length}>In phiếu kiểm rỗng</button>
-                {!isCreateMode && ['DRAFT', 'COUNTING'].includes(status) ? (
-                  <button className="btn btn-light" type="button" onClick={() => void resnapshotAudit()} disabled={actionLoading}>Cập nhật lại snapshot</button>
-                ) : null}
               </div>
             </div>
 
@@ -970,7 +1021,7 @@ export function WarehouseAuditCreatePage() {
                   <button className="btn btn-primary" type="button" disabled={saving} onClick={() => void saveAudit('COUNTING')}>
                     <ClipboardCheck size={15} /> {saving ? 'Đang lưu...' : 'Lưu và chuyển sang kiểm đếm'}
                   </button>
-                  {!isCreateMode ? (
+                  {canSubmit ? (
                     <button className="btn btn-primary" type="button" disabled={actionLoading || lineSummary.itemCount === 0} onClick={() => setConfirm({ kind: 'submit' })}>
                       <Check size={15} /> Submit phiếu
                     </button>
@@ -978,19 +1029,25 @@ export function WarehouseAuditCreatePage() {
                 </>
               ) : null}
 
-              {!isCreateMode && status === 'SUBMITTED' && role === 'ADMIN' ? (
+              {canResnapshot ? (
+                <button className="btn btn-light" type="button" onClick={() => void resnapshotAudit()} disabled={actionLoading}>
+                  Cập nhật lại snapshot
+                </button>
+              ) : null}
+
+              {canReconcile ? (
                 <button className="btn btn-primary" type="button" disabled={actionLoading} onClick={() => setConfirm({ kind: 'reconcile' })}>
                   <Link2 size={15} /> Bù trừ kiểm kho
                 </button>
               ) : null}
 
-              {!isCreateMode && status === 'RECONCILED' && role === 'ADMIN' ? (
+              {canReverse ? (
                 <button className="btn btn-light" type="button" disabled={actionLoading} onClick={() => setConfirm({ kind: 'reverse', reason: '' })}>
                   <RefreshCw size={15} /> Đảo bù trừ
                 </button>
               ) : null}
 
-              {!isCreateMode && ['DRAFT', 'COUNTING', 'SUBMITTED'].includes(status) ? (
+              {canCancel ? (
                 <button className="btn btn-light" type="button" disabled={actionLoading} onClick={() => setConfirm({ kind: 'cancel', reason: '' })}>
                   <X size={15} /> Hủy phiếu
                 </button>

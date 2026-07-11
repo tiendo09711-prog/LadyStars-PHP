@@ -556,6 +556,7 @@
 .products-root .table-scroll {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
@@ -564,22 +565,30 @@
 
 .products-root .products-data-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 0;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: auto;
+  /* Fixed layout + % widths keeps all columns inside the card; no horizontal squeeze on Thao tác */
+  table-layout: fixed;
   background: transparent;
 }
 
 .products-root .products-data-table th,
 .products-root .products-data-table td {
-  padding: 11px 12px;
+  padding: 11px 10px;
   font-size: 12.5px;
   vertical-align: middle;
   min-width: 0;
   max-width: none;
   border-bottom: 1px solid #f1f5f9;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* Defeat global app.css min-width:120px on data cells (main overflow source) */
+.products-root .products-data-table td:not(.check-cell):not(.action-cell),
+.products-root .products-data-table th:not(.check-cell):not(.action-cell) {
+  min-width: 0 !important;
 }
 
 .products-root .products-data-table th {
@@ -594,6 +603,8 @@
   top: 0;
   z-index: 2;
   border-bottom: 1px solid #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .products-root .products-data-table tbody tr {
@@ -608,32 +619,101 @@
   background: #f0fdf4;
 }
 
+/* Checkbox column (product list only) */
 .products-root .products-data-table .check-cell {
-  width: 40px;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
   text-align: center;
+  padding-left: 10px;
+  padding-right: 6px;
 }
 
-.products-root .products-data-table td:not(.check-cell):not(.action-cell) {
-  min-width: 0;
+/* Product list (has action column): balanced 9-col widths */
+.products-root .products-data-table:has(.action-cell) th:nth-child(2),
+.products-root .products-data-table:has(.action-cell) td:nth-child(2) {
+  width: 11%;
 }
 
-/* Sticky action column */
+.products-root .products-data-table:has(.action-cell) th:nth-child(3),
+.products-root .products-data-table:has(.action-cell) td:nth-child(3) {
+  width: 24%;
+}
+
+.products-root .products-data-table:has(.action-cell) th:nth-child(4),
+.products-root .products-data-table:has(.action-cell) td:nth-child(4) {
+  width: 12%;
+}
+
+.products-root .products-data-table:has(.action-cell) th:nth-child(5),
+.products-root .products-data-table:has(.action-cell) td:nth-child(5),
+.products-root .products-data-table:has(.action-cell) th:nth-child(6),
+.products-root .products-data-table:has(.action-cell) td:nth-child(6) {
+  width: 11%;
+}
+
+.products-root .products-data-table:has(.action-cell) th:nth-child(7),
+.products-root .products-data-table:has(.action-cell) td:nth-child(7) {
+  width: 9%;
+}
+
+.products-root .products-data-table:has(.action-cell) th:nth-child(8),
+.products-root .products-data-table:has(.action-cell) td:nth-child(8) {
+  width: 10%;
+}
+
+/*
+ * Product list: center cell content for
+ * Mã vạch | Giá vốn | Giá bán | Tổng tồn | Trạng thái | Thao tác
+ * (columns 4–9)
+ */
+.products-root .products-data-table:has(.action-cell) th:nth-child(n + 4):nth-child(-n + 9),
+.products-root .products-data-table:has(.action-cell) td:nth-child(n + 4):nth-child(-n + 9) {
+  text-align: center !important;
+}
+
+.products-root .products-data-table:has(.action-cell) th:nth-child(n + 4):nth-child(-n + 9) > div {
+  justify-content: center;
+}
+
+.products-root .products-data-table:has(.action-cell) .products-barcode,
+.products-root .products-data-table:has(.action-cell) .products-price,
+.products-root .products-data-table:has(.action-cell) .products-stock,
+.products-root .products-data-table:has(.action-cell) .number {
+  text-align: center !important;
+}
+
+.products-root .products-data-table:has(.action-cell) td:nth-child(6) .storage-risk-badge {
+  display: inline-flex;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.products-root .products-data-table:has(.action-cell) td:nth-child(8) {
+  text-align: center !important;
+}
+
+/* Sticky action column — full "Thao tác" label + menu button always visible */
 .products-root .products-data-table th.action-cell,
 .products-root .products-data-table td.action-cell {
-  width: 68px;
-  min-width: 68px;
-  max-width: 76px;
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
   text-align: center;
   position: sticky;
   right: 0;
   z-index: 3;
   background: #fff;
-  box-shadow: -4px 0 8px rgba(15, 23, 42, 0.04);
+  box-shadow: -6px 0 12px rgba(15, 23, 42, 0.05);
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .products-root .products-data-table th.action-cell {
   z-index: 4;
   background: #f8fafc;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .products-root .products-data-table tbody tr:nth-child(even) td.action-cell {
@@ -684,8 +764,8 @@
 
 /* Cell content */
 .products-root .products-name-cell {
-  min-width: 160px;
-  max-width: 280px;
+  min-width: 0;
+  max-width: none;
 }
 
 .products-root .products-name-main {
@@ -697,6 +777,7 @@
   font-size: 13px;
   line-height: 1.35;
   color: #0f172a;
+  word-break: break-word;
 }
 
 .products-root .products-name-sub {
@@ -707,6 +788,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.3;
+  max-width: 100%;
 }
 
 .products-root .products-age-link {
@@ -736,6 +818,12 @@
   cursor: pointer;
   font-size: 12.5px;
   line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: bottom;
 }
 
 .products-root .products-code:hover,
@@ -747,21 +835,32 @@
 .products-root .products-barcode {
   font-size: 12px;
   color: #64748b;
-  max-width: 140px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
 }
 
 .products-root .products-price,
 .products-root .products-stock,
 .products-root .number {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   font-size: 12.5px;
   color: #334155;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Narrow viewports: allow gentle horizontal scroll; sticky Thao tác stays pinned */
+@media (max-width: 1100px) {
+  .products-root .products-data-table {
+    min-width: 860px;
+    table-layout: fixed;
+  }
 }
 
 .products-root .products-price-sale {
@@ -845,10 +944,128 @@
   outline-offset: 2px;
 }
 
-/* History table specifics */
+/* ============================================================
+   History table (/products?tab=history) — balanced column widths
+   Content-first distribution (left→right):
+   Mã SP 9% | Tên 27% | Loại 10% | Kiểu 25% | Người 14% | Thời gian 15%
+   ============================================================ */
+.products-root .products-history-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.products-root .products-history-table th,
+.products-root .products-history-table td {
+  min-width: 0 !important;
+  max-width: none;
+  vertical-align: middle;
+}
+
+/* 1. Mã SP — short codes */
+.products-root .products-history-table .products-history-code {
+  width: 9%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.products-root .products-history-table .products-history-code strong {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* 2. Tên sản phẩm — long text priority */
+.products-root .products-history-table .products-history-name {
+  width: 27%;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.products-root .products-history-table .products-history-name .products-name-main {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #0f172a;
+}
+
+/* 3. Loại log — short badge tags */
+.products-root .products-history-table .products-history-type {
+  width: 10%;
+  min-width: 0 !important;
+  white-space: nowrap;
+}
+
+.products-root .products-history-table .products-history-type .status-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 4. Kiểu log — long descriptive text priority */
+.products-root .products-history-table .products-history-action {
+  width: 25%;
+  min-width: 0;
+}
+
+.products-root .products-history-table .products-history-action-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  color: #334155;
+  font-size: 12.5px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+/* 5. Người thao tác — names, readable but compact */
+.products-root .products-history-table .products-history-actor {
+  width: 14%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #334155;
+  font-weight: 600;
+}
+
+/* 6. Thời gian — datetime, no wrap */
+.products-root .products-history-table .products-history-time {
+  width: 15%;
+  color: #334155;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+/* Fallback for any history table still using :not(:has(.action-cell)) without class */
+.products-root .products-data-table:not(:has(.action-cell)):not(.products-history-table) {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+/* Keep legacy class hooks consistent under products-root */
 .products-root .products-history-name {
-  min-width: 160px;
-  max-width: 280px;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.products-root .products-history-type {
+  min-width: 0 !important;
 }
 
 .products-root .products-history-time {
@@ -858,8 +1075,10 @@
   white-space: nowrap;
 }
 
-.products-root .products-data-table:not(:has(.action-cell)) {
-  min-width: 780px;
+@media (max-width: 1100px) {
+  .products-root .products-history-table {
+    min-width: 820px;
+  }
 }
 
 /* Portaled row menu — always above table/layers */

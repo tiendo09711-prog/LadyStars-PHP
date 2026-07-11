@@ -1,0 +1,99 @@
+{
+  "RUN_ID": "E2E_WS_1783790140333_gp33k0",
+  "startedAt": "2026-07-11T17:15:40.336Z",
+  "endedAt": "2026-07-11T17:16:40.321Z",
+  "envMeta": {
+    "BASE": "http://localhost:5173",
+    "API": "http://127.0.0.1:8000",
+    "RUN_ID": "E2E_WS_1783790140333_gp33k0",
+    "playwright": "1.51.0",
+    "APP_ENV": "local",
+    "DB_CONNECTION": "mysql",
+    "DB_HOST": "127.0.0.1",
+    "DB_DATABASE": "ladystars_php",
+    "isolated": false,
+    "hasLiveTestLocal": false
+  },
+  "safetyGate": true,
+  "counts": {
+    "total": 2,
+    "PASS": 1,
+    "FAIL": 1,
+    "BLOCKED_SAFETY_GATE": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0
+  },
+  "results": [
+    {
+      "id": "TC-A01",
+      "name": "Truy cập chưa đăng nhập",
+      "group": "A",
+      "status": "PASS",
+      "expected": "Redirect login hoặc chặn, không lộ dữ liệu hóa đơn",
+      "actual": "url=http://localhost:5173/login; isLogin=true; blank=false; hasInvoiceTable=false; textLen=86",
+      "steps": [],
+      "preconditions": "",
+      "testData": "",
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\wholesale-audit\\E2E_WS_1783790140333_gp33k0\\screenshots\\A01-unauth.png"
+      ],
+      "api": [],
+      "notes": "",
+      "severity": null,
+      "url": "http://localhost:5173/login",
+      "mode": "live-readonly"
+    },
+    {
+      "id": "TC-A00",
+      "name": "Đăng nhập tài khoản test local",
+      "group": "A",
+      "status": "FAIL",
+      "expected": "Có token session sau login",
+      "actual": "hasToken=false; url=http://localhost:5173/login",
+      "steps": [],
+      "preconditions": "",
+      "testData": "",
+      "evidence": [],
+      "api": [],
+      "notes": "Không ghi secret. Role dự kiến ADMIN.",
+      "severity": "CRITICAL",
+      "url": "",
+      "mode": "live-readonly"
+    }
+  ],
+  "bugs": [
+    {
+      "id": "BUG-WS-001",
+      "tc": "TC-A00",
+      "title": "Đăng nhập tài khoản test local",
+      "severity": "CRITICAL",
+      "expected": "Có token session sau login",
+      "actual": "hasToken=false; url=http://localhost:5173/login",
+      "notes": "Không ghi secret. Role dự kiến ADMIN."
+    }
+  ],
+  "network": {
+    "status4xx": [],
+    "status5xx": [],
+    "failed": [
+      {
+        "url": "http://127.0.0.1:8000/api/products/sales?type=wholesale&page=1&limit=500&channel=store",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790143037
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/login",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790173845
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/dashboard?chartRange=7+ng%C3%A0y&topRange=7+ng%C3%A0y&topLimit=10",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790176739
+      }
+    ],
+    "unexpected": []
+  },
+  "consoleErrors": [],
+  "pageErrors": []
+}

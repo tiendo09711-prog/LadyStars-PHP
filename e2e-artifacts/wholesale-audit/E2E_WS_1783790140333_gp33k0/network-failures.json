@@ -1,0 +1,22 @@
+{
+  "status4xx": [],
+  "status5xx": [],
+  "failed": [
+    {
+      "url": "http://127.0.0.1:8000/api/products/sales?type=wholesale&page=1&limit=500&channel=store",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790143037
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/auth/login",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790173845
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/dashboard?chartRange=7+ng%C3%A0y&topRange=7+ng%C3%A0y&topLimit=10",
+      "error": "net::ERR_ABORTED",
+      "t": 1783790176739
+    }
+  ],
+  "unexpected": []
+}

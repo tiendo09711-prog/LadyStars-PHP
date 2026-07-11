@@ -508,7 +508,7 @@
 }
 
 .categories-code-cell {
-  min-width: 160px;
+  min-width: 0;
 }
 
 .categories-code-badge {
@@ -524,7 +524,7 @@
 }
 
 .categories-name-cell {
-  min-width: 280px;
+  min-width: 0;
 }
 
 .categories-link-button {
@@ -1105,13 +1105,14 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 
 .categories-page-shell .categories-data-table,
 .categories-page-shell .product-compact-table {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   table-layout: fixed;
 }
 
@@ -1132,6 +1133,7 @@
 
 .categories-page-shell .categories-name-cell {
   min-width: 0 !important;
+  max-width: none !important;
 }
 
 .categories-page-shell .categories-name-title {
@@ -1139,6 +1141,9 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .categories-page-shell .categories-data-table th {
@@ -1156,7 +1161,7 @@
 
 .categories-page-shell .categories-code-cell {
   min-width: 0;
-  width: 120px;
+  width: 11%;
 }
 
 .categories-page-shell .categories-code-badge {
@@ -1170,19 +1175,26 @@
 }
 
 .categories-page-shell .categories-name-cell {
-  min-width: 180px;
+  min-width: 0;
+  width: auto;
 }
 
 .categories-page-shell .categories-name-title {
   font-size: 13px;
   font-weight: 700;
   line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .categories-page-shell .categories-name-meta {
   font-size: 11px;
   line-height: 1.3;
   margin-top: 1px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .categories-page-shell .categories-link-button {
@@ -1225,11 +1237,11 @@
 .categories-page-shell .categories-data-table td.action-cell,
 .categories-page-shell td.action-cell,
 .categories-page-shell th.action-cell {
-  width: 56px !important;
-  min-width: 56px !important;
-  max-width: 64px;
+  width: 96px !important;
+  min-width: 96px !important;
+  max-width: 96px !important;
   padding: 6px 8px !important;
-  text-align: right !important;
+  text-align: center !important;
   white-space: nowrap;
   overflow: visible !important;
   /* override global ui-contract flex on .action-cell */
@@ -1518,7 +1530,7 @@
 }
 
 .categories-data-table .action-cell {
-  min-width: 118px;
+  min-width: 0;
 }
 
 @media (max-width: 720px) {
@@ -2026,6 +2038,7 @@
 .categories-page-shell .categories-table-scroll {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto !important;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
@@ -2034,22 +2047,26 @@
 
 .categories-page-shell .categories-data-table {
   width: 100%;
-  min-width: 920px;
+  max-width: 100%;
+  min-width: 0;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: auto;
+  /* Fixed layout + %/px col widths keep all columns inside the card */
+  table-layout: fixed;
   background: transparent;
 }
 
 .categories-page-shell .categories-data-table th,
 .categories-page-shell .categories-data-table td {
-  min-width: 0;
+  min-width: 0 !important;
   max-width: none;
-  padding: 11px 12px !important;
+  padding: 11px 10px !important;
   border-bottom: 1px solid #f1f5f9;
   font-size: 12.5px !important;
   line-height: 1.35;
   vertical-align: middle !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .categories-page-shell .categories-data-table th {
@@ -2064,6 +2081,39 @@
   letter-spacing: 0.05em !important;
   text-transform: uppercase;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Balanced 7-col widths: short cols compact, name takes priority */
+.categories-page-shell .categories-data-table th:nth-child(1),
+.categories-page-shell .categories-data-table td:nth-child(1) {
+  width: 40px;
+}
+
+.categories-page-shell .categories-data-table th:nth-child(2),
+.categories-page-shell .categories-data-table td:nth-child(2) {
+  width: 11%;
+}
+
+.categories-page-shell .categories-data-table th:nth-child(3),
+.categories-page-shell .categories-data-table td:nth-child(3) {
+  width: 34%;
+}
+
+.categories-page-shell .categories-data-table th:nth-child(4),
+.categories-page-shell .categories-data-table td:nth-child(4) {
+  width: 14%;
+}
+
+.categories-page-shell .categories-data-table th:nth-child(5),
+.categories-page-shell .categories-data-table td:nth-child(5) {
+  width: 10%;
+}
+
+.categories-page-shell .categories-data-table th:nth-child(6),
+.categories-page-shell .categories-data-table td:nth-child(6) {
+  width: 12%;
 }
 
 .categories-page-shell .categories-data-table tbody tr:nth-child(even) td:not(.action-cell) {
@@ -2076,13 +2126,19 @@
 
 .categories-page-shell .categories-data-table .check-cell {
   width: 40px;
+  min-width: 40px !important;
+  max-width: 44px;
   text-align: center;
   padding-right: 8px !important;
   padding-left: 8px !important;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .categories-page-shell .categories-code-cell {
-  min-width: 120px;
+  min-width: 0 !important;
+  width: 11%;
 }
 
 .categories-page-shell .categories-code-badge {
@@ -2104,13 +2160,17 @@
 }
 
 .categories-page-shell .categories-name-cell {
-  min-width: 180px;
-  max-width: 320px;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: 34%;
+  white-space: normal;
 }
 
 .categories-page-shell .categories-link-button {
   display: grid;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 2px;
   padding: 0;
   border: 0;
@@ -2130,6 +2190,9 @@
   font-size: 13px;
   font-weight: 700;
   line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .categories-page-shell .categories-name-meta {
@@ -2137,9 +2200,13 @@
   overflow: hidden;
   color: #94a3b8;
   font-size: 11px;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .categories-page-shell .categories-link-button:hover .categories-name-title {
@@ -2154,7 +2221,8 @@
   border: 0;
   background: none;
   color: #334155;
-  text-align: left;
+  text-align: center;
+  justify-items: center;
   cursor: pointer;
   transform: none !important;
 }
@@ -2177,10 +2245,33 @@
   text-decoration: underline;
 }
 
+/* Short columns: center header + cell content (status / count / date / actions) */
+.categories-page-shell .categories-data-table th:nth-child(4),
+.categories-page-shell .categories-data-table td:nth-child(4),
+.categories-page-shell .categories-data-table th:nth-child(5),
+.categories-page-shell .categories-data-table td:nth-child(5),
+.categories-page-shell .categories-data-table th:nth-child(6),
+.categories-page-shell .categories-data-table td:nth-child(6),
+.categories-page-shell .categories-data-table th:nth-child(7),
+.categories-page-shell .categories-data-table td:nth-child(7) {
+  text-align: center !important;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.categories-page-shell .categories-data-table td:nth-child(4) .categories-status-badge,
+.categories-page-shell .categories-data-table td:nth-child(4) .status-badge,
+.categories-page-shell .categories-data-table td:nth-child(5) .categories-count-button {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .categories-page-shell .categories-status-badge,
 .categories-page-shell .status-badge.categories-status-badge {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 24px;
   padding: 0 9px;
   border: 1px solid transparent;
@@ -2189,6 +2280,8 @@
   font-weight: 750;
   line-height: 1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .categories-page-shell .categories-status-badge.success {
@@ -2207,22 +2300,29 @@
 .categories-page-shell .categories-data-table td.action-cell {
   position: sticky;
   right: 0;
-  width: 68px !important;
-  min-width: 68px !important;
-  max-width: 68px !important;
+  /* Wide enough for full uppercase "Thao tác" header + ⋯ menu */
+  width: 96px !important;
+  min-width: 96px !important;
+  max-width: 96px !important;
   padding-right: 10px !important;
   padding-left: 10px !important;
   border-left: 1px solid #eef2f7;
   background-clip: padding-box;
-  box-shadow: none !important;
+  box-shadow: -6px 0 12px rgba(15, 23, 42, 0.05);
   text-align: center !important;
   transform: translateZ(0);
   display: table-cell !important;
+  white-space: nowrap;
+  overflow: visible !important;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .categories-page-shell .categories-data-table th.action-cell {
   z-index: 8;
   background: #f8fafc !important;
+  overflow: visible !important;
+  text-overflow: clip;
 }
 
 .categories-page-shell .categories-data-table td.action-cell {
@@ -2241,7 +2341,8 @@
 .categories-page-shell .categories-row-actions {
   display: inline-flex !important;
   justify-content: center;
-  width: auto;
+  align-items: center;
+  width: 100%;
   gap: 0 !important;
   margin: 0;
 }

@@ -80,6 +80,9 @@ export function StorageDurationPage() {
   const [discountVal, setDiscountVal] = useState<string>('10');
   const [discountNote, setDiscountNote] = useState('');
 
+  // Ignore stale storage-duration responses when filters/tabs change quickly.
+  const loadSeqRef = useRef(0);
+
   // Auto clear toast
   useEffect(() => {
     if (toast) {
@@ -147,7 +150,12 @@ export function StorageDurationPage() {
     loadBranches();
   }, []);
 
+  // True while applying browser URL → React state (Back/Forward/deep link). Prevents the
+  // state → URL effect from writing back and creating update loops / history thrash.
+  const syncingFromUrlRef = useRef(false);
+
   useEffect(() => {
+    syncingFromUrlRef.current = true;
     const urlTab = normalizeStorageTab(searchParams.get('tab'));
     const urlQ = searchParams.get('q') || '';
     const urlCategory = searchParams.get('categoryId') || '';
@@ -163,8 +171,14 @@ export function StorageDurationPage() {
     setMinStartDays((current) => (current === urlMinStart ? current : urlMinStart));
     setMinSoldDays((current) => (current === urlMinSold ? current : urlMinSold));
     setMinStock((current) => (current === urlMinStock ? current : urlMinStock));
+    // Release after React applies the state updates from this URL sync.
+    queueMicrotask(() => {
+      syncingFromUrlRef.current = false;
+    });
   }, [searchParams]);
+
   useEffect(() => {
+    if (syncingFromUrlRef.current) return;
     const next = new URLSearchParams();
     if (activeTab !== 'all') next.set('tab', activeTab);
     if (search) next.set('q', search);
@@ -173,11 +187,25 @@ export function StorageDurationPage() {
     if (minStartDays) next.set('minStartDays', minStartDays);
     if (minSoldDays) next.set('minSoldDays', minSoldDays);
     if (minStock) next.set('minStock', minStock);
-    setSearchParams(next, { replace: true });
+    // Keep URL in sync. Skip no-op writes so Back/Forward is not clobbered.
+    // Discrete filters (tab/search/category/branch) push history; continuous min* inputs replace
+    // to avoid flooding history on each keystroke.
+    const keys = ['tab', 'q', 'categoryId', 'branchId', 'minStartDays', 'minSoldDays', 'minStock'] as const;
+    const same = keys.every((key) => (searchParams.get(key) || '') === (next.get(key) || ''));
+    if (same) return;
+    const discreteKeys = ['tab', 'q', 'categoryId', 'branchId'] as const;
+    const discreteChanged = discreteKeys.some(
+      (key) => (searchParams.get(key) || '') !== (next.get(key) || ''),
+    );
+    setSearchParams(next, { replace: !discreteChanged });
+    // Intentionally omit searchParams from deps: this effect is driven by filter state only.
+    // Comparing against current searchParams is safe; including it caused Back/Forward loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, search, selectedCategory, selectedBranch, minStartDays, minSoldDays, minStock, setSearchParams]);
 
   // Main Data Loading
   const loadData = async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     try {
       const params: any = {
@@ -194,6 +222,7 @@ export function StorageDurationPage() {
       };
 
       const res = await productApi.getStorageDuration(params);
+      if (seq !== loadSeqRef.current) return;
       setItems(res.items || []);
       setTotal(res.total || 0);
 
@@ -202,10 +231,13 @@ export function StorageDurationPage() {
         setKpis(res.kpis);
       }
     } catch (err) {
+      if (seq !== loadSeqRef.current) return;
       console.error('Error fetching storage duration data', err);
       setToast({ message: 'Không thể tải dữ liệu thời gian lưu kho.', type: 'error' });
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -544,14 +576,18 @@ export function StorageDurationPage() {
     const menuWidth = 232;
     const menuHeight = 176;
     const gap = 6;
+    // Prefer opening ABOVE the trigger so the portal does not cover action buttons of rows below.
+    let top = rect.top - menuHeight - gap;
+    if (top < 8) {
+      top = rect.bottom + gap;
+    }
     let left = rect.right - menuWidth;
-    let top = rect.bottom + gap;
     if (left < 8) left = 8;
     if (left + menuWidth > window.innerWidth - 8) {
       left = Math.max(8, window.innerWidth - menuWidth - 8);
     }
     if (top + menuHeight > window.innerHeight - 8) {
-      top = Math.max(8, rect.top - menuHeight - gap);
+      top = Math.max(8, window.innerHeight - menuHeight - 8);
     }
     setRowMenuPos({ top, left });
     setOpenActionMenu(productId);
@@ -776,31 +812,32 @@ export function StorageDurationPage() {
 
         <div className="table-scroll storage-table-scroll">
           <table id="storage-duration-table" className="data-table storage-data-table">
+            {/* Fixed-layout widths: name is widest; short/numeric cols stay compact; action always visible */}
             <colgroup>
-              <col style={{ width: '9%' }} />
-              <col />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '18%' }} />
               <col style={{ width: '11%' }} />
               <col style={{ width: '12%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '9%' }} />
               <col style={{ width: '7%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '8%' }} />
+              <col style={{ width: '7%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '9%' }} />
-              <col style={{ width: '68px' }} />
+              <col style={{ width: '88px' }} />
             </colgroup>
             <thead>
               <tr>
-                <th>Mã SP</th>
-                <th>Tên sản phẩm</th>
-                <th>Nhóm / NCC</th>
-                <th>Giá nhập | Giá bán</th>
-                <th>Tồn kho</th>
-                <th>XNK Đầu / Cuối</th>
-                <th>Bán cuối</th>
-                <th>Lưu từ đầu</th>
-                <th>Lưu từ XNK cuối</th>
-                <th>Chưa bán ra</th>
+                <th className="storage-col-code">Mã SP</th>
+                <th className="storage-col-name">Tên sản phẩm</th>
+                <th className="storage-col-group">Nhóm / NCC</th>
+                <th className="storage-col-price">Giá nhập | Giá bán</th>
+                <th className="storage-col-qty">Tồn kho</th>
+                <th className="storage-col-xnk">XNK Đầu / Cuối</th>
+                <th className="storage-col-sold">Bán cuối</th>
+                <th className="storage-col-days">Lưu từ đầu</th>
+                <th className="storage-col-days">Lưu từ XNK cuối</th>
+                <th className="storage-col-unsold">Chưa bán ra</th>
                 <th className="action-cell">Thao tác</th>
               </tr>
             </thead>
@@ -809,17 +846,17 @@ export function StorageDurationPage() {
               {!loading && items.length === 0 && <tr><td colSpan={11} className="storage-empty-cell">Chưa có sản phẩm nào phù hợp. Trang này chỉ hiển thị sản phẩm còn tồn theo điều kiện lọc. Hãy thử giảm tồn tối thiểu, chọn Tất cả chi nhánh hoặc kiểm tra dữ liệu nhập/bán hàng.</td></tr>}
               {!loading && items.map((item) => (
                 <tr key={item._id}>
-                  <td><strong className="storage-code">{item.code}</strong></td>
-                  <td className="storage-name-cell" title={item.name}>
+                  <td className="storage-col-code"><strong className="storage-code">{item.code}</strong></td>
+                  <td className="storage-name-cell storage-col-name" title={item.name}>
                     <div className="storage-name-main">{item.name}</div>
                   </td>
-                  <td>
-                    <span>{item.categoryName || 'Chưa phân loại'}</span>
+                  <td className="storage-col-group">
+                    <span className="storage-group-main">{item.categoryName || 'Chưa phân loại'}</span>
                     <small className="storage-name-sub">
                       NCC: {item.supplierName || 'Mặc định'}
                     </small>
                   </td>
-                  <td className="number">
+                  <td className="number storage-col-price">
                     <span style={{ color: 'var(--muted)', fontSize: '12px' }}>{formatMoney(item.cost)}</span>
                     <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span>
                     <strong style={{ color: '#0f172a', fontSize: '12px' }}>{formatMoney(item.price)}</strong>
@@ -827,31 +864,31 @@ export function StorageDurationPage() {
                       <small style={{ display: 'block', color: '#c2410c', fontWeight: 700, fontSize: '11px' }}>Xả: {formatMoney(item.clearancePrice)}</small>
                     ) : null}
                   </td>
-                  <td className="number">
+                  <td className="number storage-col-qty">
                     <strong style={{ color: '#1e293b' }}>{Number(item.qty || 0).toLocaleString('vi-VN')}</strong>
                   </td>
-                  <td>
+                  <td className="storage-col-xnk">
                     <span style={{ fontSize: '12px', display: 'block' }}>{formatDate(item.firstTransactionDate)}</span>
                     <small style={{ color: 'var(--muted)', fontSize: '11px', display: 'block' }}>
                       Cuối: {formatDate(item.lastTransactionDate)}
                     </small>
                   </td>
-                  <td>
+                  <td className="storage-col-sold">
                     <span style={{ fontSize: '12px' }}>{formatDate(item.lastSoldDate)}</span>
                   </td>
-                  <td>
+                  <td className="storage-col-days">
                     <span className={`status-badge ${getDaysStartBadgeClass(item.daysFromStart)}`}>
                       {item.daysFromStart} ngày
                     </span>
                   </td>
-                  <td>
+                  <td className="storage-col-days">
                     <span style={{ fontSize: '13px', color: '#475569' }}>
                       {item.daysFromLast} ngày
                     </span>
                   </td>
-                  <td>
+                  <td className="storage-col-unsold">
                     {item.daysFromLastSold === null ? (
-                      <span style={{ color: 'var(--muted)', fontStyle: 'italic', fontSize: '12px' }}>Chưa bán lần nào</span>
+                      <span className="storage-unsold-empty" style={{ color: 'var(--muted)', fontStyle: 'italic', fontSize: '12px' }}>Chưa bán lần nào</span>
                     ) : (
                       <span style={{
                         fontWeight: 600,
@@ -934,12 +971,15 @@ export function StorageDurationPage() {
         <div className="modal-backdrop" role="presentation" onClick={() => setDiscountProduct(null)}>
           <form
             className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="storage-clearance-modal-title"
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSubmitDiscount}
           >
             <div className="modal-header">
               <div>
-                <h2>Lưu giá xả hàng</h2>
+                <h2 id="storage-clearance-modal-title">Lưu giá xả hàng</h2>
                 <p>Giá xả hàng riêng, không đổi giá bán chính. Giá này chỉ dùng để hiển thị/gợi ý khi bán và trên báo cáo tồn lâu.</p>
               </div>
               <button
@@ -947,6 +987,7 @@ export function StorageDurationPage() {
                 type="button"
                 onClick={() => setDiscountProduct(null)}
                 title="Đóng"
+                aria-label="Đóng"
               >
                 <X size={18} />
               </button>

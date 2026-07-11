@@ -741,12 +741,12 @@ export function CategoryList() {
           <table className="data-table categories-data-table" id="categories-data-table">
             <colgroup>
               <col style={{ width: '40px' }} />
-              <col style={{ width: '150px' }} />
-              <col />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '128px' }} />
-              <col style={{ width: '68px' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '34%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '96px' }} />
             </colgroup>
             <thead>
               <tr>

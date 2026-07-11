@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, RefreshCw, Search } from 'lucide-react';
@@ -30,26 +30,47 @@ export function InventoryList() {
   const [totalInventoryValue, setTotalInventoryValue] = useState(0);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const limit = 15;
+  const mountedRef = useRef(true);
+  const invRequestIdRef = useRef(0);
+  const branchRequestIdRef = useRef(0);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const exportTriggerRef = useRef<HTMLButtonElement>(null);
 
-  // Branches load riêng, có error state rõ ràng (không nuốt lỗi)
   useEffect(() => {
-    setBranchesLoading(true);
-    setBranchesError(null);
-    listBranches({ page: 1, limit: 200 })
-      .then(data => {
-        setBranches((data.items || []).filter(b => b.isActive !== false));
-      })
-      .catch((e) => {
-        console.error('Branch load error', e);
-        setBranchesError('Không tải được danh sách kho. Một số cột kho có thể không hiển thị.');
-        setBranches([]);
-      })
-      .finally(() => setBranchesLoading(false));
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
+  const loadBranches = useCallback(async () => {
+    const requestId = ++branchRequestIdRef.current;
+    setBranchesLoading(true);
+    setBranchesError(null);
+    try {
+      const data = await listBranches({ page: 1, limit: 200 });
+      if (!mountedRef.current || requestId !== branchRequestIdRef.current) return;
+      setBranches((data.items || []).filter((b) => b.isActive !== false));
+    } catch (e) {
+      console.error('Branch load error', e);
+      if (!mountedRef.current || requestId !== branchRequestIdRef.current) return;
+      setBranchesError('Không tải được danh sách kho. Một số cột kho có thể không hiển thị.');
+      setBranches([]);
+    } finally {
+      if (!mountedRef.current || requestId !== branchRequestIdRef.current) return;
+      setBranchesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadBranches();
+  }, [loadBranches]);
+
   const load = async (overrides?: { search?: string; page?: number }) => {
+    const requestId = ++invRequestIdRef.current;
     const nextSearch = overrides?.search ?? search;
     const nextPage = overrides?.page ?? page;
     setLoading(true);
@@ -64,26 +85,29 @@ export function InventoryList() {
         sort: sortField,
         order: sortOrder,
       });
+      if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
       setItems(res.items);
       setTotal(res.total);
       setTotalStockQuantity(typeof res.totalStockQuantity === 'number' ? res.totalStockQuantity : 0);
       setTotalInventoryValue(typeof res.totalInventoryValue === 'number' ? res.totalInventoryValue : 0);
     } catch (err) {
       console.error('Inventory load error', err);
+      if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
       setError('Không tải được dữ liệu tồn kho. Vui lòng thử Làm mới hoặc kiểm tra kết nối.');
       setItems([]);
       setTotal(0);
       setTotalStockQuantity(0);
       setTotalInventoryValue(0);
     } finally {
+      if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
       setLoading(false);
     }
   };
 
-  const [refreshKey, setRefreshKey] = useState(0);
-
   useEffect(() => {
-    load();
+    void load();
+    // load intentionally depends on filter/sort/page/refresh; call with latest closure values
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, filterWarehouse, filterStockStatus, sortField, sortOrder, refreshKey]);
 
   const getBranchStock = (item: IInventory, branch: BranchRecord) => getInventoryBranchStock(item, branch);
@@ -184,9 +208,10 @@ export function InventoryList() {
     setSortOrder('desc');
     setPage(1);
     setError(null);
-    setBranchesError(null);
     setTotalStockQuantity(0);
     setTotalInventoryValue(0);
+    // Reload both inventories and branches (do not only clear branchesError)
+    void loadBranches();
     setRefreshKey((value) => value + 1);
   };
 
@@ -199,7 +224,6 @@ export function InventoryList() {
     }
   };
 
-  const searchRef = useRef<HTMLInputElement>(null);
   useProductScanTarget(searchRef, (rawBarcode) => {
     const query = rawBarcode.trim();
     if (!query) return;
@@ -347,7 +371,12 @@ export function InventoryList() {
             <button type="button" className="inv-btn inv-btn-secondary" onClick={handleRefresh} title="Làm mới">
               <RefreshCw size={14} /> Làm mới
             </button>
-            <button type="button" className="inv-btn inv-btn-accent" onClick={() => setShowExportModal(true)}>
+            <button
+              ref={exportTriggerRef}
+              type="button"
+              className="inv-btn inv-btn-accent"
+              onClick={() => setShowExportModal(true)}
+            >
               <FileDown size={14} /> Xuất dữ liệu
             </button>
           </div>
@@ -413,18 +442,18 @@ export function InventoryList() {
                 <th aria-sort={getAriaSort('name')}>
                   {renderSortButton('name', 'Sản phẩm')}
                 </th>
-                <th aria-sort={getAriaSort('cost')}>
+                <th className="inventory-numeric-col" aria-sort={getAriaSort('cost')}>
                   {renderSortButton('cost', 'Giá nhập')}
                 </th>
-                <th aria-sort={getAriaSort('price')}>
+                <th className="inventory-numeric-col" aria-sort={getAriaSort('price')}>
                   {renderSortButton('price', 'Giá bán')}
                 </th>
                 {branches.map(b => (
-                  <th key={b._id} aria-sort={getAriaSort(`stock_${b._id}`)}>
+                  <th key={b._id} className="inventory-numeric-col" aria-sort={getAriaSort(`stock_${b._id}`)}>
                     {renderSortButton(`stock_${b._id}`, b.name)}
                   </th>
                 ))}
-                <th aria-sort={getAriaSort('totalStock')}>
+                <th className="inventory-numeric-col" aria-sort={getAriaSort('totalStock')}>
                   {renderSortButton('totalStock', 'Tổng tồn')}
                 </th>
               </tr>
@@ -508,6 +537,7 @@ export function InventoryList() {
           columns={exportColumns}
           onExport={handleExcelExport}
           loading={exportLoading}
+          returnFocusRef={exportTriggerRef}
         />
       )}
     </div>

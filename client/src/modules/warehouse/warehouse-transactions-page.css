@@ -1,0 +1,1259 @@
+/* ============================================================
+   Warehouse Transactions (/warehouse/transactions) compact UI
+   Scoped under .wt-root so transfer/audit pages stay unaffected.
+   Pattern aligned with /products sticky dashboard.
+   ============================================================ */
+
+.wt-root {
+  gap: 12px !important;
+  min-width: 0;
+  max-width: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(16, 185, 129, 0.05), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* ---------- Sticky toolbar card ---------- */
+.wt-root .wt-toolbar-card,
+.wt-root .wt-sticky-toolbar {
+  position: sticky;
+  top: 64px;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 6px;
+  padding: 8px 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+  backdrop-filter: blur(12px);
+  overflow: visible !important;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.wt-root .wt-sticky-toolbar::before {
+  display: none !important;
+}
+
+.wt-root .wt-toolbar-header-slot {
+  grid-column: 1;
+  align-self: center;
+  min-width: 0;
+}
+
+.wt-root .wt-compact-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wt-root .wt-compact-heading-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.wt-root .wt-tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.wt-root .wt-tabs-row--title-slot {
+  max-width: 100%;
+}
+
+.wt-root .wt-tabbar.is-compact {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 11px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.wt-root .wt-tab.is-compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.wt-root .wt-tab.is-compact:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: #0f766e;
+}
+
+.wt-root .wt-tab.is-compact.is-active {
+  background: #ffffff;
+  color: #047857;
+  border-color: #a7f3d0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.wt-root .wt-tab.is-compact:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* ---------- Summary strip ---------- */
+.wt-root .wt-summary-strip {
+  grid-column: 2;
+  align-self: center;
+  display: flex !important;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 460px;
+  margin: 0 !important;
+  overflow: hidden;
+}
+
+.wt-root .wt-summary-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  max-width: 100%;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #047857;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wt-root .wt-summary-main {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.wt-root .wt-summary-main strong {
+  font-size: 13px;
+  color: #065f46;
+}
+
+.wt-root .wt-summary-divider {
+  width: 1px;
+  height: 12px;
+  flex: 0 0 auto;
+  background: #a7f3d0;
+}
+
+.wt-root .wt-summary-loading,
+.wt-root .wt-summary-error {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.25em;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.wt-root .wt-summary-error {
+  color: #b91c1c;
+}
+
+.wt-root .wt-summary-filter {
+  color: #b45309;
+}
+
+/* ---------- Filter bar ---------- */
+.wt-root .wt-filter-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px !important;
+  margin: 0 !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/*
+ * Balanced 2-row layout (aligned with /warehouse/transfers tab "Tất cả"):
+ * Row 1 — primary filters share full width + green "Lọc" on the right of dates
+ * Row 2 — secondary actions full-width, right-aligned
+ */
+.wt-root .wt-filter-bar--balanced {
+  display: grid;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 6px;
+}
+
+/* Phiếu: Kho | ID | Loại | Kiểu | Từ | Đến | Lọc */
+.wt-root .wt-filter-bar--bills {
+  grid-template-columns:
+    minmax(120px, 1.05fr)
+    minmax(170px, 1.4fr)
+    minmax(100px, 0.9fr)
+    minmax(118px, 1.05fr)
+    minmax(118px, 0.95fr)
+    minmax(118px, 0.95fr)
+    auto;
+}
+
+/* Sản phẩm: + product search before date range */
+.wt-root .wt-filter-bar--items {
+  grid-template-columns:
+    minmax(110px, 0.95fr)
+    minmax(140px, 1.15fr)
+    minmax(90px, 0.8fr)
+    minmax(110px, 0.95fr)
+    minmax(180px, 1.45fr)
+    minmax(112px, 0.9fr)
+    minmax(112px, 0.9fr)
+    auto;
+}
+
+.wt-root .wt-filter-bar--balanced .wt-search--compact,
+.wt-root .wt-filter-bar--balanced .wt-search--product {
+  flex: unset;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.wt-root .wt-filter-bar--balanced > .wt-filter-select,
+.wt-root .wt-filter-bar--balanced > input.wt-filter-select[type='date'] {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.wt-root .wt-filter-bar--balanced .wt-filter-apply {
+  flex: 0 0 auto;
+  width: auto;
+  justify-self: start;
+}
+
+.wt-root .wt-filter-bar--balanced .wt-filter-actions {
+  grid-column: 1 / -1;
+  flex: unset;
+  width: 100%;
+  margin-left: 0;
+  justify-content: flex-end;
+}
+
+.wt-root .wt-search {
+  flex: 1 1 190px;
+  min-width: 170px;
+  height: 34px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #dbe5ef;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #94a3b8;
+  box-sizing: border-box;
+}
+
+.wt-root .wt-search:focus-within {
+  border-color: #6ee7b7;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+  color: #64748b;
+}
+
+.wt-root .wt-search svg {
+  flex: 0 0 auto;
+  color: #94a3b8;
+}
+
+.wt-root .wt-search input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  min-height: 32px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12.5px;
+}
+
+.wt-root .wt-search input::placeholder {
+  color: #94a3b8;
+}
+
+.wt-root .wt-filter-select {
+  min-width: 112px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 1px solid #dbe5ef;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12.5px;
+  box-sizing: border-box;
+}
+
+.wt-root .wt-filter-select--wide {
+  min-width: 128px;
+}
+
+.wt-root .wt-filter-select:focus {
+  outline: none;
+  border-color: #6ee7b7;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.wt-root input.wt-filter-select[type='date'] {
+  min-width: 118px;
+  color-scheme: light;
+}
+
+.wt-root .wt-filter-actions {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.wt-root .wt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.wt-root .wt-btn:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.wt-root .wt-btn-primary {
+  background: #10b981;
+  color: #ffffff;
+  border: 1px solid #10b981;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
+}
+
+.wt-root .wt-btn-primary:hover {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.wt-root .wt-btn-secondary {
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #dbe5ef;
+}
+
+.wt-root .wt-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* ---------- Floating menus ---------- */
+.wt-root .wt-floating-menu {
+  position: relative;
+  display: inline-flex;
+  z-index: 20;
+}
+
+.wt-root .wt-floating-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 220px;
+  max-width: min(300px, calc(100vw - 24px));
+  padding: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+}
+
+.wt-root .wt-bulk-menu .wt-floating-dropdown {
+  left: auto;
+  right: 0;
+}
+
+.wt-root .wt-dropdown-item {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wt-root .wt-dropdown-item:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f766e;
+}
+
+.wt-root .wt-dropdown-item:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 1px;
+}
+
+.wt-root .wt-dropdown-item.danger {
+  color: #dc2626;
+}
+
+.wt-root .wt-dropdown-item.danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+/* ---------- Notices ---------- */
+.wt-root .wt-notice,
+.wt-root .wt-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wt-root .wt-notice {
+  color: #047857;
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+}
+
+.wt-root .wt-error {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.wt-root .wt-error button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wt-root .wt-error button:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+/* ---------- Table card ---------- */
+.wt-root .wt-table-card {
+  overflow: hidden;
+  max-width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.wt-root .wt-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #eef2f7;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.wt-root .wt-table-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.wt-root .wt-table-subtitle {
+  margin: 3px 0 0 !important;
+  font-size: 12px !important;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.wt-root .wt-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  border-top: 0;
+  min-height: 260px;
+}
+
+/*
+ * Fill full container width (no empty strip on the right).
+ * table-layout:fixed + width 100%; column widths act as proportions.
+ * On narrow viewports scroll still works via .wt-table-scroll.
+ */
+.wt-root .wt-data-table,
+.wt-root .warehouse-transaction-table,
+.wt-root .warehouse-transaction-table.ant-table,
+.wt-root .warehouse-transaction-table .ant-table {
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed !important;
+  background: transparent;
+}
+
+/* Soft floor only for very small screens so columns remain usable */
+.wt-root .wt-data-table--bills {
+  min-width: min(100%, 980px);
+}
+
+.wt-root .wt-data-table--items {
+  min-width: min(100%, 1080px);
+}
+
+@media (max-width: 1100px) {
+  .wt-root .wt-data-table--bills {
+    min-width: 980px;
+  }
+
+  .wt-root .wt-data-table--items {
+    min-width: 1080px;
+  }
+}
+
+.wt-root .warehouse-transaction-table .wt-col,
+.wt-root .warehouse-transaction-table th,
+.wt-root .warehouse-transaction-table td,
+.wt-root .warehouse-transaction-table .ant-table-cell {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 12.5px;
+  min-width: 0;
+  border-bottom: 1px solid #f1f5f9;
+  line-height: 1.4;
+  color: #334155;
+}
+
+.wt-root .warehouse-transaction-table thead .wt-col,
+.wt-root .warehouse-transaction-table .ant-table-thead .ant-table-cell,
+.wt-root .warehouse-transaction-table th {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: #f8fafc;
+  white-space: normal !important;
+  word-break: break-word !important;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  line-height: 1.3;
+}
+
+/* ---- Tab bills — proportional widths (sum ~1110, stretches to 100%) ---- */
+.wt-root .wt-data-table--bills .wt-col-identity { width: 16.2%; }
+.wt-root .wt-data-table--bills .wt-col-warehouse { width: 15.8%; }
+.wt-root .wt-data-table--bills .wt-col-products { width: 5.9%; }
+.wt-root .wt-data-table--bills .wt-col-quantity { width: 5.9%; }
+.wt-root .wt-data-table--bills .wt-col-amount { width: 11.3%; }
+.wt-root .wt-data-table--bills .wt-col-direction { width: 10.4%; }
+.wt-root .wt-data-table--bills .wt-col-creator { width: 8.6%; }
+.wt-root .wt-data-table--bills .wt-col-note { width: 20.7%; }
+.wt-root .wt-data-table--bills .wt-col-actions,
+.wt-root .wt-data-table--bills th.action-cell,
+.wt-root .wt-data-table--bills td.action-cell {
+  width: 5.4% !important;
+  min-width: 60px !important;
+  max-width: 72px !important;
+}
+
+/* ---- Tab items — product + note get more share ---- */
+.wt-root .wt-data-table--items .wt-col-identity { width: 12.9%; }
+.wt-root .wt-data-table--items .wt-col-warehouse { width: 12.5%; }
+.wt-root .wt-data-table--items .wt-col-product { width: 22.2%; }
+.wt-root .wt-data-table--items .wt-col-quantity { width: 4.7%; }
+.wt-root .wt-data-table--items .wt-col-price { width: 7.5%; }
+.wt-root .wt-data-table--items .wt-col-direction { width: 8.2%; }
+.wt-root .wt-data-table--items .wt-col-amount { width: 9.0%; }
+.wt-root .wt-data-table--items .wt-col-note { width: 18.6%; }
+.wt-root .wt-data-table--items .wt-col-actions,
+.wt-root .wt-data-table--items th.action-cell,
+.wt-root .wt-data-table--items td.action-cell {
+  width: 4.3% !important;
+  min-width: 60px !important;
+  max-width: 72px !important;
+}
+
+/* Numeric columns: center (user preference) */
+.wt-root .warehouse-transaction-table .wt-col--center,
+.wt-root .warehouse-transaction-table .wt-col-products,
+.wt-root .warehouse-transaction-table .wt-col-quantity,
+.wt-root .warehouse-transaction-table .wt-col-price,
+.wt-root .warehouse-transaction-table .wt-col-amount,
+.wt-root .warehouse-transaction-table th.wt-col-products,
+.wt-root .warehouse-transaction-table th.wt-col-quantity,
+.wt-root .warehouse-transaction-table th.wt-col-price,
+.wt-root .warehouse-transaction-table th.wt-col-amount {
+  text-align: center !important;
+}
+
+.wt-root .warehouse-transaction-table .align-right {
+  text-align: center !important;
+}
+
+.wt-root .wt-data-table tbody tr:nth-child(even) td {
+  background: #fbfcfe;
+}
+
+.wt-root .wt-data-table tbody tr:hover td {
+  background: #f0fdf4;
+}
+
+/* Sticky action column — proper "Thao tác" header + centered row menu */
+.wt-root .wt-data-table th.action-cell,
+.wt-root .wt-data-table td.action-cell {
+  padding-right: 8px !important;
+  padding-left: 8px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  position: sticky;
+  right: 0;
+  background-clip: padding-box;
+  border-left: 1px solid #eef2f7;
+  box-shadow: none !important;
+  transform: translateZ(0);
+}
+
+.wt-root .wt-data-table th.action-cell {
+  z-index: 8;
+  background: #f8fafc;
+  white-space: normal !important;
+  letter-spacing: 0.04em;
+}
+
+.wt-root .wt-data-table td.action-cell {
+  z-index: 6;
+  background: #ffffff;
+}
+
+.wt-root .wt-data-table tbody tr:nth-child(even) td.action-cell {
+  background: #fbfcfe;
+}
+
+.wt-root .wt-data-table tbody tr:hover td.action-cell {
+  background: #f0fdf4;
+}
+
+.wt-root .wt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 30px;
+}
+
+.wt-root .wt-row-menu-button {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  margin: 0 auto;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid #dbe5ef;
+  background: #ffffff;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.wt-root .wt-row-menu-button:hover,
+.wt-root .wt-row-menu-button[aria-expanded='true'] {
+  border-color: #a7f3d0;
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.wt-root .wt-row-menu-button:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* Cell content — wrap long text; stacked ID + date */
+.wt-root .wt-identity-cell {
+  min-width: 0;
+}
+
+/* ID on top, date below (both tabs) */
+.wt-root .id-date-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.3;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wt-root .id-date-cell__id {
+  font-weight: 700;
+  max-width: 100%;
+}
+
+.wt-root .id-date-cell__date,
+.wt-root .id-date-cell .date {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.wt-root .wt-name-cell {
+  min-width: 0;
+  max-width: none;
+}
+
+.wt-root .wt-name-main {
+  display: block;
+  overflow: visible;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #0f172a;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.wt-root .wt-name-sub {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #94a3b8;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.wt-root .wt-link-button {
+  font-weight: 700;
+  color: #0f172a;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-size: 12.5px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+  max-width: 100%;
+}
+
+.wt-root .wt-link-button:hover {
+  color: #059669;
+  text-decoration: underline;
+}
+
+.wt-root .wt-link-button:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.wt-root .wt-price,
+.wt-root .wt-number {
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  color: #334155;
+  font-weight: 600;
+}
+
+/* Numeric keep single line for readability; still clipped by fixed col width */
+.wt-root .warehouse-transaction-table .wt-col-products,
+.wt-root .warehouse-transaction-table .wt-col-quantity,
+.wt-root .warehouse-transaction-table .wt-col-price,
+.wt-root .warehouse-transaction-table .wt-col-amount {
+  white-space: nowrap !important;
+}
+
+.wt-root .wt-note-cell {
+  max-width: none;
+  overflow: hidden;
+  text-overflow: unset;
+  white-space: normal !important;
+  color: #64748b;
+}
+
+.wt-root .wt-note-wrap {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+/* Tab 2 only: wrap then ellipsis after a few lines (full text via title/tooltip) */
+.wt-root .wt-data-table--items .wt-note-wrap--clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wt-root .wt-warehouse-cell {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.wt-root .wr-warehouse-transfer {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wt-root .wt-col-creator {
+  white-space: normal !important;
+  word-break: break-word;
+}
+
+.wt-root .wt-col-direction .wt-status-badge {
+  max-width: 100%;
+  white-space: normal;
+  height: auto;
+  min-height: 24px;
+  line-height: 1.25;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  text-align: center;
+}
+
+.wt-root .wt-col-direction .wt-kind {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.wt-root .wt-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+  white-space: normal;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.wt-root .wt-kind {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Keep direction tone colors from wr-direction when combined */
+.wt-root .wr-direction.import {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.wt-root .wr-direction.export {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.wt-root .wr-direction.refund {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.wt-root .wr-direction.transfer {
+  color: #6d28d9;
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.wt-root .wr-direction.adjustment,
+.wt-root .wr-direction.adjustment-in,
+.wt-root .wr-direction.adjustment-out {
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.wt-root .wr-direction.neutral,
+.wt-root .wt-status-badge.neutral {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.wt-root .wr-warehouse-transfer {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  max-width: 100%;
+  color: #334155;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.wt-root .wr-warehouse-transfer svg {
+  color: #10b981;
+  flex: 0 0 auto;
+}
+
+.wt-root .wr-warehouse-transfer span {
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Empty / skeleton */
+.wt-root .wt-empty-cell {
+  padding: 40px 16px !important;
+  color: #94a3b8 !important;
+  font-size: 13px;
+  text-align: center !important;
+  background: #ffffff !important;
+}
+
+.wt-root .wt-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #94a3b8;
+}
+
+.wt-root .wt-empty-state strong {
+  color: #475569;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.wt-root .wt-empty-state span {
+  font-size: 12.5px;
+  max-width: 320px;
+  line-height: 1.4;
+}
+
+.wt-root .wt-skeleton td {
+  padding: 12px !important;
+}
+
+.wt-root .wt-skeleton span {
+  display: block;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #eef1f5 25%, #f8fafc 50%, #eef1f5 75%);
+  background-size: 200% 100%;
+  animation: wt-shimmer 1.2s infinite;
+}
+
+@keyframes wt-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Pagination */
+.wt-root .wt-table-card .pagination {
+  border-top: 1px solid #eef2f7;
+  background: #fafbfc;
+}
+
+/* Neutralize older shared wr-* layout rules that would fight the compact shell */
+.wt-root > .wr-card,
+.wt-root .wr-transfer-tabbar,
+.wt-root .wr-filters,
+.wt-root .wr-actions {
+  /* kept as safety no-op markers if residual markup appears */
+}
+
+/* Portal row menu lives on document.body */
+.wt-row-action-menu--portal {
+  position: fixed;
+  z-index: 10050;
+  min-width: 152px;
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+}
+
+.wt-row-action-menu--portal button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.wt-row-action-menu--portal button:hover {
+  background: #f1f5f9;
+  color: #059669;
+}
+
+.wt-row-action-menu--portal button:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 1px;
+}
+
+.wt-row-action-menu--portal button.danger {
+  color: #dc2626;
+}
+
+.wt-row-action-menu--portal button.danger:hover {
+  background: #fef2f2;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1280px) {
+  .wt-root .wt-filter-bar--bills {
+    grid-template-columns:
+      minmax(110px, 1fr)
+      minmax(150px, 1.25fr)
+      minmax(90px, 0.85fr)
+      minmax(110px, 1fr)
+      minmax(110px, 0.9fr)
+      minmax(110px, 0.9fr)
+      auto;
+  }
+
+  .wt-root .wt-filter-bar--items {
+    grid-template-columns:
+      minmax(100px, 0.9fr)
+      minmax(130px, 1.1fr)
+      minmax(88px, 0.75fr)
+      minmax(100px, 0.9fr)
+      minmax(160px, 1.3fr)
+      minmax(108px, 0.85fr)
+      minmax(108px, 0.85fr)
+      auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  .wt-root .wt-sticky-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .wt-root .wt-summary-strip {
+    grid-column: 1;
+    justify-content: flex-start;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .wt-root .wt-filter-bar {
+    flex-wrap: wrap;
+  }
+
+  .wt-root .wt-filter-actions {
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .wt-root .wt-sticky-toolbar {
+    top: 58px;
+    padding: 8px 12px !important;
+  }
+
+  .wt-root .wt-compact-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .wt-root .wt-table-header {
+    flex-wrap: wrap;
+    padding: 12px 14px !important;
+  }
+
+  /* Fall back to flex wrap on tablet; keep actions on their own row */
+  .wt-root .wt-filter-bar--balanced {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .wt-root .wt-filter-bar--balanced .wt-search--compact,
+  .wt-root .wt-filter-bar--balanced .wt-search--product {
+    flex: 1 1 200px;
+    min-width: 160px;
+    max-width: none;
+  }
+
+  .wt-root .wt-filter-bar--balanced > .wt-filter-select,
+  .wt-root .wt-filter-bar--balanced > input.wt-filter-select[type='date'] {
+    flex: 1 1 calc(33.33% - 6px);
+    min-width: 120px;
+    width: auto;
+  }
+
+  .wt-root .wt-filter-bar--balanced .wt-filter-apply {
+    flex: 0 0 auto;
+  }
+
+  .wt-root .wt-filter-bar--balanced .wt-filter-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .wt-root .wt-search,
+  .wt-root .wt-filter-bar--balanced .wt-search--compact,
+  .wt-root .wt-filter-bar--balanced .wt-search--product {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .wt-root .wt-filter-select,
+  .wt-root input.wt-filter-select[type='date'],
+  .wt-root .wt-filter-bar--balanced > .wt-filter-select,
+  .wt-root .wt-filter-bar--balanced > input.wt-filter-select[type='date'] {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+    max-width: none;
+  }
+
+  .wt-root .wt-tab.is-compact {
+    padding: 0 10px;
+    font-size: 11.5px;
+  }
+
+  .wt-root .wt-filter-actions {
+    justify-content: flex-start;
+  }
+
+  .wt-root .wt-filter-actions .wt-btn {
+    flex: 1 1 auto;
+  }
+}

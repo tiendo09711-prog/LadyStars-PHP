@@ -534,7 +534,7 @@
 
 .inventory-money-cell,
 .inventory-number-cell {
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -547,11 +547,20 @@
 .inventory-number-cell strong {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   min-width: 84px;
   min-height: 34px;
   padding: 0 12px;
   border-radius: 12px;
+}
+
+.inventory-numeric-col {
+  text-align: center;
+}
+
+.inventory-numeric-col .inventory-sort-button {
+  justify-content: center;
+  text-align: center;
 }
 
 .inventory-number-hanoi span {
@@ -1234,7 +1243,7 @@
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -1242,11 +1251,20 @@
 .inventory-root .inventory-number-cell strong {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   min-width: 64px;
   min-height: 28px;
   padding: 0 9px;
   border-radius: 999px;
+}
+
+.inventory-root .inventory-numeric-col {
+  text-align: center;
+}
+
+.inventory-root .inventory-numeric-col .inventory-sort-button {
+  justify-content: center;
+  text-align: center;
 }
 
 .inventory-root .inventory-number-hanoi span {

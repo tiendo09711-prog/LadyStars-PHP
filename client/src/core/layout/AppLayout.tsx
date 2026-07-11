@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { matchPath, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeftRight,
@@ -274,12 +274,33 @@ export function AppLayout() {
   const [openMenuGroups, setOpenMenuGroups] = useState<Record<string, boolean>>(() => defaultMenuGroupState);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [reportSearch, setReportSearch] = useState('');
+  const menuCloseTimerRef = useRef<number | null>(null);
   const isAdmin = isAdminRole(user?.role);
 
   const isDesktopNav = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1201px)').matches;
+
+  const clearMenuCloseTimer = () => {
+    if (menuCloseTimerRef.current != null) {
+      window.clearTimeout(menuCloseTimerRef.current);
+      menuCloseTimerRef.current = null;
+    }
+  };
+
   const closeAllMenus = () => {
-    setOpenMenuGroups(defaultMenuGroupState);
+    clearMenuCloseTimer();
+    setOpenMenuGroups({ ...defaultMenuGroupState });
     setReportSearch('');
+  };
+
+  /** Desktop only: delay close so the pointer can cross the visual gap into the panel. */
+  const scheduleDesktopMenuClose = () => {
+    if (!isDesktopNav()) return;
+    clearMenuCloseTimer();
+    menuCloseTimerRef.current = window.setTimeout(() => {
+      setOpenMenuGroups({ ...defaultMenuGroupState });
+      setReportSearch('');
+      menuCloseTimerRef.current = null;
+    }, 180);
   };
 
   // Close menus when clicking outside
@@ -294,7 +315,10 @@ export function AppLayout() {
       }
     };
     document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      clearMenuCloseTimer();
+    };
   }, []);
   const menuGroups = useMemo<MenuGroup[]>(() => isAdmin
     ? [
@@ -383,10 +407,29 @@ export function AppLayout() {
 
   const openDesktopMenuGroup = (key: string) => {
     if (!isDesktopNav()) return;
-    setOpenMenuGroups({ ...defaultMenuGroupState, [key]: true });
+    clearMenuCloseTimer();
+    setOpenMenuGroups((current) => {
+      // Already open: keep nested submenu state; avoid redundant re-renders.
+      if (current[key]) return current;
+      return { ...defaultMenuGroupState, [key]: true };
+    });
+  };
+
+  const openDesktopSubmenu = (parentKey: string, submenuKey: string) => {
+    if (!isDesktopNav()) return;
+    clearMenuCloseTimer();
+    setOpenMenuGroups((current) => {
+      if (current[parentKey] && current[submenuKey]) return current;
+      return {
+        ...defaultMenuGroupState,
+        [parentKey]: true,
+        [submenuKey]: true,
+      };
+    });
   };
 
   const toggleMenuGroup = (key: string, parentKey?: string) => {
+    clearMenuCloseTimer();
     setOpenMenuGroups((current) => ({
       ...(isDesktopNav()
         ? { ...defaultMenuGroupState, ...(parentKey ? { [parentKey]: true } : {}) }
@@ -456,13 +499,18 @@ export function AppLayout() {
             const isSubGroupOpen = openMenuGroups[item.label] ?? false;
             const isSubActive = itemActive(item);
             return (
-              <div className="submenu-group report-menu-category" key={item.label}>
+              <div
+                className="submenu-group report-menu-category"
+                key={item.label}
+                onMouseEnter={() => openDesktopSubmenu(group.id, item.label)}
+              >
                 <button
                   className={`submenu-trigger ${isSubActive ? 'active' : ''}`}
                   type="button"
                   aria-expanded={isSubGroupOpen}
                   onClick={(event) => {
                     event.preventDefault();
+                    event.stopPropagation();
                     toggleMenuGroup(item.label, group.id);
                   }}
                 >
@@ -489,7 +537,11 @@ export function AppLayout() {
         aria-label="Close menu"
         onClick={() => setSidebarOpen(false)}
       />
-      <aside className="app-sidebar" onMouseLeave={() => { if (isDesktopNav()) closeAllMenus(); }}>
+      <aside
+        className="app-sidebar"
+        onMouseEnter={clearMenuCloseTimer}
+        onMouseLeave={scheduleDesktopMenuClose}
+      >
         <div className="brand user-dropdown-container" onClick={() => setUserMenuOpen(!userMenuOpen)}>
           <div className="brand-mark brand-avatar">
             {user?.name?.slice(0, 1) ?? 'A'}
@@ -544,7 +596,10 @@ export function AppLayout() {
                   className={`menu-group-title ${isActive ? 'active' : ''}`}
                   type="button"
                   aria-expanded={isGroupOpen}
-                  onClick={() => toggleMenuGroup(group.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleMenuGroup(group.id);
+                  }}
                 >
                   <span>{group.label}</span>
                   <ChevronDown className="menu-group-chevron" size={14} />
@@ -557,13 +612,18 @@ export function AppLayout() {
                       const isSubGroupOpen = openMenuGroups[item.label] ?? false;
                       const isSubActive = itemActive(item);
                       return (
-                        <div className="submenu-group" key={item.label}>
+                        <div
+                          className="submenu-group"
+                          key={item.label}
+                          onMouseEnter={() => openDesktopSubmenu(group.id, item.label)}
+                        >
                           <button
                             className={`submenu-trigger ${isSubActive ? 'active' : ''}`}
                             type="button"
                             aria-expanded={isSubGroupOpen}
                             onClick={(e) => {
                               e.preventDefault();
+                              e.stopPropagation();
                               toggleMenuGroup(item.label, group.id);
                             }}
                           >
@@ -586,7 +646,15 @@ export function AppLayout() {
             );
           })}
           {user && isAdmin && (
-            <div className="menu-group owner-setting-group" onMouseEnter={() => { if (isDesktopNav()) closeAllMenus(); }}>
+            <div
+              className="menu-group owner-setting-group"
+              onMouseEnter={() => {
+                if (isDesktopNav()) {
+                  clearMenuCloseTimer();
+                  setOpenMenuGroups({ ...defaultMenuGroupState });
+                }
+              }}
+            >
               <NavLink className="sidebar-setting" to="/settings" onClick={() => setSidebarOpen(false)}>
                 <Settings size={16} className="menu-icon" />
                 <span>Cài đặt</span>
