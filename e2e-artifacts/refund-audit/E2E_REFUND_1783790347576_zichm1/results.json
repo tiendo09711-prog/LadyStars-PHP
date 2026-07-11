@@ -1,0 +1,186 @@
+{
+  "runId": "E2E_REFUND_1783790347576_zichm1",
+  "startedAt": "2026-07-11T17:19:07.673Z",
+  "endedAt": "2026-07-11T17:20:39.005Z",
+  "env": {
+    "BASE": "http://localhost:5173",
+    "API": "http://127.0.0.1:8000",
+    "RUN_ID": "E2E_REFUND_1783790347576_zichm1",
+    "playwright": "1.51.0",
+    "APP_ENV": "local",
+    "DB_CONNECTION": "mysql",
+    "DB_HOST": "127.0.0.1",
+    "DB_DATABASE": "ladystars_php",
+    "isolated": false,
+    "hasLiveTestLocal": false
+  },
+  "safetyGate": true,
+  "summary": {
+    "total": 5,
+    "PASS": 3,
+    "FAIL": 0,
+    "BLOCKED_WRITE_ISOLATION": 1,
+    "BLOCKED_SAFETY": 1,
+    "BLOCKED_DATA": 0,
+    "BLOCKED_AUTH": 1,
+    "BLOCKED_ENVIRONMENT": 0,
+    "SKIPPED_DEPENDENCY": 0,
+    "NOT_RUN": 0,
+    "OBSERVATION": 0,
+    "BLOCKED": 2
+  },
+  "groups": {
+    "ENV": {
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "OTHER": 0,
+      "total": 3
+    },
+    "A": {
+      "PASS": 1,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "OTHER": 0,
+      "total": 2
+    }
+  },
+  "results": [
+    {
+      "id": "RF-ENV01",
+      "group": "ENV",
+      "name": "Frontend availability",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "http://localhost:5173 phản hồi",
+      "actual": "feOk=true",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-ENV02",
+      "group": "ENV",
+      "name": "Backend availability",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "API :8000 phản hồi",
+      "actual": "beOk=true",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-ENV03",
+      "group": "ENV",
+      "name": "DB isolation gate",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "DB test cô lập trước khi mutation",
+      "actual": "DB=ladystars_php; isolated=false; no live-test.local",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Chỉ READ-ONLY + mock UI; không lưu phiếu trả / đổi tồn",
+      "mode": "blocked",
+      "testData": ""
+    },
+    {
+      "id": "RF-A01",
+      "group": "A",
+      "name": "Truy cập trực tiếp khi chưa đăng nhập",
+      "status": "PASS",
+      "severity": null,
+      "preconditions": "",
+      "steps": [
+        "Mở context sạch",
+        "goto /sales-channels/store/refund"
+      ],
+      "expected": "Redirect login / guard; không lộ dữ liệu trả hàng",
+      "actual": "url=http://localhost:5173/login; isLogin=true; blank=false; hasTableData=false",
+      "url": "http://localhost:5173/login",
+      "api": [],
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\refund-audit\\E2E_REFUND_1783790347576_zichm1\\screenshots\\RF-A01-unauth.png"
+      ],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-A02",
+      "group": "A",
+      "name": "Đăng nhập hợp lệ",
+      "status": "BLOCKED_AUTH",
+      "severity": "CRITICAL",
+      "preconditions": "",
+      "steps": [],
+      "expected": "Session token tồn tại (không log giá trị)",
+      "actual": "hasToken=false; url=http://localhost:5173/login",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Password/token không ghi vào report",
+      "mode": "live-readonly",
+      "testData": ""
+    }
+  ],
+  "bugs": [],
+  "network": {
+    "methods": {
+      "GET": 15,
+      "POST": 1,
+      "PUT": 0,
+      "PATCH": 0,
+      "DELETE": 0,
+      "OTHER": 0
+    },
+    "status4xx": [],
+    "status5xx": [],
+    "failed": [
+      {
+        "url": "http://127.0.0.1:8000/api/products/refunds?channel=store&page=1&limit=15",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790364442
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/auth/login",
+        "method": "POST",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790416916
+      },
+      {
+        "url": "http://127.0.0.1:8000/api/dashboard?chartRange=7+ng%C3%A0y&topRange=7+ng%C3%A0y&topLimit=10",
+        "method": "GET",
+        "error": "net::ERR_ABORTED",
+        "t": 1783790422124
+      }
+    ],
+    "apiCallCount": 393
+  },
+  "mutationLog": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8000/api/auth/login",
+      "purpose": "login",
+      "allowed": true,
+      "status": "allowed"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "verdict": "PARTIAL_BLOCKED_SAFETY"
+}

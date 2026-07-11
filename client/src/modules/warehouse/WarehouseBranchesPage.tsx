@@ -21,13 +21,10 @@ import {
 } from 'lucide-react';
 
 /*
- * WarehouseBranchesPage - Risk mitigations applied (per task):
- * - Password: clearer local-dev instructions + one-click demo fill in modal (addresses fallback limitation).
- * - Usage counts: always show full USAGE_LABELS list (incl. zeros) + explicit legacy note (no BE query changes).
- * - No new E2E/Playwright added (would require DB test isolation we must avoid).
- * - Designer/preview kept under audit; improvements limited to display + safety text.
- * - Production: inline note about future rate-limit/audit requirement.
- * All fixes are FE-only or comment-only. DB-related logic untouched.
+ * WarehouseBranchesPage:
+ * - Branch writes require re-confirming the logged-in admin password (backend-strict).
+ * - Confirm modal: Escape/backdrop close, focus trap/restore, no demo password fill.
+ * - Usage list always shows full USAGE_LABELS (incl. zeros).
  */
 import {
   activateBranch,
@@ -442,6 +439,11 @@ export function WarehouseBranchesPage() {
   const formEditVersionRef = useRef(0);
   const detailRequestSeqRef = useRef(0);
   const detailAbortRef = useRef<AbortController | null>(null);
+  const confirmDialogRef = useRef<HTMLDivElement | null>(null);
+  const confirmTriggerRef = useRef<HTMLElement | null>(null);
+  const submittingRef = useRef(false);
+  const modalTitleId = 'warehouse-branch-confirm-title';
+  const modalDescId = 'warehouse-branch-confirm-desc';
 
   useEffect(() => {
     selectedBranchIdRef.current = selectedBranchId;
@@ -450,6 +452,10 @@ export function WarehouseBranchesPage() {
   useEffect(() => {
     isCreateModeRef.current = isCreateMode;
   }, [isCreateMode]);
+
+  useEffect(() => {
+    submittingRef.current = submitting;
+  }, [submitting]);
 
   const updateForm = (updater: SetStateAction<BranchFormState>) => {
     formEditVersionRef.current += 1;
@@ -507,7 +513,7 @@ export function WarehouseBranchesPage() {
       setError('Vui lòng nhập đầy đủ tên, mã, địa chỉ và hotline trước khi lưu mẫu in.');
       return;
     }
-    setConfirmAction(isCreateMode ? 'create' : 'save');
+    openConfirmModal(isCreateMode ? 'create' : 'save');
   };
 
   const filteredBranches = useMemo(() => {
@@ -673,18 +679,107 @@ export function WarehouseBranchesPage() {
     setForm(mapBranchToForm(branch));
   };
 
-  const closeConfirmModal = () => {
-    setConfirmAction(null);
-    setAdminPassword('');
+  const restoreConfirmFocus = () => {
+    const trigger = confirmTriggerRef.current;
+    confirmTriggerRef.current = null;
+    window.setTimeout(() => {
+      if (trigger && document.contains(trigger)) {
+        trigger.focus();
+        return;
+      }
+      const fallback =
+        document.querySelector<HTMLElement>('.warehouse-branches-btn-primary') ||
+        document.querySelector<HTMLElement>('.warehouse-branches-compact-heading-sr') ||
+        document.querySelector<HTMLElement>('.warehouse-branches-root');
+      fallback?.focus?.();
+    }, 0);
   };
 
+  const finishConfirmModal = () => {
+    setConfirmAction(null);
+    setAdminPassword('');
+    restoreConfirmFocus();
+  };
+
+  /** User-initiated close (Escape / backdrop / Hủy). Blocked while submitting. */
+  const closeConfirmModal = () => {
+    if (submittingRef.current) return;
+    finishConfirmModal();
+  };
+
+  const openConfirmModal = (action: ConfirmAction) => {
+    const active = document.activeElement;
+    confirmTriggerRef.current = active instanceof HTMLElement ? active : null;
+    setAdminPassword('');
+    setConfirmAction(action);
+  };
+
+  useEffect(() => {
+    if (!confirmAction) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const getFocusable = () => {
+      const root = confirmDialogRef.current;
+      if (!root) return [] as HTMLElement[];
+      const nodes = root.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      return Array.from(nodes).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1 && el.offsetParent !== null);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (submittingRef.current) {
+          event.preventDefault();
+          return;
+        }
+        event.preventDefault();
+        closeConfirmModal();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (event.shiftKey) {
+        if (!active || active === first || !confirmDialogRef.current?.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (!active || active === last || !confirmDialogRef.current?.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    // Ensure password field receives focus after open (autoFocus + trap setup).
+    window.setTimeout(() => {
+      const passwordInput = confirmDialogRef.current?.querySelector<HTMLInputElement>('input[type="password"]');
+      passwordInput?.focus();
+    }, 0);
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [confirmAction]);
+
   const submitAction = async () => {
-    if (!confirmAction || !adminPassword.trim()) return;
+    if (!confirmAction || !adminPassword.trim() || submittingRef.current) return;
     const targetBranchId = selectedBranchId;
     if ((confirmAction === 'create' || confirmAction === 'save') && hasInvalidPhone(form.phone)) {
       setError('Hotline không hợp lệ. Chỉ dùng số, khoảng trắng, dấu +, -, ., ( ).');
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     setError('');
     setNotice('');
@@ -745,8 +840,10 @@ export function WarehouseBranchesPage() {
       }
       setError(responseMessage);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
-      closeConfirmModal();
+      // Keep existing contract: close modal after response (success or error).
+      finishConfirmModal();
     }
   };
 
@@ -999,11 +1096,11 @@ export function WarehouseBranchesPage() {
             </div>
 
             <div className="warehouse-actions-row">
-              <button className="btn btn-primary" type="button" onClick={() => setConfirmAction(isCreateMode ? 'create' : 'save')} disabled={submitting || !trim(form.name) || !trim(form.code) || !trim(form.phone) || !trim(form.address)}><Save size={16} aria-hidden="true" /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
-              <button className="btn btn-light" type="button" onClick={() => setConfirmAction(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={submitting || isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} aria-hidden="true" /> : <CircleOff size={16} aria-hidden="true" />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
+              <button className="btn btn-primary" type="button" onClick={() => openConfirmModal(isCreateMode ? 'create' : 'save')} disabled={submitting || !trim(form.name) || !trim(form.code) || !trim(form.phone) || !trim(form.address)}><Save size={16} aria-hidden="true" /> {isCreateMode ? 'Tạo kho hàng' : 'Lưu thay đổi'}</button>
+              <button className="btn btn-light" type="button" onClick={() => openConfirmModal(selectedBranch?.isActive === false ? 'activate' : 'deactivate')} disabled={submitting || isCreateMode || !selectedBranch}>{selectedBranch?.isActive === false ? <RefreshCw size={16} aria-hidden="true" /> : <CircleOff size={16} aria-hidden="true" />}{selectedBranch?.isActive === false ? 'Kích hoạt lại' : 'Ngừng hoạt động'}</button>
               <button className="btn btn-light" type="button" onClick={() => void loadUsage()} disabled={isCreateMode || !selectedBranch || loadingUsage}><Info size={16} aria-hidden="true" /> {loadingUsage ? 'Đang tải liên kết...' : 'Xem dữ liệu liên kết'}</button>
               <button className="btn btn-light" type="button" onClick={printPreview}><Printer size={16} aria-hidden="true" /> In thử mẫu hóa đơn</button>
-              <button className="btn btn-light danger" type="button" onClick={() => setConfirmAction('delete')} disabled={submitting || isCreateMode || !selectedBranch}><Trash2 size={16} aria-hidden="true" /> Xóa vĩnh viễn</button>
+              <button className="btn btn-light danger" type="button" onClick={() => openConfirmModal('delete')} disabled={submitting || isCreateMode || !selectedBranch}><Trash2 size={16} aria-hidden="true" /> Xóa vĩnh viễn</button>
             </div>
 
             <div className="usage-summary-card">
@@ -1038,46 +1135,52 @@ export function WarehouseBranchesPage() {
       </div>
 
       {confirmAction ? (
-        <div className="warehouse-modal-backdrop" role="presentation">
-          <div className="warehouse-modal-card" role="dialog" aria-modal="true">
+        <div
+          className="warehouse-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (submitting) return;
+            if (event.target === event.currentTarget) closeConfirmModal();
+          }}
+        >
+          <div
+            ref={confirmDialogRef}
+            className="warehouse-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={modalTitleId}
+            aria-describedby={modalDescId}
+          >
             <div className="warehouse-modal-header">
               <div>
-                <h3>{actionTitle(confirmAction)}</h3>
+                <h3 id={modalTitleId}>{actionTitle(confirmAction)}</h3>
                 <p>{selectedBranch?.name || form.name || 'Kho hàng mới'}</p>
               </div>
-              <AlertTriangle size={18} />
+              <AlertTriangle size={18} aria-hidden="true" />
             </div>
             <div className="warehouse-modal-body">
-              <p>{actionWarning(confirmAction, selectedBranch?.name || form.name || 'kho này')}</p>
+              <p id={modalDescId}>{actionWarning(confirmAction, selectedBranch?.name || form.name || 'kho này')}</p>
               <label>
                 <span>Nhập lại mật khẩu Admin</span>
                 <div className="warehouse-password-field">
-                  <KeyRound size={16} />
-                  <input type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} autoFocus placeholder="Mật khẩu admin" />
+                  <KeyRound size={16} aria-hidden="true" />
+                  <input
+                    type="password"
+                    value={adminPassword}
+                    onChange={(event) => setAdminPassword(event.target.value)}
+                    autoFocus
+                    placeholder="Mật khẩu tài khoản đang đăng nhập"
+                    autoComplete="current-password"
+                    disabled={submitting}
+                  />
                 </div>
               </label>
-              {/* Demo fill only in dev to avoid leaking easy default in production builds.
-                  Production must use real admin password (no 'admin' bypass if hash set). */}
-              {import.meta.env.DEV ? (
-                <div style={{ fontSize: '12px', marginTop: '6px', color: '#555' }}>
-                  Môi trường local dev: dùng <strong>'admin'</strong> hoặc bất kỳ chuỗi nào dài ≥ 4 ký tự.
-                  <button
-                    type="button"
-                    className="btn btn-light"
-                    style={{ fontSize: '11px', padding: '2px 6px', marginLeft: '6px' }}
-                    onClick={() => setAdminPassword('admin')}
-                    disabled={submitting}
-                  >
-                    Điền 'admin' (demo)
-                  </button>
-                </div>
-              ) : null}
-              <p style={{ fontSize: '11px', marginTop: '4px', color: '#b45309' }}>
-                Lưu ý production: hành động này sẽ cần rate-limit + audit log chi tiết. Không dùng mật khẩu mặc định.
+              <p className="warehouse-modal-hint">
+                Nhập mật khẩu của tài khoản quản trị đang đăng nhập để xác nhận thao tác. Mật khẩu được kiểm tra lại trước khi hệ thống thực hiện thay đổi.
               </p>
             </div>
             <div className="warehouse-modal-actions">
-              <button className="btn btn-light" type="button" onClick={closeConfirmModal}>Hủy</button>
+              <button className="btn btn-light" type="button" onClick={closeConfirmModal} disabled={submitting}>Hủy</button>
               <button className="btn btn-primary" type="button" onClick={() => void submitAction()} disabled={!adminPassword.trim() || submitting}>{submitting ? 'Đang xác nhận...' : 'Xác nhận'}</button>
             </div>
           </div>

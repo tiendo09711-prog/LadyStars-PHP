@@ -1,0 +1,94 @@
+{
+  "RUN": "E2E_WS_1783790243037_f9lz8t",
+  "results": [
+    {
+      "id": "TC-Q03",
+      "name": "F9 kích hoạt lưu (mocked) — supplement",
+      "status": "PASS",
+      "actual": "order=[\"POST /customers\",\"POST /products/sales\",\"POST complete\"]; type=wholesale",
+      "mode": "mocked-ui",
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-Q10",
+      "name": "Success mocked save orchestration — supplement",
+      "status": "PASS",
+      "actual": "{\"type\":\"wholesale\",\"channel\":\"store\",\"branchId\":\"1\",\"order\":[\"POST /customers\",\"POST /products/sales\",\"POST complete\"],\"items\":[{\"amount\":2,\"value\":100000,\"discountValue\":0,\"discountType\":\"number\",\"total\":200000,\"note\":\"\"}],\"typePayment\":[],\"value\":200000,\"valuePayment\":0,\"discountValue\":0,\"keys\":[\"code\",\"branchId\",\"customerId\",\"note\",\"salesperson\",\"orderSource\",\"channel\",\"type\",\"paymentMethod\",\"discountValue\",\"discountType\",\"status\",\"amountProducts\",\"totalCost\",\"value\",\"valuePayment\",\"typePayment\",\"items\"]}",
+      "mode": "mocked-ui",
+      "notes": "PASS mock ≠ backend. methodId null gap if present.",
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\wholesale-audit\\E2E_WS_1783790243037_f9lz8t\\screenshots\\SUPP-Q10-mock-save.png"
+      ],
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-P07",
+      "name": "typePayment methodId mapping — supplement",
+      "status": "FAIL",
+      "expected": "methodId phân biệt phương thức",
+      "actual": "[]",
+      "severity": null,
+      "mode": "mocked-ui",
+      "notes": "Source hardcodes methodId: null",
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-O04",
+      "name": "VAT fields trong payload — supplement",
+      "status": "FAIL",
+      "expected": "VAT fields in payload if UI supports",
+      "actual": "hasVatInPayload=false; keys=code,branchId,customerId,note,salesperson,orderSource,channel,type,paymentMethod,discountValue,discountType,status,amountProducts,totalCost,value,valuePayment,typePayment,items",
+      "severity": "MEDIUM",
+      "mode": "mocked-ui",
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-Q09",
+      "name": "Complete fail after create (mocked) — supplement",
+      "status": "PASS",
+      "actual": "falseSuccess=false; hasError=true; order=[\"POST /customers\",\"POST /products/sales\",\"POST complete FAIL\"]; sample=A\nAdmin\nTổng quan\nSản phẩm\nKho hàng\nKênh bán - Cửa hàng\nKhách hàng\nTạo Mới Hóa Đơn Bán Sỉ\nKho xuất: undefined (undefined)\nThu ngân: Lê Sỹ Bách\nHủy bỏ\nLưu (F9)\ncomplete failed mock\n",
+      "severity": null,
+      "mode": "mocked-ui",
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\wholesale-audit\\E2E_WS_1783790243037_f9lz8t\\screenshots\\SUPP-Q09-complete-fail.png"
+      ],
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-Q08",
+      "name": "Create sale lỗi (mocked) — supplement",
+      "status": "PASS",
+      "actual": "falseSuccess=false; hasErr=true; order=[\"POST /customers\",\"POST sales FAIL\"]",
+      "mode": "mocked-ui",
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-R01",
+      "name": "Load invoice edit form (mocked detail) — supplement",
+      "status": "FAIL",
+      "actual": "phone=; name=; hasCode=false",
+      "mode": "mocked-ui",
+      "evidence": [
+        "c:\\Users\\tiend\\Desktop\\LadyStars-PHP\\e2e-artifacts\\wholesale-audit\\E2E_WS_1783790243037_f9lz8t\\screenshots\\SUPP-R01-edit-load.png"
+      ],
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-R04",
+      "name": "Rời create không lưu — supplement",
+      "status": "PASS",
+      "actual": "url=http://localhost:5173/sales-channels/store/wholesale; unsavedWarning=none observed",
+      "notes": "No beforeunload/guard observed",
+      "group": "SUPP"
+    },
+    {
+      "id": "TC-E05",
+      "name": "Tiếp tục tạo hóa đơn — supplement",
+      "status": "PASS",
+      "actual": "url=http://localhost:5173/sales-channels/store/wholesale/create?branchId=1; continueDisabled=false; modalSample=Chọn Kho / Chi Nhánh Bán Sỉ\nKho Test · TEST\nHủy\nTiếp tục",
+      "severity": null,
+      "group": "SUPP"
+    }
+  ],
+  "endedAt": "2026-07-11T17:33:56.542Z"
+}

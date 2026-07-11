@@ -230,7 +230,7 @@ export function buildReceiptHtml(options: ReceiptHtmlOptions) {
     </style>
   </head>
   <body>
-    <main class="receipt">
+    <main class="receipt" id="retail-receipt-root" data-receipt-ready="true" data-invoice-code="${escapeReceiptHtml(options.code || '')}">
       ${renderHeader(profile, bodySize)}
       ${dateLine}
       <div class="iv-title">${escapeReceiptHtml(effectiveTitle)}</div>
@@ -249,12 +249,30 @@ export function buildReceiptHtml(options: ReceiptHtmlOptions) {
 </html>`;
 }
 
+/** Write final receipt HTML into a popup opened during a user gesture. */
 export function writeAndPrintPopup(popup: Window, html: string) {
+  if (popup.closed) return;
   popup.document.open();
   popup.document.write(html);
   popup.document.close();
+  if (popup.closed) return;
   popup.focus();
-  popup.print();
+  // Defer print until the written document is complete so placeholder is never printed.
+  const runPrint = () => {
+    if (popup.closed) return;
+    try {
+      popup.print();
+    } catch {
+      // Popup may be closed by the user between write and print.
+    }
+  };
+  if (popup.document.readyState === 'complete') {
+    runPrint();
+  } else {
+    popup.addEventListener('load', runPrint, { once: true });
+    // Fallback if load does not fire after document.write in some browsers.
+    window.setTimeout(runPrint, 0);
+  }
 }
 
 function refundCustomerText(refund: Record<string, any>): string {

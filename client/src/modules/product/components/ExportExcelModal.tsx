@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useId, type RefObject, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { X, Search, FileSpreadsheet, Download, GripVertical } from 'lucide-react';
 
 export interface ColumnOption {
@@ -20,6 +20,26 @@ interface ExportExcelModalProps {
     selectedColumns: { key: string; customLabel: string }[]
   ) => Promise<void>;
   loading?: boolean;
+  /** Optional element to restore focus when modal closes (falls back to previously focused element). */
+  returnFocusRef?: RefObject<HTMLElement | null>;
+}
+
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  const selectors = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+  return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter((el) => {
+    if (el.getAttribute('aria-hidden') === 'true') return false;
+    if (el.hasAttribute('disabled')) return false;
+    const style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+    return el.offsetParent !== null || style.position === 'fixed';
+  });
 }
 
 export function ExportExcelModal({
@@ -30,8 +50,17 @@ export function ExportExcelModal({
   columns,
   onExport,
   loading = false,
+  returnFocusRef,
 }: ExportExcelModalProps) {
-  if (!isOpen) return null;
+  // Hooks must run unconditionally (Rules of Hooks) — even when parent keeps component mounted with isOpen=false.
+  const titleId = useId();
+  const excelTabId = useId();
+  const gsheetTabId = useId();
+  const excelPanelId = useId();
+  const gsheetPanelId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const [exportType, setExportType] = useState<'current' | 'all'>('all');
   const [workbookName, setWorkbookName] = useState(defaultFilename);
@@ -47,6 +76,92 @@ export function ExportExcelModal({
     });
     return initial;
   });
+
+  // Reset form state only when modal transitions to open (not on every columns identity change).
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      setExportType('all');
+      setWorkbookName(defaultFilename);
+      setSheetName('Trang tính 1');
+      setActiveTab('excel');
+      setSearchTerm('');
+      const initial: Record<string, { checked: boolean; customLabel: string }> = {};
+      columns.forEach((col) => {
+        initial[col.key] = { checked: true, customLabel: col.label };
+      });
+      setColumnStates(initial);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, defaultFilename, columns]);
+
+  // Focus management + Escape + focus trap while open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previouslyFocusedRef.current =
+      (returnFocusRef?.current as HTMLElement | null)
+      || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+
+    const focusInitial = () => {
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusables = getFocusableElements(dialog);
+      const target = closeButtonRef.current || focusables[0] || dialog;
+      target.focus();
+    };
+    // Defer so dialog is in DOM after paint
+    const raf = window.requestAnimationFrame(focusInitial);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (loading) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusables = getFocusableElements(dialogRef.current);
+      if (focusables.length === 0) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (event.shiftKey) {
+        if (!active || active === first || !dialogRef.current.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', onKeyDown, true);
+      const restoreTarget =
+        returnFocusRef?.current
+        || previouslyFocusedRef.current;
+      if (restoreTarget && typeof restoreTarget.focus === 'function') {
+        // Restore after unmount/close
+        window.requestAnimationFrame(() => {
+          try {
+            restoreTarget.focus();
+          } catch {
+            // ignore
+          }
+        });
+      }
+    };
+  }, [isOpen, onClose, loading, returnFocusRef]);
 
   // Filter columns by search term
   const filteredColumns = useMemo(() => {
@@ -111,8 +226,23 @@ export function ExportExcelModal({
     onExport(exportType, workbookName || defaultFilename, sheetName || 'Trang tính 1', selected);
   };
 
+  const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, tab: 'excel' | 'gsheet') => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const next = tab === 'excel' ? 'gsheet' : 'excel';
+      setActiveTab(next);
+      // Focus the other tab after state update
+      window.requestAnimationFrame(() => {
+        const id = next === 'excel' ? excelTabId : gsheetTabId;
+        document.getElementById(id)?.focus();
+      });
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="export-backdrop" onClick={onClose}>
+    <div className="export-backdrop" onClick={loading ? undefined : onClose}>
       <style>{`
         .export-backdrop {
           position: fixed;
@@ -136,6 +266,14 @@ export function ExportExcelModal({
           flex-direction: column;
           max-height: 90vh;
           animation: exportSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .export-card:focus {
+          outline: none;
+        }
+
+        .export-card:focus-visible {
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(52, 211, 153, 0.45);
         }
 
         .export-header {
@@ -170,6 +308,11 @@ export function ExportExcelModal({
         .export-header-close:hover {
           background: #f1f5f9;
           color: #0f172a;
+        }
+
+        .export-header-close:focus-visible {
+          outline: 2px solid #34d399;
+          outline-offset: 2px;
         }
 
         .export-body {
@@ -259,6 +402,12 @@ export function ExportExcelModal({
 
         .export-tab:hover:not(.active) {
           color: #334155;
+        }
+
+        .export-tab:focus-visible {
+          outline: 2px solid #34d399;
+          outline-offset: 2px;
+          border-radius: 4px;
         }
 
         .export-grid-inputs {
@@ -443,6 +592,11 @@ export function ExportExcelModal({
           border: 1px solid transparent;
         }
 
+        .export-btn:focus-visible {
+          outline: 2px solid #34d399;
+          outline-offset: 2px;
+        }
+
         .export-btn-primary {
           background: #10b981;
           color: #ffffff;
@@ -464,9 +618,14 @@ export function ExportExcelModal({
           border-color: #cbd5e1;
         }
 
-        .export-btn-secondary:hover {
+        .export-btn-secondary:hover:not(:disabled) {
           background: #e2e8f0;
           color: #0f172a;
+        }
+
+        .export-btn-secondary:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
         }
 
         .gsheet-coming-soon {
@@ -504,12 +663,44 @@ export function ExportExcelModal({
           from { opacity: 0; transform: scale(0.95) translateY(16px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
+
+        @media (max-width: 640px) {
+          .export-grid-inputs {
+            grid-template-columns: 1fr;
+          }
+          .export-columns-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+          .export-columns-search {
+            width: 100%;
+          }
+          .export-column-rename-input {
+            width: 120px;
+          }
+        }
       `}</style>
-      <div className="export-card" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="export-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="export-header">
-          <h3>{title}</h3>
-          <button className="export-header-close" onClick={onClose}>
-            <X size={18} />
+          <h3 id={titleId}>{title}</h3>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            className="export-header-close"
+            onClick={onClose}
+            aria-label="Đóng cửa sổ xuất dữ liệu"
+            disabled={loading}
+          >
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -542,23 +733,41 @@ export function ExportExcelModal({
           </div>
 
           {/* Export Mode Tabs */}
-          <div className="export-tabs">
+          <div className="export-tabs" role="tablist" aria-label="Chế độ xuất dữ liệu">
             <button
+              id={excelTabId}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'excel'}
+              aria-controls={excelPanelId}
+              tabIndex={activeTab === 'excel' ? 0 : -1}
               className={`export-tab ${activeTab === 'excel' ? 'active' : ''}`}
               onClick={() => setActiveTab('excel')}
+              onKeyDown={(e) => handleTabKeyDown(e, 'excel')}
             >
               Xuất Excel
             </button>
             <button
+              id={gsheetTabId}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'gsheet'}
+              aria-controls={gsheetPanelId}
+              tabIndex={activeTab === 'gsheet' ? 0 : -1}
               className={`export-tab ${activeTab === 'gsheet' ? 'active' : ''}`}
               onClick={() => setActiveTab('gsheet')}
+              onKeyDown={(e) => handleTabKeyDown(e, 'gsheet')}
             >
               Google Sheets
             </button>
           </div>
 
           {activeTab === 'excel' ? (
-            <>
+            <div
+              id={excelPanelId}
+              role="tabpanel"
+              aria-labelledby={excelTabId}
+            >
               {/* Filename & Sheet settings */}
               <div className="export-grid-inputs">
                 <div className="export-input-field">
@@ -584,7 +793,7 @@ export function ExportExcelModal({
               </div>
 
               {/* Columns selection section */}
-              <div className="export-section-card" style={{ flex: 1 }}>
+              <div className="export-section-card" style={{ flex: 1, marginTop: 16 }}>
                 <div className="export-columns-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <label className="export-checkbox-label">
@@ -602,12 +811,13 @@ export function ExportExcelModal({
                   </div>
 
                   <div className="export-columns-search">
-                    <Search size={14} />
+                    <Search size={14} aria-hidden="true" />
                     <input
                       type="text"
                       placeholder="Tìm kiếm tên cột..."
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
+                      aria-label="Tìm kiếm tên cột"
                     />
                   </div>
                 </div>
@@ -618,7 +828,7 @@ export function ExportExcelModal({
                     return (
                       <div className="export-column-item" key={col.key}>
                         <div className="export-column-left">
-                          <span className="export-drag-handle">
+                          <span className="export-drag-handle" aria-hidden="true">
                             <GripVertical size={14} />
                           </span>
                           <label className="export-checkbox-label">
@@ -638,6 +848,7 @@ export function ExportExcelModal({
                           onChange={e => handleRenameColumn(col.key, e.target.value)}
                           placeholder="Đổi tên cột xuất..."
                           title="Nhập để đổi tên tiêu đề cột khi xuất"
+                          aria-label={`Đổi tên cột ${col.label}`}
                         />
                       </div>
                     );
@@ -649,10 +860,15 @@ export function ExportExcelModal({
                   )}
                 </div>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="export-section-card gsheet-coming-soon">
-              <FileSpreadsheet size={48} style={{ color: '#10b981' }} />
+            <div
+              id={gsheetPanelId}
+              role="tabpanel"
+              aria-labelledby={gsheetTabId}
+              className="export-section-card gsheet-coming-soon"
+            >
+              <FileSpreadsheet size={48} style={{ color: '#10b981' }} aria-hidden="true" />
               <div className="gsheet-badge">Sắp ra mắt</div>
               <p>
                 Tính năng tự động đẩy dữ liệu sang <strong>Google Sheets</strong> trực tuyến đang được phát triển.<br />
@@ -663,15 +879,16 @@ export function ExportExcelModal({
         </div>
 
         <div className="export-footer">
-          <button className="export-btn export-btn-secondary" onClick={onClose} disabled={loading}>
+          <button type="button" className="export-btn export-btn-secondary" onClick={onClose} disabled={loading}>
             Đóng
           </button>
           <button
+            type="button"
             className="export-btn export-btn-primary"
             onClick={handleExportClick}
             disabled={loading || activeTab !== 'excel'}
           >
-            <Download size={15} />
+            <Download size={15} aria-hidden="true" />
             {loading ? 'Đang xuất...' : 'Xuất dữ liệu'}
           </button>
         </div>

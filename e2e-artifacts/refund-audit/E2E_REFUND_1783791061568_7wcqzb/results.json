@@ -1,0 +1,113 @@
+{
+  "runId": "E2E_REFUND_1783791061568_7wcqzb",
+  "startedAt": "2026-07-11T17:31:01.570Z",
+  "endedAt": "2026-07-11T17:31:01.626Z",
+  "env": {
+    "BASE": "http://localhost:5173",
+    "API": "http://127.0.0.1:8000",
+    "RUN_ID": "E2E_REFUND_1783791061568_7wcqzb",
+    "playwright": "1.51.0",
+    "APP_ENV": "local",
+    "DB_CONNECTION": "mysql",
+    "DB_HOST": "127.0.0.1",
+    "DB_DATABASE": "ladystars_php",
+    "isolated": false,
+    "hasLiveTestLocal": false
+  },
+  "safetyGate": true,
+  "summary": {
+    "total": 3,
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED_WRITE_ISOLATION": 1,
+    "BLOCKED_SAFETY": 1,
+    "BLOCKED_DATA": 0,
+    "BLOCKED_AUTH": 0,
+    "BLOCKED_ENVIRONMENT": 2,
+    "SKIPPED_DEPENDENCY": 0,
+    "NOT_RUN": 0,
+    "OBSERVATION": 0,
+    "BLOCKED": 3
+  },
+  "groups": {
+    "ENV": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 3,
+      "OTHER": 0,
+      "total": 3
+    }
+  },
+  "results": [
+    {
+      "id": "RF-ENV01",
+      "group": "ENV",
+      "name": "Frontend availability",
+      "status": "BLOCKED_ENVIRONMENT",
+      "severity": "CRITICAL",
+      "preconditions": "",
+      "steps": [],
+      "expected": "http://localhost:5173 phản hồi",
+      "actual": "feOk=false",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-ENV02",
+      "group": "ENV",
+      "name": "Backend availability",
+      "status": "BLOCKED_ENVIRONMENT",
+      "severity": "CRITICAL",
+      "preconditions": "",
+      "steps": [],
+      "expected": "API :8000 phản hồi",
+      "actual": "beOk=false",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "",
+      "mode": "live-readonly",
+      "testData": ""
+    },
+    {
+      "id": "RF-ENV03",
+      "group": "ENV",
+      "name": "DB isolation gate",
+      "status": "BLOCKED_WRITE_ISOLATION",
+      "severity": null,
+      "preconditions": "",
+      "steps": [],
+      "expected": "DB test cô lập trước khi mutation",
+      "actual": "DB=ladystars_php; isolated=false; no live-test.local",
+      "url": "",
+      "api": [],
+      "evidence": [],
+      "notes": "Chỉ READ-ONLY + mock UI; không lưu phiếu trả / đổi tồn",
+      "mode": "blocked",
+      "testData": ""
+    }
+  ],
+  "bugs": [],
+  "network": {
+    "methods": {
+      "GET": 0,
+      "POST": 0,
+      "PUT": 0,
+      "PATCH": 0,
+      "DELETE": 0,
+      "OTHER": 0
+    },
+    "status4xx": [],
+    "status5xx": [],
+    "failed": [],
+    "apiCallCount": 0
+  },
+  "mutationLog": [],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "verdict": "BLOCKED_ENVIRONMENT"
+}

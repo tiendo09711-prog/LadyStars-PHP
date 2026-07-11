@@ -422,11 +422,11 @@
   white-space: nowrap;
 }
 
-/* ----- Table card ----- */
+/* ----- Table card (aligned with /products inventory-table-card) ----- */
 .customer-list-root .customer-list-table-card {
-  /* overflow hidden clips sticky + can block nested scroll feel; keep x visible for bar */
   overflow: hidden;
   max-width: 100%;
+  min-width: 0;
   border: 1px solid #e2e8f0;
   border-radius: 18px;
   background: #ffffff;
@@ -460,9 +460,10 @@
 }
 
 /*
-  Horizontal scroll wrapper.
-  Must beat global: .page-stack .table-scroll { overflow-x: hidden }
-  and .page-stack .data-table { width/max-width: 100% } which compress columns.
+  Horizontal scroll container.
+  Must beat global densify:
+  .page-stack .table-scroll { overflow-x: hidden }
+  .page-stack .data-table { width/max-width: 100%; table-layout: fixed }
 */
 .customer-list-page .customer-list-table-scroll.table-scroll,
 .customer-list-root .customer-list-table-scroll.table-scroll,
@@ -480,117 +481,178 @@
   overscroll-behavior-x: contain;
   touch-action: pan-x pan-y;
   border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
   scrollbar-gutter: stable;
 }
 
-/* Fixed layout with REAL total width so overflow-x can engage */
+/*
+  Table needs real min-width so columns are not crushed into the viewport.
+  44+200+110+140+100+120+130+80+95+90+170+140+160+80 = 1659
+*/
 .customer-list-page .customer-list-data-table.data-table,
 .customer-list-root .customer-list-table .customer-list-data-table,
 .customer-list-root .customer-list-data-table,
 .page-stack.customer-list-page .customer-list-data-table,
 .page-stack .customer-list-root .customer-list-data-table {
-  /* 40+200+85+125+80+90+125+70+80+65+145+120+140+72 = 1437 */
-  width: 1437px !important;
-  min-width: 1437px !important;
+  width: 1659px !important;
+  min-width: 1659px !important;
   max-width: none !important;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   table-layout: fixed !important;
   background: transparent;
 }
 
-/*
-  Column proportions (single-line headers + existing "Chưa mua").
-  Explicit min/max on cols so global width:100% cannot crush them.
-*/
+/* Column widths — !important defeats global min-width:120px on data cells */
 .customer-list-root .customer-list-data-table col.col-check,
 .customer-list-root .customer-list-data-table th.col-check,
-.customer-list-root .customer-list-data-table td.col-check { width: 40px; min-width: 40px; max-width: 40px; }
+.customer-list-root .customer-list-data-table td.col-check,
+.customer-list-root .customer-list-data-table .checkbox-col {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-customer,
 .customer-list-root .customer-list-data-table th.col-customer,
-.customer-list-root .customer-list-data-table td.col-customer { width: 200px; min-width: 200px; max-width: 200px; }
+.customer-list-root .customer-list-data-table td.col-customer {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-type,
 .customer-list-root .customer-list-data-table th.col-type,
-.customer-list-root .customer-list-data-table td.col-type { width: 85px; min-width: 85px; max-width: 85px; }
+.customer-list-root .customer-list-data-table td.col-type {
+  width: 110px !important;
+  min-width: 110px !important;
+  max-width: 110px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-phone,
 .customer-list-root .customer-list-data-table th.col-phone,
-.customer-list-root .customer-list-data-table td.col-phone { width: 125px; min-width: 125px; max-width: 125px; }
+.customer-list-root .customer-list-data-table td.col-phone {
+  width: 140px !important;
+  min-width: 140px !important;
+  max-width: 140px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-level,
 .customer-list-root .customer-list-data-table th.col-level,
-.customer-list-root .customer-list-data-table td.col-level { width: 80px; min-width: 80px; max-width: 80px; }
+.customer-list-root .customer-list-data-table td.col-level {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-group,
 .customer-list-root .customer-list-data-table th.col-group,
-.customer-list-root .customer-list-data-table td.col-group { width: 90px; min-width: 90px; max-width: 90px; }
+.customer-list-root .customer-list-data-table td.col-group {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-spent,
 .customer-list-root .customer-list-data-table th.col-spent,
-.customer-list-root .customer-list-data-table td.col-spent { width: 125px; min-width: 125px; max-width: 125px; }
+.customer-list-root .customer-list-data-table td.col-spent {
+  width: 130px !important;
+  min-width: 130px !important;
+  max-width: 130px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-points,
 .customer-list-root .customer-list-data-table th.col-points,
-.customer-list-root .customer-list-data-table td.col-points { width: 70px; min-width: 70px; max-width: 70px; }
+.customer-list-root .customer-list-data-table td.col-points {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-purchases,
 .customer-list-root .customer-list-data-table th.col-purchases,
-.customer-list-root .customer-list-data-table td.col-purchases { width: 80px; min-width: 80px; max-width: 80px; }
+.customer-list-root .customer-list-data-table td.col-purchases {
+  width: 95px !important;
+  min-width: 95px !important;
+  max-width: 95px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-qty,
 .customer-list-root .customer-list-data-table th.col-qty,
-.customer-list-root .customer-list-data-table td.col-qty { width: 65px; min-width: 65px; max-width: 65px; }
+.customer-list-root .customer-list-data-table td.col-qty {
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-cycle,
 .customer-list-root .customer-list-data-table th.col-cycle,
-.customer-list-root .customer-list-data-table td.col-cycle { width: 145px; min-width: 145px; max-width: 145px; }
+.customer-list-root .customer-list-data-table td.col-cycle {
+  width: 170px !important;
+  min-width: 170px !important;
+  max-width: 170px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-last-buy,
 .customer-list-root .customer-list-data-table th.col-last-buy,
-.customer-list-root .customer-list-data-table td.col-last-buy { width: 120px; min-width: 120px; max-width: 120px; }
+.customer-list-root .customer-list-data-table td.col-last-buy {
+  width: 140px !important;
+  min-width: 140px !important;
+  max-width: 140px !important;
+}
 
 .customer-list-root .customer-list-data-table col.col-days-away,
 .customer-list-root .customer-list-data-table th.col-days-away,
-.customer-list-root .customer-list-data-table td.col-days-away { width: 140px; min-width: 140px; max-width: 140px; }
-
-.customer-list-root .customer-list-data-table col.col-actions { width: 72px; min-width: 72px; max-width: 72px; }
-
-/* Body cells: vertical middle; body may wrap, headers stay single-line */
-.customer-list-root .customer-list-table .customer-list-data-table th,
-.customer-list-root .customer-list-table .customer-list-data-table td,
-.customer-list-root .customer-list-data-table th,
-.customer-list-root .customer-list-data-table td {
-  padding: 10px 8px;
-  font-size: 12.5px;
-  vertical-align: middle;
-  min-width: 0;
-  border-bottom: 1px solid #f1f5f9;
-  line-height: 1.35;
+.customer-list-root .customer-list-data-table td.col-days-away {
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
 }
 
+.customer-list-root .customer-list-data-table col.col-actions {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+
+/* Cells — match products-data-table spacing */
+.customer-list-root .customer-list-data-table th,
+.customer-list-root .customer-list-data-table td {
+  padding: 11px 10px !important;
+  font-size: 12.5px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+  line-height: 1.35;
+  box-sizing: border-box;
+  background-clip: padding-box;
+}
+
+/* Defeat densify word-break that makes numbers/phone wrap badly */
 .customer-list-root .customer-list-data-table td {
   white-space: normal;
-  word-break: break-word;
+  word-break: normal;
   overflow-wrap: break-word;
 }
 
-/* Consistent single-line headers (all th + sort buttons) */
+/* Header — products pattern: compact uppercase, single-line, no bleed into next col */
 .customer-list-root .customer-list-data-table thead th,
 .customer-list-root .customer-list-data-table th {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1.2 !important;
-  letter-spacing: 0.02em;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #64748b !important;
-  background: #f8fafc;
+  background: #f8fafc !important;
   white-space: nowrap !important;
   word-break: normal !important;
-  overflow: visible;
-  text-overflow: clip;
-  padding: 12px 8px !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -598,15 +660,19 @@
   vertical-align: middle;
 }
 
-.customer-list-root .customer-list-data-table tbody tr:nth-child(even) td {
+.customer-list-root .customer-list-data-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.customer-list-root .customer-list-data-table tbody tr:nth-child(even) td:not(.action-cell):not(.col-actions) {
   background: #fbfcfe;
 }
 
-.customer-list-root .customer-list-data-table tbody tr:hover td {
+.customer-list-root .customer-list-data-table tbody tr:hover td:not(.action-cell):not(.col-actions) {
   background: #f0fdf4;
 }
 
-/* Column alignment helpers */
+/* Alignment */
 .customer-list-root .customer-list-data-table .col-center {
   text-align: center !important;
 }
@@ -614,17 +680,13 @@
 .customer-list-root .customer-list-data-table th.col-check,
 .customer-list-root .customer-list-data-table td.col-check,
 .customer-list-root .checkbox-col {
-  width: 40px;
   text-align: center !important;
-  padding-left: 6px !important;
+  padding-left: 10px !important;
   padding-right: 6px !important;
 }
 
 .customer-list-root .customer-list-data-table th.col-customer,
-.customer-list-root .customer-list-data-table td.col-customer {
-  text-align: left;
-}
-
+.customer-list-root .customer-list-data-table td.col-customer,
 .customer-list-root .customer-list-data-table th.col-phone,
 .customer-list-root .customer-list-data-table td.col-phone,
 .customer-list-root .customer-list-data-table th.col-group,
@@ -635,10 +697,7 @@
 .customer-list-root .customer-list-data-table th.col-type,
 .customer-list-root .customer-list-data-table td.col-type,
 .customer-list-root .customer-list-data-table th.col-level,
-.customer-list-root .customer-list-data-table td.col-level {
-  text-align: center !important;
-}
-
+.customer-list-root .customer-list-data-table td.col-level,
 .customer-list-root .customer-list-data-table th.col-spent,
 .customer-list-root .customer-list-data-table td.col-spent,
 .customer-list-root .customer-list-data-table th.col-points,
@@ -656,9 +715,23 @@
   text-align: center !important;
 }
 
+/* Phone / numbers / dates: keep single line */
+.customer-list-root .customer-list-data-table td.col-phone,
+.customer-list-root .customer-list-data-table td.col-spent,
+.customer-list-root .customer-list-data-table td.col-points,
+.customer-list-root .customer-list-data-table td.col-purchases,
+.customer-list-root .customer-list-data-table td.col-qty,
+.customer-list-root .customer-list-data-table td.col-cycle,
+.customer-list-root .customer-list-data-table td.col-last-buy,
+.customer-list-root .customer-list-data-table td.col-days-away {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal;
+}
+
 /*
-  THAO TÁC — sticky right, fixed 72px, content perfectly centered.
-  Avoid transform (subpixel shift). Beat global action-cell max-width: 88px.
+  THAO TÁC sticky right — same approach as products + audit:
+  force display:table-cell (global ui-contract sets .action-cell { display:flex })
 */
 .customer-list-page .customer-list-data-table th.action-cell,
 .customer-list-page .customer-list-data-table td.action-cell,
@@ -670,10 +743,11 @@
 .customer-list-root .customer-list-data-table td.col-actions,
 .page-stack.customer-list-page .customer-list-data-table .action-cell,
 .page-stack .customer-list-root .customer-list-data-table .action-cell {
-  width: 72px !important;
-  min-width: 72px !important;
-  max-width: 72px !important;
-  padding: 0 !important;
+  display: table-cell !important;
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  padding: 8px 6px !important;
   margin: 0 !important;
   text-align: center !important;
   vertical-align: middle !important;
@@ -682,18 +756,26 @@
   left: auto !important;
   background-clip: padding-box;
   border-left: 1px solid #eef2f7;
-  box-shadow: -6px 0 12px rgba(15, 23, 42, 0.06);
+  box-shadow: -6px 0 12px rgba(15, 23, 42, 0.05);
   white-space: nowrap !important;
-  overflow: hidden !important;
+  word-break: normal !important;
+  overflow: visible !important;
   box-sizing: border-box !important;
+  /* neutralize global flex utilities on .action-cell */
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  align-items: unset !important;
+  justify-content: unset !important;
+  transform: none !important;
 }
 
 .customer-list-root .customer-list-data-table th.action-cell,
 .customer-list-root .customer-list-data-table th.col-actions {
   z-index: 8;
   background: #f8fafc !important;
-  height: auto;
-  line-height: 1.2;
+  overflow: visible !important;
+  text-overflow: clip;
+  letter-spacing: 0.04em;
 }
 
 .customer-list-root .customer-list-data-table td.action-cell,
@@ -712,38 +794,26 @@
   background: #f0fdf4 !important;
 }
 
-/* Center header label + body button in the same geometry */
-.customer-list-root .customer-list-data-table th.action-cell,
-.customer-list-root .customer-list-data-table th.col-actions {
-  font-size: 12px !important;
-  letter-spacing: 0.01em;
-}
-
 .customer-list-root .customer-list-actions {
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 72px !important;
-  max-width: 72px !important;
-  min-height: 40px;
-  height: 100%;
-  margin: 0 auto !important;
-  padding: 0 !important;
+  width: 100%;
+  min-height: 32px;
+  margin: 0 auto;
+  padding: 0;
   box-sizing: border-box;
-  position: relative;
-  left: 0;
-  right: 0;
 }
 
 .customer-list-root .customer-list-row-menu-button {
-  width: 30px !important;
-  height: 30px !important;
-  min-width: 30px !important;
-  min-height: 30px !important;
-  max-width: 30px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
   margin: 0 !important;
   padding: 0 !important;
-  border-radius: 10px;
+  border-radius: 999px;
   border: 1px solid #dbe5ef;
   background: #ffffff;
   color: #475569;
@@ -753,10 +823,11 @@
   cursor: pointer;
   flex-shrink: 0;
   box-sizing: border-box;
-  position: relative;
-  left: 0;
-  right: 0;
   float: none !important;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 
 .customer-list-root .customer-list-row-menu-button:hover,
@@ -771,7 +842,7 @@
   outline-offset: 2px;
 }
 
-/* Portal row menu (body) */
+/* Portal row menu (document.body) — never clipped by overflow wrappers */
 .customer-list-row-action-menu--portal {
   position: fixed;
   z-index: 10050;
@@ -819,7 +890,7 @@
   background: #fef2f2;
 }
 
-/* Khách hàng: body may wrap name + code; header stays single-line via th rules */
+/* Customer name cell */
 .customer-list-root .customer-list-data-table th.customer-list-name-cell {
   text-align: left;
   white-space: nowrap !important;
@@ -845,6 +916,7 @@
   cursor: pointer;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
 }
 
 .customer-list-root .customer-list-name-main {
@@ -865,9 +937,10 @@
   font-size: 11px;
   color: #94a3b8;
   line-height: 1.3;
-  white-space: normal;
-  word-break: break-all;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .customer-list-root .customer-name-button:hover .customer-list-name-main {
@@ -925,36 +998,56 @@
   white-space: normal;
   word-break: break-word;
   overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .customer-list-root .align-right {
   text-align: right;
 }
 
-/* Sort headers: single line, match th typography exactly */
+/*
+  Sort headers — products uses flex + gap:6 for label/icon.
+  Keep inline-flex so icon never collides with label.
+*/
 .customer-list-root .customer-sort-button {
-  display: inline-flex;
+  display: inline-flex !important;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   border: 0;
   background: transparent;
   padding: 0;
   margin: 0;
   color: inherit !important;
   font-family: inherit;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1.2 !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
   letter-spacing: inherit;
   text-transform: inherit;
   cursor: pointer;
-  max-width: none;
+  max-width: 100%;
   height: auto;
   white-space: nowrap !important;
   word-break: normal !important;
   text-align: left;
   vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.customer-list-root .customer-sort-button:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.customer-list-root .customer-sort-label {
+  display: inline-block;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .customer-list-root .customer-sort-button svg {

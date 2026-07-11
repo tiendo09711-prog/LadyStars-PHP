@@ -598,5 +598,152 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('warehouseName', $this->branch->name)
             ->assertJsonPath('items.0.productCode', 'SP-TX-01')
             ->assertJsonPath('items.0.productName', 'Sản phẩm giao dịch test');
+
+        $page2 = $this->getJson('/api/warehouse/transactions/bills?type=EXPORT&fromDate='.$businessDate->toDateString().'&toDate='.$businessDate->toDateString().'&page=1&limit=20');
+        $page2->assertOk()
+            ->assertJsonStructure([
+                'items',
+                'data',
+                'total',
+                'page',
+                'limit',
+                'per_page',
+                'current_page',
+                'last_page',
+            ]);
+    }
+
+    public function test_warehouse_transactions_rejects_inverted_date_range(): void
+    {
+        $bills = $this->getJson('/api/warehouse/transactions/bills?fromDate=2026-12-31&toDate=2020-01-01&limit=20');
+        $bills->assertStatus(422)
+            ->assertJsonPath('message', 'Từ ngày không được lớn hơn Đến ngày.');
+
+        $items = $this->getJson('/api/warehouse/transactions/items?fromDate=2026-12-31&toDate=2020-01-01&limit=20');
+        $items->assertStatus(422)
+            ->assertJsonPath('message', 'Từ ngày không được lớn hơn Đến ngày.');
+    }
+
+    public function test_warehouse_transactions_accepts_valid_date_range(): void
+    {
+        $response = $this->getJson('/api/warehouse/transactions/bills?fromDate=2026-01-01&toDate=2026-12-31&limit=20');
+        $response->assertOk()
+            ->assertJsonStructure([
+                'items',
+                'data',
+                'total',
+                'page',
+                'limit',
+                'per_page',
+                'current_page',
+                'last_page',
+            ]);
+    }
+
+    public function test_payment_methods_endpoints_are_readable(): void
+    {
+        (new MirrorRecord())->forTable('payment_methods')->newQuery()->create([
+            'mongo_id' => 'paymethod00000000000001',
+            'code' => 'cash',
+            'name' => 'Tiền mặt',
+            'status' => 'active',
+            'business_date' => now(),
+            'payload' => [
+                'code' => 'cash',
+                'name' => 'Tiền mặt',
+                'isActive' => true,
+                'sortOrder' => 1,
+            ],
+        ]);
+
+        (new MirrorRecord())->forTable('payment_methods')->newQuery()->create([
+            'mongo_id' => 'paymethod00000000000002',
+            'code' => 'bank_transfer',
+            'name' => 'Chuyển khoản',
+            'status' => 'inactive',
+            'business_date' => now(),
+            'payload' => [
+                'code' => 'bank_transfer',
+                'name' => 'Chuyển khoản',
+                'isActive' => false,
+                'sortOrder' => 2,
+            ],
+        ]);
+
+        $canonical = $this->getJson('/api/products/payment-methods?limit=500');
+        $canonical->assertOk()
+            ->assertJsonStructure([
+                'items' => [
+                    '*' => ['_id', 'id', 'code', 'name', 'isActive', 'sortOrder'],
+                ],
+                'data',
+                'total',
+                'page',
+                'limit',
+            ])
+            ->assertJsonPath('total', 2);
+
+        $codes = collect($canonical->json('items'))->pluck('code')->all();
+        $this->assertContains('cash', $codes);
+        $this->assertContains('bank_transfer', $codes);
+
+        $cash = collect($canonical->json('items'))->firstWhere('code', 'cash');
+        $this->assertTrue((bool) ($cash['isActive'] ?? false));
+        $this->assertSame(1, (int) ($cash['sortOrder'] ?? 0));
+
+        $alias = $this->getJson('/api/products/payment-methods/standard?limit=500');
+        $alias->assertOk()
+            ->assertJsonPath('total', 2)
+            ->assertJsonStructure([
+                'items' => [
+                    '*' => ['_id', 'code', 'name', 'isActive', 'sortOrder'],
+                ],
+            ]);
+    }
+
+    public function test_sale_payment_list_normalizes_legacy_total_amount_for_kpi(): void
+    {
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'salekpi0000000000000001',
+            'code' => 'KPI001',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'value' => null,
+            'value_payment' => 4800000,
+            'business_date' => now(),
+            'completed_at' => now(),
+            'items' => [[
+                'name' => 'Sản phẩm KPI',
+                'price' => 4800000,
+                'value' => 4800000,
+                'amount' => 1,
+            ]],
+            'payload' => [
+                'code' => 'KPI001',
+                'totalAmount' => 4800000,
+                'valuePayment' => 4800000,
+                'paymentMethod' => 'Tiền mặt',
+                'customerName' => 'Khách KPI',
+                'customerPhone' => '0900000111',
+                'items' => [[
+                    'name' => 'Sản phẩm KPI',
+                    'price' => 4800000,
+                    'value' => 4800000,
+                    'amount' => 1,
+                ]],
+            ],
+        ]);
+
+        $response = $this->getJson('/api/products/sales?invoiceCode=KPI001&type=retail&limit=5');
+        $response->assertOk()
+            ->assertJsonPath('items.0.code', 'KPI001')
+            ->assertJsonPath('items.0.value', 4800000)
+            ->assertJsonPath('items.0.valuePayment', 4800000);
+
+        $item = $response->json('items.0');
+        $this->assertNotEmpty($item['typePayment'] ?? null);
+        $this->assertSame('Khách KPI', $item['customerId']['name'] ?? null);
     }
 }

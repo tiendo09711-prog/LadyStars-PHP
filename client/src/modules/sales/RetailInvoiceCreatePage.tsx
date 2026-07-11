@@ -136,7 +136,8 @@ export function RetailInvoiceCreatePage() {
         const [meRes, staffRes, methodRes, branchListRes, editRes] = await Promise.all([
           http.get('/auth/me'),
           http.get('/staff').catch(() => null),
-          http.get('/products/payment-methods/standard', { params: { limit: 500 } }),
+          // Canonical payment-methods endpoint; /standard remains a backend alias for compatibility.
+          http.get('/products/payment-methods', { params: { limit: 500 } }),
           http.get('/system/branches').catch(() => null),
           editId ? http.get(`/products/sales/${editId}`) : Promise.resolve(null),
         ]);

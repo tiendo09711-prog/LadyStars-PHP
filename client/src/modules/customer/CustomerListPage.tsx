@@ -1297,54 +1297,64 @@ export function CustomerListPage() {
                 </th>
                 <th className="col-customer customer-list-name-cell">
                   <button type="button" className="customer-sort-button" onClick={() => handleSort('name')}>
-                    Khách hàng <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Khách hàng</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-type col-center">Loại</th>
                 <th className="col-phone">
                   <button type="button" className="customer-sort-button" onClick={() => handleSort('phone')}>
-                    Số điện thoại <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Số điện thoại</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-level col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('customerLevel')}>
-                    Cấp độ <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Cấp độ</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-group">Nhóm</th>
                 <th className="col-spent col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('totalSpent')}>
-                    Tổng tiền <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Tổng tiền</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-points col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('points')}>
-                    Điểm <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Điểm</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-purchases col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('purchaseCount')}>
-                    Lần mua <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Lần mua</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-qty col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('purchaseProductQuantity')}>
-                    SL <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Số lượng</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-cycle col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('purchaseCycleDays')}>
-                    Chu kỳ mua hàng <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Chu kỳ mua hàng</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-last-buy col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('lastPurchaseDate')}>
-                    Mua gần nhất <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Mua gần nhất</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="col-days-away col-center">
                   <button type="button" className="customer-sort-button col-center" onClick={() => handleSort('daysSinceLastPurchase')}>
-                    Chưa mua (ngày) <ArrowUpDown size={13} aria-hidden="true" />
+                    <span className="customer-sort-label">Chưa mua (ngày)</span>
+                    <ArrowUpDown size={13} aria-hidden="true" />
                   </button>
                 </th>
                 <th className="action-cell col-actions col-center" scope="col">Thao tác</th>

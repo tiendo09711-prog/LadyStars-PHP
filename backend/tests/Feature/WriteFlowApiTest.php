@@ -222,7 +222,7 @@ class WriteFlowApiTest extends TestCase
     {
         $blockedByStock = $this->deleteJson('/api/products/products/'.$this->product->id);
         $blockedByStock->assertStatus(409)
-            ->assertJsonPath('message', 'Kh?ng th? x?a s?n ph?m ?ang c?n t?n kho ho?c t?n kh?a. H?y ??a t?n v? 0 tr??c.');
+            ->assertJsonPath('message', 'Không thể xóa sản phẩm đang còn tồn kho hoặc tồn khóa. Hãy đưa tồn về 0 trước.');
 
         $this->stock->update(['qty' => 0, 'locked_quantity' => 0]);
         (new MirrorRecord())->forTable('product_logs')->newQuery()->create([
@@ -236,7 +236,99 @@ class WriteFlowApiTest extends TestCase
 
         $blockedByLog = $this->deleteJson('/api/products/products/'.$this->product->id);
         $blockedByLog->assertStatus(409)
-            ->assertJsonPath('message', 'Kh?ng th? x?a s?n ph?m ?? c? ch?ng t?/log nghi?p v? li?n quan.');
+            ->assertJsonPath('message', 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.');
+    }
+
+    public function test_product_create_requires_name(): void
+    {
+        $response = $this->postJson('/api/products/products', [
+            'code' => 'SPNONAME',
+            'type' => 'product',
+            'unit' => 'cai',
+            'price' => 1000,
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_product_partial_patch_status_does_not_require_name_or_reset_fields(): void
+    {
+        $before = $this->product->fresh();
+
+        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+            'status' => 'Đang bán',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('status', 'Đang bán')
+            ->assertJsonPath('name', $before->name)
+            ->assertJsonPath('code', $before->code)
+            ->assertJsonPath('unit', $before->unit)
+            ->assertJsonPath('categoryId', (string) $before->category_id);
+        $this->assertEquals((float) $before->price, (float) $response->json('price'));
+        $this->assertEquals((float) $before->cost, (float) $response->json('cost'));
+
+        $this->assertDatabaseHas('products', [
+            'id' => $this->product->id,
+            'status' => 'Đang bán',
+            'name' => $before->name,
+            'code' => $before->code,
+            'category_id' => $before->category_id,
+            'price' => $before->price,
+            'cost' => $before->cost,
+            'unit' => $before->unit,
+        ]);
+    }
+
+    public function test_product_partial_patch_category_preserves_other_fields(): void
+    {
+        $other = Category::create([
+            'mongo_id' => 'category00000000000099',
+            'name' => 'Category B',
+            'code' => 'CAT-B',
+            'is_active' => true,
+            'is_visible' => true,
+        ]);
+        $before = $this->product->fresh();
+
+        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+            'categoryId' => $other->id,
+            'categoryName' => $other->name,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('categoryId', (string) $other->id)
+            ->assertJsonPath('name', $before->name)
+            ->assertJsonPath('status', $before->status);
+        $this->assertEquals((float) $before->price, (float) $response->json('price'));
+
+        $this->assertDatabaseHas('products', [
+            'id' => $this->product->id,
+            'category_id' => $other->id,
+            'category_name' => $other->name,
+            'name' => $before->name,
+            'status' => $before->status,
+            'price' => $before->price,
+        ]);
+    }
+
+    public function test_product_partial_patch_rejects_negative_price(): void
+    {
+        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+            'price' => -10,
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['price']);
+        $this->assertSame((float) $this->product->fresh()->price, (float) $this->product->price);
+    }
+
+    public function test_product_partial_patch_rejects_missing_category(): void
+    {
+        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+            'categoryId' => 999999,
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['categoryId']);
     }
 
     public function test_inventory_write_flow_works(): void

@@ -80,6 +80,9 @@ export function StorageDurationPage() {
   const [discountVal, setDiscountVal] = useState<string>('10');
   const [discountNote, setDiscountNote] = useState('');
 
+  // Ignore stale storage-duration responses when filters/tabs change quickly.
+  const loadSeqRef = useRef(0);
+
   // Auto clear toast
   useEffect(() => {
     if (toast) {
@@ -147,7 +150,12 @@ export function StorageDurationPage() {
     loadBranches();
   }, []);
 
+  // True while applying browser URL → React state (Back/Forward/deep link). Prevents the
+  // state → URL effect from writing back and creating update loops / history thrash.
+  const syncingFromUrlRef = useRef(false);
+
   useEffect(() => {
+    syncingFromUrlRef.current = true;
     const urlTab = normalizeStorageTab(searchParams.get('tab'));
     const urlQ = searchParams.get('q') || '';
     const urlCategory = searchParams.get('categoryId') || '';
@@ -163,8 +171,14 @@ export function StorageDurationPage() {
     setMinStartDays((current) => (current === urlMinStart ? current : urlMinStart));
     setMinSoldDays((current) => (current === urlMinSold ? current : urlMinSold));
     setMinStock((current) => (current === urlMinStock ? current : urlMinStock));
+    // Release after React applies the state updates from this URL sync.
+    queueMicrotask(() => {
+      syncingFromUrlRef.current = false;
+    });
   }, [searchParams]);
+
   useEffect(() => {
+    if (syncingFromUrlRef.current) return;
     const next = new URLSearchParams();
     if (activeTab !== 'all') next.set('tab', activeTab);
     if (search) next.set('q', search);
@@ -173,11 +187,25 @@ export function StorageDurationPage() {
     if (minStartDays) next.set('minStartDays', minStartDays);
     if (minSoldDays) next.set('minSoldDays', minSoldDays);
     if (minStock) next.set('minStock', minStock);
-    setSearchParams(next, { replace: true });
+    // Keep URL in sync. Skip no-op writes so Back/Forward is not clobbered.
+    // Discrete filters (tab/search/category/branch) push history; continuous min* inputs replace
+    // to avoid flooding history on each keystroke.
+    const keys = ['tab', 'q', 'categoryId', 'branchId', 'minStartDays', 'minSoldDays', 'minStock'] as const;
+    const same = keys.every((key) => (searchParams.get(key) || '') === (next.get(key) || ''));
+    if (same) return;
+    const discreteKeys = ['tab', 'q', 'categoryId', 'branchId'] as const;
+    const discreteChanged = discreteKeys.some(
+      (key) => (searchParams.get(key) || '') !== (next.get(key) || ''),
+    );
+    setSearchParams(next, { replace: !discreteChanged });
+    // Intentionally omit searchParams from deps: this effect is driven by filter state only.
+    // Comparing against current searchParams is safe; including it caused Back/Forward loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, search, selectedCategory, selectedBranch, minStartDays, minSoldDays, minStock, setSearchParams]);
 
   // Main Data Loading
   const loadData = async () => {
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     try {
       const params: any = {
@@ -194,6 +222,7 @@ export function StorageDurationPage() {
       };
 
       const res = await productApi.getStorageDuration(params);
+      if (seq !== loadSeqRef.current) return;
       setItems(res.items || []);
       setTotal(res.total || 0);
 
@@ -202,10 +231,13 @@ export function StorageDurationPage() {
         setKpis(res.kpis);
       }
     } catch (err) {
+      if (seq !== loadSeqRef.current) return;
       console.error('Error fetching storage duration data', err);
       setToast({ message: 'Không thể tải dữ liệu thời gian lưu kho.', type: 'error' });
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -544,14 +576,18 @@ export function StorageDurationPage() {
     const menuWidth = 232;
     const menuHeight = 176;
     const gap = 6;
+    // Prefer opening ABOVE the trigger so the portal does not cover action buttons of rows below.
+    let top = rect.top - menuHeight - gap;
+    if (top < 8) {
+      top = rect.bottom + gap;
+    }
     let left = rect.right - menuWidth;
-    let top = rect.bottom + gap;
     if (left < 8) left = 8;
     if (left + menuWidth > window.innerWidth - 8) {
       left = Math.max(8, window.innerWidth - menuWidth - 8);
     }
     if (top + menuHeight > window.innerHeight - 8) {
-      top = Math.max(8, rect.top - menuHeight - gap);
+      top = Math.max(8, window.innerHeight - menuHeight - 8);
     }
     setRowMenuPos({ top, left });
     setOpenActionMenu(productId);
@@ -935,12 +971,15 @@ export function StorageDurationPage() {
         <div className="modal-backdrop" role="presentation" onClick={() => setDiscountProduct(null)}>
           <form
             className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="storage-clearance-modal-title"
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSubmitDiscount}
           >
             <div className="modal-header">
               <div>
-                <h2>Lưu giá xả hàng</h2>
+                <h2 id="storage-clearance-modal-title">Lưu giá xả hàng</h2>
                 <p>Giá xả hàng riêng, không đổi giá bán chính. Giá này chỉ dùng để hiển thị/gợi ý khi bán và trên báo cáo tồn lâu.</p>
               </div>
               <button
@@ -948,6 +987,7 @@ export function StorageDurationPage() {
                 type="button"
                 onClick={() => setDiscountProduct(null)}
                 title="Đóng"
+                aria-label="Đóng"
               >
                 <X size={18} />
               </button>

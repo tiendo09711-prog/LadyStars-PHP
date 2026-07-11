@@ -148,6 +148,9 @@ type SuggestionRow = {
 
 type MetaPayload = {
   role: string;
+  isRootOwner?: boolean;
+  isAdmin?: boolean;
+  userWarehouseIds?: string[];
   warehouses: Option[];
   auditTypes: Option[];
   statuses: Option[];
@@ -442,7 +445,8 @@ export function WarehouseAuditPage() {
     let items = 2;
     if (audit.availableActions.some((action) => action.action === 'reconcile')) items += 1;
     if (audit.linkedInventoryBillIds.length) items += 1;
-    if (audit.status === 'RECONCILED' && meta.role === 'ADMIN') items += 1;
+    // Reverse comes from availableActions (backend already gates ADMIN/root)
+    if (audit.availableActions.some((action) => action.action === 'reverse-reconcile')) items += 1;
     if (audit.availableActions.some((action) => action.action === 'cancel')) items += 1;
     if (audit.canDelete) items += 1;
     return 12 + items * 38;
@@ -1369,7 +1373,21 @@ export function WarehouseAuditPage() {
             {suggestions.length ? (
               <div className="audit-suggestion-list">
                 {suggestions.slice(0, 6).map((item) => (
-                  <button key={item.productId} type="button" onClick={() => navigate('/warehouse/audit/create')}>
+                  <button
+                    key={item.productId}
+                    type="button"
+                    onClick={() => {
+                      const warehouseId = auditFilters.warehouseId
+                        || appliedAuditFilters.warehouseId
+                        || meta.warehouses[0]?.value
+                        || '';
+                      const params = new URLSearchParams();
+                      if (warehouseId) params.set('warehouseId', warehouseId);
+                      if (item.productId) params.set('productId', item.productId);
+                      const qs = params.toString();
+                      navigate(qs ? `/warehouse/audit/create?${qs}` : '/warehouse/audit/create');
+                    }}
+                  >
                     <strong>{item.productName}</strong>
                     <small>
                       {item.productCode || '—'} · Tồn {formatNumber(item.currentStock)} · {item.reasons.join(', ') || 'Nên kiểm lại'}
@@ -1485,7 +1503,7 @@ export function WarehouseAuditPage() {
                   <Link2 size={15} /> Xem phiếu XNK
                 </button>
               ) : null}
-              {openMenuAudit.status === 'RECONCILED' && meta.role === 'ADMIN' ? (
+              {openMenuAudit.availableActions.some((action) => action.action === 'reverse-reconcile') ? (
                 <button
                   type="button"
                   role="menuitem"

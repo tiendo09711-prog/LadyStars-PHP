@@ -131,14 +131,12 @@ const defaultTransactionFilters = (): FilterState => ({
   productKeyword: '',
 });
 
-const emptyFilters: FilterState = {
-  warehouseId: '',
-  billId: '',
-  type: '',
-  kind: '',
-  ...defaultDateRange(),
-  productKeyword: '',
-};
+/** Compare YYYY-MM-DD as plain strings to avoid timezone shifts from Date parsing. */
+function isInvertedDateRange(fromDate: string, toDate: string): boolean {
+  if (!fromDate || !toDate) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fromDate) || !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) return false;
+  return fromDate > toDate;
+}
 
 const billColumns: ColumnDefinition[] = [
   { key: 'identity', label: 'ID | Ngày', fixed: true },
@@ -228,6 +226,8 @@ function buildTransactionExportColumns(tab: TabKey): ColumnOption[] {
 export function WarehouseTransactionPage() {
   const navigate = useNavigate();
   const menuRootRef = useRef<HTMLDivElement>(null);
+  const listRequestSeq = useRef(0);
+  const fromDateInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('bills');
   const [meta, setMeta] = useState<TransactionMeta>({ warehouses: [], types: [], kinds: [] });
   const [rows, setRows] = useState<TransactionRow[]>([]);
@@ -235,6 +235,7 @@ export function WarehouseTransactionPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filterError, setFilterError] = useState('');
   const [notice, setNotice] = useState('');
   const [draftFilters, setDraftFilters] = useState<Record<TabKey, FilterState>>({
     bills: defaultTransactionFilters(),
@@ -271,9 +272,11 @@ export function WarehouseTransactionPage() {
   const exportColumns = useMemo(() => buildTransactionExportColumns(activeTab), [activeTab]);
   const visibleColumnCount = columns.filter((column) => visibility[column.key]).length;
   const currentTabMeta = TRANSACTION_TABS.find((tab) => tab.key === activeTab) || TRANSACTION_TABS[0];
-  const rangeLabel = total
+  const rangeLabel = total > 0
     ? `${((page - 1) * LIMIT + 1).toLocaleString('vi-VN')}–${Math.min(page * LIMIT, total).toLocaleString('vi-VN')} / ${total.toLocaleString('vi-VN')}`
     : '0 bản ghi';
+  const listSettledOk = !loading && !error;
+  const showEmptyState = listSettledOk && rows.length === 0;
 
   const hasActiveFilters = useMemo(() => {
     const applied = appliedFilters[activeTab];
@@ -325,6 +328,7 @@ export function WarehouseTransactionPage() {
   };
 
   const load = async (signal?: AbortSignal) => {
+    const seq = ++listRequestSeq.current;
     setLoading(true);
     setError('');
     try {
@@ -334,16 +338,19 @@ export function WarehouseTransactionPage() {
         limit: LIMIT,
       };
       const response = await http.get(`/warehouse/transactions/${activeTab}`, { params, signal });
+      // Ignore stale responses (aborted or superseded by a newer load).
+      if (seq !== listRequestSeq.current) return;
       setRows(Array.isArray(response.data?.items) ? response.data.items : (Array.isArray(response.data?.data) ? response.data.data : []));
       setTotal(Number(response.data?.total ?? 0));
     } catch (err: any) {
-      if (err.code === 'ERR_CANCELED') return;
+      if (err.code === 'ERR_CANCELED' || seq !== listRequestSeq.current) return;
       // Clear previous rows so a failed request never looks like real current data.
       setRows([]);
       setTotal(0);
       setError(err.response?.data?.message || 'Không tải được dữ liệu xuất nhập kho.');
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      // Always clear loading for the latest request, including when an older one was aborted mid-flight.
+      if (seq === listRequestSeq.current) setLoading(false);
     }
   };
 
@@ -361,6 +368,8 @@ export function WarehouseTransactionPage() {
     const controller = new AbortController();
     void load(controller.signal);
     return () => controller.abort();
+    // load closes over activeTab/page/appliedFilters; intentional deps for list refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, page, appliedFilters]);
 
   useEffect(() => {
@@ -382,6 +391,7 @@ export function WarehouseTransactionPage() {
   }, [notice]);
 
   const updateFilter = (key: keyof FilterState, value: string) => {
+    setFilterError('');
     setDraftFilters((current) => ({
       ...current,
       [activeTab]: { ...current[activeTab], [key]: value },
@@ -391,12 +401,20 @@ export function WarehouseTransactionPage() {
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
     closeMenus();
+    const draft = draftFilters[activeTab];
+    if (isInvertedDateRange(draft.fromDate, draft.toDate)) {
+      setFilterError('Từ ngày không được lớn hơn Đến ngày.');
+      fromDateInputRef.current?.focus();
+      return;
+    }
+    setFilterError('');
     setPage(1);
-    setAppliedFilters((current) => ({ ...current, [activeTab]: { ...draftFilters[activeTab] } }));
+    setAppliedFilters((current) => ({ ...current, [activeTab]: { ...draft } }));
   };
 
   const resetFilters = () => {
     closeMenus();
+    setFilterError('');
     setPage(1);
     const nextFilters = defaultTransactionFilters();
     setDraftFilters((current) => ({ ...current, [activeTab]: nextFilters }));
@@ -630,14 +648,22 @@ export function WarehouseTransactionPage() {
         </div>
 
         <div className="wt-summary-strip" aria-label="Tóm tắt xuất nhập kho">
-          <div className="wt-summary-cluster">
-            <span className="wt-summary-main">
-              <strong>{total.toLocaleString('vi-VN')}</strong>
-              <span>{activeTab === 'bills' ? 'phiếu' : 'dòng SP'}</span>
-            </span>
-            <span className="wt-summary-divider" aria-hidden="true" />
-            <span>{rangeLabel}</span>
-            {hasActiveFilters ? (
+          <div className="wt-summary-cluster" aria-live="polite">
+            {loading ? (
+              <span className="wt-summary-loading">Đang tải dữ liệu…</span>
+            ) : error ? (
+              <span className="wt-summary-error">Không tải được dữ liệu</span>
+            ) : (
+              <>
+                <span className="wt-summary-main">
+                  <strong>{total.toLocaleString('vi-VN')}</strong>
+                  <span>{activeTab === 'bills' ? 'phiếu' : 'dòng SP'}</span>
+                </span>
+                <span className="wt-summary-divider" aria-hidden="true" />
+                <span>{rangeLabel}</span>
+              </>
+            )}
+            {!loading && !error && hasActiveFilters ? (
               <>
                 <span className="wt-summary-divider" aria-hidden="true" />
                 <span className="wt-summary-filter">Đang lọc</span>
@@ -713,12 +739,14 @@ export function WarehouseTransactionPage() {
           ) : null}
 
           <input
+            ref={fromDateInputRef}
             className="wt-filter-select"
             type="date"
             value={currentFilters.fromDate}
             onChange={(event) => updateFilter('fromDate', event.target.value)}
             title="Từ ngày"
             aria-label="Từ ngày"
+            aria-invalid={filterError ? true : undefined}
           />
           <input
             className="wt-filter-select"
@@ -727,6 +755,7 @@ export function WarehouseTransactionPage() {
             onChange={(event) => updateFilter('toDate', event.target.value)}
             title="Đến ngày"
             aria-label="Đến ngày"
+            aria-invalid={filterError ? true : undefined}
           />
 
           <button className="wt-btn wt-btn-primary wt-filter-apply" type="submit">
@@ -829,6 +858,12 @@ export function WarehouseTransactionPage() {
         </form>
       </section>
 
+      {filterError ? (
+        <div className="wt-error" role="alert">
+          <AlertCircle size={16} aria-hidden="true" />
+          <span>{filterError}</span>
+        </div>
+      ) : null}
       {notice ? (
         <div className="wt-notice">
           <Check size={16} aria-hidden="true" />
@@ -848,7 +883,11 @@ export function WarehouseTransactionPage() {
           <div>
             <h2 className="wt-table-title">Bảng dữ liệu xuất nhập kho</h2>
             <p className="wt-table-subtitle">
-              {total.toLocaleString('vi-VN')} bản ghi · {currentTabMeta.label} · {rangeLabel}
+              {loading
+                ? `Đang tải · ${currentTabMeta.label}`
+                : error
+                  ? `Lỗi tải dữ liệu · ${currentTabMeta.label}`
+                  : `${total.toLocaleString('vi-VN')} bản ghi · ${currentTabMeta.label} · ${rangeLabel}`}
             </p>
           </div>
         </div>
@@ -878,7 +917,7 @@ export function WarehouseTransactionPage() {
                   <td colSpan={visibleColumnCount + 1}><span /></td>
                 </tr>
               ))}
-              {!loading && rows.length === 0 && (
+              {showEmptyState && (
                 <tr>
                   <td className="wt-empty-cell" colSpan={visibleColumnCount + 1}>
                     <div className="wt-empty-state">
@@ -889,7 +928,7 @@ export function WarehouseTransactionPage() {
                   </td>
                 </tr>
               )}
-              {!loading && rows.map((row) => (
+              {!loading && !error && rows.map((row) => (
                 <tr key={row.rowKey}>
                   {visibility.identity && (
                     <td className="wt-col wt-col-identity wt-identity-cell">

@@ -702,59 +702,75 @@ export function CustomerCarePage() {
 
         <div className="table-scroll care-table-scroll">
           <table className="data-table care-data-table">
+            {/*
+              Column min-widths kept in sync with customer-care-page.css.
+              44+130+200+120+170+140+180+130+120+88 = 1322 (table min-width)
+            */}
+            <colgroup>
+              <col className="care-col-check" />
+              <col className="care-col-code" />
+              <col className="care-col-customer" />
+              <col className="care-col-phone" />
+              <col className="care-col-details" />
+              <col className="care-col-reason" />
+              <col className="care-col-description" />
+              <col className="care-col-creator" />
+              <col className="care-col-date" />
+              <col className="care-col-actions" />
+            </colgroup>
             <thead>
               <tr>
-                <th className="check-cell">
+                <th className="check-cell care-col-check">
                   <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} aria-label="Chọn tất cả" />
                 </th>
-                <th>
+                <th className="care-col-code">
                   <button type="button" className="care-sort-button" onClick={() => handleSort('code')}>
                     ID Phiếu <ArrowUpDown size={13} />
                   </button>
                 </th>
-                <th>
+                <th className="care-col-customer">
                   <button type="button" className="care-sort-button" onClick={() => handleSort('customerName')}>
                     Tên khách hàng <ArrowUpDown size={13} />
                   </button>
                 </th>
-                <th>
+                <th className="care-col-phone">
                   <button type="button" className="care-sort-button" onClick={() => handleSort('customerPhone')}>
                     SĐT <ArrowUpDown size={13} />
                   </button>
                 </th>
-                <th>Chi tiết</th>
-                <th>
+                <th className="care-col-details">Chi tiết</th>
+                <th className="care-col-reason">
                   <button type="button" className="care-sort-button" onClick={() => handleSort('reason')}>
                     Lý do <ArrowUpDown size={13} />
                   </button>
                 </th>
-                <th>Mô tả</th>
-                <th>
+                <th className="care-col-description">Mô tả</th>
+                <th className="care-col-creator">
                   <button type="button" className="care-sort-button" onClick={() => handleSort('creator')}>
                     Người tạo <ArrowUpDown size={13} />
                   </button>
                 </th>
-                <th>
+                <th className="care-col-date">
                   <button type="button" className="care-sort-button" onClick={() => handleSort('recordDate')}>
                     Ngày tạo <ArrowUpDown size={13} />
                   </button>
                 </th>
-                <th className="action-cell">Thao tác</th>
+                <th className="action-cell care-col-actions">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading && Array.from({ length: 8 }).map((_, index) => (
                 <tr key={'loading-' + index} className="care-skeleton-row">
-                  <td><div className="care-skeleton-box short" /></td>
-                  <td><div className="care-skeleton-box tall" /></td>
-                  <td><div className="care-skeleton-box tall" /></td>
-                  <td><div className="care-skeleton-box short" /></td>
-                  <td><div className="care-skeleton-box short" /></td>
-                  <td><div className="care-skeleton-box short" /></td>
-                  <td><div className="care-skeleton-box short" /></td>
-                  <td><div className="care-skeleton-box short" /></td>
-                  <td><div className="care-skeleton-box short" /></td>
-                  <td className="action-cell"><div className="care-skeleton-box short" /></td>
+                  <td className="check-cell care-col-check"><div className="care-skeleton-box short" /></td>
+                  <td className="care-col-code"><div className="care-skeleton-box tall" /></td>
+                  <td className="care-col-customer"><div className="care-skeleton-box tall" /></td>
+                  <td className="care-col-phone"><div className="care-skeleton-box short" /></td>
+                  <td className="care-col-details"><div className="care-skeleton-box tall" /></td>
+                  <td className="care-col-reason"><div className="care-skeleton-box short" /></td>
+                  <td className="care-col-description"><div className="care-skeleton-box tall" /></td>
+                  <td className="care-col-creator"><div className="care-skeleton-box short" /></td>
+                  <td className="care-col-date"><div className="care-skeleton-box short" /></td>
+                  <td className="action-cell care-col-actions"><div className="care-skeleton-box short" /></td>
                 </tr>
               ))}
 
@@ -771,8 +787,8 @@ export function CustomerCarePage() {
               )}
 
               {!loading && items.map((item) => (
-                <tr key={item._id}>
-                  <td className="check-cell">
+                <tr key={item._id} className={selectedIds.has(item._id) ? 'is-selected' : undefined}>
+                  <td className="check-cell care-col-check">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(item._id)}
@@ -780,19 +796,19 @@ export function CustomerCarePage() {
                       aria-label={'Chọn ' + (item.code || item._id)}
                     />
                   </td>
-                  <td className="care-name-cell">
+                  <td className="care-name-cell care-col-code">
                     <button type="button" className="care-link-button care-name-button" onClick={() => openEdit(item)}>
-                      <span className="care-name-main">{item.code || '—'}</span>
-                      <span className="care-name-sub">{item.customerCode || item._id}</span>
+                      <span className="care-name-main" title={item.code || undefined}>{item.code || '—'}</span>
+                      <span className="care-name-sub" title={item.customerCode || item._id}>{item.customerCode || item._id}</span>
                     </button>
                   </td>
-                  <td className="care-name-cell">
+                  <td className="care-name-cell care-col-customer">
                     {item.customerName ? (
                       item.customerId ? (
                         <Link
                           to={`/customers/list/${item.customerId}`}
                           className="care-code"
-                          title="Xem chi tiết khách hàng"
+                          title={item.customerName}
                         >
                           {item.customerName}
                         </Link>
@@ -800,24 +816,24 @@ export function CustomerCarePage() {
                         <Link
                           to={`/customers/list?keyword=${encodeURIComponent(item.customerName)}`}
                           className="care-code"
-                          title="Tìm khách hàng trong danh sách"
+                          title={item.customerName}
                         >
                           {item.customerName}
                         </Link>
                       )
                     ) : '—'}
                   </td>
-                  <td className="care-number">{item.customerPhone || '—'}</td>
-                  <td className="care-clamp-cell">{item.details || '—'}</td>
-                  <td>
+                  <td className="care-number care-col-phone">{item.customerPhone || '—'}</td>
+                  <td className="care-clamp-cell care-col-details" title={item.details || undefined}>{item.details || '—'}</td>
+                  <td className="care-col-reason">
                     {item.reason ? (
-                      <span className="care-status-badge neutral">{item.reason}</span>
+                      <span className="care-status-badge neutral" title={item.reason}>{item.reason}</span>
                     ) : '—'}
                   </td>
-                  <td className="care-clamp-cell">{item.description || '—'}</td>
-                  <td>{item.creator || '—'}</td>
-                  <td className="care-number">{formatDate(item.recordDate)}</td>
-                  <td className="action-cell">
+                  <td className="care-clamp-cell care-col-description" title={item.description || undefined}>{item.description || '—'}</td>
+                  <td className="care-clamp-cell care-col-creator" title={item.creator || undefined}>{item.creator || '—'}</td>
+                  <td className="care-number care-col-date">{formatDate(item.recordDate)}</td>
+                  <td className="action-cell care-col-actions">
                     <div className="care-actions">
                       <button
                         className="care-row-menu-button"

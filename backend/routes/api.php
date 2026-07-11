@@ -332,6 +332,10 @@ Route::get('/products/categories', [ProductController::class, 'categories']);
 Route::post('/products/categories', [ProductController::class, 'storeCategory']);
 Route::patch('/products/categories/{category}', [ProductController::class, 'updateCategory']);
 Route::delete('/products/categories/{category}', [ProductController::class, 'destroyCategory']);
+// Payment methods (read-only mirror). Declare /standard before any dynamic /{id} segment.
+Route::get('/products/payment-methods/standard', [MirrorRecordController::class, 'index'])->defaults('resource', 'payment-methods');
+Route::get('/products/payment-methods', [MirrorRecordController::class, 'index'])->defaults('resource', 'payment-methods');
+
 Route::get('/products/sales', [MirrorRecordController::class, 'index'])->defaults('resource', 'sale-payments');
 Route::post('/products/sales', [LocalWriteController::class, 'storeMirror'])->defaults('resource', 'sale-payments');
 Route::get('/products/sales/{id}', [MirrorRecordController::class, 'show'])->defaults('resource', 'sale-payments');

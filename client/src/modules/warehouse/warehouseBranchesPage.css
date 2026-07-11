@@ -1085,15 +1085,25 @@
   display: grid;
   place-items: center;
   padding: 18px;
-  z-index: 100;
+  z-index: 2000;
 }
 
 .warehouse-modal-card {
   width: min(520px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
   background: #fff;
   border-radius: 16px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 22px 48px rgba(15, 23, 42, 0.22);
+  outline: none;
+}
+
+.warehouse-modal-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
 }
 
 .warehouse-modal-header,

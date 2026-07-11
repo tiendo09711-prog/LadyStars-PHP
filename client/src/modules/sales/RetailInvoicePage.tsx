@@ -29,7 +29,7 @@ import {
 import { http } from '../../core/api/http';
 import { isAdminRole } from '../../core/auth/access';
 import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
-import { buildReceiptHtml } from './invoicePrint';
+import { buildReceiptHtml, writeAndPrintPopup } from './invoicePrint';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import {
@@ -130,14 +130,33 @@ function paymentRows(invoice: Invoice) {
   const rows = Array.isArray(invoice.typePayment)
     ? invoice.typePayment
         .map((entry: any) => ({
-          label: entry?.methodId?.name || entry?.methodId?.code || 'Thanh toán',
+          label: entry?.methodId?.name || entry?.methodId?.code || entry?.method || 'Thanh toán',
           amount: Number(entry?.amount),
         }))
         .filter((entry: any) => Number.isFinite(entry.amount) && entry.amount > 0)
     : [];
   if (rows.length > 0) return rows;
-  const paid = Number(invoice.valuePayment);
-  return Number.isFinite(paid) && paid > 0 ? [{ label: 'Đã thanh toán', amount: paid }] : [];
+  const paid = Number(invoice.valuePayment ?? invoice.value_payment);
+  if (Number.isFinite(paid) && paid > 0) {
+    const label = invoice.paymentMethod || invoice.payment_method || 'Đã thanh toán';
+    return [{ label: String(label), amount: paid }];
+  }
+  return [];
+}
+
+/** Prefer API-normalized value; fall back to legacy totalAmount / line gross. */
+function invoiceTotalValue(invoice: Invoice) {
+  const direct = Number(invoice.value ?? invoice.totalAmount ?? invoice.total_amount);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  if (productLines(invoice).length > 0) return grossValue(invoice);
+  return Number.isFinite(direct) ? direct : 0;
+}
+
+function invoicePaidValue(invoice: Invoice) {
+  const fromPayments = paymentRows(invoice).reduce((acc, entry) => acc + entry.amount, 0);
+  if (fromPayments > 0) return fromPayments;
+  const direct = Number(invoice.valuePayment ?? invoice.value_payment);
+  return Number.isFinite(direct) ? direct : 0;
 }
 
 export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
@@ -166,7 +185,9 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const canManageSales = isAdminRole(currentUser?.role);
+  /** Prevents admin actions from flashing hidden/visible before /auth/me settles. */
+  const [authReady, setAuthReady] = useState(false);
+  const canManageSales = authReady && isAdminRole(currentUser?.role);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -175,11 +196,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const pageSummary = useMemo(() => {
     if (!invoices.length) return { gross: 0, totalValue: 0, paid: 0 };
     const gross = invoices.reduce((sum, invoice) => sum + (productLines(invoice).length > 0 ? grossValue(invoice) : 0), 0);
-    const totalValue = invoices.reduce((sum, invoice) => sum + (Number(invoice.value) || 0), 0);
-    const paid = invoices.reduce(
-      (sum, invoice) => sum + paymentRows(invoice).reduce((acc, entry) => acc + entry.amount, 0),
-      0,
-    );
+    const totalValue = invoices.reduce((sum, invoice) => sum + invoiceTotalValue(invoice), 0);
+    const paid = invoices.reduce((sum, invoice) => sum + invoicePaidValue(invoice), 0);
     return { gross, totalValue, paid };
   }, [invoices]);
 
@@ -193,12 +211,17 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
   useEffect(() => {
     let mounted = true;
+    setAuthReady(false);
     http.get('/auth/me')
       .then((response) => {
-        if (mounted) setCurrentUser(response.data?.user || response.data || null);
+        if (!mounted) return;
+        setCurrentUser(response.data?.user || response.data || null);
       })
       .catch(() => {
         if (mounted) setCurrentUser(null);
+      })
+      .finally(() => {
+        if (mounted) setAuthReady(true);
       });
 
     return () => {
@@ -369,6 +392,20 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
     return response.data;
   };
 
+  const writePrintPlaceholder = (popup: Window) => {
+    try {
+      popup.document.open();
+      popup.document.write(
+        '<!doctype html><html lang="vi"><head><meta charset="utf-8" /><title>Đang chuẩn bị in</title></head>'
+        + '<body data-receipt-ready="false"><p>Đang chuẩn bị hóa đơn...</p></body></html>',
+      );
+      popup.document.close();
+    } catch {
+      // Ignore write failures on closed/restricted popups.
+    }
+  };
+
+  /** Open (or reuse) a single print popup during a user gesture to avoid blockers. */
   const openPrintWindow = () => {
     const existing = pendingPrintWindowRef.current;
     if (existing && !existing.closed) return existing;
@@ -377,14 +414,18 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
     if (!popup) return null;
 
     pendingPrintWindowRef.current = popup;
-    popup.document.open();
-    popup.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Dang chuan bi in</title></head><body>Dang chuan bi hoa don...</body></html>');
-    popup.document.close();
+    writePrintPlaceholder(popup);
     return popup;
   };
 
   const primePrintWindow = () => {
     openPrintWindow();
+  };
+
+  const clearPendingPrintWindow = (popup?: Window | null) => {
+    if (!popup || pendingPrintWindowRef.current === popup) {
+      pendingPrintWindowRef.current = null;
+    }
   };
 
   const buildPrintDocument = (invoice: Invoice, branch: Branch | null, shop: any, items: any[], title: string, hideTotals = false) => {
@@ -403,20 +444,24 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       shop || undefined,
     );
     const receiptLines = items.map((item) => {
-      const total = Number(item?.total ?? (Number(item?.value) || 0) * (Number(item?.amount) || 0));
+      const unit = Number(item?.value ?? item?.price ?? 0);
+      const qty = Number(item?.amount ?? item?.quantity ?? 0);
+      const total = Number(item?.total ?? unit * qty);
       return {
         name: productName(item),
-        quantity: Number(item?.amount || 0).toLocaleString('vi-VN'),
-        price: safeMoney(item?.value),
+        code: productCode(item) || undefined,
+        quantity: qty.toLocaleString('vi-VN'),
+        price: safeMoney(unit),
         total: hideTotals ? '—' : safeMoney(total),
       };
     });
-    const paid = Number(invoice.valuePayment || 0);
-    const total = Number(invoice.value || 0);
+    const paid = invoicePaidValue(invoice);
+    const total = invoiceTotalValue(invoice);
     const tendered = Number(invoice.tenderedValue ?? paid);
     const hasDistinctTendered = Number.isFinite(tendered) && tendered > 0 && Math.abs(tendered - paid) > 1;
     const change = hasDistinctTendered ? Math.max(tendered - total, 0) : 0;
     const customerText = `${customer?.name || 'Khách lẻ'}${customer?.phone ? ` (${customer.phone})` : ''}`;
+    const gross = productLines(invoice).length > 0 ? grossValue(invoice) : total;
 
     return buildReceiptHtml({
       profile,
@@ -426,10 +471,10 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       customer: customerText,
       sections: [{ lines: receiptLines }],
       summary: hideTotals ? [] : [
-        { label: 'Tổng cộng', value: safeMoney(grossValue(invoice)) },
+        { label: 'Tổng cộng', value: safeMoney(gross) },
         { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—' },
-        { label: 'Thành tiền', value: safeMoney(invoice.value), strong: true },
-        { label: 'Đã thanh toán', value: safeMoney(invoice.valuePayment) },
+        { label: 'Thành tiền', value: safeMoney(total), strong: true },
+        { label: 'Đã thanh toán', value: safeMoney(paid) },
         ...(hasDistinctTendered ? [{ label: 'Tiền khách trả', value: safeMoney(tendered) }] : []),
         ...(change > 0 ? [{ label: 'Tiền trả lại', value: safeMoney(change) }] : []),
       ],
@@ -438,93 +483,81 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
   const resolvePrintBranch = async (invoice: Invoice) => {
     const rawBranch = invoice.branchId || invoice.warehouseId || invoice.warehouse;
-    const branchId = typeof rawBranch === 'string' ? rawBranch : rawBranch?._id;
+    const branchId = typeof rawBranch === 'string' || typeof rawBranch === 'number'
+      ? String(rawBranch)
+      : rawBranch?._id || rawBranch?.id;
     if (!branchId) return null;
     try {
-      return await getBranch(branchId, { includeInactive: true });
+      return await getBranch(String(branchId), { includeInactive: true });
     } catch {
-      return typeof rawBranch === 'object' ? rawBranch : null;
+      return typeof rawBranch === 'object' && rawBranch ? rawBranch : null;
     }
   };
 
-  const printInvoice = async (invoice: Invoice, giftOnly = false) => {
-    const popup = openPrintWindow();
-    if (!popup) {
-      window.alert('Trình duyệt đang chặn cửa sổ in hóa đơn.');
-      return;
-    }
-
-    popup.document.open();
-    popup.document.write('<!doctype html><html><head><meta charset="utf-8" /><title>Đang chuẩn bị in</title></head><body>Đang chuẩn bị hóa đơn...</body></html>');
-    popup.document.close();
-
-    try {
-      const fullInvoice = await fetchInvoiceDetail(invoice);
-      const items = giftOnly
-        ? productLines(fullInvoice).filter((item) => item?.isGift === true || item?.gift === true || item?.giftForProductId)
-        : productLines(fullInvoice);
-      if (giftOnly && items.length === 0) {
-        popup.close();
-        window.alert('Hóa đơn này không có sản phẩm tặng kèm');
-        return;
-      }
-      const branch = await resolvePrintBranch(fullInvoice);
-      const shop = branch ? {} : await getStoreSetting().catch(() => ({}));
-      const html = buildPrintDocument(fullInvoice, branch, shop, items, giftOnly ? 'HÓA ĐƠN' : 'HÓA ĐƠN', giftOnly);
-      popup.document.open();
-      popup.document.write(html);
-      popup.document.close();
-      popup.focus();
-      popup.print();
-    } catch (err: any) {
-      popup.close();
-      window.alert(err.response?.data?.message || 'Không thể in hóa đơn.');
-    }
-  };
-
+  /** Single canonical print flow for list menu + detail modal. */
   const handlePrintInvoice = async (invoice: Invoice, giftOnly = false) => {
     closeRowMenu();
 
+    // Prefer the popup opened on pointerdown (user gesture); otherwise open now.
     const popup = openPrintWindow();
     if (!popup) {
-      window.alert('Trinh duyet dang chan cua so in hoa don. Hay cho phep pop-up va thu lai.');
+      window.alert('Trình duyệt đang chặn cửa sổ in hóa đơn. Hãy cho phép pop-up và thử lại.');
       return;
     }
 
     try {
+      if (popup.closed) {
+        clearPendingPrintWindow(popup);
+        window.alert('Cửa sổ in đã bị đóng. Vui lòng thử lại.');
+        return;
+      }
+
       const fullInvoice = await fetchInvoiceDetail(invoice);
+      if (popup.closed) {
+        clearPendingPrintWindow(popup);
+        return;
+      }
+
       const items = giftOnly
         ? productLines(fullInvoice).filter((item) => item?.isGift === true || item?.gift === true || item?.giftForProductId)
         : productLines(fullInvoice);
 
       if (giftOnly && items.length === 0) {
-        pendingPrintWindowRef.current = null;
-        popup.close();
-        window.alert('Hoa don nay khong co san pham tang kem');
+        try { popup.close(); } catch { /* ignore */ }
+        window.alert('Hóa đơn này không có sản phẩm tặng kèm');
         return;
       }
 
       const branch = await resolvePrintBranch(fullInvoice);
+      if (popup.closed) {
+        clearPendingPrintWindow(popup);
+        return;
+      }
       const shop = branch ? {} : await getStoreSetting().catch(() => ({}));
+      if (popup.closed) {
+        clearPendingPrintWindow(popup);
+        return;
+      }
+
       const html = buildPrintDocument(
         fullInvoice,
         branch,
         shop,
         items,
-        giftOnly ? 'HÓA ĐƠN' : 'HÓA ĐƠN',
+        'HÓA ĐƠN',
         giftOnly,
       );
 
-      popup.document.open();
-      popup.document.write(html);
-      popup.document.close();
-      popup.focus();
-      popup.print();
-      pendingPrintWindowRef.current = null;
+      writeAndPrintPopup(popup, html);
     } catch (err: any) {
-      pendingPrintWindowRef.current = null;
-      popup.close();
-      window.alert(err.response?.data?.message || 'Khong the in hoa don.');
+      try {
+        if (!popup.closed) popup.close();
+      } catch {
+        // ignore
+      }
+      window.alert(err.response?.data?.message || 'Không thể in hóa đơn.');
+    } finally {
+      clearPendingPrintWindow(popup);
     }
   };
 
@@ -544,7 +577,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
     const confirmation = window.confirm(
       [
         `Mã hóa đơn: ${invoice.code || invoice._id}`,
-        `Tổng tiền: ${safeMoney(invoice.value)}`,
+        `Tổng tiền: ${safeMoney(invoiceTotalValue(invoice))}`,
         `Số dòng hàng: ${lineCount}`,
         `Ảnh hưởng tồn kho: ${status === 'completed' ? 'Hệ thống sẽ hoàn tồn kho cho hóa đơn này.' : 'Không phát sinh hoàn tồn kho.'}`,
         'Thao tác này không thể khôi phục trực tiếp từ giao diện.',
@@ -595,9 +628,9 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       { label: 'Tổng SL', key: 'qty', getValue: (invoice: Invoice) => totalQuantity(invoice) },
       { label: 'Giảm giá', key: 'discount', getValue: (invoice: Invoice) => discountMoneyAmount(invoice) },
       { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => invoice.discountType === 'percent' ? Number(invoice.discountValue) || 0 : 0 },
-      { label: 'Tổng tiền', key: 'value', getValue: (invoice: Invoice) => Number(invoice.value) || 0 },
+      { label: 'Tổng tiền', key: 'value', getValue: (invoice: Invoice) => invoiceTotalValue(invoice) },
       { label: 'Phương thức thanh toán', key: 'paymentMethods', getValue: (invoice: Invoice) => paymentRows(invoice).map((p) => p.label).join(', ') || '—' },
-      { label: 'Đã thanh toán', key: 'paid', getValue: (invoice: Invoice) => Number(invoice.valuePayment) || 0 },
+      { label: 'Đã thanh toán', key: 'paid', getValue: (invoice: Invoice) => invoicePaidValue(invoice) },
       { label: 'Trạng thái', key: 'status', getValue: (invoice: Invoice) => statusMeta(invoice.status, invoice.refundStatus).label },
     ],
     [],
@@ -932,8 +965,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                         </span>
                       ) : '—'}
                     </td>
-                    <td className="number col-center total col-total" title={safeMoney(invoice.value)}>
-                      {safeMoney(invoice.value)}
+                    <td className="number col-center total col-total" title={safeMoney(invoiceTotalValue(invoice))}>
+                      {safeMoney(invoiceTotalValue(invoice))}
                     </td>
                     <td className="col-center retail-payment-column col-payment">
                       {payments.length > 0 ? (
@@ -1192,8 +1225,8 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
                 {invoice.discountType === 'percent' ? <span className="retail-discount-rate">{Number(invoice.discountValue)}%</span> : null}
               </span>
             ) : '—'}</dd></div>
-            <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(invoice.value)}</dd></div>
-            <div><dt>Đã thanh toán</dt><dd>{safeMoney(invoice.valuePayment)}</dd></div>
+            <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(invoiceTotalValue(invoice))}</dd></div>
+            <div><dt>Đã thanh toán</dt><dd>{safeMoney(invoicePaidValue(invoice))}</dd></div>
           </dl>
           {payments.length > 0 && (
             <div className="retail-payment-breakdown">

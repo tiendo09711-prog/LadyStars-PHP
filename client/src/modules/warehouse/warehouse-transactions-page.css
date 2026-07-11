@@ -173,6 +173,21 @@
   background: #a7f3d0;
 }
 
+.wt-root .wt-summary-loading,
+.wt-root .wt-summary-error {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.25em;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.wt-root .wt-summary-error {
+  color: #b91c1c;
+}
+
 .wt-root .wt-summary-filter {
   color: #b45309;
 }

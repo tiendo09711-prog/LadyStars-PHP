@@ -1651,19 +1651,75 @@
 /* Customer list: allow horizontal scroll (override densify overflow-x: hidden) */
 .customer-list-page .table-scroll.customer-list-table-scroll,
 .customer-list-page .table-scroll.customer-list-table {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
 }
 
 .customer-list-page .data-table.customer-list-data-table {
-  width: 1437px !important;
-  min-width: 1437px !important;
+  /* Keep in sync with customer-list-page.css column totals */
+  width: 1659px !important;
+  min-width: 1659px !important;
   max-width: none !important;
   table-layout: fixed !important;
+}
+
+/* Force table-cell on sticky action column (ui-contract sets .action-cell { display:flex }) */
+.customer-list-page .data-table.customer-list-data-table th.action-cell,
+.customer-list-page .data-table.customer-list-data-table td.action-cell,
+.customer-list-page .data-table.customer-list-data-table th.col-actions,
+.customer-list-page .data-table.customer-list-data-table td.col-actions {
+  display: table-cell !important;
+  position: sticky !important;
+  right: 0 !important;
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  text-align: center !important;
+}
+
+/* Customer care: same densify overrides as customer list / products */
+.customer-care-page .table-scroll.care-table-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.customer-care-page .data-table.care-data-table {
+  /* Keep in sync with customer-care-page.css column totals */
+  width: 100% !important;
+  min-width: 1322px !important;
+  max-width: none !important;
+  table-layout: fixed !important;
+}
+
+.customer-care-page .data-table.care-data-table th.action-cell,
+.customer-care-page .data-table.care-data-table td.action-cell,
+.customer-care-page .data-table.care-data-table th.care-col-actions,
+.customer-care-page .data-table.care-data-table td.care-col-actions {
+  display: table-cell !important;
+  position: sticky !important;
+  right: 0 !important;
+  width: 88px !important;
+  min-width: 88px !important;
+  max-width: 88px !important;
+  text-align: center !important;
+}
+
+.customer-care-page .data-table.care-data-table th,
+.customer-care-page .data-table.care-data-table td {
+  word-break: normal !important;
+  overflow-wrap: break-word;
+}
+
+.customer-care-page .data-table.care-data-table th {
+  white-space: nowrap !important;
 }
 
 /* Sales channel action grid densify */
