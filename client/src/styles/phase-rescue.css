@@ -390,14 +390,14 @@ body {
 }
 
 .reports-panel .submenu-panel {
-  right: calc(100% + 4px) !important;
-  left: auto !important;
+  left: calc(100% + 4px) !important;
+  right: auto !important;
 }
 
 /* Report flyouts open leftward — bridge on the right edge toward the trigger. */
 .reports-panel .submenu-panel::before {
-  left: auto !important;
-  right: -10px !important;
+  left: -10px !important;
+  right: auto !important;
 }
 
 .report-submenu-panel {

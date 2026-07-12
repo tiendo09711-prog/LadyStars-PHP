@@ -128,14 +128,25 @@ function paymentRows(invoice: Invoice) {
   const rows = Array.isArray(invoice.typePayment)
     ? invoice.typePayment
         .map((entry: any) => ({
-          label: entry?.methodId?.name || entry?.methodId?.code || 'Thanh toán',
+          label:
+            entry?.methodId?.name ||
+            entry?.methodId?.code ||
+            entry?.method?.name ||
+            entry?.method?.code ||
+            entry?.methodName ||
+            (typeof entry?.methodId === 'string' && entry.methodId ? 'Thanh toán' : null) ||
+            invoice.paymentMethod ||
+            'Thanh toán',
           amount: Number(entry?.amount),
         }))
         .filter((entry: any) => Number.isFinite(entry.amount) && entry.amount > 0)
     : [];
   if (rows.length > 0) return rows;
   const paid = Number(invoice.valuePayment);
-  return Number.isFinite(paid) && paid > 0 ? [{ label: 'Đã thanh toán', amount: paid }] : [];
+  if (Number.isFinite(paid) && paid > 0) {
+    return [{ label: invoice.paymentMethod || 'Đã thanh toán', amount: paid }];
+  }
+  return [];
 }
 
 function matchesTab(invoice: Invoice, tab: WholesaleTab): boolean {
@@ -170,6 +181,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
         : 'all';
 
   const toolsMenuRef = useRef<HTMLDivElement | null>(null);
+  const createInvoiceBtnRef = useRef<HTMLButtonElement | null>(null);
   const pendingPrintWindowRef = useRef<Window | null>(null);
   const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -353,6 +365,13 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     setAppliedFilters({ ...EMPTY_FILTERS });
   };
 
+  const closeBranchModal = (restoreFocus = false) => {
+    setShowBranchModal(false);
+    if (restoreFocus) {
+      window.setTimeout(() => createInvoiceBtnRef.current?.focus(), 0);
+    }
+  };
+
   const openBranchPicker = async () => {
     setShowBranchModal(true);
     if (branches.length === 0 && !branchLoading) await loadBranches();
@@ -363,6 +382,20 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     setShowBranchModal(false);
     navigate(`/sales-channels/${channel}/wholesale/create?branchId=${selectedBranchId}`);
   };
+
+  // Escape closes branch modal only while open (listener cleaned on close/unmount)
+  useEffect(() => {
+    if (!showBranchModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeBranchModal(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showBranchModal]);
 
   const hasActiveFilters = Boolean(
     appliedFilters.invoiceCode.trim() ||
@@ -479,6 +512,9 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       summary: hideTotals ? [] : [
         { label: 'Tổng cộng', value: safeMoney(grossValue(invoice)) },
         { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—' },
+        ...(invoice.hasVat && Number(invoice.vatAmount) > 0
+          ? [{ label: `VAT${Number(invoice.vatPercent) > 0 ? ` (${Number(invoice.vatPercent)}%)` : ''}`, value: safeMoney(invoice.vatAmount) }]
+          : []),
         { label: 'Thành tiền', value: safeMoney(invoice.value), strong: true },
         { label: 'Đã thanh toán', value: safeMoney(invoice.valuePayment) },
         ...(hasDistinctTendered ? [{ label: 'Tiền khách trả', value: safeMoney(tendered) }] : []),
@@ -877,7 +913,12 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
             <button className="ws-btn ws-btn-secondary" type="button" onClick={resetFilters} title="Đặt lại bộ lọc và làm mới">
               <RefreshCw size={14} /> Làm mới
             </button>
-            <button className="ws-btn ws-btn-success" type="button" onClick={() => void openBranchPicker()}>
+            <button
+              ref={createInvoiceBtnRef}
+              className="ws-btn ws-btn-success"
+              type="button"
+              onClick={() => void openBranchPicker()}
+            >
               <Plus size={14} /> Tạo hóa đơn sỉ
             </button>
             <div className="ws-floating-menu ws-bulk-menu" ref={showToolsDropdown ? toolsMenuRef : null}>
@@ -1226,11 +1267,11 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
         : null}
 
       {showBranchModal && (
-        <div className="ws-modal-backdrop" role="presentation" onClick={() => setShowBranchModal(false)}>
+        <div className="ws-modal-backdrop" role="presentation" onClick={() => closeBranchModal(true)}>
           <div className="ws-modal branch-modal" role="dialog" aria-modal="true" aria-labelledby="ws-branch-title" onClick={(event) => event.stopPropagation()}>
             <header>
               <div><Warehouse size={20} /><h2 id="ws-branch-title">Chọn Kho / Chi Nhánh Bán Sỉ</h2></div>
-              <button type="button" onClick={() => setShowBranchModal(false)} aria-label="Đóng"><X size={18} /></button>
+              <button type="button" onClick={() => closeBranchModal(true)} aria-label="Đóng"><X size={18} /></button>
             </header>
             <div className="ws-modal-body">
               {branchLoading ? (
@@ -1258,7 +1299,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
               )}
             </div>
             <footer>
-              <button className="ws-btn ghost" type="button" onClick={() => setShowBranchModal(false)}>Hủy</button>
+              <button className="ws-btn ghost" type="button" onClick={() => closeBranchModal(true)}>Hủy</button>
               <button className="ws-btn success" type="button" disabled={!selectedBranchId || branchLoading} onClick={continueCreate}>Tiếp tục</button>
             </footer>
           </div>
@@ -1361,8 +1402,25 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
                 {invoice.discountType === 'percent' ? <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span> : null}
               </span>
             ) : '—'}</dd></div>
+            {invoice.hasVat && Number(invoice.vatAmount) > 0 ? (
+              <>
+                {Number.isFinite(Number(invoice.subtotalBeforeVat ?? invoice.subtotalAfterProductDiscount)) ? (
+                  <div>
+                    <dt>Trước VAT</dt>
+                    <dd>{safeMoney(invoice.subtotalBeforeVat ?? invoice.subtotalAfterProductDiscount)}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt>VAT{Number(invoice.vatPercent) > 0 ? ` (${Number(invoice.vatPercent)}%)` : ''}</dt>
+                  <dd>{safeMoney(invoice.vatAmount)}</dd>
+                </div>
+              </>
+            ) : null}
             <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(invoice.value)}</dd></div>
             <div><dt>Đã thanh toán</dt><dd>{safeMoney(invoice.valuePayment)}</dd></div>
+            {Number(invoice.prepaidFromOrder) > 0 ? (
+              <div><dt>Đã TT từ đơn hàng</dt><dd>{safeMoney(invoice.prepaidFromOrder)}</dd></div>
+            ) : null}
           </dl>
           {payments.length > 0 && (
             <div className="ws-payment-breakdown">

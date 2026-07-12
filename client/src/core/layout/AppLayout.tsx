@@ -100,87 +100,39 @@ const baseMenuGroups: MenuGroup[] = [
         subItems: [
           { to: '/reports/revenue/time', label: 'Theo thời gian', icon: List },
           { to: '/reports/revenue/store', label: 'Theo cửa hàng', icon: List },
-          { to: '/reports/revenue/brand', label: 'Theo thương hiệu', icon: List },
           { to: '/reports/revenue/staff', label: 'Theo nhân viên', icon: List },
-          { to: '/reports/revenue/department', label: 'Theo phòng ban', icon: List },
-          { to: '/reports/revenue/category', label: 'Theo danh mục sản phẩm', icon: List },
-          { to: '/reports/revenue/internal-category', label: 'Theo danh mục nội bộ', icon: List },
-          { to: '/reports/revenue/product', label: 'Theo sản phẩm', icon: List },
-          { to: '/reports/revenue/vendor', label: 'Theo nhà cung cấp', icon: List },
-          { to: '/reports/revenue/customer', label: 'Theo khách hàng', icon: List },
-          { to: '/reports/revenue/inventory-ratio', label: 'Tỷ suất doanh thu / tồn kho', icon: List }
+          { to: '/reports/revenue/products', label: 'Theo sản phẩm / danh mục', icon: List },
+          { to: '/reports/revenue/customers', label: 'Theo khách hàng', icon: List },
         ]
       },
       {
-        label: 'Bán lẻ',
+        label: 'Bán hàng',
         icon: ShoppingBag,
         subItems: [
-          { to: '/reports/retail/overview', label: 'Tổng quan', icon: List },
-          { to: '/reports/retail/customer-source', label: 'Theo nguồn khách hàng', icon: List },
-          { to: '/reports/retail/staff', label: 'Theo nhân viên', icon: List },
-          { to: '/reports/retail/store', label: 'Theo cửa hàng', icon: List },
-          { to: '/reports/retail/card-swipe', label: 'Chi tiết quẹt thẻ', icon: List },
-          { to: '/reports/retail/invoice-value', label: 'Theo giá trị hóa đơn', icon: List },
-          { to: '/reports/retail/invoice-visitor-ratio', label: 'Báo cáo tỷ lệ hóa đơn/ khách vào cửa hàng', icon: List },
-          { to: '/reports/retail/shift-end', label: 'Báo cáo kết ca', icon: List }
-        ]
-      },
-      {
-        label: 'Bán sỉ',
-        icon: ShoppingBag,
-        subItems: [
-          { to: '/reports/wholesale/overview', label: 'Tổng quan', icon: List },
-          { to: '/reports/wholesale/staff', label: 'Theo nhân viên bán hàng', icon: List }
+          { to: '/reports/sales/overview', label: 'Tổng quan', icon: List },
+          { to: '/reports/sales/shift-closing', label: 'Kết ca', icon: List },
         ]
       },
       {
         label: 'Kho hàng',
         icon: Package,
         subItems: [
-          { to: '/reports/inventory/inout-product', label: 'Xuất nhập tồn theo sản phẩm', icon: List },
-          { to: '/reports/inventory/inout-details', label: 'Chi tiết sản phẩm XNK', icon: List },
-          { to: '/reports/inventory/inout-total', label: 'Tổng XNK', icon: List },
-          { to: '/reports/inventory/inout-store', label: 'Tổng XNK theo cửa hàng', icon: List },
-          { to: '/reports/inventory/vendor', label: 'Theo nhà cung cấp', icon: List },
-          { to: '/reports/inventory/product-category', label: 'Danh mục sản phẩm', icon: List },
-          { to: '/reports/inventory/stock-quantity', label: 'Số lượng hàng tồn kho', icon: List },
-          { to: '/reports/inventory/unconfirmed-transfers', label: 'Chuyển kho chưa xác nhận', icon: List },
-          { to: '/reports/inventory/store-status', label: 'Theo trạng thái từng cửa hàng', icon: List },
-          { to: '/reports/inventory/product-status', label: 'Theo trạng thái từng sản phẩm', icon: List },
-          { to: '/reports/inventory/batch', label: 'Theo lô hàng', icon: List },
-          { to: '/reports/inventory/transfers-product', label: 'Chuyển kho theo sản phẩm', icon: List }
+          { to: '/reports/inventory/in-out-stock', label: 'Xuất nhập tồn', icon: List },
+          { to: '/products/inventory', label: 'Tồn kho', icon: List },
+          { to: '/products/storage-duration', label: 'Hàng tồn lâu / bán chậm', icon: List },
+          { to: '/reports/inventory/pending-transfers', label: 'Chuyển kho chưa xác nhận', icon: List },
         ]
       },
-      {
-        label: 'Sản phẩm',
-        icon: Boxes,
-        subItems: [
-          { to: '/reports/products/best-selling', label: 'Bán chạy nhất', icon: List },
-          { to: '/reports/products/best-selling-store', label: 'Bán chạy theo cửa hàng', icon: List },
-          { to: '/reports/products/sales-speed', label: 'Tốc độ bán hàng', icon: List },
-          { to: '/reports/products/channel', label: 'Theo kênh bán', icon: List },
-          { to: '/reports/products/category-store', label: 'Theo danh mục và cửa hàng', icon: List },
-          { to: '/reports/products/price-range', label: 'Theo khoảng giá', icon: List },
-          { to: '/reports/products/date', label: 'Theo ngày', icon: List },
-          { to: '/reports/products/imei', label: 'Bán hàng theo IMEI', icon: List },
-          { to: '/reports/products/attribute', label: 'Theo thuộc tính', icon: List }
-        ]
-      },
+      { to: '/reports/products/performance', label: 'Sản phẩm', icon: Boxes },
       {
         label: 'Khách hàng',
         icon: Users,
         subItems: [
           { to: '/reports/customers/overview', label: 'Tổng quan', icon: List },
-          { to: '/reports/customers/product', label: 'Theo sản phẩm', icon: List },
-          { to: '/reports/customers/return-rate', label: 'Tỷ lệ khách quay lại', icon: List },
-          { to: '/reports/customers/level', label: 'Cấp độ khách hàng', icon: List },
-          { to: '/reports/customers/group', label: 'Nhóm khách hàng', icon: List },
-          { to: '/reports/customers/new-store', label: 'Khách hàng tạo mới theo cửa hàng', icon: List },
-          { to: '/reports/customers/purchase-cycle', label: 'Chu kỳ mua hàng', icon: List },
-          { to: '/reports/customers/birthday', label: 'Sinh nhật khách hàng', icon: List }
+          { to: '/reports/customers/purchase-behavior', label: 'Hành vi mua', icon: List },
         ]
       }
-    ],
+    ]
   },
 ];
 
@@ -489,7 +441,11 @@ export function AppLayout() {
         </label>
         <div className="report-menu-list">
           {group.items.map((item) => {
-            if ('to' in item) return renderMenuLink(item);
+            if ('to' in item) {
+              const leafText = item.label.toLowerCase();
+              if (searchTerm && !leafText.includes(searchTerm)) return null;
+              return renderMenuLink(item);
+            }
             const filtered = item.subItems.filter((subItem) => {
               const text = `${item.label} ${subItem.label}`.toLowerCase();
               return !searchTerm || text.includes(searchTerm);

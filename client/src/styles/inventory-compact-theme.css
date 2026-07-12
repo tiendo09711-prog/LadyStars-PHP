@@ -1331,8 +1331,6 @@
    REPORTS densify (common patterns)
    ============================================================ */
 
-.revenue-time-container,
-.revenue-store-container,
 [class*="revenue-"][class*="container"],
 [class*="report-"][class*="container"],
 .report-page,
@@ -1346,8 +1344,6 @@
   box-sizing: border-box;
 }
 
-.revenue-time-header,
-.revenue-store-header,
 [class*="revenue-"][class*="header"],
 .report-header {
   margin-bottom: 10px !important;
@@ -1362,8 +1358,6 @@
   gap: 10px;
 }
 
-.revenue-time-header h1,
-.revenue-store-header h1,
 .report-header h1,
 [class*="revenue-"][class*="header"] h1 {
   font-size: 20px !important;
@@ -1442,8 +1436,6 @@
 }
 
 /* Report tables */
-.revenue-time-container table,
-.revenue-store-container table,
 .report-page table,
 .report-container table,
 [class*="revenue-"] table {
@@ -1453,10 +1445,6 @@
   font-size: 12px;
 }
 
-.revenue-time-container table th,
-.revenue-time-container table td,
-.revenue-store-container table th,
-.revenue-store-container table td,
 .report-page table th,
 .report-page table td,
 .report-container table th,
@@ -1470,8 +1458,6 @@
   word-break: break-word;
 }
 
-.revenue-time-container table th,
-.revenue-store-container table th,
 .report-page table th,
 .report-container table th,
 [class*="revenue-"] table th {
@@ -1591,19 +1577,6 @@
 /* Report placeholder stubs */
 .report-placeholder-page {
   gap: 12px;
-}
-
-.report-placeholder-page .compact-table-card .btn,
-.report-placeholder-page .compact-table-card a.btn {
-  margin-top: 10px;
-  min-height: 28px;
-  padding: 5px 11px;
-  font-size: 12px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  text-decoration: none;
 }
 
 /* Dashboard button densify */

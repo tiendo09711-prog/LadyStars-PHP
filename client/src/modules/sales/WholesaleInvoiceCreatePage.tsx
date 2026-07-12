@@ -29,11 +29,141 @@ import {
 import { http } from '../../core/api/http';
 import { buildInvoiceProfile, getBranch } from '../../core/api/branch.api';
 import { buildReceiptHtml, receiptMoney, writeAndPrintPopup } from './invoicePrint';
+import './wholesale-invoice-create-page.css';
 
 const getStockForWarehouse = (prod: any) => {
   if (typeof prod?.selectedStock === 'number') return prod.selectedStock;
   return prod.totalStock ?? prod.qty ?? 0;
 };
+
+type PaymentMethodOption = {
+  _id: string;
+  name: string;
+  code: string;
+  sortOrder?: number;
+  isActive?: boolean;
+};
+
+type PaymentSlot = 'cash' | 'transfer' | 'card' | 'other';
+
+const PAYMENT_SLOT_LABELS: Record<PaymentSlot, string> = {
+  cash: 'Tiền mặt',
+  transfer: 'Chuyển khoản',
+  card: 'Quẹt thẻ',
+  other: 'Khác',
+};
+
+const EMPTY_PAYMENT_MAP: Record<PaymentSlot, PaymentMethodOption | null> = {
+  cash: null,
+  transfer: null,
+  card: null,
+  other: null,
+};
+
+function stripDiacritics(value: string) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeMethodCode(code: string) {
+  return stripDiacritics(code).replace(/[\s-]+/g, '_');
+}
+
+function classifyPaymentMethod(method: PaymentMethodOption): PaymentSlot | null {
+  const code = normalizeMethodCode(method.code || '');
+  const name = stripDiacritics(method.name || '');
+
+  if (
+    code === 'cash' ||
+    code === 'tien_mat' ||
+    code.endsWith('_cash') ||
+    code.includes('cash') ||
+    name.includes('tien mat')
+  ) {
+    return 'cash';
+  }
+  if (
+    code === 'bank_transfer' ||
+    code === 'transfer' ||
+    code === 'bank' ||
+    code === 'chuyen_khoan' ||
+    code.includes('bank_transfer') ||
+    code.includes('transfer') ||
+    name.includes('chuyen khoan')
+  ) {
+    return 'transfer';
+  }
+  if (
+    code === 'card' ||
+    code === 'credit_card' ||
+    code === 'debit_card' ||
+    code === 'pos' ||
+    code.includes('card') ||
+    name.includes('quet the') ||
+    name.includes('the tin dung') ||
+    name.includes('the')
+  ) {
+    // Avoid classifying generic "the" only if clearly card-related
+    if (code.includes('card') || code === 'pos' || name.includes('quet the') || name.includes('the tin') || name.includes('the atm')) {
+      return 'card';
+    }
+    if (name.includes('the') && !name.includes('tien mat')) return 'card';
+  }
+  if (
+    code === 'other' ||
+    code === 'khac' ||
+    code === 'misc' ||
+    code.includes('other') ||
+    name.includes('khac')
+  ) {
+    return 'other';
+  }
+  return null;
+}
+
+function buildPaymentMethodMap(items: PaymentMethodOption[]): Record<PaymentSlot, PaymentMethodOption | null> {
+  const active = (Array.isArray(items) ? items : []).filter((method) => method && method._id && method.isActive !== false);
+  const map: Record<PaymentSlot, PaymentMethodOption | null> = { ...EMPTY_PAYMENT_MAP };
+
+  // Prefer exact code matches first
+  const preferExact: Array<{ slot: PaymentSlot; codes: string[] }> = [
+    { slot: 'cash', codes: ['cash', 'tien_mat'] },
+    { slot: 'transfer', codes: ['bank_transfer', 'transfer', 'chuyen_khoan'] },
+    { slot: 'card', codes: ['card', 'credit_card', 'debit_card', 'pos'] },
+    { slot: 'other', codes: ['other', 'khac', 'misc'] },
+  ];
+  for (const rule of preferExact) {
+    const found = active.find((method) => rule.codes.includes(normalizeMethodCode(method.code || '')));
+    if (found) map[rule.slot] = found;
+  }
+
+  for (const method of active) {
+    const slot = classifyPaymentMethod(method);
+    if (slot && !map[slot]) map[slot] = method;
+  }
+  return map;
+}
+
+function methodIdOf(entry: any): string {
+  if (!entry) return '';
+  if (typeof entry === 'string') return entry;
+  if (typeof entry?.methodId === 'string') return entry.methodId;
+  if (entry?.methodId?._id) return String(entry.methodId._id);
+  if (entry?._id) return String(entry._id);
+  return '';
+}
+
+function slotForMethod(methodId: string, map: Record<PaymentSlot, PaymentMethodOption | null>, methods: PaymentMethodOption[]): PaymentSlot | null {
+  if (!methodId) return null;
+  for (const slot of Object.keys(map) as PaymentSlot[]) {
+    if (map[slot]?._id === methodId) return slot;
+  }
+  const method = methods.find((item) => item._id === methodId);
+  return method ? classifyPaymentMethod(method) : null;
+}
 
 const PRINT_WINDOW_FEATURES = 'popup=yes,width=420,height=720';
 
@@ -71,6 +201,63 @@ interface InvoiceProduct {
   unit: string;
   barcode?: string;
   imei?: string;
+}
+
+function computeWholesaleTotals(
+  products: InvoiceProduct[],
+  orderDiscount: number,
+  hasVat: boolean,
+  vatPercentRaw: number,
+  prepaidFromOrder: number,
+  paymentCash: number,
+  paymentTransfer: number,
+  paymentCard: number,
+  paymentOther: number,
+) {
+  let grossSubtotal = 0;
+  let productDiscount = 0;
+  const lineTotals = products.map((prod) => {
+    const discVal = prod.discountType === 'percentage'
+      ? prod.price * (prod.discountValue / 100)
+      : prod.discountValue;
+    const lineTotal = Math.max(0, prod.price - discVal) * prod.qty;
+    grossSubtotal += prod.price * prod.qty;
+    productDiscount += discVal * prod.qty;
+    return lineTotal;
+  });
+  const subtotalAfterProductDiscount = Math.max(0, grossSubtotal - productDiscount);
+  let vatPercent = Number(vatPercentRaw);
+  if (!Number.isFinite(vatPercent) || vatPercent < 0) vatPercent = 0;
+  if (vatPercent > 100) vatPercent = 100;
+  const vatAmount = hasVat ? Math.round(subtotalAfterProductDiscount * (vatPercent / 100)) : 0;
+  const orderDisc = Math.max(0, Number(orderDiscount) || 0);
+  const totalAmount = Math.max(0, subtotalAfterProductDiscount + vatAmount - orderDisc);
+  const prepaid = Math.max(0, Number(prepaidFromOrder) || 0);
+  const cash = Math.max(0, Number(paymentCash) || 0);
+  const transfer = Math.max(0, Number(paymentTransfer) || 0);
+  const card = Math.max(0, Number(paymentCard) || 0);
+  const other = Math.max(0, Number(paymentOther) || 0);
+  const paidAmount = prepaid + cash + transfer + card + other;
+  const debtAmount = Math.max(0, totalAmount - paidAmount);
+  const status = debtAmount > 0 ? 'Còn nợ' : 'Đã thanh toán';
+  return {
+    lineTotals,
+    grossSubtotal,
+    productDiscount,
+    subtotalAfterProductDiscount,
+    vatPercent,
+    vatAmount,
+    orderDiscount: orderDisc,
+    totalAmount,
+    paidAmount,
+    debtAmount,
+    status,
+    prepaid,
+    cash,
+    transfer,
+    card,
+    other,
+  };
 }
 
 export function WholesaleInvoiceCreatePage() {
@@ -151,6 +338,17 @@ export function WholesaleInvoiceCreatePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodOption[]>([]);
+  const [paymentMethodMap, setPaymentMethodMap] = useState<Record<PaymentSlot, PaymentMethodOption | null>>({ ...EMPTY_PAYMENT_MAP });
+  const [paymentMethodsError, setPaymentMethodsError] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
+  const allowNavigationRef = useRef(false);
+  const userBranchTouchedRef = useRef(false);
+  const hydratedEditRef = useRef(false);
+
+  const markDirty = () => {
+    if (!allowNavigationRef.current) setIsDirty(true);
+  };
 
   // Fetch branch details
   useEffect(() => {
@@ -163,6 +361,7 @@ export function WholesaleInvoiceCreatePage() {
             ...prev,
             warehouse: res.data?.name || ''
           }));
+          if (userBranchTouchedRef.current) markDirty();
         })
         .catch((err) => {
           console.error("Lỗi lấy thông tin kho:", err);
@@ -173,27 +372,87 @@ export function WholesaleInvoiceCreatePage() {
     }
   }, [activeBranchId]);
 
-  // Load dependencies (products, customers, staff, me)
+  // Load dependencies (products, staff, payment methods, branches, optional edit invoice)
   useEffect(() => {
+    let cancelled = false;
     Promise.all([
       http.get('/auth/me'),
       http.get('/staff').catch(() => null),
       activeBranchId ? http.get('/products/inventories', { params: { branchId: activeBranchId, limit: 5000 } }) : Promise.resolve({ data: { items: [] } }),
       http.get('/system/branches').catch(() => null),
-    ]).then(([meRes, staffRes, prodRes, branchListRes]) => {
-      setForm(prev => ({ ...prev, salesperson: meRes.data?.name || '' }));
+      http.get('/products/payment-methods', { params: { limit: 500 } }).catch((err) => ({ __error: err })),
+    ]).then(([meRes, staffRes, prodRes, branchListRes, methodRes]: any[]) => {
+      if (cancelled) return;
+      setForm(prev => ({ ...prev, salesperson: meRes.data?.name || meRes.data?.user?.name || prev.salesperson }));
       setDbStaffs(staffRes?.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
       setBranchOptions((branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false));
 
-      if (editId) {
+      if (methodRes?.__error) {
+        setPaymentMethods([]);
+        setPaymentMethodMap({ ...EMPTY_PAYMENT_MAP });
+        setPaymentMethodsError('Không tải được danh sách phương thức thanh toán. Không thể lưu khoản thanh toán cho đến khi cấu hình sẵn sàng.');
+      } else {
+        const methods: PaymentMethodOption[] = (methodRes?.data?.items || methodRes?.data || [])
+          .map((item: any) => ({
+            _id: String(item._id || item.id || ''),
+            name: String(item.name || ''),
+            code: String(item.code || ''),
+            sortOrder: Number(item.sortOrder || 0),
+            isActive: item.isActive !== false,
+          }))
+          .filter((item: PaymentMethodOption) => item._id);
+        setPaymentMethods(methods);
+        setPaymentMethodMap(buildPaymentMethodMap(methods));
+        setPaymentMethodsError('');
+      }
+
+      if (editId && !hydratedEditRef.current) {
+        hydratedEditRef.current = true;
         http.get(`/products/sales/${editId}`).then(res => {
+          if (cancelled) return;
           const sale = res.data;
-          // Derive branchId from sale for edit flow (edit URL may omit ?branchId=)
           const braw = sale.branchId || sale.warehouseId || sale.warehouse;
           const bid = typeof braw === 'string' ? braw : (braw && (braw._id || braw.id)) || '';
-          if (bid) {
-            setActiveBranchId(bid);
+          if (bid) setActiveBranchId(bid);
+
+          const methods: PaymentMethodOption[] = (methodRes?.__error
+            ? []
+            : (methodRes?.data?.items || methodRes?.data || [])
+          ).map((item: any) => ({
+            _id: String(item._id || item.id || ''),
+            name: String(item.name || ''),
+            code: String(item.code || ''),
+            sortOrder: Number(item.sortOrder || 0),
+            isActive: item.isActive !== false,
+          })).filter((item: PaymentMethodOption) => item._id);
+          const map = buildPaymentMethodMap(methods);
+
+          const payments = {
+            cash: 0,
+            transfer: 0,
+            card: 0,
+            other: 0,
+          };
+          const typePayment = Array.isArray(sale.typePayment) ? sale.typePayment : [];
+          if (typePayment.length > 0) {
+            typePayment.forEach((line: any) => {
+              const amount = Number(line?.amount) || 0;
+              if (amount <= 0) return;
+              const mid = methodIdOf(line);
+              const slot = slotForMethod(mid, map, methods);
+              if (slot) payments[slot] += amount;
+            });
+          } else {
+            // Legacy fallback: single paymentMethod + valuePayment
+            const paid = Number(sale.valuePayment) || 0;
+            if (paid > 0) {
+              const legacyLabel = stripDiacritics(String(sale.paymentMethod || ''));
+              if (legacyLabel.includes('chuyen')) payments.transfer = paid;
+              else if (legacyLabel.includes('the') || legacyLabel.includes('card')) payments.card = paid;
+              else if (legacyLabel.includes('khac') || legacyLabel.includes('other')) payments.other = paid;
+              else payments.cash = paid;
+            }
           }
 
           setForm(prev => ({
@@ -201,36 +460,80 @@ export function WholesaleInvoiceCreatePage() {
             id: sale.code || prev.id,
             customerName: sale.customerId?.name || sale.customerName || '',
             customerPhone: sale.customerId?.phone || sale.customerPhone || '',
-            customerCode: sale.customerId?.code || sale.customerId?.cardId || '',
-            email: sale.customerId?.email || '',
-            dob: sale.customerId?.birthday ? new Date(sale.customerId.birthday).toISOString().split('T')[0] : '',
-            address: sale.customerId?.address || '',
-            companyName: sale.customerId?.company || '',
-            taxId: sale.customerId?.vat || '',
+            customerCode: sale.customerId?.code || sale.customerId?.cardId || sale.customerCode || '',
+            email: sale.customerId?.email || sale.email || '',
+            dob: sale.customerId?.birthday
+              ? new Date(sale.customerId.birthday).toISOString().split('T')[0]
+              : (sale.dob || ''),
+            address: sale.customerId?.address || sale.address || '',
+            addressLocation: sale.addressLocation || sale.customerId?.addressLocation || '',
+            companyName: sale.companyName || sale.customerId?.company || '',
+            taxId: sale.taxId || sale.customerId?.vat || '',
+            poContractNumber: sale.poContractNumber || '',
+            contractSigningDate: sale.contractSigningDate || '',
+            wholesaleInvoiceLabel: sale.wholesaleInvoiceLabel || '',
             description: sale.note || '',
-            orderDiscount: sale.discountValue || 0,
+            orderDiscount: Number(sale.discountValue) || 0,
+            hasVat: Boolean(sale.hasVat),
+            vatInvoiceNumber: sale.vatInvoiceNumber || '',
+            vatInvoiceDate: sale.vatInvoiceDate || '',
+            vatPercent: Number.isFinite(Number(sale.vatPercent)) ? Number(sale.vatPercent) : prev.vatPercent,
+            prepaidFromOrder: Number(sale.prepaidFromOrder) || 0,
+            paymentCash: payments.cash,
+            paymentTransfer: payments.transfer,
+            paymentCard: payments.card,
+            paymentOther: payments.other,
+            orderSource: sale.orderSource || prev.orderSource,
+            salesperson: sale.salesperson || prev.salesperson,
           }));
+          setIsDirty(false);
 
           if (sale.items && sale.items.length > 0) {
             setProducts(sale.items.map((item: any) => ({
-              _id: item.productId?._id,
-              code: item.productId?.code || '',
-              name: item.productId?.name || '',
-              stock: item.productId?.qty || 0,
+              _id: item.productId?._id || item.productId,
+              code: item.productId?.code || item.code || '',
+              name: item.productId?.name || item.name || '',
+              stock: item.productId?.qty || item.stock || 0,
               qty: item.amount,
               price: item.value,
-              cost: item.productId?.cost || 0,
-              discountType: 'fixed',
+              cost: item.productId?.cost || item.cost || 0,
+              discountType: 'fixed' as const,
               discountValue: item.discountValue || 0,
               total: item.total || (item.value * item.amount),
-              unit: item.productId?.unit || 'Cái',
-              imei: '',
+              unit: item.productId?.unit || item.unit || 'Cái',
+              imei: String(item.note || '').startsWith('IMEI:') ? String(item.note).replace(/^IMEI:\s*/i, '') : '',
             })));
           }
         }).catch(err => console.error("Lỗi tải hóa đơn sỉ cũ:", err));
       }
     }).catch(err => console.error("Error fetching dependencies:", err));
+    return () => {
+      cancelled = true;
+    };
   }, [activeBranchId, editId]);
+
+  // Unsaved changes: browser unload
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty || isSaving || allowNavigationRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty, isSaving]);
+
+  const confirmLeave = () => {
+    if (allowNavigationRef.current || !isDirty || isSaving) return true;
+    return window.confirm('Bạn có thay đổi chưa lưu. Bạn có chắc muốn rời trang?');
+  };
+
+  const leaveToList = () => {
+    if (!confirmLeave()) return;
+    allowNavigationRef.current = true;
+    setIsDirty(false);
+    navigate(`/sales-channels/${channel}/wholesale`);
+  };
 
   // Hotkeys Hook: F3 search, F4 phone search, F9 save, F10 toggle auto-print
   useEffect(() => {
@@ -249,6 +552,7 @@ export function WholesaleInvoiceCreatePage() {
         if (btn) btn.click();
       } else if (e.key === 'F10') {
         e.preventDefault();
+        markDirty();
         setForm(prev => ({ ...prev, autoPrint: !prev.autoPrint }));
       }
     };
@@ -256,66 +560,47 @@ export function WholesaleInvoiceCreatePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Auto-calculator engine
+  // Auto-calculator engine (derived totals only — does not mark dirty)
   useEffect(() => {
-    // 1. Calculate individual product line totals
-    let tempSubtotal = 0;
-    let tempProductDiscount = 0;
+    const totals = computeWholesaleTotals(
+      products,
+      form.orderDiscount,
+      form.hasVat,
+      form.vatPercent,
+      form.prepaidFromOrder,
+      form.paymentCash,
+      form.paymentTransfer,
+      form.paymentCard,
+      form.paymentOther,
+    );
 
-    const updatedProducts = products.map(prod => {
-      const discVal = prod.discountType === 'percentage'
-        ? prod.price * (prod.discountValue / 100)
-        : prod.discountValue;
-      const lineTotal = Math.max(0, prod.price - discVal) * prod.qty;
-      tempSubtotal += prod.price * prod.qty;
-      tempProductDiscount += discVal * prod.qty;
-      return { ...prod, total: lineTotal };
-    });
-
-    // Prevent render loops by checking if totals changed
+    const updatedProducts = products.map((prod, index) => ({
+      ...prod,
+      total: totals.lineTotals[index] ?? prod.total,
+    }));
     const hasTotalChanged = updatedProducts.some((p, i) => p.total !== products[i]?.total);
     if (hasTotalChanged) {
       setProducts(updatedProducts);
       return;
     }
 
-    const subtotalAfterDiscount = Math.max(0, tempSubtotal - tempProductDiscount);
-
-    // 2. VAT Calculation
-    const vatPercent = Number(form.vatPercent) || 0;
-    const vatAmount = form.hasVat ? Math.round(subtotalAfterDiscount * (vatPercent / 100)) : 0;
-
-    // 3. Overall Order Total
-    const orderDiscount = Number(form.orderDiscount) || 0;
-    const totalAmount = Math.max(0, subtotalAfterDiscount + vatAmount - orderDiscount);
-
-    // 4. Paid Amount from multi-method split payments
-    const prepaid = Number(form.prepaidFromOrder) || 0;
-    const cash = Number(form.paymentCash) || 0;
-    const transfer = Number(form.paymentTransfer) || 0;
-    const card = Number(form.paymentCard) || 0;
-    const other = Number(form.paymentOther) || 0;
-    const paidAmount = prepaid + cash + transfer + card + other;
-
-    // 5. Debt
-    const debtAmount = Math.max(0, totalAmount - paidAmount);
-    const status = debtAmount > 0 ? 'Còn nợ' : 'Đã thanh toán';
-
     setForm(prev => {
       if (
-        prev.totalAmount === totalAmount &&
-        prev.paidAmount === paidAmount &&
-        prev.debtAmount === debtAmount &&
-        prev.status === status
+        prev.totalAmount === totals.totalAmount &&
+        prev.paidAmount === totals.paidAmount &&
+        prev.debtAmount === totals.debtAmount &&
+        prev.status === totals.status &&
+        prev.vatPercent === totals.vatPercent
       ) {
         return prev;
       }
       return {
         ...prev,
-        totalAmount,
-        paidAmount,
-        debtAmount,
-        status
+        totalAmount: totals.totalAmount,
+        paidAmount: totals.paidAmount,
+        debtAmount: totals.debtAmount,
+        status: totals.status,
+        vatPercent: totals.vatPercent,
       };
     });
   }, [
@@ -331,6 +616,14 @@ export function WholesaleInvoiceCreatePage() {
   ]);
 
   const handleChange = (field: string, value: any) => {
+    markDirty();
+    if (field === 'vatPercent') {
+      let next = Number(value);
+      if (!Number.isFinite(next) || next < 0) next = 0;
+      if (next > 100) next = 100;
+      setForm(prev => ({ ...prev, vatPercent: next }));
+      return;
+    }
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -360,6 +653,7 @@ export function WholesaleInvoiceCreatePage() {
   }, [form.customerName, form.customerPhone, showCustomerDropdown]);
 
   const selectCustomer = (c: any) => {
+    markDirty();
     setForm(prev => ({
       ...prev,
       customerName: c.name || '',
@@ -369,8 +663,8 @@ export function WholesaleInvoiceCreatePage() {
       dob: c.birthday ? new Date(c.birthday).toISOString().split('T')[0] : (c.dob || ''),
       addressLocation: c.addressLocation || '',
       address: c.address || '',
-      companyName: c.company || '',
-      taxId: c.vat || '',
+      companyName: c.company || prev.companyName,
+      taxId: c.vat || prev.taxId,
     }));
     setShowCustomerDropdown(false);
   };
@@ -417,6 +711,7 @@ export function WholesaleInvoiceCreatePage() {
       setErrorMessage(`Sản phẩm "${prod.name || prod.code}" đã hết tồn tại kho "${form.warehouse || 'đang chọn'}".`);
       return;
     }
+    markDirty();
     const existing = products.find(p => p.code === prod.code);
     if (existing) {
       setProducts(products.map(p => p.code === prod.code ? { ...p, qty: p.qty + 1 } : p));
@@ -445,6 +740,7 @@ export function WholesaleInvoiceCreatePage() {
   };
 
   const addCustomProduct = () => {
+    markDirty();
     setProducts([
       ...products,
       {
@@ -466,12 +762,14 @@ export function WholesaleInvoiceCreatePage() {
   };
 
   const handleProductChange = (index: number, key: keyof InvoiceProduct, val: any) => {
+    markDirty();
     const updated = [...products];
     updated[index] = { ...updated[index], [key]: val };
     setProducts(updated);
   };
 
   const removeProduct = (index: number) => {
+    markDirty();
     setProducts(products.filter((_, i) => i !== index));
   };
 
@@ -491,6 +789,45 @@ export function WholesaleInvoiceCreatePage() {
       return;
     }
 
+    const totals = computeWholesaleTotals(
+      products,
+      form.orderDiscount,
+      form.hasVat,
+      form.vatPercent,
+      form.prepaidFromOrder,
+      form.paymentCash,
+      form.paymentTransfer,
+      form.paymentCard,
+      form.paymentOther,
+    );
+
+    // Resolve payment lines with real method IDs — never send null methodId
+    const paymentAttempts: Array<{ slot: PaymentSlot; amount: number }> = [
+      { slot: 'cash', amount: totals.cash },
+      { slot: 'transfer', amount: totals.transfer },
+      { slot: 'card', amount: totals.card },
+      { slot: 'other', amount: totals.other },
+    ];
+    const typePayment: Array<{ methodId: string; amount: number }> = [];
+    for (const attempt of paymentAttempts) {
+      if (attempt.amount <= 0) continue;
+      const method = paymentMethodMap[attempt.slot];
+      if (!method?._id) {
+        setErrorMessage(
+          paymentMethodsError
+            ? `Không thể lưu: ${PAYMENT_SLOT_LABELS[attempt.slot]} chưa map được phương thức thanh toán (${paymentMethodsError})`
+            : `Không thể lưu: chưa cấu hình phương thức thanh toán cho «${PAYMENT_SLOT_LABELS[attempt.slot]}». Vui lòng cấu hình trong hệ thống hoặc bỏ số tiền của phương thức này.`,
+        );
+        return;
+      }
+      typePayment.push({ methodId: method._id, amount: attempt.amount });
+    }
+
+    const primaryPaymentLabel = typePayment.length > 0
+      ? (paymentMethods.find((m) => m._id === typePayment[0].methodId)?.name
+        || PAYMENT_SLOT_LABELS[paymentAttempts.find((a) => a.amount > 0)?.slot || 'cash'])
+      : (totals.prepaid > 0 ? 'Đã thanh toán từ đơn hàng' : form.paymentMethod);
+
     setErrorMessage('');
     const printPopup = form.autoPrint ? openReceiptWindow() : null;
     if (form.autoPrint && !printPopup) {
@@ -501,12 +838,6 @@ export function WholesaleInvoiceCreatePage() {
 
     const totalQty = products.reduce((acc, p) => acc + p.qty, 0);
     const totalCost = products.reduce((acc, p) => acc + (p.cost * p.qty), 0);
-    const subtotalBeforeDiscount = products.reduce((acc, p) => acc + (p.price * p.qty), 0);
-    const productDiscount = products.reduce((acc, p) => {
-      const disc = p.discountType === 'percentage' ? p.price * (p.discountValue / 100) : p.discountValue;
-      return acc + (disc * p.qty);
-    }, 0);
-    const subtotalAfterDiscount = Math.max(0, subtotalBeforeDiscount - productDiscount);
 
     try {
       // Auto-save new customer if not found
@@ -535,6 +866,8 @@ export function WholesaleInvoiceCreatePage() {
           cardId: form.customerCode,
           addressLocation: form.addressLocation,
           address: form.address,
+          company: form.companyName || undefined,
+          vat: form.taxId || undefined,
         }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
 
         if (createCustRes && createCustRes.data) {
@@ -550,29 +883,39 @@ export function WholesaleInvoiceCreatePage() {
         note: form.description,
         salesperson: form.salesperson,
         orderSource: form.orderSource,
-        channel, // ensure channel for filtering (store etc)
-        type: 'wholesale', // ensure correct separation from retail
-        paymentMethod: form.paymentMethod,
-        discountValue: Number(form.orderDiscount) || 0,
+        channel,
+        type: 'wholesale',
+        paymentMethod: primaryPaymentLabel,
+        discountValue: totals.orderDiscount,
         discountType: 'number' as const,
         status: 'draft',
         amountProducts: totalQty,
-        totalCost: totalCost,
-        value: form.totalAmount,
-        valuePayment: form.paidAmount,
-        typePayment: [
-          ...(form.paymentCash > 0 ? [{ methodId: null, amount: form.paymentCash }] : []),
-          ...(form.paymentTransfer > 0 ? [{ methodId: null, amount: form.paymentTransfer }] : []),
-          ...(form.paymentCard > 0 ? [{ methodId: null, amount: form.paymentCard }] : []),
-          ...(form.paymentOther > 0 ? [{ methodId: null, amount: form.paymentOther }] : [])
-        ],
-        items: products.map(p => ({
+        totalCost,
+        value: totals.totalAmount,
+        valuePayment: totals.paidAmount,
+        typePayment,
+        // VAT + wholesale metadata (JSON payload — no schema change)
+        hasVat: Boolean(form.hasVat),
+        vatInvoiceNumber: form.hasVat ? form.vatInvoiceNumber : '',
+        vatInvoiceDate: form.hasVat ? form.vatInvoiceDate : '',
+        vatPercent: form.hasVat ? totals.vatPercent : 0,
+        vatAmount: totals.vatAmount,
+        subtotalBeforeVat: totals.subtotalAfterProductDiscount,
+        subtotalAfterProductDiscount: totals.subtotalAfterProductDiscount,
+        prepaidFromOrder: totals.prepaid,
+        wholesaleInvoiceLabel: form.wholesaleInvoiceLabel,
+        companyName: form.companyName,
+        taxId: form.taxId,
+        poContractNumber: form.poContractNumber,
+        contractSigningDate: form.contractSigningDate,
+        addressLocation: form.addressLocation,
+        items: products.map((p, index) => ({
           productId: p._id,
           amount: p.qty,
           value: p.price,
           discountValue: p.discountType === 'percentage' ? (p.price * p.discountValue / 100) : p.discountValue,
           discountType: 'number',
-          total: p.total,
+          total: totals.lineTotals[index] ?? p.total,
           note: p.imei ? `IMEI: ${p.imei}` : ''
         })),
       };
@@ -586,11 +929,21 @@ export function WholesaleInvoiceCreatePage() {
 
       await http.post(`/products/sales/${saleId}/complete`);
 
+      allowNavigationRef.current = true;
+      setIsDirty(false);
       setSuccessMessage(`✅ Hóa đơn đã được lưu & tồn kho đã được trừ tự động! Mã: ${createRes.data.code}`);
       if (form.autoPrint && printPopup) {
         const receiptBranch = await resolveBranchForReceipt(createRes.data, branch, activeBranchId);
         const profile = buildInvoiceProfile(receiptBranch || undefined);
         const customerText = `${form.customerName || 'Khách lẻ'}${form.customerPhone ? ` (${form.customerPhone})` : ''}`;
+        const summary = [
+          { label: 'Tạm tính', value: receiptMoney(totals.subtotalAfterProductDiscount) },
+          ...(totals.vatAmount > 0 ? [{ label: `VAT (${totals.vatPercent}%)`, value: receiptMoney(totals.vatAmount) }] : []),
+          { label: 'Chiết khấu đơn', value: receiptMoney(totals.orderDiscount) },
+          { label: 'Thành tiền', value: receiptMoney(totals.totalAmount), strong: true },
+          { label: 'Đã thanh toán', value: receiptMoney(totals.paidAmount) },
+          { label: 'Còn nợ', value: receiptMoney(totals.debtAmount) },
+        ];
         const html = buildReceiptHtml({
           profile,
           title: profile.templateConfig?.title || 'HÓA ĐƠN',
@@ -598,20 +951,14 @@ export function WholesaleInvoiceCreatePage() {
           code: createRes.data.code || saleId,
           customer: customerText,
           sections: [{
-            lines: products.map((product) => ({
+            lines: products.map((product, index) => ({
               name: [product.code, product.name].filter(Boolean).join(' - '),
               quantity: product.qty,
               price: receiptMoney(product.price),
-              total: receiptMoney(product.total),
+              total: receiptMoney(totals.lineTotals[index] ?? product.total),
             })),
           }],
-          summary: [
-            { label: 'Tổng cộng', value: receiptMoney(totalCost) },
-            { label: 'Chiết khấu', value: receiptMoney(form.orderDiscount) },
-            { label: 'Thành tiền', value: receiptMoney(form.totalAmount), strong: true },
-            { label: 'Đã thanh toán', value: receiptMoney(form.paidAmount) },
-            { label: 'Còn nợ', value: receiptMoney(form.debtAmount) },
-          ],
+          summary,
         });
         writeAndPrintPopup(printPopup, html);
       }
@@ -635,44 +982,33 @@ export function WholesaleInvoiceCreatePage() {
   }).slice(0, 10);
 
   return (
-    <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="wholesale-create-page">
 
       {/* Top Banner and Navigation Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div className="ws-create-header">
+        <div className="ws-create-header-left">
           <button
             type="button"
-            onClick={() => navigate(`/sales-channels/${channel}/wholesale`)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              border: '1px solid #e2e8f0',
-              background: '#ffffff',
-              cursor: 'pointer',
-              color: '#475569',
-              transition: 'all 0.2s'
-            }}
+            className="ws-create-back-btn"
+            aria-label="Quay lại danh sách bán sỉ"
+            onClick={leaveToList}
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1 className="ws-create-title">
               Tạo Mới Hóa Đơn Bán Sỉ
             </h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div className="ws-create-meta">
+              <div className="ws-create-meta-item">
                 <Warehouse size={14} color="#10b981" />
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
+                <span>
                   Kho xuất: {loadingBranch ? 'Đang tải...' : (branch ? `${branch.name} (${branch.code})` : 'Chưa chọn kho')}
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="ws-create-meta-item">
                 <Briefcase size={14} color="#059669" />
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
+                <span>
                   Thu ngân: {form.cashier}
                 </span>
               </div>
@@ -680,34 +1016,20 @@ export function WholesaleInvoiceCreatePage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="ws-create-header-actions">
           <button
             type="button"
-            onClick={() => navigate(`/sales-channels/${channel}/wholesale`)}
-            style={{ borderRadius: '10px', padding: '10px 20px', fontSize: '14px', border: '1px solid #cbd5e1', background: '#ffffff', fontWeight: '600', color: '#475569', cursor: 'pointer' }}
+            className="ws-create-btn-secondary"
+            onClick={leaveToList}
           >
             Hủy bỏ
           </button>
           <button
             type="button"
             id="save-invoice-btn"
+            className="ws-create-btn-primary"
             disabled={isSaving || !activeBranchId}
             onClick={handleSave}
-            style={{
-              borderRadius: '10px',
-              padding: '10px 24px',
-              fontSize: '14px',
-              fontWeight: '600',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              border: 'none',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: isSaving || !activeBranchId ? 'not-allowed' : 'pointer',
-              opacity: isSaving || !activeBranchId ? 0.7 : 1
-            }}
           >
             <Save size={16} />
             {isSaving ? 'Đang lưu...' : 'Lưu (F9)'}
@@ -716,37 +1038,46 @@ export function WholesaleInvoiceCreatePage() {
       </div>
 
       {errorMessage && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '14px 18px', borderRadius: '10px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
+        <div className="ws-create-alert ws-create-alert-error" role="alert">
           <AlertCircle size={18} style={{ flexShrink: 0 }} />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {successMessage && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ecfdf5', border: '1px solid #6ee7b7', color: '#047857', padding: '14px 18px', borderRadius: '10px', marginBottom: '24px', fontSize: '14px', fontWeight: '500' }}>
+        <div className="ws-create-alert ws-create-alert-success" role="status">
           <CheckCircle size={18} style={{ flexShrink: 0 }} />
           <span>{successMessage}</span>
         </div>
       )}
 
-      {/* Main 70/30 Columns Layout */}
-      <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '24px', alignItems: 'start' }}>
+      {paymentMethodsError ? (
+        <div className="ws-create-alert ws-create-alert-warn" role="status">
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{paymentMethodsError}</span>
+        </div>
+      ) : null}
 
-        {/* Left Column (70%) - Search, Product Table, Notes, Staff */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '18px 20px' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+      {/* Main two-column layout — collapses on mobile via CSS */}
+      <form onSubmit={handleSave} className="ws-create-form-grid">
+
+        {/* Left Column - Search, Product Table, Notes, Staff */}
+        <div className="ws-create-main-col">
+          <div className="ws-create-card ws-create-card-pad">
+            <label className="ws-create-field-label">
               Kho thực hiện *
               <select
                 value={activeBranchId}
                 onChange={(event) => {
+                  userBranchTouchedRef.current = true;
+                  markDirty();
                   setActiveBranchId(event.target.value);
                   setProducts([]);
                   setErrorMessage('');
                 }}
                 disabled={Boolean(editId || requestedBranchId)}
                 required
-                style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: '#1e293b', background: '#ffffff' }}
+                className="ws-create-select"
               >
                 <option value="">— Chọn kho thực hiện —</option>
                 {branchOptions.map((item) => <option key={item._id} value={item._id}>{item.name}{item.code ? ` (${item.code})` : ''}</option>)}
@@ -755,10 +1086,10 @@ export function WholesaleInvoiceCreatePage() {
           </div>
 
           {/* Product Search & Table Box */}
-          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div className="ws-create-card" style={{ overflow: 'hidden' }}>
 
             {/* Header: Product Type Tabs & F3 Search Bar */}
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div className="ws-create-product-toolbar">
 
               {/* Product Type Tabs */}
               <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '3px' }}>
@@ -801,8 +1132,8 @@ export function WholesaleInvoiceCreatePage() {
               </div>
 
               {/* F3 Autocomplete Product Search Bar */}
-              <div style={{ position: 'relative', width: '380px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 12px', background: '#ffffff' }}>
+              <div className="ws-create-product-search">
+                <div className="ws-create-product-search-inner">
                   <Search size={16} color="#94a3b8" />
                   <input
                     type="text"
@@ -815,7 +1146,7 @@ export function WholesaleInvoiceCreatePage() {
                       setShowSearchResults(true);
                     }}
                     onFocus={() => setShowSearchResults(true)}
-                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '8px 0', width: '100%', fontSize: '13px', color: '#1e293b' }}
+                    className="ws-create-product-search-input"
                   />
                 </div>
 
@@ -851,7 +1182,7 @@ export function WholesaleInvoiceCreatePage() {
             </div>
 
             {/* Product Table */}
-            <div style={{ overflowX: 'auto', padding: '12px' }}>
+            <div className="ws-create-table-wrap">
               {products.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '12px' }}>
                   <Briefcase size={40} color="#cbd5e1" />
@@ -1068,8 +1399,8 @@ export function WholesaleInvoiceCreatePage() {
           </div>
         </div>
 
-        {/* Right Column (30%) - Customer details, VAT, Payment summary */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Right Column - Customer details, VAT, Payment summary */}
+        <div className="ws-create-side-col">
 
           {/* Customer Card */}
           <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
@@ -1321,19 +1652,19 @@ export function WholesaleInvoiceCreatePage() {
                 </div>
 
                 {/* Order Discount Input */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ws-create-pay-row">
                   <span style={{ fontSize: '13px', color: '#64748b' }}>Chiết khấu đơn (đ):</span>
                   <input
                     type="number"
                     min={0}
                     value={form.orderDiscount || ''}
                     onChange={(e) => handleChange('orderDiscount', Number(e.target.value) || 0)}
-                    style={{ width: '130px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                    className="ws-create-pay-input"
                   />
                 </div>
 
                 {/* VAT Percent Input */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ws-create-pay-row">
                   <span style={{ fontSize: '13px', color: '#64748b' }}>Thuế VAT (%):</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <input
@@ -1343,7 +1674,8 @@ export function WholesaleInvoiceCreatePage() {
                       disabled={!form.hasVat}
                       value={form.vatPercent}
                       onChange={(e) => handleChange('vatPercent', Number(e.target.value) || 0)}
-                      style={{ width: '70px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none', background: form.hasVat ? '#ffffff' : '#f1f5f9' }}
+                      className="ws-create-pay-input"
+                      style={{ width: '70px', background: form.hasVat ? '#ffffff' : '#f1f5f9' }}
                     />
                     <Percent size={13} color="#64748b" />
                   </div>
@@ -1358,7 +1690,7 @@ export function WholesaleInvoiceCreatePage() {
                 </span>
 
                 {/* Cash */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ws-create-pay-row">
                   <span style={{ fontSize: '13px', color: '#475569' }}>Tiền mặt (đ):</span>
                   <input
                     type="number"
@@ -1366,12 +1698,12 @@ export function WholesaleInvoiceCreatePage() {
                     placeholder="0"
                     value={form.paymentCash || ''}
                     onChange={(e) => handleChange('paymentCash', Number(e.target.value) || 0)}
-                    style={{ width: '150px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                    className="ws-create-pay-input"
                   />
                 </div>
 
                 {/* Transfer */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ws-create-pay-row">
                   <span style={{ fontSize: '13px', color: '#475569' }}>Chuyển khoản (đ):</span>
                   <input
                     type="number"
@@ -1379,12 +1711,12 @@ export function WholesaleInvoiceCreatePage() {
                     placeholder="0"
                     value={form.paymentTransfer || ''}
                     onChange={(e) => handleChange('paymentTransfer', Number(e.target.value) || 0)}
-                    style={{ width: '150px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                    className="ws-create-pay-input"
                   />
                 </div>
 
                 {/* Card */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ws-create-pay-row">
                   <span style={{ fontSize: '13px', color: '#475569' }}>Quẹt thẻ (đ):</span>
                   <input
                     type="number"
@@ -1392,12 +1724,12 @@ export function WholesaleInvoiceCreatePage() {
                     placeholder="0"
                     value={form.paymentCard || ''}
                     onChange={(e) => handleChange('paymentCard', Number(e.target.value) || 0)}
-                    style={{ width: '150px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                    className="ws-create-pay-input"
                   />
                 </div>
 
                 {/* Other */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ws-create-pay-row">
                   <span style={{ fontSize: '13px', color: '#475569' }}>Khác (đ):</span>
                   <input
                     type="number"
@@ -1405,12 +1737,12 @@ export function WholesaleInvoiceCreatePage() {
                     placeholder="0"
                     value={form.paymentOther || ''}
                     onChange={(e) => handleChange('paymentOther', Number(e.target.value) || 0)}
-                    style={{ width: '150px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                    className="ws-create-pay-input"
                   />
                 </div>
 
                 {/* Prepaid From Order */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ws-create-pay-row">
                   <span style={{ fontSize: '13px', color: '#475569', display: 'flex', alignItems: 'center', gap: '3px' }}>
                     Đã thanh toán từ đơn hàng (đ):
                   </span>
@@ -1420,7 +1752,7 @@ export function WholesaleInvoiceCreatePage() {
                     placeholder="0"
                     value={form.prepaidFromOrder || ''}
                     onChange={(e) => handleChange('prepaidFromOrder', Number(e.target.value) || 0)}
-                    style={{ width: '150px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                    className="ws-create-pay-input"
                   />
                 </div>
 

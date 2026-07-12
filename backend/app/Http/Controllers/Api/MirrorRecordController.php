@@ -546,6 +546,87 @@ class MirrorRecordController extends Controller
         return null;
     }
 
+    /**
+     * Search product-refunds by refund code, original invoice code, payment id,
+     * and customer name/phone (denormalized payload + linked sale_payments/customers).
+     * Scoped only to product-refunds resource.
+     * Uses Laravel JSON path syntax for MySQL/SQLite portability (no JSON_UNQUOTE).
+     */
+    private function applyProductRefundSearch($query, string $search, $columns): void
+    {
+        $like = '%'.$search.'%';
+        $salePaymentsTable = MirrorRecord::TABLES['sale-payments'] ?? 'sale_payments';
+        $customersTable = 'customers';
+
+        $query->where(function ($builder) use ($like, $columns, $salePaymentsTable, $customersTable): void {
+            // Column matches when present on product_refunds.
+            foreach (['code', 'name', 'customer_name', 'customer_phone', 'note', 'payment_mongo_id'] as $column) {
+                if ($columns->has($column)) {
+                    $builder->orWhere($column, 'like', $like);
+                }
+            }
+
+            // Payload denormalized fields written by return-exchange (portable JSON path).
+            foreach ([
+                'code',
+                'note',
+                'customerName',
+                'customerPhone',
+                'customer_name',
+                'customer_phone',
+                'paymentCode',
+                'payment_code',
+                'paymentId',
+                'payment_mongo_id',
+            ] as $jsonKey) {
+                $builder->orWhere('payload->'.$jsonKey, 'like', $like);
+            }
+
+            // Linked original sale by payment_mongo_id / payload.paymentId → sale_payments.code
+            if (Schema::hasTable($salePaymentsTable)) {
+                $builder->orWhereExists(function ($sub) use ($like, $salePaymentsTable, $columns): void {
+                    $sub->select(DB::raw(1))
+                        ->from($salePaymentsTable.' as sp')
+                        ->where(function ($link) use ($columns): void {
+                            if ($columns->has('payment_mongo_id')) {
+                                $link->whereColumn('sp.mongo_id', 'product_refunds.payment_mongo_id')
+                                    ->orWhereColumn('sp.code', 'product_refunds.payment_mongo_id');
+                            }
+                            $link->orWhereColumn('sp.mongo_id', 'product_refunds.payload->paymentId')
+                                ->orWhereColumn('sp.mongo_id', 'product_refunds.payload->payment_mongo_id');
+                        })
+                        ->where(function ($saleMatch) use ($like): void {
+                            $saleMatch->where('sp.code', 'like', $like)
+                                ->orWhere('sp.mongo_id', 'like', $like)
+                                ->orWhere('sp.payload->code', 'like', $like)
+                                ->orWhere('sp.payload->customerName', 'like', $like)
+                                ->orWhere('sp.payload->customerPhone', 'like', $like);
+                        });
+                });
+
+                // Linked customer name/phone via sale_payments
+                if (Schema::hasTable($customersTable)) {
+                    $builder->orWhereExists(function ($sub) use ($like, $salePaymentsTable, $customersTable, $columns): void {
+                        $sub->select(DB::raw(1))
+                            ->from($salePaymentsTable.' as sp')
+                            ->join($customersTable.' as c', 'c.mongo_id', '=', 'sp.customer_mongo_id')
+                            ->where(function ($link) use ($columns): void {
+                                if ($columns->has('payment_mongo_id')) {
+                                    $link->whereColumn('sp.mongo_id', 'product_refunds.payment_mongo_id');
+                                }
+                                $link->orWhereColumn('sp.mongo_id', 'product_refunds.payload->paymentId');
+                            })
+                            ->where(function ($custMatch) use ($like): void {
+                                $custMatch->where('c.name', 'like', $like)
+                                    ->orWhere('c.phone', 'like', $like)
+                                    ->orWhere('c.code', 'like', $like);
+                            });
+                    });
+                }
+            }
+        });
+    }
+
     private function computeSaleRefundSummary(array $serialized): array
     {
         $saleId = (string) ($serialized['_id'] ?? $serialized['id'] ?? $serialized['mongoId'] ?? '');
@@ -637,13 +718,19 @@ class MirrorRecordController extends Controller
             $search = trim((string) $request->query('id', $request->query('code', $search)));
         }
         if ($search !== '') {
-            $query->where(function ($builder) use ($search, $columns): void {
-                foreach (self::SEARCH_COLUMNS as $column) {
-                    if ($columns->has($column)) {
-                        $builder->orWhere($column, 'like', "%{$search}%");
+            if ($resource === 'product-refunds') {
+                // Dedicated search for refund list: code, original invoice, customer name/phone.
+                // Do not broaden SEARCH_COLUMNS for other resources (BUG C).
+                $this->applyProductRefundSearch($query, $search, $columns);
+            } else {
+                $query->where(function ($builder) use ($search, $columns): void {
+                    foreach (self::SEARCH_COLUMNS as $column) {
+                        if ($columns->has($column)) {
+                            $builder->orWhere($column, 'like', "%{$search}%");
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         if ($request->filled('branchId') || $request->filled('storeId')) {

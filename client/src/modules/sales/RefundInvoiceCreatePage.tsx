@@ -775,6 +775,12 @@ export function RefundInvoiceCreatePage() {
         note: [form.description, form.newDescription].filter(Boolean).join('\n'),
         discountValue: Math.max(Number(form.discount) || 0, 0),
         discountType: form.discountType === 'percent' ? 'percent' : 'number',
+        // Contract: BE totalPayableAmount = abs(totalAmount|amountDelta|refundAmount)
+        totalAmount: amountDelta,
+        amountDelta,
+        refundAmount: amountDelta > 0 ? amountDelta : 0,
+        customerName: form.customerName,
+        customerPhone: form.customerPhone,
         returnedItems,
         replacementItems,
         refundPayments: amountDelta >= 0 ? paymentPayloadLines : [],

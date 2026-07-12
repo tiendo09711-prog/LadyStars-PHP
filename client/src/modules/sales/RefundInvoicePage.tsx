@@ -431,7 +431,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Mã trả hàng, hóa đơn gốc, khách hàng..."
+              placeholder="Mã trả hàng, hóa đơn gốc, tên/SĐT khách..."
               aria-label="Tìm kiếm trả hàng"
             />
           </div>

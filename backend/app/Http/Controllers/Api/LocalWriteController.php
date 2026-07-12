@@ -325,7 +325,12 @@ class LocalWriteController extends Controller
             };
         }
 
-        if ($resource === 'sale-payments' && in_array($action, ['return', 'return-exchange'], true)) {
+        // Route POST .../return-exchange currently defaults action='return' (api.php).
+        // Treat both 'return' and 'return-exchange' as the full return-exchange business flow
+        // so stock + product-refund + replacement stay in sync (BUG A).
+        $isReturnExchange = $resource === 'sale-payments' && in_array($action, ['return', 'return-exchange'], true);
+
+        if ($isReturnExchange) {
             $status = $originalStatus; // do not pollute sale status; refunds tracked separately
         }
 
@@ -340,98 +345,8 @@ class LocalWriteController extends Controller
         }
         $body = $request->all();
 
-        if ($resource === 'sale-payments' && in_array($action, ['return', 'return-exchange'], true)) {
-            // exchange/return from retail: +stock for returned items, -stock for replacements
-            // Use body from POST (return-exchange) with fallback to payload
-            $retItems = $body['returnedItems'] ?? $payload['returnedItems'] ?? [];
-            $repItems = $body['replacementItems'] ?? $payload['replacementItems'] ?? [];
-            if (!empty($retItems)) {
-                $this->applySaleStock(array_merge($payload, ['items' => $retItems]), 1);
-            }
-            if (!empty($repItems)) {
-                $this->applySaleStock(array_merge($payload, ['items' => $repItems]), -1);
-            }
-        }
-
-        // For return-exchange (used by retail "Đổi trả hàng"), also create a standard product-refund record.
-        // This ensures /products/refunds list and enrich links pick it up (in addition to stock + sale state already handled).
-        $replacementSale = null;
-        if ($resource === 'sale-payments' && $action === 'return-exchange' && !empty($body['returnedItems'] ?? $payload['returnedItems'] ?? null)) {
-            $retItemsForRefund = $body['returnedItems'] ?? $payload['returnedItems'] ?? [];
-            $refundPayments = $body['refundPayments'] ?? [];
-            $salePayments = $body['salePayments'] ?? [];
-            $amountDelta = (float)($body['totalAmount'] ?? $body['refundAmount'] ?? 0);
-
-            $refundPayload = [
-                'paymentId' => $id,
-                'items' => $retItemsForRefund,
-                'note' => $body['note'] ?? $payload['note'] ?? ($payload['reason'] ?? ''),
-                'branchId' => $body['branchId'] ?? $payload['branchId'] ?? $payload['warehouseId'] ?? null,
-                'channel' => $body['channel'] ?? $payload['channel'] ?? null,
-                'value' => collect($retItemsForRefund)->sum(function ($i) {
-                    return (float)($i['amount'] ?? $i['quantity'] ?? 0) * (float)($i['value'] ?? $i['price'] ?? 0);
-                }),
-                'status' => 'completed',
-                'amount' => collect($retItemsForRefund)->sum(function ($i) {
-                    return (float)($i['amount'] ?? $i['quantity'] ?? 0);
-                }),
-                'totalPayableAmount' => abs($amountDelta),
-                'refundPayments' => $refundPayments,
-                'salePayments' => $salePayments,
-                'amountDelta' => $amountDelta,
-            ];
-            try {
-                $this->createRecord($this->table('product-refunds'), $refundPayload, 'product-refunds');
-            } catch (\Throwable $e) {
-                // non-fatal: main sale status/stock already processed
-            }
-
-            // Create a proper sale invoice for the "mua mới / replacement" part of exchange.
-            // This makes the replacement a first-class completed sale (visible in retail/wholesale lists, reports, etc).
-            // Stock was already adjusted above; we create only the record here.
-            $repItems = $body['replacementItems'] ?? $payload['replacementItems'] ?? [];
-            if (!empty($repItems)) {
-                $origPayload = is_array($record->payload) ? $record->payload : [];
-                $repPayload = [
-                    'code' => ($body['code'] ?? 'HD') . '-EX' . substr($this->nextSuffix(), -4),
-                    'customerId' => $origPayload['customerId'] ?? $body['customerId'] ?? null,
-                    'branchId' => $body['branchId'] ?? $payload['branchId'] ?? $origPayload['branchId'] ?? null,
-                    'items' => $repItems,
-                    'note' => 'Phần mua mới từ đổi trả (exchange) của HĐ ' . ($origPayload['code'] ?? $id),
-                    'status' => 'completed',
-                    'value' => collect($repItems)->sum(function ($i) {
-                        return (float)($i['amount'] ?? $i['quantity'] ?? 0) * (float)($i['value'] ?? $i['price'] ?? 0);
-                    }),
-                    'amountProducts' => collect($repItems)->sum(function ($i) {
-                        return (float)($i['amount'] ?? $i['quantity'] ?? 0);
-                    }),
-                    'typePayment' => $salePayments, // when customer pays extra (delta < 0)
-                    'paymentLines' => $salePayments,
-                    'settlementValue' => $amountDelta < 0 ? abs($amountDelta) : 0,
-                    'isExchangeReplacement' => true,
-                    'originalSaleId' => $id,
-                    'exchangeSource' => 'return-exchange',
-                ];
-                try {
-                    $replacementSaleRecord = $this->createRecord($this->table('sale-payments'), $repPayload, 'sale-payments');
-                    $replacementSale = $this->serialize($replacementSaleRecord);
-                } catch (\Throwable $e) {
-                    // non-fatal
-                }
-            }
-
-            // Make the sale payload immediately carry refund linkage info (in addition to dynamic enrich compute on reads).
-            // This reduces the "special flow" gap between return-exchange and pure /products/refunds.
-            try {
-                $saleRec = $this->findRecord($table, $id);
-                $sp = is_array($saleRec->payload) ? $saleRec->payload : [];
-                $sp['refundStatus'] = 'partial'; // will be recomputed accurately on next load via enrich
-                $sp['activeRefundCount'] = (int)($sp['activeRefundCount'] ?? 0) + 1;
-                $sp['lastRefundAt'] = now()->toISOString();
-                $saleRec->forceFill(['payload' => $sp])->save();
-            } catch (\Throwable $e) {
-                // non-fatal
-            }
+        if ($isReturnExchange) {
+            return $this->actionSaleReturnExchange($request, $record, $table, $id, $payload, $body, $originalStatus, $action);
         }
 
         $payload['status'] = $status;
@@ -444,10 +359,221 @@ class LocalWriteController extends Controller
         }
         $record->forceFill($updates)->save();
 
+        return response()->json($this->serialize($record));
+    }
+
+    /**
+     * Full return / exchange flow for sale-payments.
+     * Accepts route action 'return' (current FE endpoint) and 'return-exchange'.
+     * Atomically: stock adjust + product-refund create + optional replacement sale + sale linkage.
+     */
+    private function actionSaleReturnExchange(
+        Request $request,
+        MirrorRecord $record,
+        string $table,
+        string $id,
+        array $payload,
+        array $body,
+        mixed $originalStatus,
+        string $action,
+    ): JsonResponse {
+        $saleStatus = strtolower((string) ($originalStatus ?? $payload['status'] ?? ''));
+        if ($saleStatus === 'cancelled') {
+            return response()->json(['message' => 'Hóa đơn đã hủy nên không thể đổi trả.'], 422);
+        }
+        if ($saleStatus !== 'completed') {
+            return response()->json(['message' => 'Chỉ hóa đơn đã hoàn tất mới được đổi trả.'], 422);
+        }
+
+        $retItems = $body['returnedItems'] ?? $payload['returnedItems'] ?? [];
+        if (!is_array($retItems) || $retItems === []) {
+            return response()->json(['message' => 'Vui lòng chọn ít nhất một sản phẩm trả hàng.'], 422);
+        }
+
+        $repItems = $body['replacementItems'] ?? $payload['replacementItems'] ?? [];
+        if (!is_array($repItems)) {
+            $repItems = [];
+        }
+
+        $refundPayments = is_array($body['refundPayments'] ?? null) ? $body['refundPayments'] : [];
+        $salePayments = is_array($body['salePayments'] ?? null) ? $body['salePayments'] : [];
+
+        // Prefer explicit FE totals; fall back to amountDelta / refundAmount; last resort compute from lines.
+        $hasExplicitTotal = array_key_exists('totalAmount', $body)
+            || array_key_exists('amountDelta', $body)
+            || array_key_exists('refundAmount', $body);
+        $amountDelta = (float) ($body['totalAmount'] ?? $body['amountDelta'] ?? $body['refundAmount'] ?? 0);
+        if (!$hasExplicitTotal) {
+            $returnedValue = collect($retItems)->sum(function ($i) {
+                return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
+            });
+            $replacementValue = collect($repItems)->sum(function ($i) {
+                return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
+            });
+            $amountDelta = $returnedValue - $replacementValue;
+        }
+
+        $branchId = $body['branchId'] ?? $payload['branchId'] ?? $payload['warehouseId'] ?? null;
+        $channel = trim((string) ($body['channel'] ?? $payload['channel'] ?? $payload['orderSource'] ?? $payload['saleChannel'] ?? ''));
+        if ($channel === '') {
+            $channel = null;
+        }
+
+        $saleMongoId = (string) ($record->mongo_id ?: $id);
+        $saleCode = (string) ($record->code ?? $payload['code'] ?? $id);
+        $customerId = $payload['customerId'] ?? $body['customerId'] ?? null;
+        $customerName = null;
+        $customerPhone = null;
+        if (is_array($customerId)) {
+            $customerName = $customerId['name'] ?? null;
+            $customerPhone = $customerId['phone'] ?? null;
+            $customerId = $customerId['_id'] ?? $customerId['id'] ?? null;
+        }
+        $customerName = $body['customerName'] ?? $payload['customerName'] ?? $customerName;
+        $customerPhone = $body['customerPhone'] ?? $payload['customerPhone'] ?? $customerPhone;
+        if ((!$customerName || !$customerPhone) && $customerId) {
+            $cust = $this->customer($customerId);
+            if ($cust) {
+                $customerName = $customerName ?: $cust->name;
+                $customerPhone = $customerPhone ?: $cust->phone;
+            }
+        }
+
+        $returnedAmount = collect($retItems)->sum(fn ($i) => (float) ($i['amount'] ?? $i['quantity'] ?? 0));
+        $returnedValue = collect($retItems)->sum(function ($i) {
+            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
+        });
+
+        $createdRefund = null;
+        $replacementSale = null;
+
+        $reason = $request->filled('reason') ? $request->input('reason') : null;
+
+        try {
+            DB::transaction(function () use (
+                $record,
+                $payload,
+                $body,
+                $retItems,
+                $repItems,
+                $refundPayments,
+                $salePayments,
+                $amountDelta,
+                $branchId,
+                $channel,
+                $saleMongoId,
+                $saleCode,
+                $customerId,
+                $customerName,
+                $customerPhone,
+                $returnedAmount,
+                $returnedValue,
+                $action,
+                $originalStatus,
+                $reason,
+                &$createdRefund,
+                &$replacementSale,
+            ): void {
+                // +stock returned, -stock replacements (exactly once)
+                $stockBase = array_merge($payload, ['branchId' => $branchId ?? ($payload['branchId'] ?? null)]);
+                $this->applySaleStock(array_merge($stockBase, ['items' => $retItems]), 1);
+                if ($repItems !== []) {
+                    $this->applySaleStock(array_merge($stockBase, ['items' => $repItems]), -1);
+                }
+
+                $refundPayload = [
+                    'code' => $body['code'] ?? null,
+                    'paymentId' => $saleMongoId,
+                    'payment_mongo_id' => $saleMongoId,
+                    'paymentCode' => $saleCode,
+                    'items' => $retItems,
+                    'note' => $body['note'] ?? $payload['note'] ?? ($payload['reason'] ?? ''),
+                    'branchId' => $branchId,
+                    'channel' => $channel,
+                    'customerId' => $customerId,
+                    'customerName' => $customerName,
+                    'customerPhone' => $customerPhone,
+                    'value' => $returnedValue,
+                    'status' => 'completed',
+                    'amount' => $returnedAmount,
+                    'totalPayableAmount' => abs($amountDelta),
+                    'refundPayments' => $amountDelta >= 0 ? $refundPayments : [],
+                    'salePayments' => $amountDelta < 0 ? $salePayments : [],
+                    'paymentLines' => $amountDelta >= 0 ? $refundPayments : $salePayments,
+                    'amountDelta' => $amountDelta,
+                    'totalAmount' => $amountDelta,
+                    'refundAmount' => $amountDelta > 0 ? $amountDelta : 0,
+                    'settlementValue' => $amountDelta < 0 ? abs($amountDelta) : 0,
+                ];
+                $createdRefund = $this->createRecord($this->table('product-refunds'), $refundPayload, 'product-refunds');
+
+                if ($repItems !== []) {
+                    $saleType = $payload['type'] ?? null;
+                    $repPayload = [
+                        'code' => ($body['code'] ?? $saleCode ?? 'HD').'-EX'.substr($this->nextSuffix(), -4),
+                        'customerId' => $customerId,
+                        'customerName' => $customerName,
+                        'customerPhone' => $customerPhone,
+                        'branchId' => $branchId ?? ($payload['branchId'] ?? null),
+                        'channel' => $channel,
+                        'type' => $saleType,
+                        'items' => $repItems,
+                        'note' => 'Phần mua mới từ đổi trả (exchange) của HĐ '.$saleCode,
+                        'status' => 'completed',
+                        'value' => collect($repItems)->sum(function ($i) {
+                            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
+                        }),
+                        'amountProducts' => collect($repItems)->sum(function ($i) {
+                            return (float) ($i['amount'] ?? $i['quantity'] ?? 0);
+                        }),
+                        'typePayment' => $amountDelta < 0 ? $salePayments : [],
+                        'paymentLines' => $amountDelta < 0 ? $salePayments : [],
+                        'settlementValue' => $amountDelta < 0 ? abs($amountDelta) : 0,
+                        'valuePayment' => $amountDelta < 0 ? abs($amountDelta) : 0,
+                        'isExchangeReplacement' => true,
+                        'originalSaleId' => $saleMongoId,
+                        'exchangeSource' => 'return-exchange',
+                    ];
+                    $replacementSaleRecord = $this->createRecord($this->table('sale-payments'), $repPayload, 'sale-payments');
+                    $replacementSale = $this->serialize($replacementSaleRecord);
+                }
+
+                // Sale linkage markers (refundStatus recomputed accurately on read via enrich).
+                $sp = is_array($record->payload) ? $record->payload : [];
+                $sp['status'] = $originalStatus;
+                $sp['activeRefundCount'] = (int) ($sp['activeRefundCount'] ?? 0) + 1;
+                $sp['lastRefundAt'] = now()->toISOString();
+                $sp[$action.'At'] = now()->toISOString();
+                if ($reason !== null && $reason !== '') {
+                    $sp['reason'] = $reason;
+                }
+                // Hint only; list/detail of sales recompute via computeSaleRefundSummary.
+                if (!isset($sp['refundStatus']) || $sp['refundStatus'] === 'none' || $sp['refundStatus'] === null) {
+                    $sp['refundStatus'] = 'partial';
+                }
+                $record->forceFill([
+                    'status' => $originalStatus,
+                    'payload' => $sp,
+                ])->save();
+            });
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => $e->getMessage() !== ''
+                    ? $e->getMessage()
+                    : 'Lỗi khi lưu phiếu đổi trả hàng.',
+            ], 500);
+        }
+
+        $record->refresh();
         $base = $this->serialize($record);
+        if ($createdRefund) {
+            $base['refund'] = $this->serialize($createdRefund);
+        }
         if ($replacementSale) {
             $base['replacementSale'] = $replacementSale;
         }
+        $base['sale'] = $base;
+
         return response()->json($base);
     }
 
