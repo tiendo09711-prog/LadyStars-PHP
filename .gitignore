@@ -61,3 +61,4 @@ artifacts/live-db-backups/
 artifacts/live-test-reports/
 .env.live-test.local
 .env.e2e.local
+e2e-artifacts/

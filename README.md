@@ -29,11 +29,20 @@ LadyStars-PHP/
 Chạy cả Laravel backend và React client cùng lúc:
 
 ```powershell
-npm.cmd run dev:php
+npm.cmd run dev
 ```
 
-- Laravel backend: http://127.0.0.1:8000
+- Laravel backend: http://127.0.0.1:8000 (bind `0.0.0.0`, LAN cũng gọi được)
 - React client: http://localhost:5173
+- Client dùng `VITE_API_URL=/api` + Vite proxy → Laravel → MySQL trên máy PC
+
+### Truy cập từ điện thoại / máy khác cùng Wi‑Fi
+
+1. Chạy `npm.cmd run dev` trên PC.
+2. Xem dòng **Network** trong terminal Vite, ví dụ `http://192.168.x.x:5173/`.
+3. Mở đúng URL đó trên thiết bị (cùng mạng Wi‑Fi, không dùng Guest Wi‑Fi isolation).
+4. Nếu không mở được trang: cho phép **Windows Firewall** inbound TCP port **5173** (và **8000** nếu gọi API trực tiếp).
+5. Không cần mở MySQL ra LAN — phone chỉ gọi frontend; backend trên PC kết nối MySQL local.
 
 ## Build frontend
 

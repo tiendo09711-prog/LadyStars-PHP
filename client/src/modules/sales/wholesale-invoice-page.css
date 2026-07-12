@@ -13,6 +13,8 @@
   gap: 12px !important;
   min-width: 0;
   max-width: 100%;
+  width: 100%;
+  overflow-x: clip;
   min-height: calc(100vh - 76px);
   padding: 12px clamp(12px, 3vw, 28px) 28px;
   background:
@@ -1445,15 +1447,90 @@
 }
 
 @media (max-width: 640px) {
+  .ws-invoice-page {
+    padding-left: 10px;
+    padding-right: 10px;
+    overflow-x: clip;
+  }
+
+  .ws-invoice-page .ws-toolbar-card.ws-sticky-toolbar {
+    padding: 8px 10px !important;
+    column-gap: 6px;
+    row-gap: 8px;
+  }
+
+  .ws-invoice-page .ws-filter-bar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    gap: 6px;
+  }
+
   .ws-invoice-page .ws-filter-select,
   .ws-invoice-page input.ws-filter-select[type='date'],
   .ws-invoice-page .ws-filter-input {
     flex: 1 1 calc(50% - 6px);
     min-width: 0;
+    max-width: 100%;
   }
 
   .ws-invoice-page .ws-search {
     flex: 1 1 100%;
     min-width: 0;
+    max-width: 100%;
+  }
+
+  .ws-invoice-page .ws-filter-actions {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    gap: 6px;
+  }
+
+  .ws-invoice-page .ws-filter-actions .ws-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ws-invoice-page .ws-tabbar.is-compact {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ws-invoice-page .ws-tab.is-compact {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .ws-invoice-page .ws-summary-strip,
+  .ws-invoice-page .ws-summary-cluster {
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .ws-invoice-page .ws-table-scroll {
+    max-width: 100%;
+  }
+
+  .ws-invoice-page .ws-modal {
+    width: min(100%, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    margin: 8px;
+  }
+
+  .ws-invoice-page .ws-pagination {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .ws-invoice-page .ws-filter-select,
+  .ws-invoice-page input.ws-filter-select[type='date'],
+  .ws-invoice-page .ws-filter-input {
+    flex: 1 1 100%;
   }
 }

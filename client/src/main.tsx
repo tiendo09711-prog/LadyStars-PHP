@@ -29,39 +29,20 @@ import { WarehouseBranchesPage } from './modules/warehouse/WarehouseBranchesPage
 import { VoucherImportPage } from './modules/warehouse/VoucherImportPage';
 import { VoucherExportPage } from './modules/warehouse/VoucherExportPage';
 import { VoucherExcelImportPage } from './modules/warehouse/VoucherExcelImportPage';
-import { RevenueByTimePage } from './modules/reports/RevenueByTimePage';
-import { RevenueByStorePage } from './modules/reports/RevenueByStorePage';
-import { RevenueByBrandPage } from './modules/reports/RevenueByBrandPage';
-import { RevenueByStaffPage } from './modules/reports/RevenueByStaffPage';
-import { RevenueByDepartmentPage } from './modules/reports/RevenueByDepartmentPage';
-import { RevenueByCategoryPage } from './modules/reports/RevenueByCategoryPage';
-import { RevenueByInternalCategoryPage } from './modules/reports/RevenueByInternalCategoryPage';
-import { RevenueByProductPage } from './modules/reports/RevenueByProductPage';
-import { RevenueByVendorPage } from './modules/reports/RevenueByVendorPage';
-import { RevenueByCustomerPage } from './modules/reports/RevenueByCustomerPage';
-import { RevenueInventoryRatioPage } from './modules/reports/RevenueInventoryRatioPage';
-import { RetailOverviewPage } from './modules/reports/RetailOverviewPage';
-import { RetailByCustomerSourcePage } from './modules/reports/RetailByCustomerSourcePage';
-import { RetailByStaffPage } from './modules/reports/RetailByStaffPage';
-import { RetailByStorePage } from './modules/reports/RetailByStorePage';
-import { RetailCardSwipeDetailsPage } from './modules/reports/RetailCardSwipeDetailsPage';
-import { RetailByInvoiceValuePage } from './modules/reports/RetailByInvoiceValuePage';
-import { RetailInvoiceVisitorRatioPage } from './modules/reports/RetailInvoiceVisitorRatioPage';
-import { RetailShiftEndPage } from './modules/reports/RetailShiftEndPage';
-import { WholesaleOverviewPage } from './modules/reports/WholesaleOverviewPage';
-import { WholesaleByStaffPage } from './modules/reports/WholesaleByStaffPage';
-import { InventoryInOutByProductPage } from './modules/reports/InventoryInOutByProductPage';
-import { InventoryInOutDetailsPage } from './modules/reports/InventoryInOutDetailsPage';
-import { InventoryInOutTotalPage } from './modules/reports/InventoryInOutTotalPage';
-import { InventoryInOutByStorePage } from './modules/reports/InventoryInOutByStorePage';
-import { InventoryByVendorPage } from './modules/reports/InventoryByVendorPage';
-import { InventoryProductCategoryPage } from './modules/reports/InventoryProductCategoryPage';
-import { InventoryStockQuantityPage } from './modules/reports/InventoryStockQuantityPage';
-import { InventoryUnconfirmedTransfersPage } from './modules/reports/InventoryUnconfirmedTransfersPage';
-import { InventoryByStoreStatusPage } from './modules/reports/InventoryByStoreStatusPage';
-import { InventoryByProductStatusPage } from './modules/reports/InventoryByProductStatusPage';
-import { InventoryByBatchPage } from './modules/reports/InventoryByBatchPage';
-import { InventoryTransfersByProductPage } from './modules/reports/InventoryTransfersByProductPage';
+import {
+  CustomersOverviewReportPage,
+  CustomersPurchaseBehaviorReportPage,
+  InventoryInOutStockReportPage,
+  InventoryPendingTransfersReportPage,
+  ProductPerformanceReportPage,
+  RevenueByCustomersPage,
+  RevenueByProductsPage,
+  RevenueByStaffPage,
+  RevenueByStorePage,
+  RevenueByTimePage,
+  SalesOverviewReportPage,
+  SalesShiftClosingReportPage,
+} from './modules/reports/ReportPages';
 import { SalesChannelPage } from './modules/sales/SalesChannelPage';
 import { SalesChannelSubPage } from './modules/sales/SalesChannelSubPage';
 import { RetailInvoiceCreatePage } from './modules/sales/RetailInvoiceCreatePage';
@@ -137,37 +118,16 @@ const router = createBrowserRouter([
       // ── Báo Cáo ──────────────────────────────────────────────
       { path: 'reports/revenue/time', element: <RevenueByTimePage /> },
       { path: 'reports/revenue/store', element: <RevenueByStorePage /> },
-      { path: 'reports/revenue/brand', element: <RevenueByBrandPage /> },
       { path: 'reports/revenue/staff', element: <RevenueByStaffPage /> },
-      { path: 'reports/revenue/department', element: <RevenueByDepartmentPage /> },
-      { path: 'reports/revenue/category', element: <RevenueByCategoryPage /> },
-      { path: 'reports/revenue/internal-category', element: <RevenueByInternalCategoryPage /> },
-      { path: 'reports/revenue/product', element: <RevenueByProductPage /> },
-      { path: 'reports/revenue/vendor', element: <RevenueByVendorPage /> },
-      { path: 'reports/revenue/customer', element: <RevenueByCustomerPage /> },
-      { path: 'reports/revenue/inventory-ratio', element: <RevenueInventoryRatioPage /> },
-      { path: 'reports/retail/overview', element: <RetailOverviewPage /> },
-      { path: 'reports/retail/customer-source', element: <RetailByCustomerSourcePage /> },
-      { path: 'reports/retail/staff', element: <RetailByStaffPage /> },
-      { path: 'reports/retail/store', element: <RetailByStorePage /> },
-      { path: 'reports/retail/card-swipe', element: <RetailCardSwipeDetailsPage /> },
-      { path: 'reports/retail/invoice-value', element: <RetailByInvoiceValuePage /> },
-      { path: 'reports/retail/invoice-visitor-ratio', element: <RetailInvoiceVisitorRatioPage /> },
-      { path: 'reports/retail/shift-end', element: <RetailShiftEndPage /> },
-      { path: 'reports/wholesale/overview', element: <WholesaleOverviewPage /> },
-      { path: 'reports/wholesale/staff', element: <WholesaleByStaffPage /> },
-      { path: 'reports/inventory/inout-product', element: <InventoryInOutByProductPage /> },
-      { path: 'reports/inventory/inout-details', element: <InventoryInOutDetailsPage /> },
-      { path: 'reports/inventory/inout-total', element: <InventoryInOutTotalPage /> },
-      { path: 'reports/inventory/inout-store', element: <InventoryInOutByStorePage /> },
-      { path: 'reports/inventory/vendor', element: <InventoryByVendorPage /> },
-      { path: 'reports/inventory/product-category', element: <InventoryProductCategoryPage /> },
-      { path: 'reports/inventory/stock-quantity', element: <InventoryStockQuantityPage /> },
-      { path: 'reports/inventory/unconfirmed-transfers', element: <InventoryUnconfirmedTransfersPage /> },
-      { path: 'reports/inventory/store-status', element: <InventoryByStoreStatusPage /> },
-      { path: 'reports/inventory/product-status', element: <InventoryByProductStatusPage /> },
-      { path: 'reports/inventory/batch', element: <InventoryByBatchPage /> },
-      { path: 'reports/inventory/transfers-product', element: <InventoryTransfersByProductPage /> },
+      { path: 'reports/revenue/products', element: <RevenueByProductsPage /> },
+      { path: 'reports/revenue/customers', element: <RevenueByCustomersPage /> },
+      { path: 'reports/sales/overview', element: <SalesOverviewReportPage /> },
+      { path: 'reports/sales/shift-closing', element: <SalesShiftClosingReportPage /> },
+      { path: 'reports/inventory/in-out-stock', element: <InventoryInOutStockReportPage /> },
+      { path: 'reports/inventory/pending-transfers', element: <InventoryPendingTransfersReportPage /> },
+      { path: 'reports/products/performance', element: <ProductPerformanceReportPage /> },
+      { path: 'reports/customers/overview', element: <CustomersOverviewReportPage /> },
+      { path: 'reports/customers/purchase-behavior', element: <CustomersPurchaseBehaviorReportPage /> },
     ],
   },
 ]);
