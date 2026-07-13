@@ -181,15 +181,33 @@ export function CustomerCarePage() {
     setCreatorName(String((meRes as any).data?.name || ''));
   };
 
+  /** Shared list params for loadCare + export-all (q, not raw filters.keyword). */
+  const buildCareListParams = (
+    nextPage: number,
+    nextLimit: number,
+    nextFilters: CareFilters = filters,
+    nextSortField: SortField = sortField,
+    nextSortOrder: SortOrder = sortOrder,
+  ): Record<string, string | number> => {
+    const params: Record<string, string | number> = {
+      page: nextPage,
+      limit: nextLimit,
+      sort: nextSortField,
+      order: nextSortOrder,
+    };
+    const q = nextFilters.keyword.trim();
+    if (q) params.q = q;
+    if (nextFilters.reason) params.reason = nextFilters.reason;
+    if (nextFilters.creator) params.creator = nextFilters.creator;
+    return params;
+  };
+
   const loadCare = async () => {
     setError('');
     setLoading(items.length === 0);
     setTableBusy(items.length > 0);
     try {
-      const params: Record<string, string | number> = { page, limit: PAGE_SIZE, sort: sortField, order: sortOrder };
-      if (filters.keyword) params.q = filters.keyword;
-      if (filters.reason) params.reason = filters.reason;
-      if (filters.creator) params.creator = filters.creator;
+      const params = buildCareListParams(page, PAGE_SIZE);
       const response = await http.get('/customers/care', { params });
       const nextItems: CareRow[] = response.data?.items || [];
       const nextTotal = Number(response.data?.total || 0);
@@ -268,7 +286,11 @@ export function CustomerCarePage() {
   const handleSubmitFilters = (event?: FormEvent) => {
     event?.preventDefault();
     setPage(1);
-    setFilters(draftFilters);
+    setFilters({
+      keyword: draftFilters.keyword.trim(),
+      reason: draftFilters.reason,
+      creator: draftFilters.creator,
+    });
   };
 
   const handleClearFilters = () => {
@@ -449,7 +471,7 @@ export function CustomerCarePage() {
       } else {
         const fetchPage = (nextPage: number, nextLimit: number) =>
           http.get('/customers/care', {
-            params: { ...filters, page: nextPage, limit: nextLimit, sort: sortField, order: sortOrder },
+            params: buildCareListParams(nextPage, nextLimit),
           });
         const pageSize = 100;
         const firstResponse = await fetchPage(1, pageSize);

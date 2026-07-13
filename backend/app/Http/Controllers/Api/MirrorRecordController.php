@@ -547,6 +547,53 @@ class MirrorRecordController extends Controller
     }
 
     /**
+     * Search customer-cares by ticket code, customer identity, reason/details/description/creator.
+     * Matches both denormalized SQL columns and legacy JSON payload camelCase/snake keys so
+     * keyword search aligns with enrichCustomerCare display fields (CARE-012).
+     * Scoped only to customer-cares — does not change SEARCH_COLUMNS for other resources.
+     */
+    private function applyCustomerCareSearch($query, string $search, $columns): void
+    {
+        $like = '%'.$search.'%';
+
+        $query->where(function ($builder) use ($like, $columns): void {
+            foreach ([
+                'code',
+                'customer_name',
+                'customer_phone',
+                'customer_code',
+                'reason',
+                'description',
+                'details',
+                'creator',
+                'name',
+            ] as $column) {
+                if ($columns->has($column)) {
+                    $builder->orWhere($column, 'like', $like);
+                }
+            }
+
+            // Payload keys used by FE/enrich (portable Laravel JSON path, same style as product-refunds).
+            foreach ([
+                'code',
+                'customerName',
+                'customer_name',
+                'name',
+                'customerPhone',
+                'customer_phone',
+                'customerCode',
+                'customer_code',
+                'reason',
+                'description',
+                'details',
+                'creator',
+            ] as $jsonKey) {
+                $builder->orWhere('payload->'.$jsonKey, 'like', $like);
+            }
+        });
+    }
+
+    /**
      * Search product-refunds by refund code, original invoice code, payment id,
      * and customer name/phone (denormalized payload + linked sale_payments/customers).
      * Scoped only to product-refunds resource.
@@ -722,6 +769,10 @@ class MirrorRecordController extends Controller
                 // Dedicated search for refund list: code, original invoice, customer name/phone.
                 // Do not broaden SEARCH_COLUMNS for other resources (BUG C).
                 $this->applyProductRefundSearch($query, $search, $columns);
+            } elseif ($resource === 'customer-cares') {
+                // Care list displays customerName from column OR payload camelCase (enrichCustomerCare).
+                // Generic SEARCH_COLUMNS only hits SQL columns, so payload-only names (e.g. "Chị Huệ") miss.
+                $this->applyCustomerCareSearch($query, $search, $columns);
             } else {
                 $query->where(function ($builder) use ($search, $columns): void {
                     foreach (self::SEARCH_COLUMNS as $column) {

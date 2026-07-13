@@ -393,6 +393,7 @@ function buildFilterChips(filters: CustomerFilters, meta: CustomerMetaResponse |
   pushChip('totalSpentMin', 'Tổng tiền', filters.totalSpentMin || filters.totalSpentMax ? `${filters.totalSpentMin || '0'} - ${filters.totalSpentMax || '∞'}` : '');
   pushChip('pointsMin', 'Điểm', filters.pointsMin || filters.pointsMax ? `${filters.pointsMin || '0'} - ${filters.pointsMax || '∞'}` : '');
   pushChip('purchaseProductQuantityMin', 'SL đã mua', filters.purchaseProductQuantityMin || filters.purchaseProductQuantityMax ? `${filters.purchaseProductQuantityMin || '0'} - ${filters.purchaseProductQuantityMax || '∞'}` : '');
+  pushChip('firstPurchaseDateFrom', 'Ngày mua đầu', filters.firstPurchaseDateFrom || filters.firstPurchaseDateTo ? `${filters.firstPurchaseDateFrom || '—'} đến ${filters.firstPurchaseDateTo || '—'}` : '');
   pushChip('lastPurchaseDateFrom', 'Mua gần nhất', filters.lastPurchaseDateFrom || filters.lastPurchaseDateTo ? `${filters.lastPurchaseDateFrom || '—'} đến ${filters.lastPurchaseDateTo || '—'}` : '');
   return chips;
 }
@@ -1090,6 +1091,26 @@ export function CustomerListPage() {
                         <label><span>Số lần mua đến</span><input type="number" min="0" value={draftFilters.purchaseCountMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCountMax: event.target.value }))} /></label>
                         <label><span>SL sản phẩm từ</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMin: event.target.value }))} /></label>
                         <label><span>SL sản phẩm đến</span><input type="number" min="0" value={draftFilters.purchaseProductQuantityMax} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseProductQuantityMax: event.target.value }))} /></label>
+                        <label>
+                          <span>Ngày mua đầu từ</span>
+                          <input
+                            type="date"
+                            value={draftFilters.firstPurchaseDateFrom}
+                            onChange={(event) => setDraftFilters((current) => ({ ...current, firstPurchaseDateFrom: event.target.value }))}
+                            data-testid="customers-first-purchase-from"
+                            aria-label="Ngày mua đầu từ"
+                          />
+                        </label>
+                        <label>
+                          <span>Ngày mua đầu đến</span>
+                          <input
+                            type="date"
+                            value={draftFilters.firstPurchaseDateTo}
+                            onChange={(event) => setDraftFilters((current) => ({ ...current, firstPurchaseDateTo: event.target.value }))}
+                            data-testid="customers-first-purchase-to"
+                            aria-label="Ngày mua đầu đến"
+                          />
+                        </label>
                         <label><span>Ngày mua gần nhất từ</span><input type="date" value={draftFilters.lastPurchaseDateFrom} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateFrom: event.target.value }))} /></label>
                         <label><span>Ngày mua gần nhất đến</span><input type="date" value={draftFilters.lastPurchaseDateTo} onChange={(event) => setDraftFilters((current) => ({ ...current, lastPurchaseDateTo: event.target.value }))} /></label>
                         <label><span>Chu kỳ mua từ</span><input type="number" min="0" value={draftFilters.purchaseCycleDaysMin} onChange={(event) => setDraftFilters((current) => ({ ...current, purchaseCycleDaysMin: event.target.value }))} /></label>

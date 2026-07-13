@@ -8,6 +8,10 @@ use App\Http\Controllers\Api\LocalContextController;
 use App\Http\Controllers\Api\LocalWriteController;
 use App\Http\Controllers\Api\MirrorRecordController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\RevenueByProductReportController;
+use App\Http\Controllers\Api\RevenueByStaffReportController;
+use App\Http\Controllers\Api\RevenueByStoreReportController;
+use App\Http\Controllers\Api\RevenueByTimeReportController;
 use App\Http\Controllers\Api\WarehouseTransactionController;
 use App\Http\Controllers\Api\InventoryAuditController;
 use App\Models\Branch;
@@ -29,6 +33,16 @@ Route::post('/settings/security/logout-user-sessions', fn () => response()->json
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
 Route::get('/dashboard/daily-products', [DashboardController::class, 'dailyProducts']);
+
+// Reports (read-only)
+Route::get('/reports/revenue/time/options', [RevenueByTimeReportController::class, 'options']);
+Route::get('/reports/revenue/time', [RevenueByTimeReportController::class, 'index']);
+Route::get('/reports/revenue/store/options', [RevenueByStoreReportController::class, 'options']);
+Route::get('/reports/revenue/store', [RevenueByStoreReportController::class, 'index']);
+Route::get('/reports/revenue/staff/options', [RevenueByStaffReportController::class, 'options']);
+Route::get('/reports/revenue/staff', [RevenueByStaffReportController::class, 'index']);
+Route::get('/reports/revenue/products/options', [RevenueByProductReportController::class, 'options']);
+Route::get('/reports/revenue/products', [RevenueByProductReportController::class, 'index']);
 
 Route::get('/staff', function () {
     $users = User::query()->orderBy('name')->get();

@@ -17,10 +17,10 @@ function ReportPlaceholderPage({ title }: ReportPlaceholderPageProps) {
   );
 }
 
-export const RevenueByTimePage = () => <ReportPlaceholderPage title="Doanh thu theo thời gian" />;
-export const RevenueByStorePage = () => <ReportPlaceholderPage title="Doanh thu theo cửa hàng" />;
-export const RevenueByStaffPage = () => <ReportPlaceholderPage title="Doanh thu theo nhân viên" />;
-export const RevenueByProductsPage = () => <ReportPlaceholderPage title="Doanh thu theo sản phẩm / danh mục" />;
+export { RevenueByTimePage } from './revenue-time/RevenueByTimePage';
+export { RevenueByStorePage } from './revenue-store/RevenueByStorePage';
+export { RevenueByStaffPage } from './revenue-staff/RevenueByStaffPage';
+export { RevenueByProductsPage } from './revenue-products/RevenueByProductsPage';
 export const RevenueByCustomersPage = () => <ReportPlaceholderPage title="Doanh thu theo khách hàng" />;
 export const SalesOverviewReportPage = () => <ReportPlaceholderPage title="Tổng quan bán hàng" />;
 export const SalesShiftClosingReportPage = () => <ReportPlaceholderPage title="Kết ca bán hàng" />;

@@ -5,6 +5,9 @@ import * as XLSX from 'xlsx';
 
 export type CareActionType = 'Tặng điểm' | 'Trừ điểm' | 'Tặng tiền tích lũy' | 'Trừ tiền tích lũy' | 'Gọi điện' | 'Nhắn tin' | 'Gửi email' | 'Nhận cuộc gọi' | 'Import hành động chăm sóc';
 
+/** Hard cap for client-side care action import (CARE-117). */
+const MAX_IMPORT_ROWS = 100;
+
 export const CareActionIcons: Record<CareActionType, any> = {
   'Tặng điểm': <Upload size={16} />,
   'Trừ điểm': <Download size={16} />,
@@ -180,9 +183,19 @@ export function CustomerCareActionModal({
           })
           .filter((p: any) => p.customerName || p.customerPhone || p.customerCode);
 
-        setImportPreview(preview.slice(0, 100));
         if (!preview.length) {
+          setImportPreview([]);
           setModalError('Không tìm thấy dòng dữ liệu hợp lệ. Cần ít nhất 1 trong: Mã KH / Tên / SĐT.');
+          return;
+        }
+        const totalValid = preview.length;
+        const capped = preview.slice(0, MAX_IMPORT_ROWS);
+        setImportPreview(capped);
+        if (totalValid > MAX_IMPORT_ROWS) {
+          const skipped = totalValid - MAX_IMPORT_ROWS;
+          setModalError(
+            `File có ${totalValid} dòng hợp lệ. Hệ thống chỉ import tối đa ${MAX_IMPORT_ROWS} dòng đầu. ${skipped} dòng còn lại sẽ bị bỏ qua.`,
+          );
         }
       } catch (e) {
         setModalError('Không đọc được file Excel. Hỗ trợ .xlsx, .xls');

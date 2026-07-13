@@ -345,6 +345,75 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('creators.0', 'Admin');
     }
 
+    /**
+     * CARE-012: search must match display name from payload when SQL customer_name is empty.
+     */
+    public function test_customer_care_search_matches_payload_customer_name_and_columns(): void
+    {
+        (new MirrorRecord())->forTable('customer_cares')->newQuery()->create([
+            'mongo_id' => 'carepayload000000000001',
+            'code' => 'CARE-PAYLOAD-001',
+            'customer_name' => null,
+            'customer_phone' => null,
+            'customer_code' => null,
+            'details' => 'Trừ điểm',
+            'reason' => 'Thu hồi điểm',
+            'description' => 'Payload name only',
+            'creator' => 'Tester Care',
+            'record_date' => now(),
+            'business_date' => now(),
+            'payload' => [
+                'code' => 'CARE-PAYLOAD-001',
+                'customerName' => 'Chị Huệ Unicode Test',
+                'customerPhone' => '0367100999',
+                'customerCode' => 'KH-HUE-TEST',
+            ],
+        ]);
+
+        (new MirrorRecord())->forTable('customer_cares')->newQuery()->create([
+            'mongo_id' => 'carecolumn000000000001',
+            'code' => 'CARE-COL-002',
+            'customer_name' => 'Nguyễn Văn Column',
+            'customer_phone' => '0911000222',
+            'details' => 'Gọi điện',
+            'reason' => 'Chăm sóc',
+            'creator' => 'Admin Col',
+            'record_date' => now(),
+            'business_date' => now(),
+            'payload' => ['code' => 'CARE-COL-002'],
+        ]);
+
+        $byPayloadName = $this->getJson('/api/customers/care?q='.rawurlencode('Chị Huệ Unicode Test').'&limit=20');
+        $byPayloadName->assertOk();
+        $this->assertGreaterThanOrEqual(1, (int) $byPayloadName->json('total'));
+        $names = collect($byPayloadName->json('items'))->map(fn ($row) => $row['customerName'] ?? $row['customer_name'] ?? '')->all();
+        $this->assertTrue(
+            collect($names)->contains(fn ($n) => str_contains((string) $n, 'Chị Huệ')),
+            'Expected payload customerName match in care search results'
+        );
+
+        $byPartial = $this->getJson('/api/customers/care?q='.rawurlencode('Huệ').'&limit=20');
+        $byPartial->assertOk();
+        $this->assertGreaterThanOrEqual(1, (int) $byPartial->json('total'));
+
+        $byPhone = $this->getJson('/api/customers/care?q=0367100999&limit=20');
+        $byPhone->assertOk()
+            ->assertJsonPath('total', 1);
+
+        $byCode = $this->getJson('/api/customers/care?q=CARE-COL-002&limit=20');
+        $byCode->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('items.0.code', 'CARE-COL-002');
+
+        $byColumnName = $this->getJson('/api/customers/care?q='.rawurlencode('Nguyễn Văn Column').'&limit=20');
+        $byColumnName->assertOk();
+        $this->assertGreaterThanOrEqual(1, (int) $byColumnName->json('total'));
+
+        $missing = $this->getJson('/api/customers/care?q=ZZZ_NO_MATCH_CARE_SEARCH_999&limit=20');
+        $missing->assertOk()
+            ->assertJsonPath('total', 0);
+    }
+
     public function test_product_edit_logs_include_frontend_meta(): void
     {
         (new MirrorRecord())->forTable('product_edit_logs')->newQuery()->create([
