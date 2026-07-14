@@ -56,6 +56,27 @@ npm.cmd run build
 npm.cmd run test:backend
 ```
 
+## Playwright E2E
+
+Install the pinned Chromium browser after a fresh dependency install:
+
+```powershell
+npm.cmd run e2e:install
+```
+
+Run E2E tests headless or with a visible Chromium window:
+
+```powershell
+npm.cmd run e2e
+npm.cmd run e2e:headed
+```
+
+Playwright starts isolated test servers on ports `18000` and `15173`. The backend
+launcher overrides the local database settings with SQLite in-memory and uses
+array-backed session/cache drivers, so the read-only smoke test never connects to
+the development MySQL database. Open the latest HTML report with
+`npm.cmd run e2e:report`.
+
 ## Legacy data import (from Excel exports)
 
 See `docs/legacy_import_mapping.md` for full details + column mapping.

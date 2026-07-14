@@ -1,10 +1,13 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  server: {
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+    plugins: [react(), tailwindcss()],
+    server: {
     // Listen on all interfaces so phones/tablets on the same Wi‑Fi can open
     // http://<pc-lan-ip>:5173 (shown as "Network" in the Vite banner).
     host: '0.0.0.0',
@@ -16,20 +19,21 @@ export default defineConfig({
       //     stays same-origin; Vite proxies /api → Laravel → MySQL on the PC.
       //   - Proxy target stays 127.0.0.1 because the proxy runs on the PC, not the phone.
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: env.VITE_PROXY_TARGET || 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
     },
-  },
-  optimizeDeps: {
-    include: ['recharts'],
-  },
-  resolve: {
-    alias: {},
-  },
-  build: {
-    commonjsOptions: {
-      transformMixedEsModules: true,
     },
-  },
+    optimizeDeps: {
+      include: ['recharts'],
+    },
+    resolve: {
+      alias: {},
+    },
+    build: {
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
+    },
+  };
 });
