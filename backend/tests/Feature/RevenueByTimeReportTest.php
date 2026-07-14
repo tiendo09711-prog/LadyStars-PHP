@@ -451,4 +451,261 @@ class RevenueByTimeReportTest extends TestCase
         $response->assertOk();
         $this->assertSame(0, $response->json('summary.invoiceCount'));
     }
+    // ---- Staff options/filter (isolated) ----
+    public function test_staff_options_and_staff_filter_isolate_results(): void
+    {
+        // staff2 belongs to another completed retail sale (different value) to prove shrinking.
+        $staff2 = User::create([
+            'mongo_id' => 'user00000000000000000002',
+            'name' => 'Nhan vien B',
+            'email' => 'staff-b@example.test',
+            'password' => bcrypt('password'),
+            'role' => 'STAFF',
+            'status' => 'ACTIVE',
+            'is_active' => true,
+        ]);
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale00000000000000000050',
+            'code' => 'HD-R-STAFF2',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_id' => $this->branch->id,
+            'user_id' => $staff2->id,
+            'author_id' => $staff2->id,
+            'value' => 70000,
+            'value_payment' => 70000,
+            'discount_value' => 0,
+            'amount_products' => 1,
+            'business_date' => Carbon::parse('2026-07-01 16:00:00'),
+            'completed_at' => Carbon::parse('2026-07-01 16:00:00'),
+            'payment_lines' => [['method' => 'Tiền mặt', 'amount' => 70000]],
+            'items' => [['amount' => 1, 'value' => 70000, 'total' => 70000]],
+            'payload' => ['type' => 'retail', 'channel' => 'store'],
+        ]);
+
+        $opts = $this->getJson('/api/reports/revenue/time/options');
+        $opts->assertOk();
+        $staffIds = collect($opts->json('staff'))->pluck('id')->values()->all();
+        $this->assertContains((string)$this->staff->id, $staffIds);
+        $this->assertContains((string)$staff2->id, $staffIds);
+
+        $filtered = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&storeId='.$this->branch->id.'&staffId='.$staff2->id.'&compare=none');
+        $filtered->assertOk();
+        // Only the staff2 invoice (70000) — staff1 retail + wholesale belong to other staff/branch.
+        $this->assertSame(1, $filtered->json('summary.invoiceCount'));
+        $this->assertEquals(70000.0, (float)$filtered->json('summary.revenue'));
+        $this->assertSame(0, (int)$filtered->json('summary.refundAmount'));
+
+        $rest = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&storeId='.$this->branch->id.'&staffId='.$this->staff->id.'&compare=none');
+        $this->assertSame(1, $rest->json('summary.invoiceCount'));
+        $this->assertEquals(90000.0, (float)$rest->json('summary.revenue'));
+    }
+
+    // ---- Status: options from all rows; default excludes draft/cancelled ----
+    public function test_status_options_reflect_present_statuses_and_default_excludes_draft(): void
+    {
+        $opts = $this->getJson('/api/reports/revenue/time/options');
+        $values = collect($opts->json('invoiceStatuses'))->pluck('value')->values()->all();
+        $this->assertContains('completed', $values);
+        $this->assertContains('draft', $values);
+        $this->assertContains('cancelled', $values);
+
+        // Default = completed only: 2 completed invoices (retail + wholesale), no draft.
+        $default = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&compare=none');
+        $this->assertSame(2, $default->json('summary.invoiceCount'));
+
+        // Filter draft explicitly -> only the draft invoice.
+        $draft = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&status=draft&compare=none');
+        $this->assertSame(1, $draft->json('summary.invoiceCount'));
+        $this->assertEquals(50000.0, (float)$draft->json('summary.revenue'));
+
+        // Invalid status rejected.
+        $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&status=void')->assertStatus(422);
+    }
+
+    // ---- Retail + wholesale + refund all counted in "all" ----
+    public function test_all_report_includes_retail_wholesale_and_refund_formula(): void
+    {
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&compare=none');
+        $s = $resp->json('summary');
+        // retail 90000 + wholesale 200000
+        $this->assertEquals(290000.0, $s['revenue']);
+        // refund 20000, net = 270000
+        $this->assertEquals(20000.0, $s['refundAmount']);
+        $this->assertEquals(270000.0, $s['netRevenue']);
+    }
+
+    // ---- Payment filter retail/wholesale and split payment ----
+    public function test_payment_method_filters_sales_and_handles_split(): void
+    {
+        $cash = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&paymentMethod='.rawurlencode('Tiền mặt').'&compare=none');
+        $this->assertSame(1, $cash->json('summary.invoiceCount'));
+        $this->assertEquals(90000.0, (float)$cash->json('summary.revenue'));
+
+        $transfer = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&paymentMethod='.rawurlencode('Chuyển khoản').'&compare=none');
+        $this->assertSame(1, $transfer->json('summary.invoiceCount'));
+        $this->assertEquals(200000.0, (float)$transfer->json('summary.revenue'));
+
+        // Split payment invoice (added in existing test_payment_breakdown) is on 2026-07-04.
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale00000000000000000060',
+            'code' => 'HD-WH-SPLIT',
+            'status' => 'completed',
+            'type' => 'wholesale',
+            'branch_id' => $this->branch2->id,
+            'user_id' => $this->staff->id,
+            'value' => 240000,
+            'value_payment' => 240000,
+            'business_date' => Carbon::parse('2026-07-04 09:00:00'),
+            'completed_at' => Carbon::parse('2026-07-04 09:00:00'),
+            'payment_lines' => [
+                ['method' => 'Tiền mặt', 'amount' => 140000],
+                ['method' => 'Chuyển khoản', 'amount' => 100000],
+            ],
+            'items' => [['amount' => 3, 'value' => 240000, 'total' => 240000]],
+            'payload' => ['type' => 'wholesale', 'channel' => 'store'],
+        ]);
+
+        $splitTransfer = $this->getJson('/api/reports/revenue/time?from=2026-07-04&to=2026-07-04&granularity=day&paymentMethod='.rawurlencode('Chuyển khoản').'&compare=none');
+        // 1 transfer invoice (HD-WH-SPLIT) on 07-04.
+        // Filter keeps the whole invoice; revenue uses invoice value (240000), breakdown splits by line.
+        $this->assertSame(1, (int)$splitTransfer->json('summary.invoiceCount'));
+        $this->assertEquals(240000.0, (float)$splitTransfer->json('summary.revenue'));
+    }
+
+    // ---- Comparison: period, both sides, zero cases ----
+    public function test_comparison_period_and_metrics_with_both_data(): void
+    {
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&compare=previous_period');
+        $comp = $resp->json('comparison');
+        $this->assertNotNull($comp);
+        $this->assertSame('2026-06-28', $comp['period']['from']);
+        $this->assertSame('2026-06-30', $comp['period']['to']);
+    }
+
+    public function test_comparison_previous_zero_current_positive_no_infinity(): void
+    {
+        // No data in previous (June) — current July positive.
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&compare=previous_period');
+        $metric = $resp->json('comparison.metrics.revenue');
+        $this->assertEquals(290000.0, (float)$metric['currentValue']);
+        $this->assertEquals(0.0, (float)$metric['previousValue']);
+        $this->assertNull($metric['changePercent']);
+        $this->assertEquals(290000.0, (float)$metric['changeValue']);
+    }
+
+    public function test_comparison_current_zero_previous_positive(): void
+    {
+        // Current window 2026-07-10..07-10 has no completed sale in this test; previous = 2026-07-07..07-09.
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale00000000000000000070',
+            'code' => 'HD-R-PREV',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_id' => $this->branch->id,
+            'user_id' => $this->staff->id,
+            'value' => 80000,
+            'value_payment' => 80000,
+            'business_date' => Carbon::parse('2026-07-09 10:00:00'),
+            'completed_at' => Carbon::parse('2026-07-09 10:00:00'),
+            'payment_lines' => [['method' => 'Tiền mặt', 'amount' => 80000]],
+            'items' => [['amount' => 1, 'value' => 80000, 'total' => 80000]],
+            'payload' => ['type' => 'retail', 'channel' => 'store'],
+        ]);
+
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-07-10&to=2026-07-10&granularity=day&compare=previous_period');
+        $metric = $resp->json('comparison.metrics.revenue');
+        $this->assertEquals(0.0, (float)$metric['currentValue']);
+        $this->assertEquals(80000.0, (float)$metric['previousValue']);
+        // previous = 80000 -> changePercent = (0-80000)/80000*100 = -100
+        $this->assertEquals(-100.0, (float)$metric['changePercent']);
+        $this->assertEquals(-80000.0, (float)$metric['changeValue']);
+        $this->assertSame('2026-07-09', $resp->json('comparison.period.from'));
+        $this->assertSame('2026-07-09', $resp->json('comparison.period.to'));
+    }
+
+    public function test_comparison_none_returns_null_and_no_stale(): void
+    {
+        $with = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&compare=previous_period');
+        $this->assertNotNull($with->json('comparison'));
+
+        $none = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&compare=none');
+        $this->assertNull($none->json('comparison'));
+    }
+
+    public function test_comparison_keeps_store_status_payment_filters(): void
+    {
+        // Current window branch1 only:
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-07-01&to=2026-07-03&granularity=day&storeId='.$this->branch->id.'&status=completed&paymentMethod='.rawurlencode('Tiền mặt').'&compare=previous_period');
+        $resp->assertOk();
+        // Previous period (06-28..06-30) has no branch1 cash sale -> zero previous; current = 90000 (retail only).
+        $m = $resp->json('comparison.metrics.revenue');
+        $this->assertEquals(90000.0, (float)$m['currentValue']);
+        $this->assertEquals(0.0, (float)$m['previousValue']);
+        $this->assertSame('2026-06-28', $resp->json('comparison.period.from'));
+    }
+
+    public function test_comparison_one_day_period(): void
+    {
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-07-02&to=2026-07-02&granularity=day&compare=previous_period');
+        $this->assertSame('2026-07-01', $resp->json('comparison.period.from'));
+        $this->assertSame('2026-07-01', $resp->json('comparison.period.to'));
+    }
+
+    public function test_comparison_across_month_boundary(): void
+    {
+        // Current = 2026-06-30..2026-07-01 (2 days) -> previous = 2026-06-28..2026-06-29
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-06-30&to=2026-07-01&granularity=day&compare=previous_period');
+        $this->assertSame('2026-06-28', $resp->json('comparison.period.from'));
+        $this->assertSame('2026-06-29', $resp->json('comparison.period.to'));
+    }
+
+
+
+    public function test_payment_method_id_string_resolves_to_catalog_name(): void
+    {
+        // Catalog method used by both retail/wholesale create flows.
+        (new MirrorRecord())->forTable('payment_methods')->newQuery()->create([
+            'mongo_id' => 'pm00000000000000000001',
+            'name' => 'Tiền mặt',
+            'code' => 'CASH',
+            'status' => 'completed',
+            'is_active' => true,
+        ]);
+
+        // Sale created with typePayment[methodId = mongo_id string, amount] (wholesale/retail flow).
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale00000000000000000080',
+            'code' => 'HD-MID',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_id' => $this->branch->id,
+            'user_id' => $this->staff->id,
+            'value' => 120000,
+            'value_payment' => 120000,
+            'business_date' => Carbon::parse('2026-07-04 11:00:00'),
+            'completed_at' => Carbon::parse('2026-07-04 11:00:00'),
+            'payment_lines' => [['methodId' => 'pm00000000000000000001', 'amount' => 120000]],
+            'items' => [['amount' => 1, 'value' => 120000, 'total' => 120000]],
+            'payload' => ['type' => 'retail', 'channel' => 'store', 'typePayment' => [['methodId' => 'pm00000000000000000001', 'amount' => 120000]]],
+        ]);
+
+        // Options must include Tiền mặt from catalog.
+        $opts = $this->getJson('/api/reports/revenue/time/options');
+        $names = collect($opts->json('paymentMethods'))->map(fn($m) => mb_strtolower($m['label']))->values()->all();
+        $this->assertContains('tiền mặt', $names);
+
+        // Filter by the resolved label must match the invoice.
+        $resp = $this->getJson('/api/reports/revenue/time?from=2026-07-04&to=2026-07-04&granularity=day&paymentMethod='.rawurlencode('Tiền mặt').'&compare=none');
+        $this->assertSame(1, (int)$resp->json('summary.invoiceCount'));
+        $this->assertEquals(120000.0, (float)$resp->json('summary.revenue'));
+
+        // Breakdown must show the method with actual line amount.
+        $methods = collect($resp->json('breakdowns.paymentMethods'));
+        $cash = $methods->first(fn($m) => mb_strtolower($m['label']) === 'tiền mặt');
+        $this->assertNotNull($cash);
+        $this->assertEquals(120000.0, (float)$cash['revenue']);
+    }
+
+
 }

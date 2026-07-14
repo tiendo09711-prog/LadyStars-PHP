@@ -34,7 +34,11 @@ class RevenueByStoreReportService
 
     public const ALLOWED_STATUSES = ['completed', 'draft', 'cancelled'];
 
+    /** Legacy sale types on sale_payments.type. */
     public const SALE_TYPES = ['retail', 'wholesale'];
+
+    /** Unified channel filter for this report: all (empty) / retail / wholesale / refund. */
+    public const CHANNEL_VALUES = ['retail', 'wholesale', 'refund'];
 
     public const PER_PAGE_OPTIONS = [20, 50, 100];
 
@@ -102,19 +106,14 @@ class RevenueByStoreReportService
         return [
             'stores' => $stores,
             'staff' => $staff,
+            // Kenh ban hop nhat: Tat ca / Ban le / Ban si / Tra hang.
             'channels' => [
                 ['value' => 'retail', 'label' => 'Bán lẻ'],
                 ['value' => 'wholesale', 'label' => 'Bán sỉ'],
+                ['value' => 'refund', 'label' => 'Trả hàng'],
             ],
-            'saleChannels' => [
-                ['value' => 'store', 'label' => 'Cửa hàng'],
-                ['value' => 'shopee', 'label' => 'Shopee'],
-                ['value' => 'tiktok', 'label' => 'TikTok'],
-                ['value' => 'lazada', 'label' => 'Lazada'],
-                ['value' => 'tiki', 'label' => 'Tiki'],
-                ['value' => 'facebook', 'label' => 'Facebook Shop'],
-                ['value' => 'ecom-finance', 'label' => 'Tài chính sàn TMDT'],
-            ],
+            // Legacy saleChannels (Shopee/TikTok/...) da bo khoi UI trang nay; giu key rong de FE type khong crash.
+            'saleChannels' => [],
             'invoiceStatuses' => [
                 ['value' => 'completed', 'label' => 'Hoàn tất'],
                 ['value' => 'draft', 'label' => 'Nháp'],
@@ -288,12 +287,13 @@ class RevenueByStoreReportService
         }
 
         $channel = strtolower(trim((string) ($input['channel'] ?? '')));
-        if ($channel !== '' && !in_array($channel, self::SALE_TYPES, true)) {
+        if ($channel !== '' && !in_array($channel, self::CHANNEL_VALUES, true)) {
             throw ValidationException::withMessages([
-                'channel' => ['Loại bán không hợp lệ. Chỉ chấp nhận retail|wholesale.'],
+                'channel' => ['Kênh bán không hợp lệ. Chỉ chấp nhận retail|wholesale|refund.'],
             ]);
         }
 
+        // Legacy saleChannel (Shopee/TikTok/...) — van parse de caller cu khong crash, nhung trang nay khong gui.
         $saleChannel = strtolower(trim((string) ($input['saleChannel'] ?? '')));
         $allowedSaleChannels = ['store', 'shopee', 'tiktok', 'lazada', 'tiki', 'facebook', 'ecom-finance'];
         if ($saleChannel !== '' && !in_array($saleChannel, $allowedSaleChannels, true)) {
@@ -338,11 +338,15 @@ class RevenueByStoreReportService
             ]);
         }
 
-        $trendGranularity = strtolower(trim((string) ($input['trendGranularity'] ?? 'day')));
-        if (!in_array($trendGranularity, self::TREND_GRANULARITIES, true)) {
+        $trendGranularityRaw = strtolower(trim((string) ($input['trendGranularity'] ?? '')));
+        if ($trendGranularityRaw === '') {
+            $trendGranularity = $this->suggestedTrendGranularity($from, $to);
+        } elseif (!in_array($trendGranularityRaw, self::TREND_GRANULARITIES, true)) {
             throw ValidationException::withMessages([
                 'trendGranularity' => ['Kiểu tổng hợp xu hướng không hợp lệ.'],
             ]);
+        } else {
+            $trendGranularity = $trendGranularityRaw;
         }
 
         $page = max(1, (int) ($input['page'] ?? 1));
@@ -423,6 +427,11 @@ class RevenueByStoreReportService
 
     private function loadSales(array $filters): Collection
     {
+        // channel=refund: chi lay du lieu tra hang (product_refunds), khong load sale goc.
+        if ($filters['channel'] === 'refund') {
+            return collect();
+        }
+
         $query = (new MirrorRecord())->forTable('sale_payments')->newQuery();
 
         $statusList = [];
@@ -436,7 +445,8 @@ class RevenueByStoreReportService
             $query->whereIn('branch_id', array_map('intval', $filters['storeIds']));
         }
 
-        if ($filters['channel'] !== null) {
+        // channel=retail|wholesale: loc theo sale_payments.type
+        if ($filters['channel'] !== null && in_array($filters['channel'], self::SALE_TYPES, true)) {
             $query->where(function ($q) use ($filters) {
                 $q->where('type', $filters['channel'])
                     ->orWhere('type', strtoupper($filters['channel']));
@@ -481,16 +491,7 @@ class RevenueByStoreReportService
             }
 
             if ($filters['paymentMethod'] !== null) {
-                $labels = $this->paymentLabelsFromSale($row);
-                $needle = mb_strtolower($filters['paymentMethod']);
-                $hit = false;
-                foreach ($labels as $label) {
-                    if (mb_strtolower($label) === $needle) {
-                        $hit = true;
-                        break;
-                    }
-                }
-                if (!$hit) {
+                if (!$this->saleMatchesPaymentMethod($row, $filters['paymentMethod'])) {
                     return false;
                 }
             }
@@ -600,13 +601,17 @@ class RevenueByStoreReportService
                 }
             }
 
-            if ($filters['channel'] !== null) {
-                $type = strtolower((string) ($payload['type'] ?? $row->type ?? ''));
-                if ($type !== '' && $type !== $filters['channel']) {
+            // channel=refund: giu tat ca refund hop le (da filter store/staff/status/date).
+            // channel=retail|wholesale: chi giu refund lien ket sale goc dung type.
+            // channel=null (Tat ca): giu tat ca.
+            if ($filters['channel'] !== null && in_array($filters['channel'], self::SALE_TYPES, true)) {
+                $parentType = $this->resolveRefundParentSaleType($row, $payload);
+                if ($parentType === null || $parentType !== $filters['channel']) {
                     return false;
                 }
             }
 
+            // Legacy saleChannel filter (caller cu). Trang nay khong gui.
             if ($filters['saleChannel'] !== null) {
                 $ch = strtolower((string) ($payload['channel'] ?? $payload['saleChannel'] ?? ''));
                 if ($ch === 'cửa hàng' || $ch === 'cua hang') {
@@ -1228,6 +1233,24 @@ class RevenueByStoreReportService
             $byStaff[$staffKey]['invoiceCount'] += 1;
         }
 
+        // Chi bo sung bucket 'Tra hang' khi khong co sale (channel=refund) de pie khong bi slice am
+        // xen voi ban le/ban si. Khi channel=all, breakdown Kenh ban van chi phan loai ban hang.
+        if ($sales->isEmpty() && $refunds->isNotEmpty()) {
+            $refundTotal = 0.0;
+            $refundCount = 0;
+            foreach ($refunds as $row) {
+                $refundTotal += $this->refundAmount($row);
+                $refundCount += 1;
+            }
+            $byChannel['refund'] = [
+                'key' => 'refund',
+                'label' => 'Trả hàng',
+                // Gia tri duong = tong hoan tra (channel=refund: revenue sale = 0).
+                'revenue' => $refundTotal,
+                'invoiceCount' => $refundCount,
+            ];
+        }
+
         return [
             'revenueShareByStore' => $revenueShareByStore,
             'channels' => $this->normalizeBreakdown(array_values($byChannel), 20),
@@ -1439,6 +1462,7 @@ class RevenueByStoreReportService
 
     private function paymentLabelsFromSale(object $row): array
     {
+        $catalog = $this->paymentMethodCatalog();
         $labels = [];
         $lines = is_array($row->payment_lines) ? $row->payment_lines : [];
         if ($lines === []) {
@@ -1449,24 +1473,104 @@ class RevenueByStoreReportService
             }
             $single = $payload['paymentMethod'] ?? $payload['payment_method'] ?? null;
             if ($lines === [] && $single) {
-                return [(string) $single];
+                $resolved = $this->resolvePaymentLabel((string) $single, $catalog);
+                return $resolved !== null ? [$resolved] : [];
             }
         }
         foreach ($lines as $line) {
             if (!is_array($line)) {
                 continue;
             }
-            $name = $line['methodId']['name']
+            $methodIdRaw = $line['methodId'] ?? null;
+            $methodId = null;
+            $nameFromObj = null;
+            if (is_array($methodIdRaw)) {
+                $methodId = (string) ($methodIdRaw['_id'] ?? $methodIdRaw['id'] ?? $methodIdRaw['mongo_id'] ?? '');
+                $nameFromObj = $methodIdRaw['name'] ?? null;
+            } elseif ($methodIdRaw !== null && $methodIdRaw !== '') {
+                $methodId = (string) $methodIdRaw;
+            }
+            $name = $nameFromObj
                 ?? $line['method']
                 ?? $line['name']
                 ?? $line['label']
                 ?? null;
+            if ($methodId) {
+                $resolved = $this->resolvePaymentLabel($methodId, $catalog);
+                if ($resolved !== null) {
+                    $labels[] = $resolved;
+                    continue;
+                }
+            }
             if ($name) {
                 $labels[] = (string) $name;
             }
         }
 
-        return array_values(array_unique($labels));
+        return array_values(array_unique(array_filter($labels, fn ($l) => $l !== '')));
+    }
+
+    /**
+     * Match sale against a payment method filter value (ID or label).
+     * Split-payment: match if ANY line equals the selected method.
+     */
+    private function saleMatchesPaymentMethod(object $row, string $needle): bool
+    {
+        $catalog = $this->paymentMethodCatalog();
+        $targetLabel = $this->resolvePaymentLabel($needle, $catalog);
+        $targetNorm = mb_strtolower(trim($targetLabel ?? $needle));
+        $targetIds = $this->paymentMethodIdsMatching($needle, $catalog);
+
+        $lines = is_array($row->payment_lines) ? $row->payment_lines : [];
+        if ($lines === []) {
+            $payload = is_array($row->payload) ? $row->payload : [];
+            $lines = $payload['typePayment'] ?? $payload['paymentLines'] ?? [];
+            if (!is_array($lines)) {
+                $lines = [];
+            }
+            $single = $payload['paymentMethod'] ?? $payload['payment_method'] ?? null;
+            if ($lines === [] && $single) {
+                $singleStr = (string) $single;
+                if (in_array(mb_strtolower($singleStr), $targetIds, true)) {
+                    return true;
+                }
+                $resolved = $this->resolvePaymentLabel($singleStr, $catalog);
+                return mb_strtolower((string) ($resolved ?? $singleStr)) === $targetNorm;
+            }
+        }
+
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $methodIdRaw = $line['methodId'] ?? null;
+            $candidates = [];
+            if (is_array($methodIdRaw)) {
+                foreach (['_id', 'id', 'mongo_id', 'name'] as $k) {
+                    if (isset($methodIdRaw[$k]) && $methodIdRaw[$k] !== '') {
+                        $candidates[] = (string) $methodIdRaw[$k];
+                    }
+                }
+            } elseif ($methodIdRaw !== null && $methodIdRaw !== '') {
+                $candidates[] = (string) $methodIdRaw;
+            }
+            foreach (['method', 'name', 'label'] as $k) {
+                if (isset($line[$k]) && $line[$k] !== '') {
+                    $candidates[] = (string) $line[$k];
+                }
+            }
+            foreach ($candidates as $c) {
+                if (in_array(mb_strtolower($c), $targetIds, true)) {
+                    return true;
+                }
+                $resolved = $this->resolvePaymentLabel($c, $catalog);
+                if (mb_strtolower((string) ($resolved ?? $c)) === $targetNorm) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function staffNameFromPayload(object $row): string
@@ -1485,14 +1589,41 @@ class RevenueByStoreReportService
 
     private function distinctPaymentMethodLabels(): array
     {
+        $catalog = $this->paymentMethodCatalog();
         $fromCatalog = [];
+        $seen = [];
+        foreach ($catalog as $entry) {
+            $label = $entry['name'];
+            $key = mb_strtolower(trim($label));
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+            // Prefer mongo_id as value when available so filter can resolve by ID; fallback to name.
+            $value = $entry['mongo_id'] !== '' ? $entry['mongo_id'] : $label;
+            $seen[$key] = true;
+            $fromCatalog[] = [
+                'value' => (string) $value,
+                'label' => (string) $label,
+            ];
+        }
+
+        // Merge historical labels from recent sales that are no longer in catalog.
         try {
-            $methods = (new MirrorRecord())->forTable('payment_methods')->newQuery()
-                ->orderBy('name')
-                ->get(['name', 'code', 'mongo_id']);
-            foreach ($methods as $m) {
-                $label = $m->name ?: $m->code;
-                if ($label) {
+            $sales = (new MirrorRecord())->forTable('sale_payments')->newQuery()
+                ->orderByDesc('id')
+                ->limit(500)
+                ->get(['payment_lines', 'payload']);
+            foreach ($sales as $row) {
+                foreach ($this->paymentLabelsFromSale($row) as $label) {
+                    $key = mb_strtolower(trim((string) $label));
+                    if ($key === '' || isset($seen[$key])) {
+                        continue;
+                    }
+                    // Skip raw-looking placeholders
+                    if (in_array($key, ['không xác định', 'khong xac dinh', 'unknown', 'n/a', '-'], true)) {
+                        continue;
+                    }
+                    $seen[$key] = true;
                     $fromCatalog[] = [
                         'value' => (string) $label,
                         'label' => (string) $label,
@@ -1500,27 +1631,171 @@ class RevenueByStoreReportService
                 }
             }
         } catch (\Throwable) {
-            // table may be empty
+            // ignore
         }
 
-        if ($fromCatalog !== []) {
-            return $fromCatalog;
+        usort($fromCatalog, fn ($a, $b) => strcmp(mb_strtolower($a['label']), mb_strtolower($b['label'])));
+
+        return $fromCatalog;
+    }
+
+    /**
+     * Cached payment method catalog: mongo_id / name / code / active.
+     * Same source as GET /products/payment-methods (mirror table payment_methods).
+     *
+     * @return array<int, array{mongo_id:string,name:string,code:string,is_active:bool}>
+     */
+    private function paymentMethodCatalog(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        $cache = [];
+        try {
+            $rows = (new MirrorRecord())->forTable('payment_methods')->newQuery()
+                ->orderBy('name')
+                ->get(['mongo_id', 'name', 'code', 'payload', 'status']);
+            foreach ($rows as $m) {
+                $payload = is_array($m->payload) ? $m->payload : [];
+                $name = (string) ($m->name ?: ($payload['name'] ?? $m->code ?? ''));
+                $code = (string) ($m->code ?: ($payload['code'] ?? ''));
+                $mongo = (string) ($m->mongo_id ?: ($payload['_id'] ?? $payload['id'] ?? ''));
+                $isActive = true;
+                if (array_key_exists('isActive', $payload)) {
+                    $isActive = (bool) $payload['isActive'];
+                } elseif (array_key_exists('is_active', $payload)) {
+                    $isActive = (bool) $payload['is_active'];
+                } elseif ($m->status !== null && $m->status !== '') {
+                    $st = strtolower((string) $m->status);
+                    $isActive = !in_array($st, ['inactive', 'disabled', '0', 'false'], true);
+                }
+                if ($name === '' && $code === '') {
+                    continue;
+                }
+                $cache[] = [
+                    'mongo_id' => $mongo,
+                    'name' => $name !== '' ? $name : $code,
+                    'code' => $code,
+                    'is_active' => $isActive,
+                ];
+            }
+        } catch (\Throwable) {
+            $cache = [];
         }
 
-        $sales = (new MirrorRecord())->forTable('sale_payments')->newQuery()
-            ->orderByDesc('id')
-            ->limit(500)
-            ->get(['payment_lines', 'payload']);
-        $set = [];
-        foreach ($sales as $row) {
-            foreach ($this->paymentLabelsFromSale($row) as $label) {
-                $set[mb_strtolower($label)] = $label;
+        return $cache;
+    }
+
+    /** Resolve methodId or label -> display name from catalog. */
+    private function resolvePaymentLabel(string $raw, ?array $catalog = null): ?string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+        $catalog = $catalog ?? $this->paymentMethodCatalog();
+        $needle = mb_strtolower($raw);
+        foreach ($catalog as $entry) {
+            if ($entry['mongo_id'] !== '' && mb_strtolower($entry['mongo_id']) === $needle) {
+                return $entry['name'];
+            }
+            if ($entry['code'] !== '' && mb_strtolower($entry['code']) === $needle) {
+                return $entry['name'];
+            }
+            if (mb_strtolower($entry['name']) === $needle) {
+                return $entry['name'];
             }
         }
 
-        return collect($set)->sort()->values()->map(fn ($label) => [
-            'value' => $label,
-            'label' => $label,
-        ])->all();
+        return $raw;
+    }
+
+    /**
+     * All IDs / codes / names that match a filter needle (normalized lowercase).
+     *
+     * @return string[]
+     */
+    private function paymentMethodIdsMatching(string $needle, ?array $catalog = null): array
+    {
+        $catalog = $catalog ?? $this->paymentMethodCatalog();
+        $n = mb_strtolower(trim($needle));
+        $ids = [$n];
+        foreach ($catalog as $entry) {
+            $match = false;
+            if ($entry['mongo_id'] !== '' && mb_strtolower($entry['mongo_id']) === $n) {
+                $match = true;
+            } elseif ($entry['code'] !== '' && mb_strtolower($entry['code']) === $n) {
+                $match = true;
+            } elseif (mb_strtolower($entry['name']) === $n) {
+                $match = true;
+            }
+            if ($match) {
+                if ($entry['mongo_id'] !== '') {
+                    $ids[] = mb_strtolower($entry['mongo_id']);
+                }
+                if ($entry['code'] !== '') {
+                    $ids[] = mb_strtolower($entry['code']);
+                }
+                $ids[] = mb_strtolower($entry['name']);
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Resolve parent sale type for a refund so retail/wholesale filters only keep matching refunds.
+     * Sources: payload.type, row.type, then parent sale_payments via payment_mongo_id.
+     */
+    private function resolveRefundParentSaleType(object $row, array $payload): ?string
+    {
+        $type = strtolower((string) ($payload['type'] ?? $row->type ?? ''));
+        if (in_array($type, self::SALE_TYPES, true)) {
+            return $type;
+        }
+
+        $pmid = $row->payment_mongo_id ?? $payload['paymentMongoId'] ?? null;
+        if (!$pmid) {
+            return null;
+        }
+
+        static $parentTypeCache = [];
+        $key = (string) $pmid;
+        if (array_key_exists($key, $parentTypeCache)) {
+            return $parentTypeCache[$key];
+        }
+
+        $parent = (new MirrorRecord())->forTable('sale_payments')->newQuery()
+            ->where('mongo_id', $key)
+            ->first(['type', 'payload']);
+        if (!$parent) {
+            $parentTypeCache[$key] = null;
+
+            return null;
+        }
+        $pType = strtolower((string) ($parent->type ?? ''));
+        if ($pType === '') {
+            $pp = is_array($parent->payload) ? $parent->payload : [];
+            $pType = strtolower((string) ($pp['type'] ?? ''));
+        }
+        $resolved = in_array($pType, self::SALE_TYPES, true) ? $pType : null;
+        $parentTypeCache[$key] = $resolved;
+
+        return $resolved;
+    }
+
+    /** Auto-select trend granularity from inclusive day count (aligned with frontend). */
+    private function suggestedTrendGranularity(Carbon $from, Carbon $to): string
+    {
+        $days = $from->diffInDays($to) + 1;
+        if ($days <= 45) {
+            return 'day';
+        }
+        if ($days <= 180) {
+            return 'week';
+        }
+
+        return 'month';
     }
 }

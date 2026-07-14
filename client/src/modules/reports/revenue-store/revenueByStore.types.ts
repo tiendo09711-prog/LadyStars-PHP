@@ -14,6 +14,11 @@ export type TrendGranularity = 'day' | 'week' | 'month';
 
 export type CompareMode = 'none' | 'previous_period';
 
+export type DateMode = 'preset' | 'custom';
+
+/** Kenh ban hop nhat: empty/retail/wholesale/refund (Tat ca/Ban le/Ban si/Tra hang). */
+export type SaleChannel = '' | 'retail' | 'wholesale' | 'refund';
+
 export type ReportMetric =
   | 'netRevenue'
   | 'revenue'
@@ -61,6 +66,7 @@ export type RevenueByStoreOptions = {
   stores: StoreOption[];
   staff: StaffOption[];
   channels: OptionItem[];
+  /** @deprecated Legacy kenh ban hardcode (Shopee/TikTok/...) — giu type, khong dung tren trang nay. */
   saleChannels?: OptionItem[];
   invoiceStatuses: OptionItem[];
   paymentMethods: OptionItem[];
@@ -80,7 +86,8 @@ export type StoreReportFilters = {
   to: string;
   storeIds: string[];
   staffId: string;
-  channel: string;
+  channel: SaleChannel;
+  /** @deprecated Legacy kenh ban hardcode — khong con dung tren trang nay. */
   saleChannel: string;
   status: string;
   paymentMethod: string;
@@ -91,6 +98,7 @@ export type StoreReportFilters = {
   perPage: number;
   sortBy: SortField;
   sortDirection: SortDirection;
+  /** @deprecated Tim cua hang doc lap da bo — khong gui len API. */
   search: string;
 };
 
@@ -174,13 +182,15 @@ export type StoreReportResponse = {
     to: string;
     storeIds: string[];
     staffId: string | null;
-    channel: string | null;
+    channel: SaleChannel | null;
+    /** @deprecated Legacy kenh ban hardcode — luon null sau hop nhat. */
     saleChannel: string | null;
     status: string[];
     paymentMethod: string | null;
     compare: CompareMode;
     metric: ReportMetric;
     trendGranularity: TrendGranularity;
+    /** @deprecated Tim cua hang doc lap da bo — luon null. */
     search: string | null;
     timezone: string;
   };

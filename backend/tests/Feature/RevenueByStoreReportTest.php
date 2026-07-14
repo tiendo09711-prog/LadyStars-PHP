@@ -53,6 +53,20 @@ class RevenueByStoreReportTest extends TestCase
             'is_active' => true,
         ]);
 
+        // Can thu payment_methods (mirror) de test resolve ID -> label nhu luong Ban le/Ban si.
+        (new MirrorRecord())->forTable('payment_methods')->newQuery()->create([
+            'mongo_id' => 'pm00000000000000000000001',
+            'name' => 'Tiền mặt',
+            'code' => 'CASH',
+            'payload' => ['isActive' => true],
+        ]);
+        (new MirrorRecord())->forTable('payment_methods')->newQuery()->create([
+            'mongo_id' => 'pm00000000000000000000002',
+            'name' => 'Chuyển khoản',
+            'code' => 'TRANSFER',
+            'payload' => ['isActive' => true],
+        ]);
+
         // Completed retail sale — branch HN
         (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
             'mongo_id' => 'sale00000000000000000001',
@@ -70,7 +84,7 @@ class RevenueByStoreReportTest extends TestCase
             'total_cost' => 40000,
             'business_date' => Carbon::parse('2026-07-01 10:00:00'),
             'completed_at' => Carbon::parse('2026-07-01 10:00:00'),
-            'payment_lines' => [['method' => 'Tiền mặt', 'amount' => 90000]],
+            'payment_lines' => [['methodId' => ['_id' => 'pm00000000000000000000001', 'name' => 'Tiền mặt'], 'amount' => 90000]],
             'items' => [
                 ['amount' => 2, 'value' => 50000, 'total' => 100000],
             ],
@@ -334,6 +348,9 @@ class RevenueByStoreReportTest extends TestCase
         // HN 90k + DN 50k + unknown 30k = 170k (wholesale HCM excluded)
         $this->assertEquals(170000.0, $response->json('summary.revenue'));
         $this->assertSame(3, $response->json('summary.invoiceCount'));
+        // Refund thuoc retail HN (20k) duoc tinh; khong double count
+        $this->assertEquals(20000.0, $response->json('summary.refundAmount'));
+        $this->assertEquals(150000.0, $response->json('summary.netRevenue'));
     }
 
     public function test_payment_method_filter(): void
@@ -347,15 +364,206 @@ class RevenueByStoreReportTest extends TestCase
         $this->assertEquals(200000.0, $response->json('summary.revenue'));
     }
 
-    public function test_search_by_store_name(): void
+    /**
+     * Backend giu backward-compat cho search (caller khac) — trang revenue-store FE khong gui nua.
+     * Trang FE tu strip search khoi state/query (xem filtersFromSearchParams) => URL cu qua page khong ap filter an.
+     * Test nay chi xac nhan backend van chap nhan tham so (khong 422).
+     */
+    public function test_legacy_search_param_still_accepted_for_backward_compat(): void
     {
         $response = $this->getJson(
             '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none&search=Ha%20Noi'
         );
 
         $response->assertOk();
+        // Backend van filter theo search cho caller cu; page FE khong dung nua.
         $this->assertSame(1, $response->json('summary.storeCount'));
         $this->assertEquals(90000.0, $response->json('summary.revenue'));
+    }
+
+    /**
+     * Khi khong gui trendGranularity, backend tu chon dua tren khoang ngay (3 ngay => day).
+     */
+    public function test_auto_trend_granularity_day_for_short_range(): void
+    {
+        $response = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none'
+        );
+
+        $response->assertOk();
+        $this->assertSame('day', $response->json('trend.granularity'));
+    }
+
+    public function test_channel_filter_wholesale(): void
+    {
+        $response = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none&channel=wholesale'
+        );
+
+        $response->assertOk();
+        // Chi wholesale HCM 200k; refund thuoc retail HN khong nam trong wholesale.
+        $this->assertSame(1, $response->json('summary.invoiceCount'));
+        $this->assertEquals(200000.0, $response->json('summary.revenue'));
+        $this->assertEquals(0.0, $response->json('summary.refundAmount'));
+        $this->assertEquals(200000.0, $response->json('summary.netRevenue'));
+    }
+
+    /**
+     * channel=refund: chi lay product_refunds, khong load sale goc.
+     * revenue = 0, netRevenue = -refundAmount (giu invariant net = revenue - refund).
+     */
+    public function test_channel_filter_refund_only(): void
+    {
+        $response = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none&channel=refund'
+        );
+
+        $response->assertOk();
+        $this->assertSame(0, $response->json('summary.invoiceCount'));
+        $this->assertEquals(0.0, $response->json('summary.revenue'));
+        $this->assertEquals(20000.0, $response->json('summary.refundAmount'));
+        $this->assertEquals(-20000.0, $response->json('summary.netRevenue'));
+        $this->assertSame(0, $response->json('meta.saleCountLoaded'));
+        $this->assertSame(1, $response->json('meta.refundCountLoaded'));
+    }
+
+    /**
+     * channel=retail: refund chi tinh neu lien ket sale goc type=retail (khong lay refund wholesale).
+     */
+    public function test_channel_filter_retail_excludes_refund_from_other_type(): void
+    {
+        // Refund thuoc wholesale HCM (lien ket sale wholesale via payment_mongo_id)
+        (new MirrorRecord())->forTable('product_refunds')->newQuery()->create([
+            'mongo_id' => 'refund00000000000000002',
+            'code' => 'TH-W-001',
+            'status' => 'completed',
+            'payment_mongo_id' => 'sale00000000000000000002',
+            'value' => 15000,
+            'total' => 15000,
+            'business_date' => Carbon::parse('2026-07-02 15:00:00'),
+            'completed_at' => Carbon::parse('2026-07-02 15:00:00'),
+            'user_id' => $this->staff->id,
+            'items' => [['amount' => 1, 'value' => 15000]],
+            'payload' => ['channel' => 'store', 'value' => 15000],
+        ]);
+
+        $retail = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none&channel=retail'
+        );
+        $retail->assertOk();
+        // Retail: HN 90k + DN 50k + unknown 30k = 170k; refund retail (20k) thuoc HN => net 150k
+        $this->assertEquals(170000.0, $retail->json('summary.revenue'));
+        $this->assertEquals(20000.0, $retail->json('summary.refundAmount'));
+        $this->assertEquals(150000.0, $retail->json('summary.netRevenue'));
+
+        $wholesale = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none&channel=wholesale'
+        );
+        $wholesale->assertOk();
+        // Khi co them refund wholesale 15k, channel=wholesale bay gio co refund 15k
+        $this->assertEquals(200000.0, $wholesale->json('summary.revenue'));
+        $this->assertEquals(15000.0, $wholesale->json('summary.refundAmount'));
+        $this->assertEquals(185000.0, $wholesale->json('summary.netRevenue'));
+
+        // Cleanup refund fixture cua test nay de khong anh huong test khac.
+        (new MirrorRecord())->forTable('product_refunds')->newQuery()
+            ->where('mongo_id', 'refund00000000000000002')->delete();
+    }
+
+    /**
+     * Payment method filter resolve theo methodId (ID) -> label nhu luong Ban le/Ban si.
+     */
+    public function test_payment_method_filter_by_label(): void
+    {
+        $response = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none&paymentMethod='.urlencode('Tiền mặt')
+        );
+
+        $response->assertOk();
+        // HN (Tien mat) + DN (Tien mat) + unknown (Tien mat) = 3 hoa don; wholesale Chuyen khoan bi loai.
+        $this->assertSame(3, $response->json('summary.invoiceCount'));
+        $this->assertEquals(170000.0, $response->json('summary.revenue'));
+    }
+
+    public function test_options_payment_methods_use_canonical_catalog(): void
+    {
+        $response = $this->getJson('/api/reports/revenue/store/options');
+
+        $response->assertOk();
+        $methods = collect($response->json('paymentMethods'));
+        $names = $methods->pluck('label')->all();
+        $this->assertContains('Tiền mặt', $names);
+        $this->assertContains('Chuyển khoản', $names);
+    }
+
+    public function test_options_channels_are_unified_retail_wholesale_refund(): void
+    {
+        $response = $this->getJson('/api/reports/revenue/store/options');
+
+        $response->assertOk();
+        $channels = collect($response->json('channels'));
+        $values = $channels->pluck('value')->all();
+        $this->assertEqualsCanonicalizing(['retail', 'wholesale', 'refund'], $values);
+        $this->assertContains(['value' => 'refund', 'label' => 'Trả hàng'], $channels->all());
+        // saleChannels hardcode da bo
+        $saleChannels = $response->json('saleChannels');
+        $this->assertSame([], $saleChannels);
+    }
+
+    public function test_breakdown_channels_refund_only_when_channel_refund(): void
+    {
+        $response = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none&channel=refund'
+        );
+
+        $response->assertOk();
+        $channels = collect($response->json('breakdowns.channels'));
+        // Chi bucket 'Trả hang' khi channel=refund (khong xen ban le/ban si am).
+        $this->assertCount(1, $channels);
+        $this->assertSame('refund', $channels->first()['key']);
+        $this->assertSame('Trả hàng', $channels->first()['label']);
+        $this->assertEquals(20000.0, $channels->first()['revenue']);
+    }
+
+    public function test_compare_none_returns_null_comparison(): void
+    {
+        $response = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&compare=none'
+        );
+        $response->assertOk();
+        $this->assertNull($response->json('comparison'));
+    }
+
+    public function test_compare_previous_period_keeps_channel_filter(): void
+    {
+        $response = $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-02&to=2026-07-03&compare=previous_period&channel=wholesale'
+        );
+        $response->assertOk();
+        $this->assertNotNull($response->json('comparison'));
+        // Previous period = 2 ngay ngay truoc (from-1 day backwards 2 days): 2026-06-30 -> 2026-07-01
+        $this->assertSame('2026-06-30', $response->json('comparison.period.from'));
+        $this->assertSame('2026-07-01', $response->json('comparison.period.to'));
+    }
+
+    public function test_invalid_channel_returns_422(): void
+    {
+        $this->getJson(
+            '/api/reports/revenue/store?from=2026-07-01&to=2026-07-03&channel=shopee'
+        )->assertStatus(422);
+    }
+
+    public function test_default_range_is_30_days_when_no_dates(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-14 00:00:00', 'Asia/Ho_Chi_Minh'));
+        try {
+            $response = $this->getJson('/api/reports/revenue/store?compare=none');
+            $response->assertOk();
+            $this->assertSame('2026-06-15', $response->json('filters.from'));
+            $this->assertSame('2026-07-14', $response->json('filters.to'));
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_sort_and_pagination(): void

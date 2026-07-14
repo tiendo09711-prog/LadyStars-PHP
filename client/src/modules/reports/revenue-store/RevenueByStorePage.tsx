@@ -39,10 +39,12 @@ import {
 import { fetchRevenueByStoreOptions, fetchRevenueByStoreReport } from './revenueByStore.api';
 import type {
   ChartView,
+  DateMode,
   DatePreset,
   MetricComparison,
   ReportMetric,
   RevenueByStoreOptions,
+  SaleChannel,
   SortField,
   StoreRankingRow,
   StoreReportFilters,
@@ -50,6 +52,7 @@ import type {
   StoreReportSummary,
 } from './revenueByStore.types';
 import {
+  CHANNEL_OPTIONS,
   CHART_VIEW_LABELS,
   defaultFilters,
   exportRankingCsv,
@@ -64,9 +67,11 @@ import {
   formatPercent,
   METRIC_LABELS,
   metricValue,
+  trendMetricValue,
   PRESET_LABELS,
   rangeFromPreset,
   suggestedTrendGranularity,
+  validateCustomDateInputs,
   validateDateRange,
 } from './revenueByStore.utils';
 import './revenue-by-store.css';
@@ -304,12 +309,14 @@ function SummaryCards({
         label: 'Giá trị đơn TB',
         value: formatMoney(summary.averageOrderValue),
         metricKey: 'averageOrderValue',
+        tip: 'Doanh thu / số hóa đơn (0 nếu không có hóa đơn)',
       },
       {
         key: 'storeCount',
         label: 'Cửa hàng có DT',
         value: formatNumber(summary.storeCount),
         metricKey: 'storeCount',
+        tip: 'Số cửa hàng còn lại sau bộ lọc có phát sinh doanh thu',
       },
       {
         key: 'topStore',
@@ -454,7 +461,7 @@ function TrendMultiChart({
       };
       series.forEach((s) => {
         const pt = s.points.find((p) => p.key === key);
-        row[s.storeId] = pt ? Number(pt[metric as keyof typeof pt] ?? 0) : 0;
+        row[s.storeId] = trendMetricValue(pt, metric);
       });
       return row;
     });
@@ -695,7 +702,7 @@ function TrendPeriodModal({
     if (!report || !periodLabel) return [];
     return report.trend.series.map((series) => {
       const point = series.points.find((candidate) => candidate.label === periodLabel);
-      return { storeId: series.storeId, storeName: series.storeName, value: Number(point?.[metric] ?? 0) };
+      return { storeId: series.storeId, storeName: series.storeName, value: trendMetricValue(point, metric) };
     }).sort((left, right) => right.value - left.value);
   }, [metric, periodLabel, report]);
 
@@ -959,6 +966,9 @@ export function RevenueByStorePage() {
   const [draft, setDraft] = useState<StoreReportFilters>(() => defaultFilters());
   const [applied, setApplied] = useState<StoreReportFilters>(() => defaultFilters());
   const [preset, setPreset] = useState<DatePreset>('last_30_days');
+  const [dateMode, setDateMode] = useState<DateMode>('preset');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [report, setReport] = useState<StoreReportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -1043,9 +1053,13 @@ export function RevenueByStorePage() {
 
       const fromUrl = filtersFromSearchParams(new URLSearchParams(window.location.search));
       const filters = fromUrl.filters;
+      const isCustom = fromUrl.preset === 'custom';
       setDraft(filters);
       setApplied(filters);
-      setPreset(fromUrl.preset);
+      setPreset(isCustom ? 'last_30_days' : fromUrl.preset);
+      setDateMode(isCustom ? 'custom' : 'preset');
+      setCustomFrom(isCustom ? filters.from : '');
+      setCustomTo(isCustom ? filters.to : '');
       skipUrlWrite.current = true;
       await loadReport(filters, 'load');
       setBootstrapped(true);
@@ -1066,21 +1080,25 @@ export function RevenueByStorePage() {
       return;
     }
     setSyncingUrl(true);
-    const qs = filtersToSearchParams(applied, preset);
+    const qs = filtersToSearchParams(applied, dateMode === 'custom' ? 'custom' : preset);
     setSearchParams(qs, { replace: true });
     setSyncingUrl(false);
-  }, [applied, preset, bootstrapped, setSearchParams]);
+  }, [applied, preset, dateMode, bootstrapped, setSearchParams]);
 
   // Browser back/forward
   useEffect(() => {
     if (!bootstrapped || syncingUrl) return;
     const fromUrl = filtersFromSearchParams(searchParams);
-    const qsApplied = filtersToSearchParams(applied, preset);
+    const qsApplied = filtersToSearchParams(applied, dateMode === 'custom' ? 'custom' : preset);
     const qsUrl = filtersToSearchParams(fromUrl.filters, fromUrl.preset);
     if (qsApplied === qsUrl) return;
     skipUrlWrite.current = true;
+    const isCustom = fromUrl.preset === 'custom';
     setDraft(fromUrl.filters);
-    setPreset(fromUrl.preset);
+    setPreset(isCustom ? 'last_30_days' : fromUrl.preset);
+    setDateMode(isCustom ? 'custom' : 'preset');
+    setCustomFrom(isCustom ? fromUrl.filters.from : '');
+    setCustomTo(isCustom ? fromUrl.filters.to : '');
     void loadReport(fromUrl.filters, 'load');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -1101,21 +1119,47 @@ export function RevenueByStorePage() {
     };
   }, []);
 
-  const handleSearchChange = (value: string) => {
-    setDraft((d) => ({ ...d, search: value, page: 1 }));
-  };
-
   const patchDraft = (patch: Partial<StoreReportFilters>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
   };
 
   const handleApply = () => {
-    const next = { ...draft, page: 1 };
+    if (dateMode === 'custom') {
+      const customErr = validateCustomDateInputs(customFrom, customTo);
+      if (customErr) {
+        setValidationError(customErr);
+        setError('');
+        return;
+      }
+      const g = suggestedTrendGranularity(customFrom, customTo);
+      const next: StoreReportFilters = {
+        ...draft,
+        from: customFrom,
+        to: customTo,
+        trendGranularity: g,
+        page: 1,
+        search: '',
+        saleChannel: '',
+      };
+      setValidationError(null);
+      setDraft(next);
+      void loadReport(next, 'load');
+      return;
+    }
+
+    const next: StoreReportFilters = {
+      ...draft,
+      page: 1,
+      trendGranularity: suggestedTrendGranularity(draft.from, draft.to),
+      search: '',
+      saleChannel: '',
+    };
     const rangeErr = validateDateRange(next.from, next.to);
     if (rangeErr) {
       setValidationError(rangeErr);
       return;
     }
+    setValidationError(null);
     setDraft(next);
     void loadReport(next, 'load');
   };
@@ -1123,6 +1167,11 @@ export function RevenueByStorePage() {
   const handleReset = () => {
     const next = defaultFilters();
     setPreset('last_30_days');
+    setDateMode('preset');
+    setCustomFrom('');
+    setCustomTo('');
+    setValidationError(null);
+    setError('');
     setDraft(next);
     void loadReport(next, 'load');
   };
@@ -1156,12 +1205,55 @@ export function RevenueByStorePage() {
   };
 
   const handlePresetChange = (p: DatePreset) => {
+    if (p === 'custom') return; // custom is driven by date inputs, not a selectable preset
     setPreset(p);
-    if (p !== 'custom') {
-      const range = rangeFromPreset(p);
+    setDateMode('preset');
+    setCustomFrom('');
+    setCustomTo('');
+    setValidationError(null);
+    const range = rangeFromPreset(p);
+    const g = suggestedTrendGranularity(range.from, range.to);
+    patchDraft({ from: range.from, to: range.to, trendGranularity: g, page: 1, search: '', saleChannel: '' });
+  };
+
+  const handleCustomDateChange = (field: 'from' | 'to', value: string) => {
+    const cf = field === 'from' ? value : customFrom;
+    const ct = field === 'to' ? value : customTo;
+    setCustomFrom(cf);
+    setCustomTo(ct);
+    setValidationError(null);
+
+    // Xoa ca hai custom date => quay ve preset 30 ngay (khong mac ket custom rong).
+    if (!cf.trim() && !ct.trim()) {
+      setDateMode('preset');
+      setPreset('last_30_days');
+      const range = rangeFromPreset('last_30_days');
       const g = suggestedTrendGranularity(range.from, range.to);
-      patchDraft({ from: range.from, to: range.to, trendGranularity: g, page: 1 });
+      setDraft((prev) => ({
+        ...prev,
+        from: range.from,
+        to: range.to,
+        trendGranularity: g,
+        page: 1,
+      }));
+      return;
     }
+
+    setDateMode('custom');
+    const customErr = validateCustomDateInputs(cf, ct);
+    if (customErr) {
+      setValidationError(customErr);
+      return;
+    }
+    setValidationError(null);
+    // Keep effective draft in sync so Apply / hasUnappliedChanges reflect custom range.
+    setDraft((prev) => ({
+      ...prev,
+      from: cf,
+      to: ct,
+      trendGranularity: suggestedTrendGranularity(cf, ct),
+      page: 1,
+    }));
   };
 
   const handlePrint = () => {
@@ -1183,7 +1275,9 @@ export function RevenueByStorePage() {
   const ranking = report?.ranking ?? [];
   const tableRows = report?.table?.data ?? [];
   const metric = applied.metric;
-  const hasUnappliedChanges = filtersToSearchParams(draft, preset) !== filtersToSearchParams(applied, preset);
+  const hasUnappliedChanges =
+    filtersToSearchParams(draft, dateMode === 'custom' ? 'custom' : preset) !==
+    filtersToSearchParams(applied, dateMode === 'custom' ? 'custom' : preset);
 
   const statusNote =
     applied.status && applied.status !== 'completed'
@@ -1283,11 +1377,11 @@ export function RevenueByStorePage() {
       </header>
 
       {/* Filters */}
-      <section className="rbs-filters">
+      <section className="rbs-filters" aria-label="Bộ lọc báo cáo">
         <div className="rbs-filters-head">
           <div>
             <h2>Bộ lọc</h2>
-            <p>Mọi điều kiện, bao gồm tìm cửa hàng, chỉ áp dụng sau khi bấm Áp dụng.</p>
+            <p>Mọi điều kiện chỉ áp dụng sau khi bấm Áp dụng.</p>
           </div>
           <button
             type="button"
@@ -1306,61 +1400,61 @@ export function RevenueByStorePage() {
                 <select
                   value={preset}
                   onChange={(e) => handlePresetChange(e.target.value as DatePreset)}
+                  disabled={dateMode === 'custom'}
+                  title={
+                    dateMode === 'custom'
+                      ? 'Đang dùng ngày tùy chỉnh. Nhấn Đặt lại để quay về khoảng thời gian có sẵn.'
+                      : undefined
+                  }
+                  aria-label="Preset khoảng thời gian"
                 >
-                  {(options?.presets ?? Object.keys(PRESET_LABELS)).map((p) => (
-                    <option key={p} value={p}>
-                      {PRESET_LABELS[p as DatePreset] ?? p}
-                    </option>
-                  ))}
+                  {(options?.presets ?? Object.keys(PRESET_LABELS))
+                    .filter((p) => p !== 'custom')
+                    .map((p) => (
+                      <option key={p} value={p}>
+                        {PRESET_LABELS[p as DatePreset] ?? p}
+                      </option>
+                    ))}
                 </select>
+                {dateMode === 'custom' && (
+                  <em className="rbs-field-hint">
+                    Đang dùng ngày tùy chỉnh — Đặt lại để quay về khoảng thời gian có sẵn.
+                  </em>
+                )}
               </label>
               <label className="rbs-field">
                 Từ ngày
                 <input
                   type="date"
-                  value={draft.from}
-                  onChange={(e) => {
-                    setPreset('custom');
-                    patchDraft({ from: e.target.value, page: 1 });
-                  }}
-                  aria-invalid={Boolean(validationError)}
+                  value={dateMode === 'custom' ? customFrom : ''}
+                  max={dateMode === 'custom' && customTo ? customTo : undefined}
+                  onChange={(e) => handleCustomDateChange('from', e.target.value)}
+                  aria-invalid={Boolean(validationError) && dateMode === 'custom'}
+                  aria-label="Từ ngày tùy chỉnh"
                 />
               </label>
               <label className="rbs-field">
                 Đến ngày
                 <input
                   type="date"
-                  value={draft.to}
-                  onChange={(e) => {
-                    setPreset('custom');
-                    patchDraft({ to: e.target.value, page: 1 });
-                  }}
-                  aria-invalid={Boolean(validationError)}
+                  value={dateMode === 'custom' ? customTo : ''}
+                  min={dateMode === 'custom' && customFrom ? customFrom : undefined}
+                  onChange={(e) => handleCustomDateChange('to', e.target.value)}
+                  aria-invalid={Boolean(validationError) && dateMode === 'custom'}
+                  aria-label="Đến ngày tùy chỉnh"
                 />
-              </label>
-              <label className="rbs-field">
-                Loại bán
-                <select
-                  value={draft.channel}
-                  onChange={(e) => patchDraft({ channel: e.target.value, page: 1 })}
-                >
-                  <option value="">Tất cả</option>
-                  {(options?.channels ?? []).map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
               </label>
               <label className="rbs-field">
                 Kênh bán
                 <select
-                  value={draft.saleChannel}
-                  onChange={(e) => patchDraft({ saleChannel: e.target.value, page: 1 })}
+                  value={draft.channel}
+                  onChange={(e) =>
+                    patchDraft({ channel: e.target.value as SaleChannel, page: 1 })
+                  }
+                  aria-label="Kênh bán"
                 >
-                  <option value="">Tất cả</option>
-                  {(options?.saleChannels ?? []).map((c) => (
-                    <option key={c.value} value={c.value}>
+                  {CHANNEL_OPTIONS.map((c) => (
+                    <option key={c.value || 'all'} value={c.value}>
                       {c.label}
                     </option>
                   ))}
@@ -1371,11 +1465,12 @@ export function RevenueByStorePage() {
                 <select
                   value={draft.staffId}
                   onChange={(e) => patchDraft({ staffId: e.target.value, page: 1 })}
+                  aria-label="Nhân viên"
                 >
                   <option value="">Tất cả</option>
-                  {(options?.staff ?? []).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
+                  {(options?.staff ?? []).map((staff) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.name}
                     </option>
                   ))}
                 </select>
@@ -1385,11 +1480,12 @@ export function RevenueByStorePage() {
                 <select
                   value={draft.paymentMethod}
                   onChange={(e) => patchDraft({ paymentMethod: e.target.value, page: 1 })}
+                  aria-label="Phương thức thanh toán"
                 >
                   <option value="">Tất cả</option>
-                  {(options?.paymentMethods ?? []).map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
+                  {(options?.paymentMethods ?? []).map((pm) => (
+                    <option key={pm.value} value={pm.value}>
+                      {pm.label}
                     </option>
                   ))}
                 </select>
@@ -1399,14 +1495,15 @@ export function RevenueByStorePage() {
                 <select
                   value={draft.status}
                   onChange={(e) => patchDraft({ status: e.target.value, page: 1 })}
+                  aria-label="Trạng thái hóa đơn"
                 >
                   {(options?.invoiceStatuses ?? [
                     { value: 'completed', label: 'Hoàn tất' },
                     { value: 'draft', label: 'Nháp' },
                     { value: 'cancelled', label: 'Đã hủy' },
-                  ]).map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
+                  ]).map((st) => (
+                    <option key={st.value} value={st.value}>
+                      {st.label}
                     </option>
                   ))}
                 </select>
@@ -1416,8 +1513,12 @@ export function RevenueByStorePage() {
                 <select
                   value={draft.compare}
                   onChange={(e) =>
-                    patchDraft({ compare: e.target.value as StoreReportFilters['compare'], page: 1 })
+                    patchDraft({
+                      compare: e.target.value as StoreReportFilters['compare'],
+                      page: 1,
+                    })
                   }
+                  aria-label="So sánh"
                 >
                   {(options?.compareModes ?? [
                     { value: 'previous_period', label: 'So với kỳ trước' },
@@ -1436,8 +1537,10 @@ export function RevenueByStorePage() {
                   onChange={(e) =>
                     patchDraft({ metric: e.target.value as ReportMetric, page: 1 })
                   }
+                  aria-label="Chỉ số xếp hạng"
                 >
-                  {(options?.metrics ?? Object.entries(METRIC_LABELS).map(([value, label]) => ({ value, label }))).map(
+                  {(options?.metrics ??
+                    Object.entries(METRIC_LABELS).map(([value, label]) => ({ value, label }))).map(
                     (m) => (
                       <option key={m.value} value={m.value}>
                         {m.label}
@@ -1445,38 +1548,6 @@ export function RevenueByStorePage() {
                     ),
                   )}
                 </select>
-              </label>
-              <label className="rbs-field">
-                Xu hướng theo
-                <select
-                  value={draft.trendGranularity}
-                  onChange={(e) =>
-                    patchDraft({
-                      trendGranularity: e.target.value as StoreReportFilters['trendGranularity'],
-                      page: 1,
-                    })
-                  }
-                >
-                  {(options?.trendGranularities ?? [
-                    { value: 'day', label: 'Theo ngày' },
-                    { value: 'week', label: 'Theo tuần' },
-                    { value: 'month', label: 'Theo tháng' },
-                  ]).map((g) => (
-                    <option key={g.value} value={g.value}>
-                      {g.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="rbs-field">
-                Tìm cửa hàng
-                <input
-                  type="search"
-                  placeholder="Tên hoặc mã…"
-                  value={draft.search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  maxLength={100}
-                />
               </label>
             </div>
 
@@ -1494,7 +1565,12 @@ export function RevenueByStorePage() {
               {optionsError && (
                 <div className="rbs-options-error" role="alert">
                   <span>{optionsError}</span>
-                  <button type="button" className="btn btn-light" onClick={() => void loadOptions()} disabled={optionsLoading}>
+                  <button
+                    type="button"
+                    className="btn btn-light"
+                    onClick={() => void loadOptions()}
+                    disabled={optionsLoading}
+                  >
                     Thử lại
                   </button>
                 </div>
@@ -1512,7 +1588,15 @@ export function RevenueByStorePage() {
               <button type="button" className="btn btn-light" onClick={handleReset} disabled={busy}>
                 Đặt lại
               </button>
-              <button type="button" className="btn btn-primary" onClick={handleApply} disabled={busy}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleApply}
+                disabled={
+                  busy ||
+                  (dateMode === 'custom' && Boolean(validateCustomDateInputs(customFrom, customTo)))
+                }
+              >
                 Áp dụng
               </button>
             </div>
@@ -1598,7 +1682,7 @@ export function RevenueByStorePage() {
         <div className="rbs-surface-head">
           <div>
             <h2>Tỷ trọng &amp; phân tích phụ</h2>
-            <p>Tỷ trọng doanh thu thuần theo cửa hàng, kênh và phương thức thanh toán.</p>
+            <p>Tỷ trọng doanh thu thuần theo cửa hàng, kênh bán và phương thức thanh toán.</p>
           </div>
         </div>
         <div className="rbs-breakdown-grid">
@@ -1610,7 +1694,7 @@ export function RevenueByStorePage() {
             />
           </div>
           <div className="rbs-breakdown-card">
-            <h3>Theo loại bán</h3>
+            <h3>Theo kênh bán</h3>
             <SharePieChart items={report?.breakdowns?.channels ?? []} loading={loading && !report} />
           </div>
           <div className="rbs-breakdown-card">
@@ -1642,7 +1726,7 @@ export function RevenueByStorePage() {
       />
 
       <section className="rbs-print-summary" aria-hidden="true">
-        <h2>Doanh thu theo cửa hàng · {applied.from} → {applied.to} · {draft.storeIds.length ? `${draft.storeIds.length} cửa hàng` : 'Tất cả cửa hàng'}</h2>
+        <h2>Doanh thu theo cửa hàng · {applied.from} → {applied.to} · {applied.storeIds.length ? `${applied.storeIds.length} cửa hàng` : 'Tất cả cửa hàng'}</h2>
         <p>Chỉ số: {METRIC_LABELS[metric] ?? metric} · Trạng thái: {applied.status || 'Tất cả'}</p>
         <dl>
           <div><dt>Doanh thu thuần</dt><dd>{formatMoney(report?.summary.netRevenue)}</dd></div>

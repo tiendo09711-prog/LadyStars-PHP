@@ -64,6 +64,9 @@ class RevenueByTimeReportService
         'year' => 3650,
     ];
 
+    /** @var array<string, string>|null */
+    private ?array $paymentMethodCatalog = null;
+
     public function options(): array
     {
         $stores = Branch::query()
@@ -1308,7 +1311,23 @@ class RevenueByTimeReportService
     {
         $name = null;
         if (isset($line['methodId']) && is_array($line['methodId'])) {
-            $name = $line['methodId']['name'] ?? $line['methodId']['label'] ?? null;
+            $name = $line['methodId']['name']
+                ?? $line['methodId']['label']
+                ?? $line['methodId']['code']
+                ?? null;
+            // Resolve by id/mongo_id when only identifier is present inside methodId object.
+            if ($name === null || $name === '') {
+                $id = $line['methodId']['id']
+                    ?? $line['methodId']['_id']
+                    ?? $line['methodId']['mongo_id']
+                    ?? null;
+                if ($id !== null && $id !== '') {
+                    $name = $this->resolvePaymentMethodName((string) $id);
+                }
+            }
+        } elseif (isset($line['methodId']) && (is_string($line['methodId']) || is_numeric($line['methodId']))) {
+            // Retail/wholesale create payload stores methodId as string id/mongo_id.
+            $name = $this->resolvePaymentMethodName((string) $line['methodId']);
         }
         $name = $name
             ?? $line['method']
@@ -1325,6 +1344,67 @@ class RevenueByTimeReportService
         }
 
         return $label;
+    }
+
+    /**
+     * Resolve payment method label from id/mongo_id/code/name using catalog + in-memory cache.
+     * Returns null when catalog has no match so callers can fall back to other fields.
+     */
+    private function resolvePaymentMethodName(string $raw): ?string
+    {
+        $key = trim($raw);
+        if ($key === '') {
+            return null;
+        }
+        $catalog = $this->paymentMethodCatalogMap();
+        $lower = mb_strtolower($key);
+        if (isset($catalog[$lower])) {
+            return $catalog[$lower];
+        }
+        // Numeric id lookup
+        if (ctype_digit($key) && isset($catalog['id:'.$key])) {
+            return $catalog['id:'.$key];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, string> lowercase key / id:N / mongo_id → display name
+     */
+    private function paymentMethodCatalogMap(): array
+    {
+        if ($this->paymentMethodCatalog !== null) {
+            return $this->paymentMethodCatalog;
+        }
+        $map = [];
+        try {
+            $methods = (new MirrorRecord())->forTable('payment_methods')->newQuery()
+                ->get(['id', 'mongo_id', 'name', 'code']);
+            foreach ($methods as $m) {
+                $label = trim((string) ($m->name ?: $m->code ?: ''));
+                if ($label === '' || !$this->isRealPaymentLabel($label)) {
+                    continue;
+                }
+                $map[mb_strtolower($label)] = $label;
+                if ($m->code) {
+                    $map[mb_strtolower((string) $m->code)] = $label;
+                }
+                if ($m->mongo_id) {
+                    $map[mb_strtolower((string) $m->mongo_id)] = $label;
+                    $map[(string) $m->mongo_id] = $label;
+                }
+                if ($m->id) {
+                    $map['id:'.(string) $m->id] = $label;
+                    $map[(string) $m->id] = $label;
+                }
+            }
+        } catch (\Throwable) {
+            // catalog may be unavailable
+        }
+        $this->paymentMethodCatalog = $map;
+
+        return $this->paymentMethodCatalog;
     }
 
     private function isRealPaymentLabel(string $label): bool
@@ -1419,6 +1499,8 @@ class RevenueByTimeReportService
 
     private function reportFilterDimensions(): array
     {
+        // Completed sales drive revenue, so staff/channel/sale-channel options come from
+        // completed rows only (filtering by them must have revenue impact).
         $sales = (new MirrorRecord())->forTable('sale_payments')->newQuery()
             ->whereIn('status', ['completed', 'COMPLETED'])
             ->get(['type', 'user_id', 'author_id', 'status', 'payload']);
@@ -1428,12 +1510,20 @@ class RevenueByTimeReportService
         $staffIds = [];
         $statusSet = [];
 
-        foreach ($sales as $sale) {
+        // Status options must reflect every allowed status actually present in data
+        // (scan all rows, not only completed) so the dropdown is not silently locked to
+        // "completed" when draft/cancelled invoices exist.
+        $statusRows = (new MirrorRecord())->forTable('sale_payments')->newQuery()
+            ->get(['status']);
+        $statusSet = [];
+        foreach ($statusRows as $sale) {
             $status = strtolower(trim((string) ($sale->status ?? '')));
             if (in_array($status, self::ALLOWED_STATUSES, true)) {
                 $statusSet[$status] = true;
             }
+        }
 
+        foreach ($sales as $sale) {
             $type = strtolower(trim((string) ($sale->type ?? '')));
             if (in_array($type, self::SALE_TYPES, true)) {
                 $channelSet[$type] = true;
@@ -1487,6 +1577,11 @@ class RevenueByTimeReportService
             fn (string $value) => ['value' => $value, 'label' => $saleChannelLabels[$value] ?? $value],
             array_keys($saleChannelSet),
         );
+        // Always surface statuses that actually exist. If none detected, still expose
+        // completed so the UI can default to a valid, business-safe status.
+        if ($statusSet === []) {
+            $statusSet['completed'] = true;
+        }
         $invoiceStatuses = array_map(
             fn (string $value) => ['value' => $value, 'label' => $statusLabels[$value] ?? $value],
             array_keys($statusSet),

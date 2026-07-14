@@ -137,6 +137,7 @@ export function defaultFilters(): RevenueFilters {
     granularity: 'day',
     storeId: '',
     staffId: '',
+    // Always empty on this page — UI no longer exposes channel/saleChannel filters.
     channel: '',
     saleChannel: '',
     status: 'completed',
@@ -155,6 +156,41 @@ export function validateDateRange(from: string, to: string): string | null {
   if (!a || !b) return 'Vui lòng chọn ngày bắt đầu và kết thúc hợp lệ.';
   if (a.getTime() > b.getTime()) return 'Ngày bắt đầu không được lớn hơn ngày kết thúc.';
   return null;
+}
+
+/**
+ * Validate custom date inputs shown in the UI.
+ * Empty both ends is OK only in preset mode (caller decides).
+ * Partial fill or invalid order must block Apply.
+ */
+export function validateCustomDateInputs(customFrom: string, customTo: string): string | null {
+  const from = (customFrom || '').trim();
+  const to = (customTo || '').trim();
+  if (!from && !to) {
+    return 'Vui lòng nhập đủ Từ ngày và Đến ngày, hoặc dùng Đặt lại để quay về preset.';
+  }
+  if (!from || !to) {
+    return 'Vui lòng nhập đủ cả Từ ngày và Đến ngày trước khi áp dụng.';
+  }
+  return validateDateRange(from, to);
+}
+
+/** If current granularity is invalid for range, pick a safe suggested one. */
+export function ensureAllowedGranularity(
+  granularity: Granularity,
+  from: string,
+  to: string,
+): Granularity {
+  if (isGranularityAllowed(granularity, from, to)) return granularity;
+  return suggestedGranularity(from, to);
+}
+
+/** Inclusive day count for [from, to]. */
+export function inclusiveDayCount(from: string, to: string): number | null {
+  const a = parseYmd(from);
+  const b = parseYmd(to);
+  if (!a || !b) return null;
+  return Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
 }
 
 export function suggestedGranularity(from: string, to: string): Granularity {
@@ -196,10 +232,9 @@ export function filtersToQuery(filters: RevenueFilters): Record<string, string |
     sortBy: filters.sortBy,
     sortDirection: filters.sortDirection,
   };
+  // Never send channel/saleChannel from this page — controls removed.
   if (filters.storeId) q.storeId = filters.storeId;
   if (filters.staffId) q.staffId = filters.staffId;
-  if (filters.channel) q.channel = filters.channel;
-  if (filters.saleChannel) q.saleChannel = filters.saleChannel;
   if (filters.status) q.status = filters.status;
   if (filters.paymentMethod) q.paymentMethod = filters.paymentMethod;
   return q;
@@ -343,10 +378,9 @@ function summaryAoa(report: RevenueReportResponse, filters: RevenueFilters): (st
     ['Kiểu tổng hợp', filters.granularity],
     ['Cửa hàng', filters.storeId || 'Tất cả'],
     ['Nhân viên', filters.staffId || 'Tất cả'],
-    ['Loại hóa đơn', filters.channel || 'Tất cả'],
-    ['Kênh bán', filters.saleChannel || 'Tất cả'],
     ['Trạng thái', filters.status || 'completed'],
     ['Thanh toán', filters.paymentMethod || 'Tất cả'],
+    ['So sánh kỳ trước', filters.compare === 'previous_period' ? 'Có' : 'Không'],
     ['Múi giờ', report.meta?.timezone || 'Asia/Ho_Chi_Minh'],
     ['', ''],
     ['Chỉ số', 'Giá trị'],

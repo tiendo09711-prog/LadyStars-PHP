@@ -11,6 +11,7 @@ import type {
 } from './revenueByTime.types';
 import {
   defaultFilters,
+  ensureAllowedGranularity,
   extractApiError,
   exportSummaryCsv,
   exportSummaryExcel,
@@ -19,11 +20,12 @@ import {
   formatDateTime,
   rangeFromPreset,
   suggestedGranularity,
+  validateCustomDateInputs,
   validateDateRange,
 } from './revenueByTime.utils';
 import { PeriodDetailModal } from './components/PeriodDetailModal';
 import { RevenueBreakdownCharts } from './components/RevenueBreakdownCharts';
-import { RevenueReportFilters } from './components/RevenueReportFilters';
+import { RevenueReportFilters, type DateMode } from './components/RevenueReportFilters';
 import { RevenueSummaryCards } from './components/RevenueSummaryCards';
 import { RevenueTimelineTable } from './components/RevenueTimelineTable';
 import { RevenueTrendChart } from './components/RevenueTrendChart';
@@ -34,6 +36,9 @@ export function RevenueByTimePage() {
   const [draft, setDraft] = useState<RevenueFilters>(() => defaultFilters());
   const [applied, setApplied] = useState<RevenueFilters>(() => defaultFilters());
   const [preset, setPreset] = useState<DatePreset>('last_30_days');
+  const [dateMode, setDateMode] = useState<DateMode>('preset');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [report, setReport] = useState<RevenueReportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,42 +54,48 @@ export function RevenueByTimePage() {
   const requestSeq = useRef(0);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
-  const loadReport = useCallback(async (filters: RevenueFilters, mode: 'load' | 'refresh' = 'load') => {
-    const rangeErr = validateDateRange(filters.from, filters.to);
-    if (rangeErr) {
-      setValidationError(rangeErr);
-      setError(rangeErr);
-      return;
-    }
-    setValidationError(null);
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const seq = ++requestSeq.current;
-
-    if (mode === 'refresh') setRefreshing(true);
-    else setLoading(true);
-    setError('');
-
-    try {
-      const data = await fetchRevenueByTimeReport(filters, controller.signal);
-      if (seq !== requestSeq.current) return;
-      setReport(data);
-      setApplied(filters);
-    } catch (err: unknown) {
-      if ((err as { code?: string; name?: string })?.code === 'ERR_CANCELED' || (err as { name?: string })?.name === 'CanceledError') {
+  const loadReport = useCallback(
+    async (filters: RevenueFilters, mode: 'load' | 'refresh' = 'load') => {
+      const rangeErr = validateDateRange(filters.from, filters.to);
+      if (rangeErr) {
+        setValidationError(rangeErr);
+        setError(rangeErr);
         return;
       }
-      if (seq !== requestSeq.current) return;
-      setError(extractApiError(err));
-    } finally {
-      if (seq === requestSeq.current) {
-        setLoading(false);
-        setRefreshing(false);
+      setValidationError(null);
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const seq = ++requestSeq.current;
+
+      if (mode === 'refresh') setRefreshing(true);
+      else setLoading(true);
+      setError('');
+
+      try {
+        const data = await fetchRevenueByTimeReport(filters, controller.signal);
+        if (seq !== requestSeq.current) return;
+        setReport(data);
+        setApplied(filters);
+      } catch (err: unknown) {
+        if (
+          (err as { code?: string; name?: string })?.code === 'ERR_CANCELED' ||
+          (err as { name?: string })?.name === 'CanceledError'
+        ) {
+          return;
+        }
+        if (seq !== requestSeq.current) return;
+        setError(extractApiError(err));
+      } finally {
+        if (seq === requestSeq.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Bootstrap options + first load. Keep request alive across StrictMode remounts.
   useEffect(() => {
@@ -102,6 +113,10 @@ export function RevenueByTimePage() {
       const filters = defaultFilters();
       setDraft(filters);
       setApplied(filters);
+      setPreset('last_30_days');
+      setDateMode('preset');
+      setCustomFrom('');
+      setCustomTo('');
       await loadReport(filters, 'load');
       if (active) setBootstrapped(true);
     })();
@@ -133,12 +148,32 @@ export function RevenueByTimePage() {
   };
 
   const handleApply = () => {
+    if (dateMode === 'custom') {
+      const customErr = validateCustomDateInputs(customFrom, customTo);
+      if (customErr) {
+        setValidationError(customErr);
+        setError('');
+        return;
+      }
+      const next: RevenueFilters = {
+        ...draft,
+        from: customFrom,
+        to: customTo,
+        page: 1,
+      };
+      setValidationError(null);
+      setDraft(next);
+      void loadReport(next, 'load');
+      return;
+    }
+
     const next = { ...draft, page: 1 };
     const rangeErr = validateDateRange(next.from, next.to);
     if (rangeErr) {
       setValidationError(rangeErr);
       return;
     }
+    setValidationError(null);
     setDraft(next);
     void loadReport(next, 'load');
   };
@@ -146,6 +181,11 @@ export function RevenueByTimePage() {
   const handleReset = () => {
     const next = defaultFilters();
     setPreset('last_30_days');
+    setDateMode('preset');
+    setCustomFrom('');
+    setCustomTo('');
+    setValidationError(null);
+    setError('');
     setDraft(next);
     void loadReport(next, 'load');
   };
@@ -181,11 +221,38 @@ export function RevenueByTimePage() {
 
   const handlePresetChange = (p: DatePreset) => {
     setPreset(p);
-    if (p !== 'custom') {
-      const range = rangeFromPreset(p);
-      const g = suggestedGranularity(range.from, range.to);
-      patchDraft({ from: range.from, to: range.to, granularity: g, page: 1 });
+    setDateMode('preset');
+    setCustomFrom('');
+    setCustomTo('');
+    setValidationError(null);
+    const range = rangeFromPreset(p);
+    const g = suggestedGranularity(range.from, range.to);
+    patchDraft({ from: range.from, to: range.to, granularity: g, page: 1 });
+  };
+
+  const handleCustomDateChange = (field: 'from' | 'to', value: string) => {
+    const cf = field === 'from' ? value : customFrom;
+    const ct = field === 'to' ? value : customTo;
+    setCustomFrom(cf);
+    setCustomTo(ct);
+    setDateMode('custom');
+    setValidationError(null);
+    const customErr = validateCustomDateInputs(cf, ct);
+    if (customErr) {
+      // Keep last-known effective range so granularity allow-list still works; block Apply via ValidationError.
+      setValidationError(customErr);
+      return;
     }
+    setValidationError(null);
+    // Keep last preset value for disabled select display; dateMode=custom locks it.
+    // Apply custom range to effective draft so granularity chart options reflect it.
+    setDraft((prev) => ({
+      ...prev,
+      from: cf,
+      to: ct,
+      granularity: ensureAllowedGranularity(prev.granularity, cf, ct),
+      page: 1,
+    }));
   };
 
   const handleViewInTable = (point: TimelinePoint) => {
@@ -305,12 +372,16 @@ export function RevenueByTimePage() {
       <RevenueReportFilters
         draft={draft}
         preset={preset}
+        dateMode={dateMode}
+        customFrom={customFrom}
+        customTo={customTo}
         options={options}
         validationError={validationError}
         loading={busy}
         collapsed={filtersCollapsed}
         onToggleCollapse={() => setFiltersCollapsed((v) => !v)}
         onPresetChange={handlePresetChange}
+        onCustomDateChange={handleCustomDateChange}
         onDraftChange={patchDraft}
         onApply={handleApply}
         onReset={handleReset}

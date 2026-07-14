@@ -2,10 +2,12 @@ import * as XLSX from 'xlsx';
 import type {
   DatePreset,
   ReportMetric,
+  SaleChannel,
   StoreRankingRow,
   StoreReportFilters,
   StoreReportResponse,
   TrendGranularity,
+  TrendPoint,
 } from './revenueByStore.types';
 
 export function pad2(n: number): string {
@@ -138,7 +140,7 @@ export function defaultFilters(): StoreReportFilters {
     paymentMethod: '',
     compare: 'previous_period',
     metric: 'netRevenue',
-    trendGranularity: 'day',
+    trendGranularity: suggestedTrendGranularity(range.from, range.to),
     page: 1,
     perPage: 20,
     sortBy: 'netRevenue',
@@ -153,6 +155,19 @@ export function validateDateRange(from: string, to: string): string | null {
   if (!a || !b) return 'Vui lòng chọn ngày bắt đầu và kết thúc hợp lệ.';
   if (a.getTime() > b.getTime()) return 'Ngày bắt đầu không được lớn hơn ngày kết thúc.';
   return null;
+}
+
+/** Validate custom date inputs shown in the UI. Partial fill or invalid order must block Apply. */
+export function validateCustomDateInputs(customFrom: string, customTo: string): string | null {
+  const from = (customFrom || '').trim();
+  const to = (customTo || '').trim();
+  if (!from && !to) {
+    return 'Vui lòng nhập đủ Từ ngày và Đến ngày, hoặc dùng Đặt lại để quay về khoảng thời gian có sẵn.';
+  }
+  if (!from || !to) {
+    return 'Vui lòng nhập đủ cả Từ ngày và Đến ngày trước khi áp dụng.';
+  }
+  return validateDateRange(from, to);
 }
 
 export function filtersToQuery(filters: StoreReportFilters): Record<string, string | number | string[]> {
@@ -171,10 +186,9 @@ export function filtersToQuery(filters: StoreReportFilters): Record<string, stri
   if (filters.storeIds.length > 0) q.storeIds = filters.storeIds.join(',');
   if (filters.staffId) q.staffId = filters.staffId;
   if (filters.channel) q.channel = filters.channel;
-  if (filters.saleChannel) q.saleChannel = filters.saleChannel;
+  // saleChannel (legacy hardcode) and search (tim cua hang doc lap) da bo — khong gui len API.
   if (filters.status) q.status = filters.status;
   if (filters.paymentMethod) q.paymentMethod = filters.paymentMethod;
-  if (filters.search.trim()) q.search = filters.search.trim();
   return q;
 }
 
@@ -186,6 +200,7 @@ export function filtersToSearchParams(filters: StoreReportFilters, preset: DateP
   p.set('preset', preset);
   p.set('compare', filters.compare);
   p.set('metric', filters.metric);
+  // trendGranularity is auto-computed from the effective date range, kept in URL for back/forward determinism.
   p.set('trendGranularity', filters.trendGranularity);
   p.set('page', String(filters.page));
   p.set('perPage', String(filters.perPage));
@@ -194,10 +209,8 @@ export function filtersToSearchParams(filters: StoreReportFilters, preset: DateP
   if (filters.storeIds.length) p.set('storeIds', filters.storeIds.join(','));
   if (filters.staffId) p.set('staffId', filters.staffId);
   if (filters.channel) p.set('channel', filters.channel);
-  if (filters.saleChannel) p.set('saleChannel', filters.saleChannel);
   if (filters.status && filters.status !== 'completed') p.set('status', filters.status);
   if (filters.paymentMethod) p.set('paymentMethod', filters.paymentMethod);
-  if (filters.search.trim()) p.set('search', filters.search.trim());
   return p.toString();
 }
 
@@ -206,28 +219,41 @@ export function filtersFromSearchParams(sp: URLSearchParams): {
   preset: DatePreset;
 } {
   const base = defaultFilters();
-  const from = sp.get('from') || base.from;
-  const to = sp.get('to') || base.to;
-  const preset = (sp.get('preset') as DatePreset) || 'custom';
+  const fromUrl = sp.get('from');
+  const toUrl = sp.get('to');
+  // Khi URL khong chua ngay (route sach), mac dinh preset last_30_days + effective range 30 ngay,
+  // khong roi ve 'custom/Tuy chon'.
+  const hasUrlDates = Boolean(fromUrl || toUrl);
+  const from = fromUrl || base.from;
+  const to = toUrl || base.to;
+  const presetRaw = (sp.get('preset') as DatePreset | null) ?? (hasUrlDates ? 'custom' : 'last_30_days');
+  const preset = (['today', 'yesterday', 'last_7_days', 'last_30_days', 'this_week', 'this_month', 'last_month', 'this_quarter', 'this_year', 'custom'] as DatePreset[]).includes(presetRaw)
+    ? presetRaw
+    : 'last_30_days';
   const storeIdsRaw = sp.get('storeIds') || '';
   const storeIds = storeIdsRaw
-    ? storeIdsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    ? storeIdsRaw.split(',').map((id) => id.trim()).filter(Boolean)
     : [];
 
   const perPage = Number(sp.get('perPage') || base.perPage);
   const page = Math.max(1, Number(sp.get('page') || 1));
 
+  // channel hop nhat: chi chap nhận kenh ban moi (retail/wholesale/refund).
+  const channelRaw = (sp.get('channel') as SaleChannel | null) ?? '';
+  const channel: SaleChannel = (['', 'retail', 'wholesale', 'refund'] as SaleChannel[]).includes(channelRaw)
+    ? channelRaw
+    : '';
+
   return {
-    preset: ['today', 'yesterday', 'last_7_days', 'last_30_days', 'this_week', 'this_month', 'last_month', 'this_quarter', 'this_year', 'custom'].includes(preset)
-      ? preset
-      : 'custom',
+    preset,
     filters: {
       from,
       to,
       storeIds,
       staffId: sp.get('staffId') || '',
-      channel: sp.get('channel') || '',
-      saleChannel: sp.get('saleChannel') || '',
+      channel,
+      // saleChannel legacy va search doc lap da bo — khong parse nua de URL cu khong ap filter an.
+      saleChannel: '',
       status: sp.get('status') || 'completed',
       paymentMethod: sp.get('paymentMethod') || '',
       compare: sp.get('compare') === 'none' ? 'none' : 'previous_period',
@@ -237,7 +263,7 @@ export function filtersFromSearchParams(sp: URLSearchParams): {
       perPage: [20, 50, 100].includes(perPage) ? perPage : 20,
       sortBy: (sp.get('sortBy') as StoreReportFilters['sortBy']) || 'netRevenue',
       sortDirection: sp.get('sortDirection') === 'asc' ? 'asc' : 'desc',
-      search: sp.get('search') || '',
+      search: '',
     },
   };
 }
@@ -432,6 +458,21 @@ export const PRESET_LABELS: Record<DatePreset, string> = {
   custom: 'Tùy chọn',
 };
 
+/** Nhan va option cho Kênh bán hop nhat (Tất cả/Bán lẽ/Bán sỉ/Trả hàng). */
+export const CHANNEL_LABELS: Record<SaleChannel, string> = {
+  '': 'Tất cả',
+  retail: 'Bán lẻ',
+  wholesale: 'Bán sỉ',
+  refund: 'Trả hàng',
+};
+
+export const CHANNEL_OPTIONS: { value: SaleChannel; label: string }[] = [
+  { value: '', label: 'Tất cả' },
+  { value: 'retail', label: 'Bán lẻ' },
+  { value: 'wholesale', label: 'Bán sỉ' },
+  { value: 'refund', label: 'Trả hàng' },
+];
+
 export const METRIC_LABELS: Record<ReportMetric, string> = {
   netRevenue: 'Doanh thu thuần',
   revenue: 'Doanh thu',
@@ -450,4 +491,15 @@ export const CHART_VIEW_LABELS: Record<string, string> = {
 
 export function metricValue(row: StoreRankingRow, metric: ReportMetric): number {
   return Number(row[metric] ?? 0);
+}
+
+export function trendMetricValue(point: TrendPoint | undefined, metric: ReportMetric): number {
+  if (!point) return 0;
+  if (metric === 'averageOrderValue') {
+    const invoices = Number(point.invoiceCount ?? 0);
+    if (invoices <= 0) return 0;
+    return Number(point.revenue ?? 0) / invoices;
+  }
+  const key = metric as keyof TrendPoint;
+  return Number(point[key] ?? 0);
 }
