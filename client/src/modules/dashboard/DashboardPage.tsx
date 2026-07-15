@@ -156,6 +156,7 @@ export function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState('');
   const [dailyProducts, setDailyProducts] = useState<any[]>([]);
   const [dailyLoading, setDailyLoading] = useState(false);
+  const [dailyError, setDailyError] = useState('');
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [storageSummary, setStorageSummary] = useState<IStorageDurationKpis | null>(null);
@@ -334,15 +335,39 @@ export function DashboardPage() {
   const chartPeak = chartData.reduce<{ date: string; revenue: number } | null>((best, row) => (!best || row.revenue > best.revenue ? { date: row.fullDate, revenue: row.revenue ?? 0 } : best), null);
   const filteredRecentSales = recentSales.filter((sale) => isWithinRecentRange(sale.createdAt, recentRange));
 
+  const closeDailyModal = () => {
+    setShowDailyModal(false);
+    setDailyLoading(false);
+    setDailyError('');
+    setDailyProducts([]);
+  };
+
+  useEffect(() => {
+    if (!showDailyModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeDailyModal();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showDailyModal]);
+
   const openDailyProducts = async (payload: any) => {
     const fullDate = payload?.activePayload?.[0]?.payload?.fullDate;
     if (!fullDate) return;
     setSelectedDate(fullDate);
     setShowDailyModal(true);
     setDailyLoading(true);
-    const response = await http.get(`/dashboard/daily-products?date=${encodeURIComponent(fullDate)}&stores=${encodeURIComponent(selectedStores.join(','))}`);
-    setDailyProducts(response.data.products ?? []);
-    setDailyLoading(false);
+    setDailyError('');
+    setDailyProducts([]);
+    try {
+      const response = await http.get(`/dashboard/daily-products?date=${encodeURIComponent(fullDate)}&stores=${encodeURIComponent(selectedStores.join(','))}`);
+      setDailyProducts(response.data.products ?? []);
+    } catch (err: any) {
+      setDailyProducts([]);
+      setDailyError(err.response?.data?.message ?? 'Không thể tải chi tiết sản phẩm bán ra.');
+    } finally {
+      setDailyLoading(false);
+    }
   };
 
   const toggleStore = (store: string) => {
@@ -456,7 +481,7 @@ export function DashboardPage() {
 
           <section className="dv-surface dv-card-top">
             <div className="dv-surface-head">
-              <div><h2>Sản phẩm bán chạy</h2><p>Top sản phẩm được tính theo khoảng đang xem.</p></div>
+              <div><h2>Sản phẩm bán chạy</h2><p>Top sản phẩm theo khoảng Top riêng (7/14/30 ngày), không theo ngày tùy chỉnh biểu đồ.</p></div>
               <div className="dv-control-row">
                 <Dropdown value={topRange} options={TOP_RANGE_OPTIONS.map((option) => ({ value: option, label: option }))} onChange={setTopRange} testId="top-range-filter" />
                 <Dropdown value={String(topLimit)} options={TOP_LIMIT_OPTIONS.map((option) => ({ value: String(option), label: `Top ${option}` }))} onChange={(value) => setTopLimit(Number(value))} testId="top-limit-filter" />
@@ -552,7 +577,7 @@ export function DashboardPage() {
               {!initialLoading && !filteredRecentSales.length && (
                 <div className="dv-empty-state">
                   <span className="dv-empty-icon" aria-hidden="true"><ShoppingBag size={22} /></span>
-                  <p>Chưa có giao dịch hoàn tất nào để hiển thị.</p>
+                  <p>Chưa có giao dịch nào để hiển thị.</p>
                 </div>
               )}
             </div>
@@ -560,11 +585,42 @@ export function DashboardPage() {
       </section>
 
       {showDailyModal && (
-        <div className="dv-modal-backdrop">
-          <div className="dv-modal wide">
-            <div className="dv-modal-head"><h3>Chi tiết sản phẩm bán ra ngày {selectedDate}</h3><button type="button" onClick={() => setShowDailyModal(false)}><X size={18} /></button></div>
+        <div
+          className="dv-modal-backdrop"
+          role="presentation"
+          data-testid="daily-products-backdrop"
+          onClick={closeDailyModal}
+        >
+          <div
+            className="dv-modal wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="daily-products-title"
+            data-testid="daily-products-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="dv-modal-head">
+              <h3 id="daily-products-title">Chi tiết sản phẩm bán ra ngày {selectedDate}</h3>
+              <button type="button" onClick={closeDailyModal} aria-label="Đóng chi tiết ngày">
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
             <div className="dv-modal-body">
-              {dailyLoading ? <div className="dv-empty-state">Đang tải dữ liệu chi tiết...</div> : (
+              {dailyLoading ? (
+                <div className="dv-empty-state">Đang tải dữ liệu chi tiết...</div>
+              ) : dailyError ? (
+                <div className="dv-empty-state is-error" data-testid="daily-products-error">
+                  <span className="dv-empty-icon" aria-hidden="true"><AlertTriangle size={20} /></span>
+                  <p>{dailyError}</p>
+                  <button
+                    type="button"
+                    className="dv-sync-refresh"
+                    onClick={() => openDailyProducts({ activePayload: [{ payload: { fullDate: selectedDate } }] })}
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              ) : (
                 <table className="dv-table">
                   <thead><tr><th>#</th><th>Tên sản phẩm</th><th>Số lượng</th><th>Giá bán TB</th><th>Doanh thu</th></tr></thead>
                   <tbody>

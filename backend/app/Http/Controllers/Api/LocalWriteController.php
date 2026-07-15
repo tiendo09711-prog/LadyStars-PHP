@@ -167,7 +167,8 @@ class LocalWriteController extends Controller
         $id = (string) $request->route('id');
         $table = $this->table($resource);
         $record = $this->findRecord($table, $id);
-        $payload = array_merge(is_array($record->payload) ? $record->payload : [], $request->all());
+        $oldPayload = is_array($record->payload) ? $record->payload : [];
+        $payload = array_merge($oldPayload, $request->all());
 
         if ($resource === 'inventory-checks') {
             $currentStatus = strtoupper((string) ($record->status ?? (is_array($record->payload) ? ($record->payload['status'] ?? 'DRAFT') : 'DRAFT')));
@@ -186,6 +187,26 @@ class LocalWriteController extends Controller
             }
         }
 
+        // Sale edit: only ADMIN may patch completed invoices; cancelled invoices are locked.
+        if ($resource === 'sale-payments') {
+            $saleStatus = strtolower((string) ($record->status ?? $oldPayload['status'] ?? ''));
+            if ($saleStatus === 'cancelled') {
+                return response()->json(['message' => 'Hóa đơn đã hủy nên không thể sửa.'], 422);
+            }
+            if ($saleStatus === 'completed' && !$this->isLocalAdmin($request)) {
+                return response()->json([
+                    'message' => 'Chỉ tài khoản admin mới được sửa hóa đơn đã hoàn tất.',
+                ], 403);
+            }
+            $refundStatus = strtolower((string) ($oldPayload['refundStatus'] ?? 'none'));
+            $activeRefundCount = (int) ($oldPayload['activeRefundCount'] ?? 0);
+            if ($saleStatus === 'completed' && ($refundStatus === 'full' || $refundStatus === 'partial' || $activeRefundCount > 0)) {
+                return response()->json([
+                    'message' => 'Hóa đơn đã phát sinh đổi trả nên không thể sửa.',
+                ], 422);
+            }
+        }
+
         // Capture channel on update/edit too
         if (empty($payload['channel'])) {
             $ch = $request->query('channel') ?? $request->input('channel') ?? $request->input('orderSource');
@@ -195,13 +216,21 @@ class LocalWriteController extends Controller
         }
 
         $requestBody = $request->all();
-        DB::transaction(function () use ($record, $table, $payload, $resource, $requestBody): void {
-            $record->forceFill($this->attributes($table, $payload, $resource, $record))->save();
-            // Sync product lines when client sends items/lines (create/edit audit form).
-            if ($resource === 'inventory-checks' && (array_key_exists('items', $requestBody) || array_key_exists('lines', $requestBody))) {
-                $this->syncInventoryCheckProducts($record, $payload['items'] ?? $payload['lines'] ?? []);
-            }
-        });
+        try {
+            DB::transaction(function () use ($record, $table, $payload, $resource, $requestBody, $oldPayload): void {
+                // Completed sale edit: apply stock delta (restore old lines, deduct new lines).
+                if ($resource === 'sale-payments' && strtolower((string) ($record->status ?? '')) === 'completed') {
+                    $this->applySaleStockDelta($oldPayload, $payload);
+                }
+                $record->forceFill($this->attributes($table, $payload, $resource, $record))->save();
+                // Sync product lines when client sends items/lines (create/edit audit form).
+                if ($resource === 'inventory-checks' && (array_key_exists('items', $requestBody) || array_key_exists('lines', $requestBody))) {
+                    $this->syncInventoryCheckProducts($record, $payload['items'] ?? $payload['lines'] ?? []);
+                }
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $record->refresh();
 
@@ -214,6 +243,13 @@ class LocalWriteController extends Controller
         $id = (string) $request->route('id');
         $table = $this->table($resource);
         $record = $this->findRecord($table, $id);
+
+        // Sale delete is admin-only (matches retail/wholesale UI).
+        if ($resource === 'sale-payments' && !$this->isLocalAdmin($request)) {
+            return response()->json([
+                'message' => 'Chỉ tài khoản admin mới được xóa hóa đơn.',
+            ], 403);
+        }
 
         if ($resource === 'warehouse-transfers') {
             $currentStatus = strtoupper((string) ($record->status ?? ''));
@@ -268,11 +304,18 @@ class LocalWriteController extends Controller
             return $this->actionWarehouseTransfer($request, $record, $action);
         }
 
+        // Sale cancel is admin-only (matches retail/wholesale UI hide of Xóa/Hủy).
+        if ($resource === 'sale-payments' && $action === 'cancel' && !$this->isLocalAdmin($request)) {
+            return response()->json([
+                'message' => 'Chỉ tài khoản admin mới được hủy hóa đơn.',
+            ], 403);
+        }
+
         if ($resource === 'inventory-checks') {
             $currentStatus = strtoupper((string) ($record->status ?? $payload['status'] ?? 'DRAFT'));
 
             // Permission gates: reconcile / reverse-reconcile require ADMIN or root owner.
-            if (in_array($action, ['reconcile', 'reverse-reconcile'], true) && !$this->isInventoryAuditAdmin($request)) {
+            if (in_array($action, ['reconcile', 'reverse-reconcile'], true) && !$this->isLocalAdmin($request)) {
                 return response()->json([
                     'message' => 'Chỉ quản trị viên (ADMIN/root) mới được thực hiện thao tác bù trừ / đảo bù trừ kiểm kho.',
                 ], 403);
@@ -334,14 +377,18 @@ class LocalWriteController extends Controller
             $status = $originalStatus; // do not pollute sale status; refunds tracked separately
         }
 
-        if ($action === 'complete' && $resource === 'sale-payments' && $record->status !== 'completed') {
-            $this->applySaleStock($payload, -1);
-        }
-        if ($action === 'cancel' && $resource === 'sale-payments' && $record->status === 'completed') {
-            $this->applySaleStock($payload, 1);
-        }
-        if ($action === 'complete' && $resource === 'product-refunds' && $record->status !== 'completed') {
-            $this->applySaleStock($payload, 1); // refund complete restores stock to branch
+        try {
+            if ($action === 'complete' && $resource === 'sale-payments' && $record->status !== 'completed') {
+                $this->applySaleStock($payload, -1);
+            }
+            if ($action === 'cancel' && $resource === 'sale-payments' && $record->status === 'completed') {
+                $this->applySaleStock($payload, 1);
+            }
+            if ($action === 'complete' && $resource === 'product-refunds' && $record->status !== 'completed') {
+                $this->applySaleStock($payload, 1); // refund complete restores stock to branch
+            }
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
         $body = $request->all();
 
@@ -388,6 +435,69 @@ class LocalWriteController extends Controller
         $retItems = $body['returnedItems'] ?? $payload['returnedItems'] ?? [];
         if (!is_array($retItems) || $retItems === []) {
             return response()->json(['message' => 'Vui lòng chọn ít nhất một sản phẩm trả hàng.'], 422);
+        }
+
+        // Reject over-return: qty returned cannot exceed sold - already returned for each product.
+        $soldByProduct = [];
+        foreach (($payload['items'] ?? []) as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+            $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+            if ($pid === null || $pid === '') {
+                continue;
+            }
+            $key = (string) $pid;
+            $soldByProduct[$key] = ($soldByProduct[$key] ?? 0.0) + (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0);
+        }
+        $alreadyReturnedByProduct = [];
+        foreach (($payload['returnedItemsHistory'] ?? $payload['returnedItems'] ?? []) as $line) {
+            // Historical aggregate if present on sale payload after prior refunds.
+            if (!is_array($line)) {
+                continue;
+            }
+            $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+            $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+            if ($pid === null || $pid === '') {
+                continue;
+            }
+            $key = (string) $pid;
+            $alreadyReturnedByProduct[$key] = ($alreadyReturnedByProduct[$key] ?? 0.0)
+                + (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0);
+        }
+        // Prefer denormalized remaining map / returnedAmounts if FE/backend wrote them.
+        if (is_array($payload['returnedAmountsByProduct'] ?? null)) {
+            foreach ($payload['returnedAmountsByProduct'] as $pid => $qty) {
+                $alreadyReturnedByProduct[(string) $pid] = (float) $qty;
+            }
+        }
+        $requestReturnByProduct = [];
+        foreach ($retItems as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+            $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+            if ($pid === null || $pid === '') {
+                continue;
+            }
+            $key = (string) $pid;
+            $qty = (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0);
+            if ($qty <= 0) {
+                return response()->json(['message' => 'Số lượng trả hàng phải lớn hơn 0.'], 422);
+            }
+            $requestReturnByProduct[$key] = ($requestReturnByProduct[$key] ?? 0.0) + $qty;
+        }
+        foreach ($requestReturnByProduct as $pid => $qty) {
+            $sold = (float) ($soldByProduct[$pid] ?? 0);
+            $already = (float) ($alreadyReturnedByProduct[$pid] ?? 0);
+            $remaining = max(0.0, $sold - $already);
+            if ($qty > $remaining + 1e-9) {
+                return response()->json([
+                    'message' => 'Số lượng trả vượt quá số lượng còn được trả (còn '.$remaining.', yêu cầu '.$qty.').',
+                ], 422);
+            }
         }
 
         $repItems = $body['replacementItems'] ?? $payload['replacementItems'] ?? [];
@@ -547,6 +657,22 @@ class LocalWriteController extends Controller
                 if ($reason !== null && $reason !== '') {
                     $sp['reason'] = $reason;
                 }
+                // Accumulate returned quantities so subsequent over-return checks stay accurate.
+                $returnedMap = is_array($sp['returnedAmountsByProduct'] ?? null) ? $sp['returnedAmountsByProduct'] : [];
+                foreach ($retItems as $line) {
+                    if (!is_array($line)) {
+                        continue;
+                    }
+                    $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+                    $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+                    if ($pid === null || $pid === '') {
+                        continue;
+                    }
+                    $key = (string) $pid;
+                    $returnedMap[$key] = (float) ($returnedMap[$key] ?? 0)
+                        + (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0);
+                }
+                $sp['returnedAmountsByProduct'] = $returnedMap;
                 // Hint only; list/detail of sales recompute via computeSaleRefundSummary.
                 if (!isset($sp['refundStatus']) || $sp['refundStatus'] === 'none' || $sp['refundStatus'] === null) {
                     $sp['refundStatus'] = 'partial';
@@ -1171,17 +1297,101 @@ class LocalWriteController extends Controller
         // Support items, returnedItems (refund/exchange), replacementItems
         $items = $payload['items'] ?? $payload['returnedItems'] ?? $payload['replacementItems'] ?? [];
         foreach ($items as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
             $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
             $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
             $product = $this->product($pid);
             if (!$product || $product->type === 'service') continue;
-            $qty = (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0) * $direction;
+            $lineQty = (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0);
+            if ($lineQty <= 0) {
+                continue;
+            }
+            $qty = $lineQty * $direction;
             $stock = ProductBranchStock::query()->firstOrCreate(
                 ['product_id' => $product->id, 'branch_id' => $branch->id],
-                ['qty' => 0, 'locked_quantity' => 0]
+                ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
             );
-            $newQty = max(0, (float) $stock->qty + $qty);
+            $current = (float) $stock->qty;
+            // Selling (direction < 0) must not go below zero — reject oversell.
+            if ($qty < 0 && $current + 1e-9 < abs($qty)) {
+                throw new \InvalidArgumentException(
+                    'Số lượng sản phẩm "'.($product->name ?: $product->code).'" vượt quá tồn kho của cửa hàng (cần '
+                    .abs($qty).', còn '.$current.').'
+                );
+            }
+            $newQty = max(0, $current + $qty);
             $stock->forceFill(['qty' => $newQty])->save();
+            $product->forceFill(['qty' => (float) $product->stocks()->sum('qty')])->save();
+        }
+    }
+
+    /**
+     * When editing a completed sale, adjust stock by line delta only:
+     * sold more → decrease stock; sold less → restore stock.
+     */
+    private function applySaleStockDelta(array $oldPayload, array $newPayload): void
+    {
+        $branchIdRaw = $newPayload['branchId']
+            ?? $newPayload['warehouseId']
+            ?? $oldPayload['branchId']
+            ?? $oldPayload['warehouseId']
+            ?? null;
+        $branch = $this->branch($branchIdRaw);
+        if (!$branch) {
+            throw new \InvalidArgumentException('Không xác định được kho để điều chỉnh tồn khi sửa hóa đơn.');
+        }
+
+        $sumByProduct = static function (array $payload): array {
+            $map = [];
+            $items = $payload['items'] ?? [];
+            if (!is_array($items)) {
+                return $map;
+            }
+            foreach ($items as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+                $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+                if ($pid === null || $pid === '') {
+                    continue;
+                }
+                $key = (string) $pid;
+                $map[$key] = ($map[$key] ?? 0.0) + (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0);
+            }
+
+            return $map;
+        };
+
+        $oldMap = $sumByProduct($oldPayload);
+        $newMap = $sumByProduct($newPayload);
+        $productIds = array_unique(array_merge(array_keys($oldMap), array_keys($newMap)));
+
+        foreach ($productIds as $pid) {
+            $oldQty = (float) ($oldMap[$pid] ?? 0);
+            $newQty = (float) ($newMap[$pid] ?? 0);
+            $deltaSold = $newQty - $oldQty; // positive = sold more → stock decreases
+            if (abs($deltaSold) < 1e-9) {
+                continue;
+            }
+            $product = $this->product($pid);
+            if (!$product || $product->type === 'service') {
+                continue;
+            }
+            $stock = ProductBranchStock::query()->firstOrCreate(
+                ['product_id' => $product->id, 'branch_id' => $branch->id],
+                ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
+            );
+            $current = (float) $stock->qty;
+            if ($deltaSold > 0 && $current + 1e-9 < $deltaSold) {
+                throw new \InvalidArgumentException(
+                    'Số lượng sản phẩm "'.($product->name ?: $product->code).'" vượt quá tồn kho của cửa hàng (cần thêm '
+                    .$deltaSold.', còn '.$current.').'
+                );
+            }
+            $stock->forceFill(['qty' => max(0, $current - $deltaSold)])->save();
             $product->forceFill(['qty' => (float) $product->stocks()->sum('qty')])->save();
         }
     }
@@ -1326,10 +1536,11 @@ class LocalWriteController extends Controller
     }
 
     /**
-     * Inventory audit admin gate: requires valid local-laravel-token-{id} for ADMIN or root owner.
+     * Admin gate: requires valid local-laravel-token-{id} for ADMIN or root owner.
+     * Used for inventory audit reconcile and sale cancel/delete/edit of completed invoices.
      * Does not use unauthenticated ADMIN fallback (unlike /auth/me).
      */
-    private function isInventoryAuditAdmin(Request $request): bool
+    private function isLocalAdmin(Request $request): bool
     {
         $authHeader = (string) $request->header('Authorization', '');
         if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
@@ -1341,6 +1552,12 @@ class LocalWriteController extends Controller
         }
 
         return (bool) $user->is_root_owner || strtoupper((string) $user->role) === 'ADMIN';
+    }
+
+    /** @deprecated Use isLocalAdmin() — kept as alias for older call sites / clarity in inventory audit. */
+    private function isInventoryAuditAdmin(Request $request): bool
+    {
+        return $this->isLocalAdmin($request);
     }
 
     private function branch(mixed $id): ?Branch
@@ -1434,6 +1651,31 @@ class LocalWriteController extends Controller
                     'payload' => $payload,
                     'branch_id' => $b1?->id,
                 ]);
+            }
+
+            // Standard payment methods required by retail/wholesale create forms.
+            $pmTable = (new MirrorRecord())->forTable('payment_methods')->newQuery();
+            if ($pmTable->count() === 0) {
+                $defaults = [
+                    ['code' => 'cash', 'name' => 'Tiền mặt', 'sortOrder' => 1],
+                    ['code' => 'bank_transfer', 'name' => 'Chuyển khoản', 'sortOrder' => 2],
+                    ['code' => 'installment', 'name' => 'Trả góp', 'sortOrder' => 3],
+                ];
+                foreach ($defaults as $method) {
+                    $pmTable->create([
+                        'mongo_id' => $this->localMongoId(),
+                        'code' => $method['code'],
+                        'name' => $method['name'],
+                        'status' => 'active',
+                        'business_date' => now(),
+                        'payload' => [
+                            'code' => $method['code'],
+                            'name' => $method['name'],
+                            'isActive' => true,
+                            'sortOrder' => $method['sortOrder'],
+                        ],
+                    ]);
+                }
             }
         } catch (\Throwable $e) {
             // non-fatal for login; demo data is best-effort

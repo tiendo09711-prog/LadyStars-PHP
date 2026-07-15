@@ -209,6 +209,164 @@ class LocalWriteApiTest extends TestCase
         ]);
     }
 
+    public function test_employee_cannot_cancel_or_delete_completed_sale(): void
+    {
+        $admin = User::query()->where('email', 'admin.local@example.test')->firstOrFail();
+        $employee = User::create([
+            'mongo_id' => 'userlocalemployee000001',
+            'name' => 'Employee Local',
+            'email' => 'employee.local@example.test',
+            'password' => 'secret',
+            'role' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+            'branch_id' => $this->branch->id,
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
+
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'valuePayment' => 100000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+        $created->assertCreated();
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+
+        $empToken = 'local-laravel-token-'.$employee->id;
+        $this->withHeader('Authorization', 'Bearer '.$empToken)
+            ->postJson('/api/products/sales/'.$saleId.'/cancel')
+            ->assertStatus(403);
+
+        $this->withHeader('Authorization', 'Bearer '.$empToken)
+            ->deleteJson('/api/products/sales/'.$saleId)
+            ->assertStatus(403);
+
+        $this->withHeader('Authorization', 'Bearer '.$empToken)
+            ->patchJson('/api/products/sales/'.$saleId, [
+                'note' => 'employee try edit',
+                'items' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 1,
+                    'value' => 100000,
+                ]],
+            ])
+            ->assertStatus(403);
+
+        // Admin can cancel.
+        $this->withHeader('Authorization', 'Bearer local-laravel-token-'.$admin->id)
+            ->postJson('/api/products/sales/'.$saleId.'/cancel')
+            ->assertOk()
+            ->assertJsonPath('status', 'cancelled');
+
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 10,
+        ]);
+    }
+
+    public function test_edit_completed_sale_applies_stock_delta_only(): void
+    {
+        $admin = User::query()->where('email', 'admin.local@example.test')->firstOrFail();
+        $adminToken = 'local-laravel-token-'.$admin->id;
+
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'valuePayment' => 200000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 2,
+                'value' => 100000,
+            ]],
+        ]);
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 8,
+        ]);
+
+        // Increase qty 2 → 3: stock decreases by 1 only.
+        $this->withHeader('Authorization', 'Bearer '.$adminToken)
+            ->patchJson('/api/products/sales/'.$saleId, [
+                'branchId' => (string) $this->branch->id,
+                'customerId' => (string) $this->customer->id,
+                'status' => 'completed',
+                'valuePayment' => 300000,
+                'items' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 3,
+                    'value' => 100000,
+                ]],
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 7,
+        ]);
+
+        // Decrease qty 3 → 1: stock restores by 2.
+        $this->withHeader('Authorization', 'Bearer '.$adminToken)
+            ->patchJson('/api/products/sales/'.$saleId, [
+                'branchId' => (string) $this->branch->id,
+                'customerId' => (string) $this->customer->id,
+                'status' => 'completed',
+                'valuePayment' => 100000,
+                'items' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 1,
+                    'value' => 100000,
+                ]],
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 9,
+        ]);
+    }
+
+    public function test_complete_sale_rejects_oversell(): void
+    {
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'status' => 'draft',
+            'valuePayment' => 1000000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 99,
+                'value' => 100000,
+            ]],
+        ]);
+        $created->assertCreated();
+        $this->postJson('/api/products/sales/'.$created->json('_id').'/complete')
+            ->assertStatus(422);
+
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 10,
+        ]);
+    }
+
     public function test_return_exchange_action_return_creates_product_refund_with_channel_and_total(): void
     {
         // Create + complete a sale (stock 10 → 8)

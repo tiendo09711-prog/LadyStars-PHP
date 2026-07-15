@@ -23,10 +23,32 @@ class WriteFlowApiTest extends TestCase
     private CustomerGroup $group;
     private Product $product;
     private ProductBranchStock $stock;
+    private User $admin;
+    private User $employee;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->admin = User::create([
+            'name' => 'Admin Product Test',
+            'email' => 'admin.product@example.test',
+            'password' => 'secret',
+            'role' => 'ADMIN',
+            'status' => 'ACTIVE',
+            'is_root_owner' => true,
+            'is_active' => true,
+        ]);
+
+        $this->employee = User::create([
+            'name' => 'Employee Product Test',
+            'email' => 'employee.product@example.test',
+            'password' => 'secret',
+            'role' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
 
         $this->branch = Branch::create([
             'mongo_id' => 'branch000000000000000001',
@@ -72,6 +94,16 @@ class WriteFlowApiTest extends TestCase
             'min_quantity' => 0,
             'max_quantity' => 999999999,
         ]);
+    }
+
+    private function adminHeaders(): array
+    {
+        return ['Authorization' => 'Bearer local-laravel-token-'.$this->admin->id];
+    }
+
+    private function employeeHeaders(): array
+    {
+        return ['Authorization' => 'Bearer local-laravel-token-'.$this->employee->id];
     }
 
     public function test_customer_write_flow_works(): void
@@ -139,7 +171,7 @@ class WriteFlowApiTest extends TestCase
             ->assertJsonPath('items.0.warehouseId', (string) $this->branch->id)
             ->assertJsonPath('items.0.quantity', 5);
 
-        $updated = $this->patchJson('/api/products/products/'.$productId, [
+        $updated = $this->withHeaders($this->adminHeaders())->patchJson('/api/products/products/'.$productId, [
             'name' => 'S?n ph?m Test Updated',
             'price' => 160000,
             'categoryId' => $this->category->id,
@@ -152,7 +184,7 @@ class WriteFlowApiTest extends TestCase
 
         ProductBranchStock::query()->where('product_id', $productId)->update(['qty' => 0, 'locked_quantity' => 0]);
 
-        $deleted = $this->deleteJson('/api/products/products/'.$productId);
+        $deleted = $this->withHeaders($this->adminHeaders())->deleteJson('/api/products/products/'.$productId);
         $deleted->assertOk()->assertJsonPath('ok', true);
     }
 
@@ -197,7 +229,7 @@ class WriteFlowApiTest extends TestCase
         $csv = "code;name;qty;price\nSP001;Imported product name;3;123456\n";
         $file = UploadedFile::fake()->createWithContent('products.csv', $csv);
 
-        $response = $this->post('/api/products/products/import', [
+        $response = $this->withHeaders($this->adminHeaders())->post('/api/products/products/import', [
             'file' => $file,
             'branchId' => $this->branch->id,
             'importMode' => 'Cập nhật thông tin',
@@ -218,9 +250,54 @@ class WriteFlowApiTest extends TestCase
         ]);
     }
 
+    public function test_employee_cannot_update_or_delete_product_via_api(): void
+    {
+        $beforeName = $this->product->name;
+
+        $patched = $this->withHeaders($this->employeeHeaders())->patchJson('/api/products/products/'.$this->product->id, [
+            'name' => 'HACKED BY EMP',
+        ]);
+        $patched->assertForbidden();
+        $this->assertSame($beforeName, $this->product->fresh()->name);
+
+        $this->stock->update(['qty' => 0, 'locked_quantity' => 0]);
+        $deleted = $this->withHeaders($this->employeeHeaders())->deleteJson('/api/products/products/'.$this->product->id);
+        $deleted->assertForbidden();
+        $this->assertDatabaseHas('products', ['id' => $this->product->id]);
+
+        $anon = $this->patchJson('/api/products/products/'.$this->product->id, ['name' => 'ANON']);
+        $anon->assertForbidden();
+    }
+
+    public function test_employee_import_update_mode_is_forced_to_add_only(): void
+    {
+        $csv = "code;name;qty;price\nSP001;Should Not Update;3;999\nSPNEWIMP;Brand New Import;1;1000\n";
+        $file = UploadedFile::fake()->createWithContent('products-emp.csv', $csv);
+
+        $response = $this->withHeaders($this->employeeHeaders())->post('/api/products/products/import', [
+            'file' => $file,
+            'branchId' => $this->branch->id,
+            'importMode' => 'Cập nhật thông tin',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('summary.updated', 0)
+            ->assertJsonPath('summary.created', 1)
+            ->assertJsonPath('summary.skipped', 1);
+
+        $this->product->refresh();
+        $this->assertSame('M?i test', $this->product->name);
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 12,
+        ]);
+        $this->assertDatabaseHas('products', ['code' => 'SPNEWIMP', 'name' => 'Brand New Import']);
+    }
+
     public function test_product_delete_is_blocked_when_stock_or_business_logs_exist(): void
     {
-        $blockedByStock = $this->deleteJson('/api/products/products/'.$this->product->id);
+        $blockedByStock = $this->withHeaders($this->adminHeaders())->deleteJson('/api/products/products/'.$this->product->id);
         $blockedByStock->assertStatus(409)
             ->assertJsonPath('message', 'Không thể xóa sản phẩm đang còn tồn kho hoặc tồn khóa. Hãy đưa tồn về 0 trước.');
 
@@ -234,7 +311,7 @@ class WriteFlowApiTest extends TestCase
             'payload' => ['productCode' => $this->product->code],
         ]);
 
-        $blockedByLog = $this->deleteJson('/api/products/products/'.$this->product->id);
+        $blockedByLog = $this->withHeaders($this->adminHeaders())->deleteJson('/api/products/products/'.$this->product->id);
         $blockedByLog->assertStatus(409)
             ->assertJsonPath('message', 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.');
     }
@@ -255,7 +332,7 @@ class WriteFlowApiTest extends TestCase
     {
         $before = $this->product->fresh();
 
-        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+        $response = $this->withHeaders($this->adminHeaders())->patchJson('/api/products/products/'.$this->product->id, [
             'status' => 'Đang bán',
         ]);
 
@@ -291,7 +368,7 @@ class WriteFlowApiTest extends TestCase
         ]);
         $before = $this->product->fresh();
 
-        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+        $response = $this->withHeaders($this->adminHeaders())->patchJson('/api/products/products/'.$this->product->id, [
             'categoryId' => $other->id,
             'categoryName' => $other->name,
         ]);
@@ -314,7 +391,7 @@ class WriteFlowApiTest extends TestCase
 
     public function test_product_partial_patch_rejects_negative_price(): void
     {
-        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+        $response = $this->withHeaders($this->adminHeaders())->patchJson('/api/products/products/'.$this->product->id, [
             'price' => -10,
         ]);
 
@@ -324,7 +401,7 @@ class WriteFlowApiTest extends TestCase
 
     public function test_product_partial_patch_rejects_missing_category(): void
     {
-        $response = $this->patchJson('/api/products/products/'.$this->product->id, [
+        $response = $this->withHeaders($this->adminHeaders())->patchJson('/api/products/products/'.$this->product->id, [
             'categoryId' => 999999,
         ]);
 
@@ -376,11 +453,19 @@ class WriteFlowApiTest extends TestCase
             'payload' => ['shopName' => 'LadyStars DB', 'phone' => '0900000000'],
         ]);
 
-        $auth = $this->getJson('/api/auth/me');
+        $user = User::query()->where('email', 'admin.local@example.test')->firstOrFail();
+        $auth = $this->withHeaders([
+            'Authorization' => 'Bearer local-laravel-token-'.$user->id,
+        ])->getJson('/api/auth/me');
         $auth->assertOk()
             ->assertJsonPath('role', 'ADMIN')
             ->assertJsonPath('email', 'admin.local@example.test')
             ->assertJsonPath('branchId', (string) $this->branch->id);
+
+        // Invalid/missing tokens must not bootstrap ADMIN.
+        $this->withHeaders(['Authorization' => 'Bearer invalid-token'])->getJson('/api/auth/me')->assertUnauthorized();
+        $this->flushHeaders();
+        $this->getJson('/api/auth/me')->assertUnauthorized();
 
         $settings = $this->getJson('/api/settings/store');
         $settings->assertOk()

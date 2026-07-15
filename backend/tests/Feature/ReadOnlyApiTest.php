@@ -521,6 +521,52 @@ class ReadOnlyApiTest extends TestCase
             ]);
     }
 
+    public function test_storage_duration_matches_integer_local_product_id_and_legacy_inventory_mongo_field(): void
+    {
+        $lastSoldDate = now()->subDays(45)->setMicrosecond(0);
+        $firstInventoryDate = now()->subDays(100)->setMicrosecond(0);
+        $lastInventoryDate = now()->subDays(12)->setMicrosecond(0);
+
+        // Live import stores productId as integer local PK in sale_payments.items JSON.
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'saleintlocal000000000001',
+            'code' => 'HD-INT',
+            'status' => 'completed',
+            'completed_at' => $lastSoldDate,
+            'business_date' => $lastSoldDate,
+            'items' => [['productId' => $this->product->id, 'productCode' => $this->product->code, 'name' => $this->product->name]],
+            'payload' => ['code' => 'HD-INT'],
+        ]);
+
+        // Live inventory_products.product_mongo_id often holds local PK string, not hex mongo_id.
+        (new MirrorRecord())->forTable('inventory_products')->newQuery()->create([
+            'mongo_id' => 'invlegacy00000000000001',
+            'product_mongo_id' => (string) $this->product->id,
+            'business_date' => $firstInventoryDate,
+            'payload' => ['legacy' => true],
+        ]);
+        (new MirrorRecord())->forTable('inventory_products')->newQuery()->create([
+            'mongo_id' => 'invlegacy00000000000002',
+            'product_mongo_id' => (string) $this->product->id,
+            'business_date' => $lastInventoryDate,
+            'payload' => ['legacy' => true],
+        ]);
+
+        $response = $this->getJson('/api/products/storage-duration?q=SP001&limit=10&thresholdDays=30');
+
+        $response->assertOk()
+            ->assertJsonPath('items.0.code', 'SP001')
+            ->assertJsonPath('items.0.lastSoldDate', $lastSoldDate->toIso8601String())
+            ->assertJsonPath('items.0.daysFromLastSold', 45)
+            ->assertJsonPath('items.0.status', 'slow_selling')
+            ->assertJsonPath('items.0.firstTransactionDate', $firstInventoryDate->toISOString())
+            ->assertJsonPath('items.0.lastTransactionDate', $lastInventoryDate->toISOString())
+            ->assertJsonPath('items.0.daysFromStart', 100);
+
+        $slow = $this->getJson('/api/products/storage-duration?q=SP001&tab=slow_selling&thresholdDays=30');
+        $slow->assertOk()->assertJsonPath('total', 1)->assertJsonPath('kpis.slowSelling', 1);
+    }
+
     public function test_warehouse_transfer_meta_matches_frontend_contract(): void
     {
         $response = $this->getJson('/api/warehouse/transfers/meta');

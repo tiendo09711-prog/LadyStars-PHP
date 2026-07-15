@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
+use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\NodeShape;
 use Illuminate\Database\QueryException;
@@ -118,6 +119,11 @@ class ProductController extends Controller
         $normalizedImportMode = strtolower(trim(\Illuminate\Support\Str::ascii($importMode)));
         $updateExisting = in_array($normalizedImportMode, ['cap nhat thong tin', 'update', 'update existing', 'update_existing', 'true', '1'], true)
             || str_contains($normalizedImportMode, 'cap nhat');
+
+        // EMPLOYEE / anonymous: force add-only — never update existing products or add stock via import.
+        if ($updateExisting && ! $this->isAdminUser($this->resolveAuthUser($request))) {
+            $updateExisting = false;
+        }
 
         $readHandle = function () use ($path) {
             $handle = fopen($path, 'r');
@@ -298,6 +304,8 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product): JsonResponse
     {
+        $this->requireAdminUser($request);
+
         $payload = $this->validatedPayload($request, $product);
         $stocks = $payload['initialStocks'] ?? null;
         unset($payload['initialStocks']);
@@ -318,8 +326,10 @@ class ProductController extends Controller
         return response()->json(NodeShape::product($product));
     }
 
-    public function destroy(Product $product): JsonResponse
+    public function destroy(Request $request, Product $product): JsonResponse
     {
+        $this->requireAdminUser($request);
+
         $blockingReason = $this->productDeleteBlockingReason($product);
         if ($blockingReason !== null) {
             return response()->json(['message' => $blockingReason], 409);
@@ -491,7 +501,19 @@ class ProductController extends Controller
 
         $payload = ApiPagination::nodeCompatible($query->paginate($perPage));
         $items = collect($payload['items'])
-            ->map(fn (Product $product): array => NodeShape::inventory($product))
+            ->map(function (Product $product) use ($branchId): array {
+                $shape = NodeShape::inventory($product);
+                // When a warehouse is selected (retail/wholesale create, inventory filter),
+                // expose branch-scoped stock so sellers cannot use totalStock across warehouses.
+                if ($branchId) {
+                    $key = (string) $branchId;
+                    $shape['selectedStock'] = (float) ($shape['stockByBranchId'][$key] ?? 0);
+                    $shape['qty'] = $shape['selectedStock'];
+                    $shape['quantity'] = $shape['selectedStock'];
+                }
+
+                return $shape;
+            })
             ->all();
         $payload['items'] = $items;
         $payload['data'] = $items;
@@ -768,15 +790,26 @@ class ProductController extends Controller
     }
 
     /**
-     * Build a map of product mongo_id => last non-cancelled sale completed_at (Carbon instance).
-     * Scans sale_payments.items JSON (each line carries productId = mongo_id).
+     * Build a map of product key => last non-cancelled sale completed_at (Carbon instance).
+     * Keys are product mongo_id when available, otherwise local id string.
+     * Line productId may be mongo_id (string), local PK (int/string), or nested object —
+     * same contract as DashboardController / RevenueByProductReportService.
      * When $branchIdFilter, only sales from that branch_id (sale_payments has branch_id).
      */
     private function lastSoldDatesByMongoId($products, $branchIdFilter = null): array
     {
-        $mongoIds = $products->pluck('mongo_id')->filter()->unique()->values()->all();
-        if (empty($mongoIds)) {
+        if ($products->isEmpty()) {
             return [];
+        }
+
+        // Canonical key for shape lookup: prefer mongo_id, fallback local id string.
+        $canonicalByLineKey = [];
+        foreach ($products as $product) {
+            $canonical = filled($product->mongo_id) ? (string) $product->mongo_id : (string) $product->id;
+            if (filled($product->mongo_id)) {
+                $canonicalByLineKey[(string) $product->mongo_id] = $canonical;
+            }
+            $canonicalByLineKey[(string) $product->id] = $canonical;
         }
 
         $cancelledSaleIds = $this->cancelledSalePaymentIdsByProductMongoId($products);
@@ -795,14 +828,26 @@ class ProductController extends Controller
             }
             $completedAt = \Illuminate\Support\Carbon::parse($row->completed_at);
             foreach ($items as $line) {
-                $productId = $line['productId'] ?? null;
-                if (is_string($productId) && in_array($productId, $mongoIds, true)) {
-                    if (isset($cancelledSaleIds[$productId]) && in_array((string) $row->mongo_id, $cancelledSaleIds[$productId], true)) {
-                        continue;
-                    }
-                    if (!isset($map[$productId]) || $completedAt->greaterThan($map[$productId])) {
-                        $map[$productId] = $completedAt;
-                    }
+                if (!is_array($line)) {
+                    continue;
+                }
+                $pidRaw = $line['productId'] ?? $line['product_id'] ?? null;
+                if (is_array($pidRaw)) {
+                    $pidRaw = $pidRaw['id'] ?? $pidRaw['_id'] ?? $pidRaw['mongo_id'] ?? null;
+                }
+                if ($pidRaw === null || $pidRaw === '') {
+                    continue;
+                }
+                $lineKey = (string) $pidRaw;
+                $canonical = $canonicalByLineKey[$lineKey] ?? null;
+                if ($canonical === null) {
+                    continue;
+                }
+                if (isset($cancelledSaleIds[$canonical]) && in_array((string) $row->mongo_id, $cancelledSaleIds[$canonical], true)) {
+                    continue;
+                }
+                if (!isset($map[$canonical]) || $completedAt->greaterThan($map[$canonical])) {
+                    $map[$canonical] = $completedAt;
                 }
             }
         }
@@ -882,15 +927,22 @@ class ProductController extends Controller
         $hasBranchMongoId = Schema::hasColumn('inventory_products', 'branch_mongo_id');
 
         $productIds = $products->pluck('id')->map(fn ($id): int => (int) $id)->unique()->values()->all();
-        $productMongoIds = $products->pluck('mongo_id')->filter()->unique()->values()->all();
+        $productMongoIds = $products->pluck('mongo_id')->filter()->map(fn ($id): string => (string) $id)->unique()->values()->all();
         $productCodes = $products->pluck('code')->filter()->unique()->values()->all();
-        if ((!$hasProductId || empty($productIds)) && (!$hasProductMongoId || empty($productMongoIds)) && (!$hasProductCode || empty($productCodes))) {
+        // Legacy/import rows may store local PK (as string/int) in product_mongo_id instead of hex mongo_id.
+        $localIdKeys = array_map('strval', $productIds);
+        if (
+            (!$hasProductId || empty($productIds))
+            && (!$hasProductMongoId || (empty($productMongoIds) && empty($localIdKeys)))
+            && (!$hasProductCode || empty($productCodes))
+        ) {
             return [];
         }
 
         $byMongoId = $products->filter(fn (Product $product): bool => filled($product->mongo_id))
             ->mapWithKeys(fn (Product $product): array => [(string) $product->mongo_id => (int) $product->id])
             ->all();
+        $byLocalId = array_fill_keys($productIds, true);
         $byCode = $products->filter(fn (Product $product): bool => filled($product->code))
             ->mapWithKeys(fn (Product $product): array => [(string) $product->code => (int) $product->id])
             ->all();
@@ -903,7 +955,7 @@ class ProductController extends Controller
 
         $rows = \App\Models\MirrorRecord::query()
             ->from('inventory_products')
-            ->where(function ($query) use ($productIds, $productMongoIds, $productCodes, $hasProductId, $hasProductMongoId, $hasProductCode): void {
+            ->where(function ($query) use ($productIds, $productMongoIds, $productCodes, $localIdKeys, $hasProductId, $hasProductMongoId, $hasProductCode): void {
                 $hasCondition = false;
                 if ($hasProductId && !empty($productIds)) {
                     $query->whereIn('product_id', $productIds);
@@ -912,6 +964,12 @@ class ProductController extends Controller
                 if ($hasProductMongoId && !empty($productMongoIds)) {
                     $method = $hasCondition ? 'orWhereIn' : 'whereIn';
                     $query->{$method}('product_mongo_id', $productMongoIds);
+                    $hasCondition = true;
+                }
+                // Also match product_mongo_id holding local PK strings from import.
+                if ($hasProductMongoId && !empty($localIdKeys)) {
+                    $method = $hasCondition ? 'orWhereIn' : 'whereIn';
+                    $query->{$method}('product_mongo_id', $localIdKeys);
                     $hasCondition = true;
                 }
                 if ($hasProductCode && !empty($productCodes)) {
@@ -934,11 +992,16 @@ class ProductController extends Controller
         $map = [];
         foreach ($rows as $row) {
             $date = \Illuminate\Support\Carbon::parse($row->business_date);
-            $pid = $row->product_id ? (int) $row->product_id : null;
-            if (!$pid && $row->product_mongo_id) {
-                $pid = $byMongoId[(string) $row->product_mongo_id] ?? null;
+            $pid = isset($row->product_id) && $row->product_id ? (int) $row->product_id : null;
+            if (!$pid && isset($row->product_mongo_id) && $row->product_mongo_id !== null && $row->product_mongo_id !== '') {
+                $pm = (string) $row->product_mongo_id;
+                // Prefer true mongo_id match; legacy/import rows often store local PK in product_mongo_id.
+                $pid = $byMongoId[$pm] ?? null;
+                if (!$pid && ctype_digit($pm) && isset($byLocalId[(int) $pm])) {
+                    $pid = (int) $pm;
+                }
             }
-            if (!$pid && $row->product_code) {
+            if (!$pid && isset($row->product_code) && $row->product_code) {
                 $pid = $byCode[(string) $row->product_code] ?? null;
             }
             if (!$pid) {
@@ -976,7 +1039,8 @@ class ProductController extends Controller
         $daysFromLast = max(0, (int) $lastDate->copy()->startOfDay()->diffInDays($today));
 
         $mongoId = $product->mongo_id;
-        $lastSold = $lastSoldMap[$mongoId] ?? null;
+        // Map is keyed by mongo_id when present; also accept local id for products without mongo_id.
+        $lastSold = $lastSoldMap[(string) $mongoId] ?? $lastSoldMap[(string) $product->id] ?? null;
         $lastSoldDate = $lastSold ? $lastSold->toIso8601String() : null;
         $daysFromLastSold = $lastSold ? max(0, (int) $lastSold->copy()->startOfDay()->diffInDays($today)) : null;
 
@@ -1064,22 +1128,76 @@ class ProductController extends Controller
             ['product_logs', 'product_id'],
         ];
 
+        $productId = (int) $product->id;
+        $mongoId = filled($product->mongo_id) ? (string) $product->mongo_id : null;
+        $code = trim((string) $product->code);
+
         foreach ($mirrorChecks as [$table, $column]) {
-            $query = (new MirrorRecord())->forTable($table)->newQuery();
-            if (in_array($column, ['product_id'], true) && $query->where('product_id', $product->id)->exists()) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
+            $base = (new MirrorRecord())->forTable($table)->newQuery();
+            $hasProductId = Schema::hasColumn($table, 'product_id');
+            $hasProductMongoId = Schema::hasColumn($table, 'product_mongo_id');
+            $hasPayload = Schema::hasColumn($table, 'payload');
+
+            // Fresh query each check — never stack where clauses on a reused builder.
+            if ($column === 'product_id' && $hasProductId && (clone $base)->where('product_id', $productId)->exists()) {
                 return 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.';
             }
 
-            if ($query->where('product_mongo_id', $product->mongo_id)->exists()) {
+            // Skip null mongo_id: `where(product_mongo_id, null)` would match every row with NULL
+            // and falsely block delete for local-created products without mongo_id.
+            if ($mongoId !== null && $hasProductMongoId && (clone $base)->where('product_mongo_id', $mongoId)->exists()) {
                 return 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.';
             }
 
-            if ($column !== 'product_id' && $query->where('payload', 'like', '%'.$product->code.'%')->exists()) {
+            if ($column !== 'product_id' && $code !== '' && $hasPayload && (clone $base)->where('payload', 'like', '%'.$code.'%')->exists()) {
                 return 'Không thể xóa sản phẩm đã có chứng từ/log nghiệp vụ liên quan.';
             }
         }
 
         return null;
+    }
+
+    /**
+     * Resolve caller from Authorization: Bearer local-laravel-token-{userId}.
+     */
+    private function resolveAuthUser(Request $request): ?User
+    {
+        $authHeader = (string) $request->header('Authorization', '');
+        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            return User::query()->find((int) $matches[1]);
+        }
+
+        return null;
+    }
+
+    private function isAdminUser(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (($user->status === 'LOCKED') || ($user->is_active === false)) {
+            return false;
+        }
+
+        return (bool) $user->is_root_owner || strtoupper((string) $user->role) === 'ADMIN';
+    }
+
+    /**
+     * Product update/delete require ADMIN or root owner with a valid login token.
+     */
+    private function requireAdminUser(Request $request): User
+    {
+        $user = $this->resolveAuthUser($request);
+        if (! $this->isAdminUser($user)) {
+            abort(403, 'Chỉ quản trị viên (ADMIN) mới được sửa hoặc xóa sản phẩm.');
+        }
+
+        return $user;
     }
 
     private function writeLocalStockAdjustmentLog(ProductBranchStock $stock, float $beforeQty, float $nextQty): void

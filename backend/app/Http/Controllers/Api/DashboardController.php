@@ -116,14 +116,15 @@ class DashboardController extends Controller
             ];
         })->all();
 
-        $inventory = [
-            'totalQty' => (float) ProductBranchStock::query()->sum('qty'),
-            'totalCostValue' => (float) Product::query()->selectRaw('SUM(COALESCE(qty,0) * COALESCE(cost,0)) as total')->value('total'),
-            'totalSaleValue' => (float) Product::query()->selectRaw('SUM(COALESCE(qty,0) * COALESCE(price,0)) as total')->value('total'),
-        ];
+        $inventory = $this->inventoryMetrics($selectedStores);
 
         $topLimit = min(max((int) $request->query('topLimit', 10), 1), 50);
-        $topProducts = $this->topProducts($completedSales, $this->rangeDays((string) $request->query('topRange', '7 ngày')), $topLimit);
+        $topProducts = $this->topProducts(
+            $completedSales,
+            $this->rangeDays((string) $request->query('topRange', '7 ngày')),
+            $topLimit,
+            $selectedStores
+        );
 
         $recentSales = $this->recentSales($salesQuery, 20);
 
@@ -245,7 +246,39 @@ class DashboardController extends Controller
         return empty($ids) ? null : $ids;
     }
 
-    private function topProducts($completedSales, int $rangeDays, int $limit): array
+    /**
+     * Inventory KPIs must follow the same store filter as chart/top/recent.
+     * qty/cost/sale are aggregated from product_branch_stocks × product cost/price.
+     *
+     * @param  list<int>|null  $selectedStores
+     * @return array{totalQty: float, totalCostValue: float, totalSaleValue: float}
+     */
+    private function inventoryMetrics(?array $selectedStores): array
+    {
+        $query = ProductBranchStock::query()
+            ->join('products as p', 'p.id', '=', 'product_branch_stocks.product_id');
+
+        if ($selectedStores !== null) {
+            $query->whereIn('product_branch_stocks.branch_id', $selectedStores);
+        }
+
+        $row = $query->selectRaw(
+            'COALESCE(SUM(product_branch_stocks.qty), 0) as total_qty, '
+            . 'COALESCE(SUM(product_branch_stocks.qty * COALESCE(p.cost, 0)), 0) as total_cost, '
+            . 'COALESCE(SUM(product_branch_stocks.qty * COALESCE(p.price, 0)), 0) as total_sale'
+        )->first();
+
+        return [
+            'totalQty' => (float) ($row->total_qty ?? 0),
+            'totalCostValue' => (float) ($row->total_cost ?? 0),
+            'totalSaleValue' => (float) ($row->total_sale ?? 0),
+        ];
+    }
+
+    /**
+     * @param  list<int>|null  $selectedStores
+     */
+    private function topProducts($completedSales, int $rangeDays, int $limit, ?array $selectedStores = null): array
     {
         $topStart = Carbon::today()->subDays($rangeDays - 1);
         $sales = (clone $completedSales)->where('business_date', '>=', $topStart)->get(['items', 'payload']);
@@ -275,8 +308,39 @@ class DashboardController extends Controller
 
         $refunds = (new MirrorRecord())->forTable('product_refunds')->newQuery()
             ->whereIn('status', ['completed', 'COMPLETED'])
-            ->where('business_date', '>=', $topStart)
-            ->get(['items', 'payload']);
+            ->where('business_date', '>=', $topStart);
+
+        // Keep refunds under the same store filter as sales (DB-ST-019).
+        // product_refunds may only have branch_mongo_id (no local branch_id).
+        if ($selectedStores !== null) {
+            $mongoIds = Branch::query()
+                ->whereIn('id', $selectedStores)
+                ->whereNotNull('mongo_id')
+                ->pluck('mongo_id')
+                ->filter(fn ($value) => $value !== '')
+                ->values()
+                ->all();
+
+            $refunds->where(function ($query) use ($selectedStores, $mongoIds) {
+                $applied = false;
+                if (Schema::hasColumn('product_refunds', 'branch_id')) {
+                    $query->whereIn('branch_id', $selectedStores);
+                    $applied = true;
+                }
+                if (!empty($mongoIds)) {
+                    if ($applied) {
+                        $query->orWhereIn('branch_mongo_id', $mongoIds);
+                    } else {
+                        $query->whereIn('branch_mongo_id', $mongoIds);
+                    }
+                } elseif (!$applied) {
+                    // No usable branch column/value → do not leak global refunds into a store filter.
+                    $query->whereRaw('1 = 0');
+                }
+            });
+        }
+
+        $refunds = $refunds->get(['items', 'payload']);
         $returnedByProduct = [];
         foreach ($refunds as $record) {
             $items = is_array($record->items) ? $record->items : (is_array($record->payload) ? ($record->payload['items'] ?? []) : []);

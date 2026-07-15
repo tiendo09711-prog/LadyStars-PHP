@@ -163,6 +163,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const pendingPrintWindowRef = useRef<Window | null>(null);
+  /** Monotonic load id so an aborted request never leaves loading=true while a newer load is active. */
+  const invoiceLoadSeqRef = useRef(0);
   const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -249,6 +251,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   }, []);
 
   const loadInvoices = async (signal?: AbortSignal) => {
+    const loadId = ++invoiceLoadSeqRef.current;
     setLoading(true);
     setError('');
     try {
@@ -262,24 +265,29 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         if (value) params[key] = value;
       });
       const response = await http.get('/products/sales', { params, signal });
+      if (loadId !== invoiceLoadSeqRef.current) return;
       const items = Array.isArray(response.data) ? response.data : response.data.items ?? [];
       setInvoices(items);
       setTotal(Array.isArray(response.data) ? items.length : Number(response.data.total ?? items.length));
       setSelectedIds(new Set());
     } catch (err: any) {
-      if (err.code === 'ERR_CANCELED') return;
+      if (err.code === 'ERR_CANCELED' || err.name === 'CanceledError' || signal?.aborted) return;
+      if (loadId !== invoiceLoadSeqRef.current) return;
       setInvoices([]);
       setTotal(0);
       setError(err.response?.data?.message || 'Không tải được dữ liệu hóa đơn bán lẻ.');
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      // Only the latest in-flight load may clear the spinner.
+      if (loadId === invoiceLoadSeqRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     const controller = new AbortController();
     void loadInvoices(controller.signal);
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, [appliedFilters, channel, page]);
 
   useEffect(() => {

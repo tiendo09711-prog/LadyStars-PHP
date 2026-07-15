@@ -11,12 +11,13 @@ class LocalContextController extends Controller
 {
     public function me(): JsonResponse
     {
-        // Support real logged-in user from login token suffix (local-laravel-token-123)
-        $authHeader = request()->header('Authorization', '');
+        // Require a valid login token (local-laravel-token-{userId}).
+        // Invalid/missing tokens must not fall back to ADMIN (DB-AU-002 / security).
+        $authHeader = (string) request()->header('Authorization', '');
         if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
             $loggedId = (int) $matches[1];
             $user = User::find($loggedId);
-            if ($user) {
+            if ($user && ($user->is_active === null || (bool) $user->is_active) && strtoupper((string) ($user->status ?? 'ACTIVE')) !== 'INACTIVE') {
                 return response()->json([
                     '_id' => (string) $user->id,
                     'id' => $user->id,
@@ -34,42 +35,9 @@ class LocalContextController extends Controller
             }
         }
 
-        // Fallback to previous ADMIN/root preference (for old tokens or direct calls)
-        $user = User::query()
-            ->where(function ($query): void {
-                $query->where('role', 'ADMIN')->orWhere('is_root_owner', true);
-            })
-            ->orderByDesc('is_root_owner')
-            ->orderBy('id')
-            ->first()
-            ?? User::query()->orderBy('id')->first();
-
-        if (!$user) {
-            return response()->json([
-                'name' => 'Laravel Local Tester',
-                'email' => 'local@ladystars.test',
-                'role' => 'ADMIN',
-                'status' => 'ACTIVE',
-                'branchId' => null,
-                'defaultWarehouseId' => null,
-                'isRootOwner' => true,
-            ]);
-        }
-
         return response()->json([
-            '_id' => (string) $user->id,
-            'id' => $user->id,
-            'mongoId' => $user->mongo_id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'role' => $user->role,
-            'status' => $user->status,
-            'branchId' => $user->branch_id ? (string) $user->branch_id : null,
-            'defaultWarehouseId' => $user->default_warehouse_id ? (string) $user->default_warehouse_id : null,
-            'isRootOwner' => (bool) $user->is_root_owner,
-            'isActive' => (bool) $user->is_active,
-        ]);
+            'message' => 'Unauthenticated.',
+        ], 401);
     }
 
     public function store(): JsonResponse

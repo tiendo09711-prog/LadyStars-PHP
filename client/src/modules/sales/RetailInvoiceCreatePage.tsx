@@ -71,8 +71,20 @@ const createPaymentLine = (methodId = '', amount = 0): PaymentLine => ({
   amount,
 });
 
-const getAvailableStock = (product: any) =>
-  Number(product?.selectedStock ?? product?.totalStock ?? product?.qty ?? 0);
+/** Prefer branch-scoped stock; never fall back to totalStock when branch is known. */
+const getAvailableStock = (product: any, branchId?: string) => {
+  const key = branchId ? String(branchId) : '';
+  if (key) {
+    const byBranch = product?.stockByBranchId?.[key] ?? product?.stockByBranchId?.[Number(key)];
+    if (byBranch !== undefined && byBranch !== null && Number.isFinite(Number(byBranch))) {
+      return Number(byBranch);
+    }
+    if (product?.selectedStock !== undefined && product?.selectedStock !== null) {
+      return Number(product.selectedStock) || 0;
+    }
+  }
+  return Number(product?.selectedStock ?? product?.qty ?? product?.totalStock ?? 0);
+};
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(value) || 0);
@@ -101,6 +113,8 @@ export function RetailInvoiceCreatePage() {
   const [productSearch, setProductSearch] = useState('');
   const productSearchRef = useRef<HTMLInputElement>(null);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
+  /** Remote search hits (catalog may exceed initial inventory page). */
+  const [remoteProductHits, setRemoteProductHits] = useState<any[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -215,7 +229,7 @@ export function RetailInvoiceCreatePage() {
               name: item.productId?.name || inventory?.name || 'Sản phẩm',
               quantity: originalQuantity,
               price: Number(item.value) || 0,
-              stock: getAvailableStock(inventory),
+              stock: getAvailableStock(inventory, targetBranchId),
               originalQuantity,
             };
           }));
@@ -295,15 +309,49 @@ export function RetailInvoiceCreatePage() {
   const filteredProducts = useMemo(() => {
     const keyword = productSearch.trim().toLowerCase();
     if (!keyword) return [];
-    return dbProducts
-      .filter((product) => {
-        const matches = product.name?.toLowerCase().includes(keyword)
-          || product.code?.toLowerCase().includes(keyword)
-          || product.barcode?.toLowerCase().includes(keyword);
-        return matches && getAvailableStock(product) > 0;
+    const local = dbProducts.filter((product) => {
+      const matches = product.name?.toLowerCase().includes(keyword)
+        || product.code?.toLowerCase().includes(keyword)
+        || product.barcode?.toLowerCase().includes(keyword);
+      return matches && getAvailableStock(product, activeBranchId) > 0;
+    });
+    const remote = remoteProductHits.filter((product) => getAvailableStock(product, activeBranchId) > 0);
+    const byId = new Map<string, any>();
+    [...local, ...remote].forEach((product) => {
+      const id = String(product._id || product.id || '');
+      if (id) byId.set(id, product);
+    });
+    return Array.from(byId.values()).slice(0, 30);
+  }, [dbProducts, remoteProductHits, productSearch, activeBranchId]);
+
+  // Server-side product search so create form works when local inventory cache is partial/stale.
+  useEffect(() => {
+    const keyword = productSearch.trim();
+    if (!keyword || !activeBranchId || !showProductDropdown) {
+      setRemoteProductHits([]);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      http.get('/products/inventories', {
+        params: { branchId: activeBranchId, q: keyword, limit: 30 },
       })
-      .slice(0, 30);
-  }, [dbProducts, productSearch]);
+        .then((response) => {
+          const items = response.data?.items || response.data?.data || [];
+          setRemoteProductHits(Array.isArray(items) ? items : []);
+          // Merge into local cache so scan/add keeps stock context.
+          setDbProducts((current) => {
+            const map = new Map(current.map((p) => [String(p._id || p.id), p]));
+            items.forEach((p: any) => {
+              const id = String(p._id || p.id || '');
+              if (id) map.set(id, { ...map.get(id), ...p });
+            });
+            return Array.from(map.values());
+          });
+        })
+        .catch(() => setRemoteProductHits([]));
+    }, 200);
+    return () => window.clearTimeout(timeout);
+  }, [productSearch, activeBranchId, showProductDropdown]);
 
   useEffect(() => {
     if (!showCustomerDropdown) {
@@ -331,7 +379,7 @@ export function RetailInvoiceCreatePage() {
   }, [form.customerName, form.phone, showCustomerDropdown]);
 
   const addProduct = (product: any) => {
-    const stock = getAvailableStock(product);
+    const stock = getAvailableStock(product, activeBranchId);
     if (!Number.isFinite(stock)) {
       setErrorMessage('Không kiểm tra được tồn kho sản phẩm.');
       return;
@@ -658,9 +706,9 @@ export function RetailInvoiceCreatePage() {
               <label className="customer-search">
                 <span>Tên khách hàng *</span>
                 <input
-                  required
                   value={form.customerName}
                   placeholder="Nhập họ tên hoặc số điện thoại"
+                  aria-required="true"
                   onFocus={() => setShowCustomerDropdown(true)}
                   onBlur={() => window.setTimeout(() => setShowCustomerDropdown(false), 150)}
                   onChange={(event) => {
@@ -714,7 +762,7 @@ export function RetailInvoiceCreatePage() {
                   {filteredProducts.map((product) => (
                     <button type="button" key={product._id} onMouseDown={(event) => event.preventDefault()} onClick={() => addProduct(product)}>
                       <span><strong>{product.name}</strong><small>{product.code} · {formatMoney(product.price)} đ</small></span>
-                      <em>Tồn: {getAvailableStock(product)}</em>
+                      <em>Tồn: {getAvailableStock(product, activeBranchId)}</em>
                     </button>
                   ))}
                 </div>

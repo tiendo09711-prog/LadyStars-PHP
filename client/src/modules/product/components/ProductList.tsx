@@ -1285,13 +1285,20 @@ function ImportModal({
             <div className="form-field">
               <span>Chế độ với dòng trùng mã</span>
               <select
-                value={importMode}
+                value={canUpdateExisting ? importMode : 'Thêm mới'}
                 onChange={(event) => setImportMode(event.target.value as 'Thêm mới' | 'Cập nhật thông tin')}
-                disabled={loading}
+                disabled={loading || !canUpdateExisting}
               >
                 <option value="Thêm mới">Thêm mới (bỏ qua dòng trùng)</option>
-                <option value="Cập nhật thông tin">Cập nhật thông tin (sửa dữ liệu và cộng tồn)</option>
+                {canUpdateExisting ? (
+                  <option value="Cập nhật thông tin">Cập nhật thông tin (sửa dữ liệu và cộng tồn)</option>
+                ) : null}
               </select>
+              {!canUpdateExisting ? (
+                <p className="form-hint" style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
+                  Tài khoản nhân viên chỉ được nhập thêm mới; dòng trùng mã sẽ bị bỏ qua.
+                </p>
+              ) : null}
             </div>
           </div>
 
