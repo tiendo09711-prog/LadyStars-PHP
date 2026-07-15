@@ -350,19 +350,21 @@
 }
 
 .rbt-tooltip {
-  background: #fff;
-  border: 1px solid var(--rbt-border);
-  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  color: #fff;
   padding: 10px 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.28);
   font-size: 12px;
   max-width: 260px;
+  backdrop-filter: blur(6px);
 }
 
 .rbt-tooltip-title {
+  color: #cbd5e1;
   font-weight: 700;
   margin-bottom: 6px;
-  color: var(--rbt-ink);
 }
 
 .rbt-tooltip-row {
@@ -370,13 +372,14 @@
   align-items: center;
   gap: 8px;
   margin-top: 4px;
-  color: var(--rbt-muted);
+  color: #e2e8f0;
 }
 
 .rbt-tooltip-row strong {
   margin-left: auto;
-  color: var(--rbt-ink);
+  color: #fff;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .rbt-tooltip-dot {
@@ -687,13 +690,13 @@
 .rbt-tooltip-divider {
   height: 1px;
   margin: 8px 0;
-  background: var(--rbt-border);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .rbt-tooltip-hint {
   margin-top: 8px;
   font-size: 11px;
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 .rbt-legend-money {
@@ -836,5 +839,141 @@
   .rbt-chip {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Compact report controls: mirrors the dense retail toolbar without changing report behavior. */
+.rbt-sticky-filters {
+  position: sticky;
+  top: 8px;
+  z-index: 25;
+  overflow: visible;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.rbt-sticky-filters .rbt-filters-head {
+  align-items: center;
+  padding: 8px 10px 0;
+  border-bottom: 0;
+}
+
+.rbt-sticky-filters .rbt-filters-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.rbt-sticky-filters .rbt-filters-head p {
+  display: none;
+}
+
+.rbt-sticky-filters .rbt-filters-body {
+  padding: 8px 10px 10px;
+}
+
+.rbt-filter-grid-primary {
+  grid-template-columns: minmax(140px, 1.15fr) repeat(2, minmax(132px, .9fr)) minmax(135px, .85fr) minmax(150px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.rbt-filter-grid-secondary {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.rbt-filter-advanced {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #dbe5ef;
+}
+
+.rbt-sticky-filters .rbt-field {
+  gap: 4px;
+  font-size: 11px;
+}
+
+.rbt-sticky-filters .rbt-field select,
+.rbt-sticky-filters .rbt-field input {
+  height: 34px;
+  border-color: #dbe5ef;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rbt-sticky-filters .rbt-filter-actions {
+  margin: 0;
+  align-self: end;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.rbt-sticky-filters .rbt-filter-actions .btn,
+.rbt-sticky-filters .rbt-collapse-btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 10px;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.rbt-collapse-btn svg {
+  transition: transform .16s ease;
+}
+
+.rbt-collapse-btn svg.is-rotated {
+  transform: rotate(180deg);
+}
+
+.rbt-chart-wrap {
+  padding: 14px 18px 8px;
+  background: linear-gradient(180deg, #fff 0%, #fbfdfc 100%);
+}
+
+.rbt-chart-wrap .recharts-cartesian-axis-tick-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.rbt-chart-wrap .recharts-cartesian-grid-horizontal line:first-child,
+.rbt-chart-wrap .recharts-cartesian-grid-horizontal line:last-child {
+  stroke: #cbd5e1;
+}
+
+@media (max-width: 1180px) {
+  .rbt-filter-grid-primary {
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+  }
+
+  .rbt-sticky-filters .rbt-filter-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 760px) {
+  .rbt-sticky-filters {
+    position: static;
+  }
+
+  .rbt-filter-grid-primary,
+  .rbt-filter-grid-secondary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .rbt-sticky-filters .rbt-filter-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .rbt-filter-grid-primary,
+  .rbt-filter-grid-secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .rbt-sticky-filters .rbt-filter-actions .btn {
+    flex: 1;
   }
 }

@@ -4,6 +4,7 @@ import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
+import { http } from '../../../core/api/http';
 import { productApi } from '../../../core/api/product.api';
 import { listBranches } from '../../../core/api/branch.api';
 import type { BranchRecord } from '../../../core/api/branch.api';
@@ -76,6 +77,11 @@ export function InventoryList() {
     setLoading(true);
     setError(null);
     try {
+      // Session gate: many read APIs still answer without auth, so re-check /auth/me
+      // before inventory reload (INV-ERR-07 expired/invalid token mid-session).
+      await http.get('/auth/me');
+      if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
+
       const res = await productApi.getInventories({
         page: nextPage,
         limit,
@@ -86,8 +92,9 @@ export function InventoryList() {
         order: sortOrder,
       });
       if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
-      setItems(res.items);
-      setTotal(res.total);
+      // Defensive contract handling (INV-ERR-04/05): missing items/total must not crash UI.
+      setItems(Array.isArray(res?.items) ? res.items : []);
+      setTotal(typeof res?.total === 'number' && Number.isFinite(res.total) ? res.total : 0);
       setTotalStockQuantity(typeof res.totalStockQuantity === 'number' ? res.totalStockQuantity : 0);
       setTotalInventoryValue(typeof res.totalInventoryValue === 'number' ? res.totalInventoryValue : 0);
     } catch (err) {
@@ -428,7 +435,7 @@ export function InventoryList() {
             </p>
           </div>
           <button type="button" className="inv-btn inv-btn-secondary inventory-table-link-button" onClick={() => navigate(`/products/storage-duration${filterWarehouse ? `?branchId=${filterWarehouse}` : ''}`)}>
-            Xem tuổi tồn kho
+            Xem hàng tồn lâu
           </button>
         </div>
 

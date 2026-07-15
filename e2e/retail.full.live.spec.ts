@@ -1146,15 +1146,11 @@ test.describe('Retail FULL live RT matrix', () => {
     for (const route of [
       '/reports/revenue/time',
       '/reports/revenue/store',
-      '/reports/revenue/staff',
       '/reports/revenue/products',
-      '/reports/revenue/customers',
       '/reports/sales/overview',
       '/reports/sales/shift-closing',
       '/reports/inventory/in-out-stock',
       '/reports/products/performance',
-      '/reports/customers/overview',
-      '/reports/customers/purchase-behavior',
     ]) {
       await page.goto(route);
       await expect(page.locator('body')).toBeVisible();
@@ -1561,8 +1557,6 @@ test.describe('Retail FULL live RT matrix', () => {
     await page.goto('/reports/revenue/time');
     await expect(page.locator('body')).toBeVisible();
     await page.goto('/reports/revenue/store');
-    await expect(page.locator('body')).toBeVisible();
-    await page.goto('/reports/revenue/staff');
     await expect(page.locator('body')).toBeVisible();
     await page.goto('/reports/revenue/products');
     await expect(page.locator('body')).toBeVisible();

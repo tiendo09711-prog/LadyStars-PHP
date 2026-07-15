@@ -149,14 +149,22 @@ class LocalWriteController extends Controller
             }
         }
 
-        $record = DB::transaction(function () use ($table, $payload, $resource) {
-            $created = $this->createRecord($table, $payload, $resource);
-            if ($resource === 'inventory-checks') {
-                $this->syncInventoryCheckProducts($created, $payload['items'] ?? $payload['lines'] ?? []);
-            }
+        try {
+            $record = DB::transaction(function () use ($table, $payload, $resource) {
+                $created = $this->createRecord($table, $payload, $resource);
+                if ($resource === 'inventory-checks') {
+                    $this->syncInventoryCheckProducts($created, $payload['items'] ?? $payload['lines'] ?? []);
+                }
+                // Phiếu nhập/xuất kho: UI lưu một bước (không complete) — áp tồn ngay khi tạo.
+                if ($resource === 'inventory-vouchers') {
+                    $this->applyInventoryVoucherStock($payload);
+                }
 
-            return $created;
-        });
+                return $created;
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json($this->serialize($record), 201);
     }
@@ -333,10 +341,22 @@ class LocalWriteController extends Controller
                 if ($currentStatus !== 'SUBMITTED') {
                     return response()->json(['message' => 'Chỉ bù trừ được phiếu đã nộp (SUBMITTED).'], 422);
                 }
+                try {
+                    // Bù trừ: đặt tồn kho đang kiểm = số lượng thực tế (physical).
+                    $this->applyInventoryAuditStock($payload, 'to_physical');
+                } catch (\InvalidArgumentException $e) {
+                    return response()->json(['message' => $e->getMessage()], 422);
+                }
                 $status = 'RECONCILED';
             } elseif ($action === 'reverse-reconcile') {
                 if ($currentStatus !== 'RECONCILED') {
                     return response()->json(['message' => 'Chỉ đảo bù trừ được phiếu đã bù trừ.'], 422);
+                }
+                try {
+                    // Đảo bù trừ: khôi phục tồn về snapshot hệ thống lúc kiểm.
+                    $this->applyInventoryAuditStock($payload, 'to_system');
+                } catch (\InvalidArgumentException $e) {
+                    return response()->json(['message' => $e->getMessage()], 422);
                 }
                 $status = 'COUNTING';
             } elseif ($action === 'cancel') {
@@ -1289,9 +1309,94 @@ class LocalWriteController extends Controller
         });
     }
 
+    /**
+     * Apply stock for inventory import/export vouchers created in a single save step.
+     * import / nhap → +qty; export / xuat → -qty. Draft-only types without items are no-ops.
+     */
+    private function applyInventoryVoucherStock(array $payload): void
+    {
+        $type = strtolower(trim((string) (
+            $payload['type']
+            ?? $payload['importExportType']
+            ?? $payload['import_export_type']
+            ?? ''
+        )));
+        $typeAscii = strtolower((string) Str::ascii($type));
+        $direction = 0;
+        if (in_array($typeAscii, ['import', 'nhap', 'in', 'stock_in', 'nhap kho'], true)
+            || str_contains($typeAscii, 'nhap')
+            || str_contains($typeAscii, 'import')) {
+            $direction = 1;
+        } elseif (in_array($typeAscii, ['export', 'xuat', 'out', 'stock_out', 'xuat kho'], true)
+            || str_contains($typeAscii, 'xuat')
+            || str_contains($typeAscii, 'export')) {
+            $direction = -1;
+        }
+        if ($direction === 0) {
+            return;
+        }
+        // Normalize items key for applySaleStock (supports items/lines).
+        $items = $payload['items'] ?? $payload['lines'] ?? $payload['products'] ?? [];
+        if (!is_array($items) || $items === []) {
+            return;
+        }
+        $this->applySaleStock(array_merge($payload, ['items' => $items]), $direction);
+    }
+
+    /**
+     * Inventory audit reconcile: set branch stock to physical qty (or restore system snapshot).
+     * Lines without a counted physical quantity are skipped (not adjusted).
+     *
+     * @param  'to_physical'|'to_system'  $mode
+     */
+    private function applyInventoryAuditStock(array $payload, string $mode): void
+    {
+        $branch = $this->branch($payload['warehouseId'] ?? $payload['branchId'] ?? $payload['warehouse'] ?? null);
+        if (!$branch) {
+            throw new \InvalidArgumentException('Không xác định được kho để bù trừ kiểm kho.');
+        }
+        $items = $payload['items'] ?? $payload['lines'] ?? [];
+        if (!is_array($items) || $items === []) {
+            return;
+        }
+
+        DB::transaction(function () use ($items, $branch, $mode): void {
+            foreach ($items as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+                $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+                $product = $this->product($pid);
+                if (!$product || $product->type === 'service') {
+                    continue;
+                }
+                $physicalRaw = $line['physicalQuantity'] ?? $line['actualStock'] ?? $line['actual_stock'] ?? null;
+                if ($physicalRaw === null || $physicalRaw === '') {
+                    // Not counted — leave stock unchanged.
+                    continue;
+                }
+                $system = (float) ($line['systemQuantitySnapshot'] ?? $line['stock'] ?? $line['system_quantity'] ?? 0);
+                $physical = (float) $physicalRaw;
+                $target = $mode === 'to_system' ? $system : $physical;
+                if ($target < 0) {
+                    throw new \InvalidArgumentException(
+                        'Số lượng tồn sau bù trừ không được âm (sản phẩm '.($product->code ?: $product->name).').'
+                    );
+                }
+                $stock = ProductBranchStock::query()->firstOrCreate(
+                    ['product_id' => $product->id, 'branch_id' => $branch->id],
+                    ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
+                );
+                $stock->forceFill(['qty' => $target])->save();
+                $product->forceFill(['qty' => (float) $product->stocks()->sum('qty')])->save();
+            }
+        });
+    }
+
     private function applySaleStock(array $payload, int $direction): void
     {
-        $branchIdRaw = $payload['branchId'] ?? $payload['warehouseId'] ?? $payload['branch_id'] ?? null;
+        $branchIdRaw = $payload['branchId'] ?? $payload['warehouseId'] ?? $payload['warehouse'] ?? $payload['branch_id'] ?? null;
         $branch = $this->branch($branchIdRaw) ?? Branch::query()->first();
         if (!$branch) return;
         // Support items, returnedItems (refund/exchange), replacementItems

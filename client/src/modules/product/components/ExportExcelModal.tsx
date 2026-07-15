@@ -697,7 +697,7 @@ export function ExportExcelModal({
             type="button"
             className="export-header-close"
             onClick={onClose}
-            aria-label="Đóng cửa sổ xuất dữ liệu"
+            aria-label="Đóng hộp thoại xuất Excel"
             disabled={loading}
           >
             <X size={18} aria-hidden="true" />

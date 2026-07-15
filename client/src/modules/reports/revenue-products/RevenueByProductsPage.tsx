@@ -1069,7 +1069,7 @@ export function RevenueByProductsPage() {
       </header>
 
       {!filtersCollapsed && (
-        <section className="rbp-filters" aria-label="Bộ lọc báo cáo">
+        <section className="rbp-filters rbp-filters-sticky" aria-label="Bộ lọc báo cáo">
           <div className="rbp-filter-grid">
             <div className="rbp-field">
               <label htmlFor="rbp-preset">Khoảng thời gian</label>

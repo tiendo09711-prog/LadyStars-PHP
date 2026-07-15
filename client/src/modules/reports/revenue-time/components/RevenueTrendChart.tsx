@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Children, useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -135,22 +135,28 @@ export function RevenueTrendChart({ timeline, loading, onResetFilters, onSelectP
     }
   };
 
-  const commonAxes = (
-    <>
-      <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" />
+  const renderChartContent = (series: React.ReactNode) => [
+      <CartesianGrid key="grid" strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />,
       <XAxis
+        key="x-axis"
         dataKey="label"
         tick={{ fontSize: 11, fill: '#64748b' }}
         minTickGap={20}
         interval="preserveStartEnd"
-        height={42}
+        axisLine={{ stroke: '#cbd5e1' }}
+        tickLine={{ stroke: '#cbd5e1' }}
+        height={46}
         label={{ value: 'Thời gian', position: 'insideBottom', offset: -2, style: { fill: '#94a3b8', fontSize: 11 } }}
-      />
+      />,
       <YAxis
+        key="money-axis"
         yAxisId="money"
+        width={72}
+        axisLine={{ stroke: '#cbd5e1' }}
+        tickLine={{ stroke: '#cbd5e1' }}
+        domain={[0, 'auto']}
         tick={{ fontSize: 11, fill: '#64748b' }}
         tickFormatter={(v) => formatAxisMoney(Number(v))}
-        width={64}
         label={{
           value: 'Số tiền (VND)',
           angle: -90,
@@ -158,13 +164,16 @@ export function RevenueTrendChart({ timeline, loading, onResetFilters, onSelectP
           style: { fill: '#94a3b8', fontSize: 11 },
           offset: 8,
         }}
-      />
-      {enabled.invoiceCount && (
+      />,
+      ...(enabled.invoiceCount ? [
         <YAxis
+          key="count-axis"
           yAxisId="count"
           orientation="right"
-          tick={{ fontSize: 11, fill: '#6366f1' }}
           width={48}
+          axisLine={{ stroke: '#cbd5e1' }}
+          tickLine={{ stroke: '#cbd5e1' }}
+          tick={{ fontSize: 11, fill: '#6366f1' }}
           allowDecimals={false}
           label={{
             value: 'Số hóa đơn',
@@ -172,18 +181,23 @@ export function RevenueTrendChart({ timeline, loading, onResetFilters, onSelectP
             position: 'insideRight',
             style: { fill: '#6366f1', fontSize: 11 },
           }}
-        />
-      )}
-      <Tooltip content={<ChartTooltip />} />
+        />,
+      ] : []),
+      <Tooltip
+        key="tooltip"
+        content={<ChartTooltip />}
+        cursor={{ fill: 'rgba(16, 185, 129, 0.08)' }}
+      />,
       <Legend
+        key="legend"
         wrapperStyle={{ paddingTop: 8 }}
         onClick={(e) => {
           const key = String(e?.dataKey ?? '') as SeriesKey;
           if (SERIES.some((s) => s.key === key)) toggleSeries(key);
         }}
-      />
-    </>
-  );
+      />,
+      ...Children.toArray(series),
+    ];
 
   const renderSeries = (mode: 'line' | 'bar' | 'area') =>
     activeSeries.map((s) => {
@@ -238,29 +252,27 @@ export function RevenueTrendChart({ timeline, loading, onResetFilters, onSelectP
   if (hasData) {
     if (chartType === 'bar') {
       chart = (
-        <BarChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 8 }} onClick={handleClick}>
-          {commonAxes}
-          {renderSeries('bar')}
+        <BarChart data={data} margin={{ top: 12, right: 18, left: 8, bottom: 8 }} onClick={handleClick}>
+          {renderChartContent(renderSeries('bar'))}
         </BarChart>
       );
     } else if (chartType === 'area') {
       chart = (
         <AreaChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 8 }} onClick={handleClick}>
-          {commonAxes}
-          {renderSeries('area')}
+          {renderChartContent(renderSeries('area'))}
         </AreaChart>
       );
     } else if (chartType === 'line') {
       chart = (
         <LineChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 8 }} onClick={handleClick}>
-          {commonAxes}
-          {renderSeries('line')}
+          {renderChartContent(renderSeries('line'))}
         </LineChart>
       );
     } else {
       chart = (
         <ComposedChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 8 }} onClick={handleClick}>
-          {commonAxes}
+          {renderChartContent(
+            <>
           {enabled.revenue && (
             <Bar
               yAxisId="money"
@@ -308,6 +320,8 @@ export function RevenueTrendChart({ timeline, loading, onResetFilters, onSelectP
               dot={false}
               isAnimationActive={false}
             />
+          )}
+            </>,
           )}
         </ComposedChart>
       );
@@ -367,7 +381,7 @@ export function RevenueTrendChart({ timeline, loading, onResetFilters, onSelectP
             )}
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={340}>
+          <ResponsiveContainer width="100%" height={380}>
             {chart as React.ReactElement}
           </ResponsiveContainer>
         )}

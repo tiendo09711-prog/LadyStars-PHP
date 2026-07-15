@@ -100,9 +100,7 @@ const baseMenuGroups: MenuGroup[] = [
         subItems: [
           { to: '/reports/revenue/time', label: 'Theo thời gian', icon: List },
           { to: '/reports/revenue/store', label: 'Theo cửa hàng', icon: List },
-          { to: '/reports/revenue/staff', label: 'Theo nhân viên', icon: List },
           { to: '/reports/revenue/products', label: 'Theo sản phẩm / danh mục', icon: List },
-          { to: '/reports/revenue/customers', label: 'Theo khách hàng', icon: List },
         ]
       },
       {
@@ -124,14 +122,6 @@ const baseMenuGroups: MenuGroup[] = [
         ]
       },
       { to: '/reports/products/performance', label: 'Sản phẩm', icon: Boxes },
-      {
-        label: 'Khách hàng',
-        icon: Users,
-        subItems: [
-          { to: '/reports/customers/overview', label: 'Tổng quan', icon: List },
-          { to: '/reports/customers/purchase-behavior', label: 'Hành vi mua', icon: List },
-        ]
-      }
     ]
   },
 ];

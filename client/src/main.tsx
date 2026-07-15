@@ -30,14 +30,10 @@ import { VoucherImportPage } from './modules/warehouse/VoucherImportPage';
 import { VoucherExportPage } from './modules/warehouse/VoucherExportPage';
 import { VoucherExcelImportPage } from './modules/warehouse/VoucherExcelImportPage';
 import {
-  CustomersOverviewReportPage,
-  CustomersPurchaseBehaviorReportPage,
   InventoryInOutStockReportPage,
   InventoryPendingTransfersReportPage,
   ProductPerformanceReportPage,
-  RevenueByCustomersPage,
   RevenueByProductsPage,
-  RevenueByStaffPage,
   RevenueByStorePage,
   RevenueByTimePage,
   SalesOverviewReportPage,
@@ -118,16 +114,12 @@ const router = createBrowserRouter([
       // ── Báo Cáo ──────────────────────────────────────────────
       { path: 'reports/revenue/time', element: <RevenueByTimePage /> },
       { path: 'reports/revenue/store', element: <RevenueByStorePage /> },
-      { path: 'reports/revenue/staff', element: <RevenueByStaffPage /> },
       { path: 'reports/revenue/products', element: <RevenueByProductsPage /> },
-      { path: 'reports/revenue/customers', element: <RevenueByCustomersPage /> },
       { path: 'reports/sales/overview', element: <SalesOverviewReportPage /> },
       { path: 'reports/sales/shift-closing', element: <SalesShiftClosingReportPage /> },
       { path: 'reports/inventory/in-out-stock', element: <InventoryInOutStockReportPage /> },
       { path: 'reports/inventory/pending-transfers', element: <InventoryPendingTransfersReportPage /> },
       { path: 'reports/products/performance', element: <ProductPerformanceReportPage /> },
-      { path: 'reports/customers/overview', element: <CustomersOverviewReportPage /> },
-      { path: 'reports/customers/purchase-behavior', element: <CustomersPurchaseBehaviorReportPage /> },
     ],
   },
 ]);

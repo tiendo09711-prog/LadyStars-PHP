@@ -44,7 +44,7 @@ export function RevenueByTimePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [detailPoint, setDetailPoint] = useState<TimelinePoint | null>(null);

@@ -27,6 +27,7 @@ import {
   Cell,
   ComposedChart,
   Legend,
+  LabelList,
   Line,
   LineChart,
   Pie,
@@ -417,20 +418,34 @@ function RankingBarChart({
   return (
     <div className="rbs-chart-wrap" role="img" aria-label={`Biểu đồ xếp hạng ${METRIC_LABELS[metric]} theo cửa hàng`}>
       <ResponsiveContainer width="100%" height={Math.max(280, data.length * 36)}>
-        <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+        <BarChart data={data} layout="vertical" margin={{ top: 8, right: 132, left: 8, bottom: 22 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" horizontal={false} />
           <XAxis
             type="number"
             tick={{ fontSize: 11, fill: '#64748b' }}
             tickFormatter={(v) => (isMoney ? formatNumber(v) : formatNumber(v))}
+            label={{ value: isMoney ? 'Giá trị (VND)' : 'Số lượng', position: 'insideBottom', offset: -2, style: { fill: '#475569', fontSize: 11 } }}
           />
-          <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#64748b' }} />
+          <YAxis
+            type="category"
+            dataKey="name"
+            width={128}
+            tick={{ fontSize: 11, fill: '#64748b' }}
+            label={{ value: 'Cửa hàng', angle: -90, position: 'insideLeft', style: { fill: '#475569', fontSize: 11 } }}
+          />
           <Tooltip
             formatter={(value: number) => [isMoney ? formatMoney(value) : formatNumber(value), METRIC_LABELS[metric]]}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
             contentStyle={{ borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)' }}
           />
-          <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} maxBarSize={22} />
+          <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} maxBarSize={22}>
+            <LabelList
+              dataKey="value"
+              position="right"
+              formatter={(value: number) => (isMoney ? formatMoney(value) : formatNumber(value))}
+              style={{ fill: '#047857', fontSize: 11, fontWeight: 700 }}
+            />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -451,6 +466,8 @@ function TrendMultiChart({
   onSelectPeriod: (key: string) => void;
 }) {
   const series = report?.trend?.series ?? [];
+  const [hiddenStoreIds, setHiddenStoreIds] = useState<string[]>([]);
+  const activeSeries = series.filter((item) => !hiddenStoreIds.includes(item.storeId));
   const chartData = useMemo(() => {
     if (!series.length) return [];
     const keys = series[0].points.map((p) => p.key);
@@ -469,6 +486,13 @@ function TrendMultiChart({
 
   const isMoney = !['invoiceCount', 'itemQuantity'].includes(metric);
   const hasData = chartData.some((row) => series.some((s) => Number(row[s.storeId] ?? 0) > 0));
+  const toggleSeries = (storeId: string) => {
+    setHiddenStoreIds((current) => {
+      if (current.includes(storeId)) return current.filter((id) => id !== storeId);
+      if (activeSeries.length <= 1) return current;
+      return [...current, storeId];
+    });
+  };
 
   if (loading && !report) {
     return <div className="rbs-chart-wrap rbs-skeleton" style={{ height: 320 }} aria-busy="true" />;
@@ -533,21 +557,42 @@ function TrendMultiChart({
       <Tooltip content={<TrendTooltip />} cursor={{ fill: 'rgba(16,185,129,0.08)' }} />
       <Legend
         formatter={(value) => series.find((s) => s.storeId === value)?.storeName ?? value}
-        wrapperStyle={{ fontSize: 12 }}
+        wrapperStyle={{ paddingTop: 8, fontSize: 12, cursor: 'pointer' }}
+        onClick={(entry) => toggleSeries(String(entry.dataKey ?? entry.value ?? ''))}
       />
     </>
   );
 
   return (
-    <div className="rbs-chart-wrap" role="img" aria-label="Biểu đồ xu hướng doanh thu theo cửa hàng">
+    <div role="img" aria-label="Biểu đồ xu hướng doanh thu theo cửa hàng">
       {report?.trend?.note && (
-        <p style={{ margin: '0 8px 8px', fontSize: 12, color: '#64748b' }}>{report.trend.note}</p>
+        <p className="rbs-trend-note">{report.trend.note}</p>
       )}
-      <ResponsiveContainer width="100%" height={320}>
+      <div className="rbs-series-toggles" aria-label="Chọn chuỗi cửa hàng hiển thị">
+        {series.map((item, index) => {
+          const enabled = !hiddenStoreIds.includes(item.storeId);
+          return (
+            <button
+              key={item.storeId}
+              type="button"
+              className={`rbs-chip${enabled ? ' is-on' : ''}`}
+              style={{ '--chip-color': CHART_COLORS[index % CHART_COLORS.length] } as React.CSSProperties}
+              onClick={() => toggleSeries(item.storeId)}
+              aria-pressed={enabled}
+            >
+              {item.storeName}
+            </button>
+          );
+        })}
+      </div>
+      <div className="rbs-chart-wrap rbs-trend-chart-wrap">
+      <ResponsiveContainer width="100%" height={380}>
         {chartView === 'area' ? (
           <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
             {common}
-            {series.map((s, i) => (
+            {activeSeries.map((s) => {
+              const i = series.findIndex((item) => item.storeId === s.storeId);
+              return (
               <Area
                 key={s.storeId}
                 type="monotone"
@@ -558,13 +603,17 @@ function TrendMultiChart({
                 fillOpacity={0.12}
                 strokeWidth={2}
                 dot={false}
+                isAnimationActive={false}
               />
-            ))}
+              );
+            })}
           </AreaChart>
         ) : chartView === 'line' ? (
           <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
             {common}
-            {series.map((s, i) => (
+            {activeSeries.map((s) => {
+              const i = series.findIndex((item) => item.storeId === s.storeId);
+              return (
               <Line
                 key={s.storeId}
                 type="monotone"
@@ -573,13 +622,18 @@ function TrendMultiChart({
                 stroke={CHART_COLORS[i % CHART_COLORS.length]}
                 strokeWidth={2}
                 dot={false}
+                activeDot={{ r: 5, strokeWidth: 2, cursor: 'pointer' }}
+                isAnimationActive={false}
               />
-            ))}
+              );
+            })}
           </LineChart>
         ) : chartView === 'combo' ? (
           <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
             {common}
-            {series.slice(0, 1).map((s, i) => (
+            {activeSeries.slice(0, 1).map((s) => {
+              const i = series.findIndex((item) => item.storeId === s.storeId);
+              return (
               <Bar
                 key={s.storeId}
                 dataKey={s.storeId}
@@ -587,24 +641,32 @@ function TrendMultiChart({
                 fill={CHART_COLORS[i % CHART_COLORS.length]}
                 radius={[4, 4, 0, 0]}
                 maxBarSize={28}
+                isAnimationActive={false}
               />
-            ))}
-            {series.slice(1).map((s, i) => (
+              );
+            })}
+            {activeSeries.slice(1).map((s) => {
+              const i = series.findIndex((item) => item.storeId === s.storeId);
+              return (
               <Line
                 key={s.storeId}
                 type="monotone"
                 dataKey={s.storeId}
                 name={s.storeId}
-                stroke={CHART_COLORS[(i + 1) % CHART_COLORS.length]}
+                stroke={CHART_COLORS[i % CHART_COLORS.length]}
                 strokeWidth={2}
                 dot={false}
+                isAnimationActive={false}
               />
-            ))}
+              );
+            })}
           </ComposedChart>
         ) : (
           <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
             {common}
-            {series.map((s, i) => (
+            {activeSeries.map((s) => {
+              const i = series.findIndex((item) => item.storeId === s.storeId);
+              return (
               <Bar
                 key={s.storeId}
                 dataKey={s.storeId}
@@ -612,11 +674,14 @@ function TrendMultiChart({
                 fill={CHART_COLORS[i % CHART_COLORS.length]}
                 radius={[4, 4, 0, 0]}
                 maxBarSize={18}
+                isAnimationActive={false}
               />
-            ))}
+              );
+            })}
           </BarChart>
         )}
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -985,7 +1050,6 @@ export function RevenueByStorePage() {
   const abortRef = useRef<AbortController | null>(null);
   const requestSeq = useRef(0);
   const exportRef = useRef<HTMLDivElement | null>(null);
-  const initialLoadDone = useRef(false);
   const skipUrlWrite = useRef(false);
 
   const loadOptions = useCallback(async (signal?: AbortSignal) => {
@@ -1044,12 +1108,10 @@ export function RevenueByStorePage() {
 
   // Bootstrap from URL + options
   useEffect(() => {
-    if (initialLoadDone.current) return;
-    initialLoadDone.current = true;
-
     const controller = new AbortController();
     (async () => {
       await loadOptions(controller.signal);
+      if (controller.signal.aborted) return;
 
       const fromUrl = filtersFromSearchParams(new URLSearchParams(window.location.search));
       const filters = fromUrl.filters;
@@ -1062,6 +1124,7 @@ export function RevenueByStorePage() {
       setCustomTo(isCustom ? filters.to : '');
       skipUrlWrite.current = true;
       await loadReport(filters, 'load');
+      if (controller.signal.aborted) return;
       setBootstrapped(true);
     })();
 
@@ -1377,24 +1440,46 @@ export function RevenueByStorePage() {
       </header>
 
       {/* Filters */}
-      <section className="rbs-filters" aria-label="Bộ lọc báo cáo">
+      <section className="rbs-filters rbs-filters-sticky" aria-label="Bộ lọc báo cáo">
         <div className="rbs-filters-head">
           <div>
-            <h2>Bộ lọc</h2>
-            <p>Mọi điều kiện chỉ áp dụng sau khi bấm Áp dụng.</p>
+            <h2>Bộ lọc báo cáo</h2>
+            <p>Chọn nhanh bằng dropdown; mở rộng khi cần điều kiện chi tiết.</p>
           </div>
           <button
             type="button"
-            className="btn btn-light"
+            className="btn btn-light rbs-advanced-toggle"
             onClick={() => setFiltersCollapsed((v) => !v)}
             aria-expanded={!filtersCollapsed}
+            aria-controls="rbs-advanced-filters"
           >
-            {filtersCollapsed ? 'Mở rộng' : 'Thu gọn'}
+            Nâng cao
+            <ChevronDown size={15} className={filtersCollapsed ? undefined : 'is-rotated'} aria-hidden />
           </button>
         </div>
-        {!filtersCollapsed && (
-          <div className="rbs-filters-body">
-            <div className="rbs-filter-grid">
+        <div className="rbs-filters-body">
+          <div className="rbs-filter-grid rbs-filter-grid-primary">
+            <div className="rbs-store-select-wrap">
+              <StoreMultiSelect
+                stores={options?.stores ?? []}
+                selectedIds={draft.storeIds}
+                disabled={optionsLoading || Boolean(optionsError)}
+                onChange={(storeIds) => patchDraft({ storeIds, page: 1 })}
+              />
+              {optionsLoading && <span className="rbs-field-hint">Đang tải danh sách cửa hàng…</span>}
+              {!optionsLoading && !optionsError && (options?.stores.length ?? 0) === 0 && (
+                <span className="rbs-field-hint">API chưa trả về cửa hàng để chọn.</span>
+              )}
+              {optionsError && (
+                <div className="rbs-options-error" role="alert">
+                  <span>{optionsError}</span>
+                  <button type="button" className="btn btn-light" onClick={() => void loadOptions()} disabled={optionsLoading}>
+                    Thử lại
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="rbs-filter-grid-primary-fields">
               <label className="rbs-field">
                 Khoảng thời gian
                 <select
@@ -1444,6 +1529,29 @@ export function RevenueByStorePage() {
                   aria-label="Đến ngày tùy chỉnh"
                 />
               </label>
+            </div>
+            <div className="rbs-filter-actions rbs-filter-actions-primary">
+              {hasUnappliedChanges && <span className="rbs-pending-filter">Có thay đổi chưa áp dụng</span>}
+              <button type="button" className="btn btn-light" onClick={handleReset} disabled={busy}>
+                Đặt lại
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleApply}
+                disabled={
+                  busy ||
+                  (dateMode === 'custom' && Boolean(validateCustomDateInputs(customFrom, customTo)))
+                }
+              >
+                Áp dụng
+              </button>
+            </div>
+          </div>
+
+          {!filtersCollapsed && (
+            <div id="rbs-advanced-filters" className="rbs-filter-advanced" aria-label="Bộ lọc nâng cao">
+              <div className="rbs-filter-grid rbs-filter-grid-secondary">
               <label className="rbs-field">
                 Kênh bán
                 <select
@@ -1550,32 +1658,8 @@ export function RevenueByStorePage() {
                 </select>
               </label>
             </div>
-
-            <div className="rbs-store-select-wrap">
-              <StoreMultiSelect
-                stores={options?.stores ?? []}
-                selectedIds={draft.storeIds}
-                disabled={optionsLoading || Boolean(optionsError)}
-                onChange={(storeIds) => patchDraft({ storeIds, page: 1 })}
-              />
-              {optionsLoading && <span className="rbs-field-hint">Đang tải danh sách cửa hàng…</span>}
-              {!optionsLoading && !optionsError && (options?.stores.length ?? 0) === 0 && (
-                <span className="rbs-field-hint">API chưa trả về cửa hàng để chọn.</span>
-              )}
-              {optionsError && (
-                <div className="rbs-options-error" role="alert">
-                  <span>{optionsError}</span>
-                  <button
-                    type="button"
-                    className="btn btn-light"
-                    onClick={() => void loadOptions()}
-                    disabled={optionsLoading}
-                  >
-                    Thử lại
-                  </button>
-                </div>
-              )}
             </div>
+          )}
 
             {validationError && (
               <div className="rbs-filter-error" role="alert">
@@ -1583,25 +1667,7 @@ export function RevenueByStorePage() {
               </div>
             )}
 
-            <div className="rbs-filter-actions">
-              {hasUnappliedChanges && <span className="rbs-pending-filter">Có thay đổi chưa áp dụng</span>}
-              <button type="button" className="btn btn-light" onClick={handleReset} disabled={busy}>
-                Đặt lại
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleApply}
-                disabled={
-                  busy ||
-                  (dateMode === 'custom' && Boolean(validateCustomDateInputs(customFrom, customTo)))
-                }
-              >
-                Áp dụng
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </section>
 
       {error && (

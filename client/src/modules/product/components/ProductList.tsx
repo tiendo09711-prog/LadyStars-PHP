@@ -1227,16 +1227,15 @@ function ImportModal({
     const formData = new FormData();
     formData.append('file', file);
     formData.append('warehouse', selectedBranch.name);
-    formData.append('branchId', selectedBranch._id);
+    formData.append('branchId', String(selectedBranch._id));
     if (selectedBranch.code) {
       formData.append('branchCode', selectedBranch.code);
     }
     formData.append('importMode', canUpdateExisting ? importMode : 'Thêm mới');
 
     try {
-      const response = await http.post('/products/products/import', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Do not set Content-Type manually — browser/axios must add multipart boundary.
+      const response = await http.post('/products/products/import', formData);
 
       setMessage('Nhập dữ liệu thành công.');
       window.setTimeout(() => {
@@ -2371,6 +2370,9 @@ export function ProductList({
 
   const requireSelection = () => {
     if (selectedIds.size > 0) return true;
+    // Close bulk menu first so the alert is not followed by a stuck open dropdown.
+    setOpenBulkMenu(false);
+    setOpenBulkStatusMenu(false);
     alert('Vui lòng tích chọn ít nhất một sản phẩm trước khi thao tác.');
     return false;
   };

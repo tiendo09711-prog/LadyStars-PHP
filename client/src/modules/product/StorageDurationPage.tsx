@@ -125,6 +125,19 @@ export function StorageDurationPage() {
     };
   }, [openActionMenu]);
 
+  // Close clearance modal with Escape (a11y) without writing data.
+  useEffect(() => {
+    if (!discountProduct) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setDiscountProduct(null);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [discountProduct]);
+
   // Load Categories and Branches on mount
   useEffect(() => {
     const loadCategories = async () => {
@@ -248,7 +261,9 @@ export function StorageDurationPage() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearch(tempSearch);
+    const query = tempSearch.trim();
+    setTempSearch(query);
+    setSearch(query);
     if (page === 1) {
       setFetchTrigger(prev => prev + 1);
     } else {
@@ -369,7 +384,12 @@ export function StorageDurationPage() {
     }
   };
 
-  // Export CSV helper
+  // Export CSV helper — quote all text cells so commas/quotes do not break columns.
+  const csvEscape = (value: unknown): string => {
+    const raw = value === null || value === undefined ? '' : String(value);
+    return `"${raw.replace(/"/g, '""')}"`;
+  };
+
   const handleExportCSV = async () => {
     if (total === 0) {
       setToast({ message: 'Không có dữ liệu để xuất file.', type: 'error' });
@@ -400,27 +420,26 @@ export function StorageDurationPage() {
         return;
       }
 
-      // Build CSV content
       const headers = ['Mã SP', 'Tên SP', 'Nhóm', 'NCC', 'Giá vốn', 'Giá bán', 'Tồn', 'Chi nhánh', 'Ngày nhập đầu', 'Ngày XNK cuối', 'Ngày bán cuối', 'Số ngày lưu từ nhập đầu', 'Số ngày từ XNK cuối', 'Số ngày chưa bán/bán chậm', 'Trạng thái'];
       const rows = exportItems.map(item => [
-        item.code,
-        `"${item.name.replace(/"/g, '""')}"`,
-        item.categoryName || '',
-        item.supplierName || '',
-        item.cost || 0,
-        item.price || 0,
-        item.qty || 0,
-        item.branchName || branches.find((branch) => branch._id === selectedBranch)?.name || '',
-        formatDate(item.firstTransactionDate),
-        formatDate(item.lastTransactionDate),
-        item.lastSoldDate ? formatDate(item.lastSoldDate) : 'Chưa bán lần nào',
-        item.daysFromStart,
-        item.daysFromLast,
-        item.daysFromLastSold !== null ? item.daysFromLastSold : 'Chưa bán lần nào',
-        item.statusLabel || getStorageStatusLabel(item)
+        csvEscape(item.code),
+        csvEscape(item.name),
+        csvEscape(item.categoryName || ''),
+        csvEscape(item.supplierName || ''),
+        csvEscape(item.cost || 0),
+        csvEscape(item.price || 0),
+        csvEscape(item.qty || 0),
+        csvEscape(item.branchName || branches.find((branch) => branch._id === selectedBranch)?.name || ''),
+        csvEscape(formatDate(item.firstTransactionDate)),
+        csvEscape(formatDate(item.lastTransactionDate)),
+        csvEscape(item.lastSoldDate ? formatDate(item.lastSoldDate) : 'Chưa bán lần nào'),
+        csvEscape(item.daysFromStart),
+        csvEscape(item.daysFromLast),
+        csvEscape(item.daysFromLastSold !== null ? item.daysFromLastSold : 'Chưa bán lần nào'),
+        csvEscape(item.statusLabel || getStorageStatusLabel(item)),
       ]);
 
-      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const csvContent = '\uFEFF' + [headers.map(csvEscape).join(','), ...rows.map(e => e.join(','))].join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -744,6 +763,14 @@ export function StorageDurationPage() {
             </button>
             <button className="storage-btn storage-btn-secondary" type="button" onClick={handleClearFilters} title="Đặt lại bộ lọc và làm mới">
               <RefreshCw size={14} /> Làm mới
+            </button>
+            <button
+              className="storage-btn storage-btn-secondary"
+              type="button"
+              onClick={() => void handleExportCSV()}
+              title="Xuất CSV theo bộ lọc hiện tại"
+            >
+              <FileDown size={14} /> CSV
             </button>
             <button className="storage-btn storage-btn-accent" type="button" onClick={() => setShowExportModal(true)}>
               <FileDown size={14} /> Xuất

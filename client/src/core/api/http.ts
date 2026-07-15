@@ -42,3 +42,23 @@ http.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// Runtime 401: drop invalid/expired token and force re-login (INV-AUTH-02 / INV-ERR-07).
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401 && typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('token');
+      } catch {
+        // ignore storage errors
+      }
+      const path = window.location.pathname || '';
+      if (!/\/login\/?$/i.test(path)) {
+        window.location.assign('/login');
+      }
+    }
+    return Promise.reject(error);
+  },
+);

@@ -128,6 +128,30 @@ test.describe('Products live full manual suite', () => {
     branchId = String(active[0]._id);
     branchIdB = String((active[1] || active[0])._id);
 
+    // Best-effort cleanup of known orphan prefixes from previous failed runs.
+    for (const orphanPrefix of ['QA-PROD-E2E-FULL-', 'QA-PROD-E2E-PROD-', 'QA-PROD-E2E-FIX-']) {
+      const orphanList = await (
+        await request.get(`${API}/products/products?q=${encodeURIComponent(orphanPrefix)}&limit=50`, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        })
+      ).json();
+      for (const p of orphanList.items || []) {
+        if (!String(p.code || '').startsWith(orphanPrefix) || !p._id) continue;
+        const id = String(p._id);
+        await request.patch(`${API}/products/products/${id}`, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+          data: { initialStocks: [{ warehouseId: Number(branchId) || branchId, quantity: 0 }] },
+        });
+        if (branchIdB && branchIdB !== branchId) {
+          await request.patch(`${API}/products/products/${id}`, {
+            headers: { Authorization: `Bearer ${adminToken}` },
+            data: { initialStocks: [{ warehouseId: Number(branchIdB) || branchIdB, quantity: 0 }] },
+          });
+        }
+        await deleteProductApi(request, adminToken, id);
+      }
+    }
+
     const cats = await (await request.get(`${API}/products/categories?limit=50`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     })).json();
@@ -280,6 +304,27 @@ test.describe('Products live full manual suite', () => {
           data: {
             initialStocks: [{ warehouseId: Number(branchIdB) || branchIdB, quantity: 0 }],
           },
+        });
+      }
+      await deleteProductApi(request, adminToken, id);
+    }
+    // Sweep leftovers of this run by code prefix (import/create not tracked).
+    const sweep = await (
+      await request.get(`${API}/products/products?q=${encodeURIComponent(FIXTURE_PREFIX)}&limit=50`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      })
+    ).json();
+    for (const p of sweep.items || []) {
+      if (!String(p.code || '').startsWith(FIXTURE_PREFIX) || !p._id) continue;
+      const id = String(p._id);
+      await request.patch(`${API}/products/products/${id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        data: { initialStocks: [{ warehouseId: Number(branchId) || branchId, quantity: 0 }] },
+      });
+      if (branchIdB && branchIdB !== branchId) {
+        await request.patch(`${API}/products/products/${id}`, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+          data: { initialStocks: [{ warehouseId: Number(branchIdB) || branchIdB, quantity: 0 }] },
         });
       }
       await deleteProductApi(request, adminToken, id);
@@ -454,16 +499,27 @@ test.describe('Products live full manual suite', () => {
     await page.getByPlaceholder(/Tìm theo tên, mã hoặc barcode/i).fill(FIXTURE_PREFIX);
     const statusSelect = page.locator('select.inv-filter-select').nth(0);
     await statusSelect.selectOption({ label: 'Mới' });
+    const filterResp = page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/products/products') &&
+        r.request().method() === 'GET' &&
+        r.url().includes('status=') &&
+        r.ok(),
+    );
     await page.getByRole('button', { name: /^Lọc$/i }).click();
+    await filterResp;
     await expect(page.getByText(/Đang tải dữ liệu/i)).toHaveCount(0, { timeout: 30_000 });
     await expect(page.getByText(codeA).first()).toBeVisible();
-    // every visible status badge is Mới
-    const badges = page.locator('.products-data-table tbody .status-badge');
-    const badgeCount = await badges.count();
-    expect(badgeCount).toBeGreaterThan(0);
-    for (let i = 0; i < badgeCount; i++) {
-      await expect(badges.nth(i)).toHaveText(/Mới/i);
+    // Stabilize table then assert every visible badge is Mới (single snapshot, no race on count).
+    const badges = page.locator('.products-data-table tbody tr .status-badge');
+    await expect(badges.first()).toBeVisible();
+    const badgeTexts = await badges.allTextContents();
+    expect(badgeTexts.length).toBeGreaterThan(0);
+    for (const text of badgeTexts) {
+      expect(text.trim()).toMatch(/Mới/i);
     }
+    // codeB is Đang bán — must not appear under status=Mới
+    await expect(page.getByText(codeB)).toHaveCount(0);
 
     // Combined: codeA + status Mới + first warehouse (codeA has stock > 0 on branch A)
     await page.getByPlaceholder(/Tìm theo tên, mã hoặc barcode/i).fill(codeA);
@@ -572,8 +628,10 @@ test.describe('Products live full manual suite', () => {
       await d.accept();
     });
     await page.getByRole('button', { name: 'Thao tác', exact: true }).click();
+    await expect(page.locator('.products-bulk-dropdown')).toBeVisible();
     await page.locator('.products-bulk-dropdown').getByText(/In mã vạch/i).click();
-    await page.waitForTimeout(300);
+    // After alert, menu must close so user can re-open cleanly.
+    await expect(page.locator('.products-bulk-dropdown')).toHaveCount(0, { timeout: 10_000 });
 
     await page.getByRole('button', { name: 'Thao tác', exact: true }).click();
     await expect(page.locator('.products-bulk-dropdown').getByText(/Xuất dữ liệu/i)).toBeVisible();
@@ -890,17 +948,21 @@ test.describe('Products live full manual suite', () => {
     await page.locator('.products-add-dropdown').getByText(/Nhập từ file/i).click();
     const modal = page.locator('.modal-card').filter({ hasText: /Nhập dữ liệu sản phẩm/i });
     await expect(modal).toBeVisible();
+    // Wait for warehouse list to finish loading so branchId is set before upload.
+    await expect(modal.locator('select').first()).not.toHaveValue('', { timeout: 20_000 });
     await modal.locator('input[type="file"]').setInputFiles(tmp);
     await expect(modal.getByText(new RegExp(path.basename(tmp), 'i')).or(modal.getByText(/\.csv/i))).toBeVisible({
       timeout: 10_000,
     });
+    const uploadBtn = modal.getByRole('button', { name: /Upload và nhập/i });
+    await expect(uploadBtn).toBeEnabled({ timeout: 10_000 });
     const importResp = page.waitForResponse(
       (r) => r.url().includes('/products/products/import') && r.request().method() === 'POST',
       { timeout: 60_000 },
     );
-    await modal.getByRole('button', { name: 'Upload và nhập' }).click();
+    await uploadBtn.click();
     const resp = await importResp;
-    expect(resp.ok()).toBeTruthy();
+    expect(resp.ok(), `import status ${resp.status()}`).toBeTruthy();
     const body = await resp.json();
     expect((body.summary?.created ?? 0) + (body.summary?.skipped ?? 0)).toBeGreaterThan(0);
     // find created product id for cleanup
@@ -953,6 +1015,8 @@ test.describe('Products live full manual suite', () => {
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(page.getByRole('heading', { name: /Xuất Excel/i })).toBeVisible();
+    // Primary action only — do not match close button accessible name.
+    const exportBtn = dialog.getByRole('button', { name: 'Xuất dữ liệu', exact: true });
 
     const uncheckAll = dialog.getByRole('button', { name: /Bỏ tất cả|Bỏ chọn tất cả/i });
     if (await uncheckAll.count()) {
@@ -961,7 +1025,7 @@ test.describe('Products live full manual suite', () => {
         expect(d.message()).toMatch(/ít nhất 1 cột/i);
         await d.accept();
       });
-      await dialog.getByRole('button', { name: /Xuất dữ liệu/i }).click();
+      await exportBtn.click();
       await page.waitForTimeout(300);
     } else {
       // uncheck all column checkboxes manually
@@ -974,11 +1038,11 @@ test.describe('Products live full manual suite', () => {
         expect(d.message()).toMatch(/ít nhất 1 cột/i);
         await d.accept();
       });
-      await dialog.getByRole('button', { name: /Xuất dữ liệu/i }).click();
+      await exportBtn.click();
       await page.waitForTimeout(300);
     }
 
-    await dialog.getByRole('button', { name: /Đóng/i }).click();
+    await dialog.getByRole('button', { name: 'Đóng', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
   });
 
@@ -994,7 +1058,7 @@ test.describe('Products live full manual suite', () => {
     const current = dialog.getByText(/Trang hiện tại/i);
     if (await current.count()) await current.click();
     const downloadPromise = page.waitForEvent('download', { timeout: 30_000 }).catch(() => null);
-    await dialog.getByRole('button', { name: /Xuất dữ liệu/i }).click();
+    await dialog.getByRole('button', { name: 'Xuất dữ liệu', exact: true }).click();
     const dl = await downloadPromise;
     if (dl) {
       expect(dl.suggestedFilename()).toMatch(/\.xlsx$/i);

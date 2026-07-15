@@ -1,3 +1,4 @@
+import { Check, ChevronDown, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import type { DatePreset, Granularity, RevenueFilters, RevenueReportOptions } from '../revenueByTime.types';
 import {
   GRANULARITY_LABELS,
@@ -78,20 +79,26 @@ export function RevenueReportFilters({
   };
 
   return (
-    <section className="rbt-filters" aria-label="Bộ lọc báo cáo" onKeyDown={handleKeyDown}>
+    <section className="rbt-filters rbt-sticky-filters" aria-label="Bộ lọc báo cáo" onKeyDown={handleKeyDown}>
       <div className="rbt-filters-head">
         <div>
-          <h2>Bộ lọc</h2>
-          <p>Chọn khoảng thời gian và điều kiện trước khi áp dụng.</p>
+          <h2>
+            <SlidersHorizontal size={16} aria-hidden /> Bộ lọc báo cáo
+          </h2>
+          <p>Thiết lập nhanh khoảng thời gian và phạm vi dữ liệu.</p>
         </div>
-        <button type="button" className="btn btn-light rbt-collapse-btn" onClick={onToggleCollapse}>
-          {collapsed ? 'Mở bộ lọc' : 'Thu gọn'}
+        <button
+          type="button"
+          className="btn btn-light rbt-collapse-btn"
+          onClick={onToggleCollapse}
+          aria-expanded={!collapsed}
+        >
+          Nâng cao <ChevronDown size={15} className={collapsed ? '' : 'is-rotated'} aria-hidden />
         </button>
       </div>
 
-      {!collapsed && (
-        <div className="rbt-filters-body">
-          <div className="rbt-filter-grid">
+      <div className="rbt-filters-body">
+          <div className="rbt-filter-grid rbt-filter-grid-primary">
             <label className="rbt-field">
               <span>Khoảng thời gian</span>
               <select
@@ -178,6 +185,25 @@ export function RevenueReportFilters({
               </select>
             </label>
 
+            <div className="rbt-filter-actions">
+              <button type="button" className="btn btn-light" onClick={onReset} disabled={loading}>
+                <RotateCcw size={15} aria-hidden /> Đặt lại
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={onApply}
+                disabled={applyBlocked}
+                aria-disabled={applyBlocked}
+              >
+                <Check size={15} aria-hidden /> {loading ? 'Đang tải…' : 'Áp dụng'}
+              </button>
+            </div>
+          </div>
+
+          {!collapsed && (
+            <div className="rbt-filter-advanced" aria-label="Bộ lọc nâng cao">
+              <div className="rbt-filter-grid rbt-filter-grid-secondary">
             <label className="rbt-field">
               <span>Nhân viên</span>
               <select
@@ -243,7 +269,9 @@ export function RevenueReportFilters({
                 <option value="none">Không</option>
               </select>
             </label>
-          </div>
+              </div>
+            </div>
+          )}
 
           {(rangeError || validationError) && (
             <div className="rbt-filter-error" role="alert">
@@ -251,22 +279,7 @@ export function RevenueReportFilters({
             </div>
           )}
 
-          <div className="rbt-filter-actions">
-            <button type="button" className="btn btn-light" onClick={onReset} disabled={loading}>
-              Đặt lại
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={onApply}
-              disabled={applyBlocked}
-              aria-disabled={applyBlocked}
-            >
-              {loading ? 'Đang tải…' : 'Áp dụng'}
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
     </section>
   );
 }

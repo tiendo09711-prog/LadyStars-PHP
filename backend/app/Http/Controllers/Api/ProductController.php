@@ -690,12 +690,17 @@ class ProductController extends Controller
 
     public function storageDuration(Request $request): JsonResponse
     {
+        // Sensitive stock/cost report: require a valid login token (ADMIN or EMPLOYEE).
+        $this->requireAuthenticatedUser($request);
+
         $perPage = min(max((int) $request->query('limit', $request->query('perPage', 20)), 1), 5000);
         $thresholdDays = max((int) $request->query('thresholdDays', $request->query('alertDays', 30)), 1);
         $search = trim((string) $request->query('q', $request->query('search', '')));
         $tab = (string) $request->query('tab', 'all');
         $minStartDays = $request->filled('minStartDays') ? max((int) $request->query('minStartDays'), 0) : null;
         $minSoldDays = $request->filled('minSoldDays') ? max((int) $request->query('minSoldDays'), 0) : null;
+        $branchIdFilter = $request->query('branchId');
+        $minStock = $request->filled('minStock') ? max((float) $request->query('minStock'), 0) : null;
 
         $query = Product::query()
             ->with(['category', 'stocks.branch'])
@@ -714,17 +719,24 @@ class ProductController extends Controller
         if ($categoryId = $request->query('categoryId')) {
             $query->where('category_id', $categoryId);
         }
-        if ($branchId = $request->query('branchId')) {
-            $query->whereHas('stocks', fn ($builder) => $builder->where('branch_id', $branchId)->where('qty', '>', 0));
-        }
-        if ($request->filled('minStock')) {
-            $query->where('qty', '>=', (float) $request->query('minStock'));
+        if ($branchIdFilter !== null && $branchIdFilter !== '') {
+            // Branch scope: only products with stock at that branch.
+            // When minStock is set, compare against branch qty (not global Product.qty).
+            $query->whereHas('stocks', function ($builder) use ($branchIdFilter, $minStock): void {
+                $builder->where('branch_id', $branchIdFilter);
+                if ($minStock !== null) {
+                    $builder->where('qty', '>=', $minStock);
+                } else {
+                    $builder->where('qty', '>', 0);
+                }
+            });
+        } elseif ($minStock !== null) {
+            $query->where('qty', '>=', $minStock);
         }
 
         $products = $query->get();
 
         // Build enriched maps once for the current scope to avoid N+1 queries.
-        $branchIdFilter = $request->query('branchId');
         $lastSoldMap = $this->lastSoldDatesByMongoId($products, $branchIdFilter);
         $txnMap = $this->inventoryTransactionDatesByProductId($products, $branchIdFilter);
 
@@ -732,25 +744,29 @@ class ProductController extends Controller
             return $this->storageDurationShape($product, $thresholdDays, $lastSoldMap, $txnMap, $branchIdFilter);
         };
 
-        $allForKpi = $products->map($shape)->values();
-        $itemsForKpi = $allForKpi;
+        $shaped = $products->map($shape)->values();
 
-        // Apply semantic filters that depend on computed shape values
-        // (daysFromStart / daysFromLastSold / status), which cannot be pushed down to SQL.
+        // Semantic day filters apply to both list and tab KPI counts so badges match the
+        // advanced filters currently selected (search/branch/category/minStock already in SQL).
+        $itemsForKpi = $shaped;
+        if ($minStartDays !== null) {
+            $itemsForKpi = $itemsForKpi->filter(fn (array $item): bool => (int) $item['daysFromStart'] >= $minStartDays);
+        }
+        if ($minSoldDays !== null) {
+            $itemsForKpi = $itemsForKpi->filter(function (array $item) use ($minSoldDays): bool {
+                $days = $item['daysFromLastSold'];
+
+                return $days === null || (int) $days >= $minSoldDays;
+            });
+        }
+        $itemsForKpi = $itemsForKpi->values();
+
+        // Tab filter only affects the visible list + summary totalValue (not tab badge counts).
         $filtered = $itemsForKpi;
         if ($tab === 'unsold_long') {
             $filtered = $filtered->filter(fn (array $item): bool => $item['status'] === 'unsold_long');
         } elseif ($tab === 'slow_selling') {
             $filtered = $filtered->filter(fn (array $item): bool => $item['status'] === 'slow_selling');
-        }
-        if ($minStartDays !== null) {
-            $filtered = $filtered->filter(fn (array $item): bool => (int) $item['daysFromStart'] >= $minStartDays);
-        }
-        if ($minSoldDays !== null) {
-            $filtered = $filtered->filter(function (array $item) use ($minSoldDays): bool {
-                $days = $item['daysFromLastSold'];
-                return $days === null || (int) $days >= $minSoldDays;
-            });
         }
         $filtered = $filtered->values();
 
@@ -758,6 +774,8 @@ class ProductController extends Controller
         $page = max((int) $request->query('page', 1), 1);
         $offset = ($page - 1) * $perPage;
         $pageItems = $filtered->slice($offset, $perPage)->values()->all();
+
+        $valueOf = static fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0);
 
         $payload = [
             'items' => $pageItems,
@@ -772,14 +790,16 @@ class ProductController extends Controller
             'to' => $total > 0 ? min($offset + $perPage, $total) : null,
         ];
         $payload['kpis'] = [
+            // Tab badges: after SQL + day filters, before active tab.
             'totalProducts' => $itemsForKpi->count(),
             'unsoldLong' => $itemsForKpi->where('status', 'unsold_long')->count(),
             'slowSelling' => $itemsForKpi->where('status', 'slow_selling')->count(),
-            // Use 'qty' (which is branch-scoped when branchId filter active, else global) for value KPIs so they reflect the current filter scope
-            'totalValue' => (float) $itemsForKpi->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
-            'oldStockValue' => (float) $itemsForKpi->whereIn('status', ['unsold_long', 'slow_selling'])->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
-            'unsoldLongValue' => (float) $itemsForKpi->where('status', 'unsold_long')->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
-            'slowSellingValue' => (float) $itemsForKpi->where('status', 'slow_selling')->sum(fn (array $item): float => (float) ($item['qty'] ?? 0) * (float) ($item['cost'] ?? 0)),
+            // Summary money reflects the currently visible filtered set (including tab).
+            // qty is branch-scoped when branchId is active.
+            'totalValue' => (float) $filtered->sum($valueOf),
+            'oldStockValue' => (float) $itemsForKpi->whereIn('status', ['unsold_long', 'slow_selling'])->sum($valueOf),
+            'unsoldLongValue' => (float) $itemsForKpi->where('status', 'unsold_long')->sum($valueOf),
+            'slowSellingValue' => (float) $itemsForKpi->where('status', 'slow_selling')->sum($valueOf),
             'thresholdDays' => $thresholdDays,
             'lastRefreshedAt' => now()->toISOString(),
             'topUnsoldLong' => $itemsForKpi->where('status', 'unsold_long')->take(5)->values()->all(),
@@ -1174,7 +1194,7 @@ class ProductController extends Controller
         return null;
     }
 
-    private function isAdminUser(?User $user): bool
+    private function isActiveUser(?User $user): bool
     {
         if (! $user) {
             return false;
@@ -1184,7 +1204,29 @@ class ProductController extends Controller
             return false;
         }
 
+        return true;
+    }
+
+    private function isAdminUser(?User $user): bool
+    {
+        if (! $this->isActiveUser($user)) {
+            return false;
+        }
+
         return (bool) $user->is_root_owner || strtoupper((string) $user->role) === 'ADMIN';
+    }
+
+    /**
+     * Any logged-in active user (ADMIN / EMPLOYEE / …) may read sensitive reports.
+     */
+    private function requireAuthenticatedUser(Request $request): User
+    {
+        $user = $this->resolveAuthUser($request);
+        if (! $this->isActiveUser($user)) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        return $user;
     }
 
     /**

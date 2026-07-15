@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,10 +19,21 @@ class ReadOnlyApiTest extends TestCase
     private Branch $branch;
     private Customer $customer;
     private Product $product;
+    private User $viewer;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->viewer = User::create([
+            'name' => 'ReadOnly Viewer',
+            'email' => 'readonly.viewer@example.test',
+            'password' => 'secret',
+            'role' => 'ADMIN',
+            'status' => 'ACTIVE',
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
 
         $this->branch = Branch::create([
             'mongo_id' => 'branch000000000000000001',
@@ -72,6 +84,11 @@ class ReadOnlyApiTest extends TestCase
             'min_quantity' => 0,
             'max_quantity' => 999999999,
         ]);
+    }
+
+    private function authHeaders(): array
+    {
+        return ['Authorization' => 'Bearer local-laravel-token-'.$this->viewer->id];
     }
 
     public function test_branches_endpoint_returns_list(): void
@@ -501,7 +518,8 @@ class ReadOnlyApiTest extends TestCase
             'payload' => ['productCode' => $this->product->code],
         ]);
 
-        $response = $this->getJson('/api/products/storage-duration?q=SP001&limit=10&thresholdDays=30');
+        $response = $this->withHeaders($this->authHeaders())
+            ->getJson('/api/products/storage-duration?q=SP001&limit=10&thresholdDays=30');
 
         $response->assertOk()
             ->assertJsonPath('items.0.code', 'SP001')
@@ -511,7 +529,8 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('items.0.daysFromLastSold', 40);
 
         // Additional coverage: branch filter should return scoped qty/globalQty/branchQty and not break shape
-        $responseBranch = $this->getJson('/api/products/storage-duration?limit=5&branchId=' . $this->branch->id);
+        $responseBranch = $this->withHeaders($this->authHeaders())
+            ->getJson('/api/products/storage-duration?limit=5&branchId=' . $this->branch->id);
         $responseBranch->assertOk()
             ->assertJsonStructure([
                 'items' => [
@@ -519,6 +538,11 @@ class ReadOnlyApiTest extends TestCase
                 ],
                 'kpis',
             ]);
+
+        // Unauthenticated callers must not receive stock/cost data.
+        // withHeaders() persists on the test case — flush before unauth probe.
+        $this->flushHeaders();
+        $this->getJson('/api/products/storage-duration?limit=2')->assertUnauthorized();
     }
 
     public function test_storage_duration_matches_integer_local_product_id_and_legacy_inventory_mongo_field(): void
@@ -552,7 +576,8 @@ class ReadOnlyApiTest extends TestCase
             'payload' => ['legacy' => true],
         ]);
 
-        $response = $this->getJson('/api/products/storage-duration?q=SP001&limit=10&thresholdDays=30');
+        $response = $this->withHeaders($this->authHeaders())
+            ->getJson('/api/products/storage-duration?q=SP001&limit=10&thresholdDays=30');
 
         $response->assertOk()
             ->assertJsonPath('items.0.code', 'SP001')
@@ -563,8 +588,15 @@ class ReadOnlyApiTest extends TestCase
             ->assertJsonPath('items.0.lastTransactionDate', $lastInventoryDate->toISOString())
             ->assertJsonPath('items.0.daysFromStart', 100);
 
-        $slow = $this->getJson('/api/products/storage-duration?q=SP001&tab=slow_selling&thresholdDays=30');
+        $slow = $this->withHeaders($this->authHeaders())
+            ->getJson('/api/products/storage-duration?q=SP001&tab=slow_selling&thresholdDays=30');
         $slow->assertOk()->assertJsonPath('total', 1)->assertJsonPath('kpis.slowSelling', 1);
+
+        // totalValue on a tab must reflect the filtered rows (qty × cost of visible set).
+        $this->assertSame(
+            (float) $this->product->qty * (float) $this->product->cost,
+            (float) $slow->json('kpis.totalValue'),
+        );
     }
 
     public function test_warehouse_transfer_meta_matches_frontend_contract(): void
