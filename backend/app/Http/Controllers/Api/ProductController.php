@@ -610,6 +610,13 @@ class ProductController extends Controller
         try {
             DB::transaction(function () use ($category, $data): void {
                 $category->update($data);
+
+                // Đồng bộ denormalized category_name trên products khi đổi tên danh mục.
+                if (array_key_exists('name', $data)) {
+                    Product::query()
+                        ->where('category_id', $category->id)
+                        ->update(['category_name' => $data['name']]);
+                }
             });
         } catch (QueryException $error) {
             if (str_contains($error->getMessage(), 'UNIQUE') || (int) ($error->errorInfo[1] ?? 0) === 1062) {
@@ -648,6 +655,38 @@ class ProductController extends Controller
         $parentId = $data['parentId'] ?? null;
         if ($parentId !== null && $id !== null && (int) $parentId === (int) $id) {
             throw \Illuminate\Validation\ValidationException::withMessages(['parentId' => ['Danh muc cha khong duoc trung chinh no.']]);
+        }
+
+        // Chặn vòng lặp cây: không cho gán parent là chính nó hoặc hậu duệ (A→B→A, A→B→C→A, ...).
+        if ($parentId !== null && $id !== null) {
+            $cursor = (int) $parentId;
+            $guard = 0;
+            while ($cursor > 0 && $guard < 64) {
+                if ($cursor === (int) $id) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'parentId' => ['Danh muc cha khong hop le: tao vong lap phan cap.'],
+                    ]);
+                }
+                $cursor = (int) (Category::query()->whereKey($cursor)->value('parent_id') ?? 0);
+                $guard++;
+            }
+        }
+
+        // Giới hạn tối đa 4 cấp: root = cấp 1. Parent ở cấp 4 thì không cho tạo con (cấp 5).
+        if ($parentId !== null) {
+            $depth = 1;
+            $cursor = (int) $parentId;
+            $guard = 0;
+            while ($cursor > 0 && $guard < 64) {
+                $depth++;
+                $cursor = (int) (Category::query()->whereKey($cursor)->value('parent_id') ?? 0);
+                $guard++;
+            }
+            if ($depth > 4) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'parentId' => ['Danh muc chi ho tro toi da 4 cap.'],
+                ]);
+            }
         }
 
         $payload = [];

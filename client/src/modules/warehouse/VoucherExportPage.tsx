@@ -57,8 +57,12 @@ export function VoucherExportPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [sysBranches, setSysBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const clientRequestIdRef = useRef(
+    `exp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+  );
 
   // Form states
   const [branchId, setBranchId] = useState(() => searchParams.get('branchId') || '');
@@ -302,6 +306,7 @@ export function VoucherExportPage() {
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     setError('');
     setSuccessMsg('');
 
@@ -315,6 +320,7 @@ export function VoucherExportPage() {
       return;
     }
 
+    setSaving(true);
     try {
       const payload = {
         date: new Date().toISOString().slice(0, 10),
@@ -323,6 +329,7 @@ export function VoucherExportPage() {
         type: exportType,
         supplier: supplierCustomer,
         note: note || `Xuất kho tự động - Loại: ${exportType}`,
+        clientRequestId: clientRequestIdRef.current,
         items: validLines.map(line => ({
           productId: line.productId,
           quantity: line.quantity,
@@ -337,7 +344,7 @@ export function VoucherExportPage() {
       };
 
       const response = await http.post('/warehouse/vouchers/export', payload);
-      const voucherId = response.data?.voucher?.voucherId || 'PXK-xxxxxx';
+      const voucherId = response.data?.code || response.data?.voucher?.voucherId || response.data?._id || 'PXK-xxxxxx';
 
       setSuccessMsg(`Tạo thành công phiếu xuất kho ${voucherId}!`);
 
@@ -350,11 +357,14 @@ export function VoucherExportPage() {
           setNote('');
           setTags('');
           setSuccessMsg('');
+          clientRequestIdRef.current = `exp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+          setSaving(false);
         }
       }, 1500);
 
     } catch (err: any) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu phiếu xuất kho.');
+      setSaving(false);
     }
   };
 
@@ -375,8 +385,8 @@ export function VoucherExportPage() {
           <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transactions')}>
             <ArrowLeft size={16} /> Quay lại
           </button>
-          <button className="btn btn-primary" type="button" onClick={handleSave}>
-            Lưu phiếu xuất
+          <button className="btn btn-primary" type="button" onClick={handleSave} disabled={!branchId || saving}>
+            {saving ? 'Đang lưu…' : 'Lưu phiếu xuất'}
           </button>
         </div>
       </div>

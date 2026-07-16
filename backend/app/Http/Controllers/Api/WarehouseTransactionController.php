@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\MirrorRecord;
+use App\Models\Product;
+use App\Models\ProductBranchStock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class WarehouseTransactionController extends Controller
 {
@@ -197,13 +200,14 @@ class WarehouseTransactionController extends Controller
 
     private function kindDisplayLabel(string $value): string
     {
-        return match ($value) {
-            'IMPORT' => 'Nhập kho',
-            'EXPORT' => 'Xuất kho',
-            'TRANSFER', 'Chuyển kho' => 'Chuyển kho',
+        $key = strtoupper(trim($value));
+        return match ($key) {
+            'IMPORT', 'IN', 'STOCK_IN' => 'Nhập kho',
+            'EXPORT', 'OUT', 'STOCK_OUT' => 'Xuất kho',
+            'TRANSFER', 'CHUYỂN KHO' => 'Chuyển kho',
             'IMPORT_TRANSFER' => 'Nhập chuyển kho',
             'EXPORT_TRANSFER' => 'Xuất chuyển kho',
-            default => $value,
+            default => $value !== '' ? $value : 'Không xác định',
         };
     }
 
@@ -775,8 +779,15 @@ class WarehouseTransactionController extends Controller
 
         $isImport = $type === 'IMPORT';
         $isExport = $type === 'EXPORT';
-        $kindLabel = $record->type
+        $rawKind = $record->type
             ?: ($payload['type'] ?? $record->import_export_type ?? $payload['import_export_type'] ?? 'Không xác định');
+        // Normalize technical codes (import/export) to Vietnamese labels for UI filters/badges.
+        $kindLabel = $this->kindDisplayLabel(trim((string) $rawKind));
+        if ($kindLabel === trim((string) $rawKind) && $isImport) {
+            $kindLabel = 'Nhập kho';
+        } elseif ($kindLabel === trim((string) $rawKind) && $isExport) {
+            $kindLabel = 'Xuất kho';
+        }
         $directionLabel = $isImport ? 'Nhập kho' : ($isExport ? 'Xuất kho' : (string) $kindLabel);
         $directionTone = $isImport ? 'import' : ($isExport ? 'export' : 'neutral');
 
@@ -804,7 +815,7 @@ class WarehouseTransactionController extends Controller
             'status' => $record->status,
             'directionLabel' => $directionLabel,
             'directionTone' => $directionTone,
-            'canDelete' => false,
+            'canDelete' => $this->voucherCanDelete($record, $payload, $type),
         ];
     }
 
@@ -1259,20 +1270,333 @@ class WarehouseTransactionController extends Controller
         ];
     }
 
-    public function destroy(string $source, string $sourceId): JsonResponse
+    public function destroy(Request $request, string $source, string $sourceId): JsonResponse
     {
+        if ($authError = $this->requireLocalUser($request)) {
+            return $authError;
+        }
+
+        try {
+            $result = DB::transaction(function () use ($source, $sourceId) {
+                return $this->deleteBillBySource($source, $sourceId);
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['ok' => false, 'message' => 'Không tìm thấy phiếu cần xóa.'], 404);
+        }
+
         return response()->json([
-            'ok' => false,
-            'message' => 'Tính năng xóa phiếu xuất nhập kho chưa được hỗ trợ tại trang tổng hợp. Vui lòng hủy phiếu tại module nghiệp vụ gốc.',
-        ], 405);
+            'ok' => true,
+            'message' => $result['message'] ?? 'Đã xóa phiếu và hoàn tác tồn kho.',
+            'code' => $result['code'] ?? null,
+        ]);
     }
 
     public function bulkDelete(Request $request): JsonResponse
     {
+        if ($authError = $this->requireLocalUser($request)) {
+            return $authError;
+        }
+
+        $rows = $request->input('rows', []);
+        if (!is_array($rows) || $rows === []) {
+            return response()->json(['ok' => false, 'message' => 'Vui lòng chọn ít nhất một phiếu.'], 422);
+        }
+
+        $deleted = [];
+        $failed = [];
+
+        try {
+            DB::transaction(function () use ($rows, &$deleted, &$failed): void {
+                foreach ($rows as $row) {
+                    if (!is_array($row)) {
+                        $failed[] = ['message' => 'Dòng xóa không hợp lệ.'];
+                        continue;
+                    }
+                    $source = (string) ($row['source'] ?? '');
+                    $sourceId = (string) ($row['sourceId'] ?? $row['source_id'] ?? '');
+                    try {
+                        $result = $this->deleteBillBySource($source, $sourceId);
+                        $deleted[] = $result;
+                    } catch (\Throwable $e) {
+                        // Fail entire bulk atomically so stock never partially reverses.
+                        throw new \InvalidArgumentException(
+                            $e->getMessage() ?: 'Không thể xóa hàng loạt phiếu.'
+                        );
+                    }
+                }
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => $e->getMessage(),
+                'deleted' => [],
+                'failed' => $failed,
+            ], 422);
+        }
+
         return response()->json([
-            'ok' => false,
-            'message' => 'Tính năng xóa hàng loạt phiếu xuất nhập kho chưa được hỗ trợ. Vui lòng hủy từng phiếu tại module nghiệp vụ gốc.',
-        ], 405);
+            'ok' => true,
+            'message' => 'Đã xóa '.count($deleted).' phiếu và hoàn tác tồn kho.',
+            'deleted' => $deleted,
+        ]);
+    }
+
+    /**
+     * Pure warehouse import/export vouchers may be deleted (with stock reverse).
+     * Sale/refund/transfer-linked documents must be cancelled in their origin module.
+     */
+    private function voucherCanDelete(MirrorRecord $record, array $payload, string $type): bool
+    {
+        if ($type !== 'IMPORT' && $type !== 'EXPORT') {
+            return false;
+        }
+
+        $label = mb_strtolower(trim((string) (
+            $record->type
+            ?? $payload['type']
+            ?? $record->import_export_type
+            ?? $payload['import_export_type']
+            ?? ''
+        )));
+
+        // Business documents that must not reverse from the aggregate page.
+        if ($label !== '' && preg_match('/bán|ban le|ban si|trả hàng|tra hang|đổi hàng|doi hang|sale|refund|return/u', $label)) {
+            return false;
+        }
+
+        if (!empty($payload['paymentId'])
+            || !empty($payload['payment_mongo_id'])
+            || !empty($payload['saleId'])
+            || !empty($payload['sale_payment_id'])
+            || !empty($payload['refundId'])) {
+            return false;
+        }
+
+        // Transfers are never deleted from this aggregate list.
+        if (($payload['kind'] ?? null) === 'TRANSFER' || $type === 'TRANSFER') {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array{message: string, code: ?string}
+     */
+    private function deleteBillBySource(string $source, string $sourceId): array
+    {
+        $source = trim($source);
+        $sourceId = trim($sourceId);
+        if ($sourceId === '') {
+            throw new \InvalidArgumentException('Thiếu mã phiếu cần xóa.');
+        }
+
+        if ($source === 'warehouse-transfer') {
+            throw new \InvalidArgumentException(
+                'Không xóa phiếu chuyển kho tại trang xuất nhập. Vui lòng hủy tại module Chuyển kho.'
+            );
+        }
+
+        if ($source !== 'inventory-voucher') {
+            throw new \InvalidArgumentException('Loại chứng từ không hỗ trợ xóa tại đây.');
+        }
+
+        $record = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery()
+            ->where(function ($builder) use ($sourceId): void {
+                $builder->where('mongo_id', $sourceId)
+                    ->orWhere('voucher_code', $sourceId)
+                    ->orWhere('code', $sourceId);
+            })
+            ->first();
+
+        if (!$record) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('Không tìm thấy phiếu.');
+        }
+
+        $payload = is_array($record->payload) ? $record->payload : [];
+        $type = $this->detectVoucherType($payload, $record);
+        if (!$this->voucherCanDelete($record, $payload, $type)) {
+            throw new \InvalidArgumentException(
+                'Phiếu liên kết nghiệp vụ gốc (bán/trả/chuyển) không được xóa tại trang xuất nhập kho.'
+            );
+        }
+
+        $voucherCode = (string) ($record->voucher_code ?: ($payload['voucher_code'] ?? $payload['code'] ?? $record->code ?? $record->mongo_id));
+        $this->reverseInventoryVoucherStock($record, $payload, $type);
+        $this->deleteInventoryVoucherProducts($record, $voucherCode);
+        $record->delete();
+
+        return [
+            'message' => 'Đã xóa phiếu '.$voucherCode.' và hoàn tác tồn kho.',
+            'code' => $voucherCode,
+        ];
+    }
+
+    private function reverseInventoryVoucherStock(MirrorRecord $record, array $payload, string $type): void
+    {
+        // Reverse of applyInventoryVoucherStock: IMPORT reverse = -qty, EXPORT reverse = +qty.
+        $direction = $type === 'IMPORT' ? -1 : ($type === 'EXPORT' ? 1 : 0);
+        if ($direction === 0) {
+            throw new \InvalidArgumentException('Không xác định hướng hoàn tồn cho phiếu này.');
+        }
+
+        $branchKey = $record->warehouse_mongo_id
+            ?? $payload['warehouse_mongo_id']
+            ?? $record->branch_mongo_id
+            ?? $payload['branchId']
+            ?? $payload['warehouseId']
+            ?? $payload['warehouse']
+            ?? $record->branch_id
+            ?? null;
+        $branch = $this->resolveBranch($branchKey !== null ? (string) $branchKey : null)
+            ?? ($record->branch_id ? Branch::query()->find($record->branch_id) : null);
+        if (!$branch) {
+            throw new \InvalidArgumentException('Không xác định được kho để hoàn tác tồn.');
+        }
+
+        $lines = $this->collectVoucherLinesForReverse($record, $payload);
+        if ($lines === []) {
+            // Empty voucher: allow delete without stock change.
+            return;
+        }
+
+        foreach ($lines as $line) {
+            $product = $this->resolveProduct($line['productId'] ?? null, $line['productCode'] ?? null);
+            if (!$product || $product->type === 'service') {
+                continue;
+            }
+            $qty = (float) ($line['quantity'] ?? 0);
+            if ($qty <= 0) {
+                continue;
+            }
+            $delta = $qty * $direction;
+            $stock = ProductBranchStock::query()->firstOrCreate(
+                ['product_id' => $product->id, 'branch_id' => $branch->id],
+                ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => bin2hex(random_bytes(12))]
+            );
+            $current = (float) $stock->qty;
+            if ($delta < 0 && $current + 1e-9 < abs($delta)) {
+                throw new \InvalidArgumentException(
+                    'Không thể xóa phiếu: hoàn tác tồn sản phẩm "'.($product->code ?: $product->name)
+                    .'" sẽ âm (cần trừ '.abs($delta).', còn '.$current.').'
+                );
+            }
+            $stock->forceFill(['qty' => max(0, $current + $delta)])->save();
+            $product->forceFill(['qty' => (float) $product->stocks()->sum('qty')])->save();
+        }
+    }
+
+    /**
+     * @return list<array{productId: mixed, productCode: ?string, quantity: float}>
+     */
+    private function collectVoucherLinesForReverse(MirrorRecord $record, array $payload): array
+    {
+        $fromPayload = $payload['items'] ?? $payload['lines'] ?? $payload['products'] ?? [];
+        $lines = [];
+        if (is_array($fromPayload) && $fromPayload !== []) {
+            foreach ($fromPayload as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+                $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+                $qty = (float) ($line['quantity'] ?? $line['amount'] ?? $line['qty'] ?? 0);
+                if ($qty <= 0) {
+                    continue;
+                }
+                $lines[] = [
+                    'productId' => $pid,
+                    'productCode' => $line['productCode'] ?? $line['product_code'] ?? $line['prodCode'] ?? null,
+                    'quantity' => $qty,
+                ];
+            }
+            if ($lines !== []) {
+                return $lines;
+            }
+        }
+
+        $voucherCode = (string) ($record->voucher_code ?: $record->code ?: $record->mongo_id);
+        $products = (new MirrorRecord())->forTable('inventory_products')->newQuery()
+            ->where(function ($builder) use ($record, $voucherCode): void {
+                $builder->where('inventory_voucher_mongo_id', $record->mongo_id)
+                    ->orWhere('inventory_voucher_mongo_id', $voucherCode)
+                    ->orWhere('code', 'like', $voucherCode.'#%')
+                    ->orWhere('payload->code', $voucherCode);
+            })
+            ->get();
+
+        foreach ($products as $productRow) {
+            $p = is_array($productRow->payload) ? $productRow->payload : [];
+            $qty = (float) ($p['qty'] ?? $productRow->qty ?? $productRow->amount ?? 0);
+            if ($qty <= 0) {
+                continue;
+            }
+            $lines[] = [
+                'productId' => $productRow->product_id
+                    ?? $p['productId']
+                    ?? $productRow->product_mongo_id
+                    ?? null,
+                'productCode' => $p['prodCode'] ?? $p['productCode'] ?? $productRow->product_code ?? null,
+                'quantity' => $qty,
+            ];
+        }
+
+        return $lines;
+    }
+
+    private function deleteInventoryVoucherProducts(MirrorRecord $record, string $voucherCode): void
+    {
+        $keys = array_values(array_unique(array_filter([
+            (string) $record->mongo_id,
+            $voucherCode,
+        ], fn ($v) => $v !== null && trim((string) $v) !== '')));
+
+        // inventory_products may not have refer_code column in this schema — only use known columns.
+        (new MirrorRecord())->forTable('inventory_products')->newQuery()
+            ->where(function ($builder) use ($keys, $voucherCode): void {
+                if ($keys !== []) {
+                    $builder->whereIn('inventory_voucher_mongo_id', $keys);
+                }
+                if ($voucherCode !== '') {
+                    $builder->orWhere('code', 'like', $voucherCode.'#%')
+                        ->orWhere('code', $voucherCode)
+                        ->orWhere('payload->code', $voucherCode)
+                        ->orWhere('payload->voucherId', $voucherCode);
+                }
+            })
+            ->delete();
+    }
+
+    private function resolveProduct(mixed $id, ?string $code = null): ?Product
+    {
+        if ($id !== null && $id !== '') {
+            $product = Product::query()->where('id', $id)->orWhere('mongo_id', (string) $id)->first();
+            if ($product) {
+                return $product;
+            }
+        }
+        $code = trim((string) $code);
+        if ($code !== '') {
+            return Product::query()->where('code', $code)->first();
+        }
+
+        return null;
+    }
+
+    private function requireLocalUser(Request $request): ?JsonResponse
+    {
+        $authHeader = (string) $request->header('Authorization', '');
+        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
+        }
+        $user = \App\Models\User::query()->find((int) $matches[1]);
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated. Tài khoản không tồn tại.'], 401);
+        }
+
+        return null;
     }
 
     private function distinctSorted(string $table, string $column): array

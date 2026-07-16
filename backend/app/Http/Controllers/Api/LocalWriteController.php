@@ -11,6 +11,7 @@ use App\Models\ProductBranchStock;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -126,6 +127,10 @@ class LocalWriteController extends Controller
 
     public function storeMirror(Request $request): JsonResponse
     {
+        if ($authError = $this->requireLocalUser($request)) {
+            return $authError;
+        }
+
         $resource = (string) $request->route('resource');
         $table = $this->table($resource);
         $payload = $request->all();
@@ -140,6 +145,35 @@ class LocalWriteController extends Controller
             }
         }
 
+        if ($resource === 'warehouse-transfers') {
+            $fromBranch = $this->branch($payload['sourceWarehouseId'] ?? null);
+            $toBranch = $this->branch($payload['destinationWarehouseId'] ?? null);
+            if (!$fromBranch || !$toBranch) {
+                return response()->json(['message' => 'Vui lòng chọn kho nguồn và kho đích hợp lệ.'], 422);
+            }
+            if ((int) $fromBranch->id === (int) $toBranch->id) {
+                return response()->json(['message' => 'Kho nguồn và kho đích không được trùng nhau.'], 422);
+            }
+            $lines = $payload['lines'] ?? $payload['items'] ?? [];
+            if (!is_array($lines) || $lines === []) {
+                return response()->json(['message' => 'Đơn chuyển kho phải có ít nhất một sản phẩm.'], 422);
+            }
+            $hasPositive = false;
+            foreach ($lines as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $qty = (float) ($line['requestedQuantity'] ?? $line['quantity'] ?? $line['amount'] ?? 0);
+                if ($qty > 0) {
+                    $hasPositive = true;
+                    break;
+                }
+            }
+            if (!$hasPositive) {
+                return response()->json(['message' => 'Đơn chuyển kho phải có ít nhất một sản phẩm với số lượng lớn hơn 0.'], 422);
+            }
+        }
+
         // Ensure channel (from sales-channels routing) is captured even if not in body
         // This fixes sales created from /sales-channels/{channel}/... not having 'channel' in payload
         if (empty($payload['channel'])) {
@@ -149,28 +183,80 @@ class LocalWriteController extends Controller
             }
         }
 
-        try {
-            $record = DB::transaction(function () use ($table, $payload, $resource) {
+        // Idempotency for inventory vouchers: same clientRequestId returns the first created bill (no double stock).
+        $idempotencyKey = trim((string) (
+            $payload['clientRequestId']
+            ?? $payload['idempotencyKey']
+            ?? $request->header('Idempotency-Key')
+            ?? ''
+        ));
+        if ($resource === 'inventory-vouchers' && $idempotencyKey !== '') {
+            $payload['clientRequestId'] = $idempotencyKey;
+        }
+
+        $idempotentReplay = false;
+        $runCreate = function () use ($table, $payload, $resource, $idempotencyKey, &$idempotentReplay) {
+            return DB::transaction(function () use ($table, $payload, $resource, $idempotencyKey, &$idempotentReplay) {
+                if ($resource === 'inventory-vouchers' && $idempotencyKey !== '') {
+                    $existing = (new MirrorRecord())->forTable($table)->newQuery()
+                        ->where(function ($q) use ($idempotencyKey): void {
+                            $q->where('payload->clientRequestId', $idempotencyKey)
+                                ->orWhere('payload->idempotencyKey', $idempotencyKey);
+                        })
+                        ->orderByDesc('id')
+                        ->first();
+                    if ($existing) {
+                        $idempotentReplay = true;
+
+                        return $existing;
+                    }
+                }
+
                 $created = $this->createRecord($table, $payload, $resource);
                 if ($resource === 'inventory-checks') {
                     $this->syncInventoryCheckProducts($created, $payload['items'] ?? $payload['lines'] ?? []);
                 }
                 // Phiếu nhập/xuất kho: UI lưu một bước (không complete) — áp tồn ngay khi tạo.
+                // Đồng thời ghi inventory_products để tab "Sản phẩm xuất nhập kho" và chi tiết phiếu không rỗng.
                 if ($resource === 'inventory-vouchers') {
+                    $this->syncInventoryVoucherProducts($created, $payload);
                     $this->applyInventoryVoucherStock($payload);
                 }
 
                 return $created;
             });
+        };
+
+        try {
+            if ($resource === 'inventory-vouchers' && $idempotencyKey !== '') {
+                // Serialize concurrent double-submit with the same clientRequestId (IM-018).
+                $lock = Cache::lock('inventory-voucher-idem:'.$idempotencyKey, 15);
+                $record = $lock->block(10, $runCreate);
+            } else {
+                $record = $runCreate();
+            }
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+            return response()->json(['message' => 'Hệ thống đang xử lý phiếu trùng, vui lòng thử lại.'], 409);
         }
 
-        return response()->json($this->serialize($record), 201);
+        $body = $this->serialize($record);
+        if ($idempotentReplay) {
+            $body['idempotentReplay'] = true;
+
+            return response()->json($body, 200);
+        }
+
+        return response()->json($body, 201);
     }
 
     public function updateMirror(Request $request): JsonResponse
     {
+        if ($authError = $this->requireLocalUser($request)) {
+            return $authError;
+        }
+
         $resource = (string) $request->route('resource');
         $id = (string) $request->route('id');
         $table = $this->table($resource);
@@ -192,6 +278,21 @@ class LocalWriteController extends Controller
             }
             if (!$this->branch($warehouseId)) {
                 return response()->json(['message' => 'Kho hàng không hợp lệ.'], 422);
+            }
+        }
+
+        // Transfer edit only while DRAFT (TR-014: block after confirm-source / completed / cancelled).
+        if ($resource === 'warehouse-transfers') {
+            $transferStatus = strtoupper((string) ($record->status ?? $oldPayload['status'] ?? 'DRAFT'));
+            if ($transferStatus !== 'DRAFT') {
+                return response()->json([
+                    'message' => 'Không thể sửa đơn chuyển kho ở trạng thái '.$transferStatus.'. Chỉ đơn nháp (DRAFT) được sửa.',
+                ], 422);
+            }
+            $fromBranch = $this->branch($payload['sourceWarehouseId'] ?? null);
+            $toBranch = $this->branch($payload['destinationWarehouseId'] ?? null);
+            if ($fromBranch && $toBranch && (int) $fromBranch->id === (int) $toBranch->id) {
+                return response()->json(['message' => 'Kho nguồn và kho đích không được trùng nhau.'], 422);
             }
         }
 
@@ -247,6 +348,10 @@ class LocalWriteController extends Controller
 
     public function deleteMirror(Request $request): JsonResponse
     {
+        if ($authError = $this->requireLocalUser($request)) {
+            return $authError;
+        }
+
         $resource = (string) $request->route('resource');
         $id = (string) $request->route('id');
         $table = $this->table($resource);
@@ -299,6 +404,10 @@ class LocalWriteController extends Controller
 
     public function action(Request $request): JsonResponse
     {
+        if ($authError = $this->requireLocalUser($request)) {
+            return $authError;
+        }
+
         $resource = (string) $request->route('resource');
         $id = (string) $request->route('id');
         $action = (string) $request->route('action');
@@ -317,6 +426,17 @@ class LocalWriteController extends Controller
             return response()->json([
                 'message' => 'Chỉ tài khoản admin mới được hủy hóa đơn.',
             ], 403);
+        }
+
+        // CN-003: never cancel+full-restore a sale that already had returns (would double-stock).
+        if ($resource === 'sale-payments' && $action === 'cancel') {
+            $refundStatus = strtolower((string) ($payload['refundStatus'] ?? 'none'));
+            $activeRefundCount = (int) ($payload['activeRefundCount'] ?? 0);
+            if ($refundStatus === 'full' || $refundStatus === 'partial' || $activeRefundCount > 0) {
+                return response()->json([
+                    'message' => 'Hóa đơn đã phát sinh đổi/trả hàng nên không thể hủy. Vui lòng xử lý qua module trả hàng.',
+                ], 422);
+            }
         }
 
         if ($resource === 'inventory-checks') {
@@ -1530,6 +1650,124 @@ class LocalWriteController extends Controller
     }
 
     /**
+     * Persist one inventory_products row per voucher line so the transactions items tab
+     * and bill detail can list products (stock application alone does not create lines).
+     */
+    private function syncInventoryVoucherProducts(MirrorRecord $voucher, array $payload): void
+    {
+        $items = $payload['items'] ?? $payload['lines'] ?? $payload['products'] ?? [];
+        if (!is_array($items) || $items === []) {
+            return;
+        }
+
+        $branch = $this->branch(
+            $payload['branchId']
+            ?? $payload['warehouseId']
+            ?? $payload['warehouse']
+            ?? $voucher->branch_id
+            ?? $voucher->branch_mongo_id
+            ?? $voucher->warehouse_mongo_id
+            ?? null
+        );
+        $voucherCode = (string) ($voucher->voucher_code ?: $voucher->code ?: $payload['code'] ?? $payload['voucherId'] ?? '');
+        $voucherMongoId = (string) ($voucher->mongo_id ?: '');
+        $voucherKey = $voucherMongoId !== '' ? $voucherMongoId : $voucherCode;
+        $typeRaw = (string) ($payload['type'] ?? $payload['importExportType'] ?? $payload['import_export_type'] ?? $voucher->type ?? '');
+        $typeAscii = strtolower((string) \Illuminate\Support\Str::ascii($typeRaw));
+        $isImport = in_array($typeAscii, ['import', 'nhap', 'in', 'stock_in', 'nhap kho'], true)
+            || str_contains($typeAscii, 'nhap')
+            || str_contains($typeAscii, 'import');
+        $isExport = in_array($typeAscii, ['export', 'xuat', 'out', 'stock_out', 'xuat kho'], true)
+            || str_contains($typeAscii, 'xuat')
+            || str_contains($typeAscii, 'export');
+        $typeLabel = $isImport ? 'Nhập kho' : ($isExport ? 'Xuất kho' : ($typeRaw !== '' ? $typeRaw : 'Không xác định'));
+        $businessDate = $voucher->business_date
+            ?? $payload['businessDate']
+            ?? $payload['date']
+            ?? now();
+
+        foreach ($items as $index => $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
+            $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+            $product = $this->product($pid);
+            if (!$product) {
+                continue;
+            }
+            $qty = (float) ($line['quantity'] ?? $line['amount'] ?? $line['qty'] ?? 0);
+            if ($qty <= 0) {
+                continue;
+            }
+            $unitPrice = (float) ($line['price'] ?? $line['unitPrice'] ?? $line['unit_price'] ?? $product->cost ?? 0);
+            $lineTotal = (float) ($line['totalAmount'] ?? $line['total_amount'] ?? ($qty * $unitPrice));
+            $productCode = (string) ($line['productCode'] ?? $line['product_code'] ?? $product->code ?? '');
+            $productName = (string) ($line['productName'] ?? $line['product_name'] ?? $product->name ?? '');
+            $barcode = (string) ($line['barcode'] ?? $product->barcode ?? '');
+            $lineCode = $voucherCode !== ''
+                ? ($voucherCode.'#'.$index)
+                : ('CT'.$this->nextSuffix().'-'.$index);
+
+            $linePayload = [
+                'code' => $voucherCode,
+                'lineCode' => $lineCode,
+                'prodCode' => $productCode,
+                'prodName' => $productName,
+                'productCode' => $productCode,
+                'productName' => $productName,
+                'barcode' => $barcode,
+                'qty' => $qty,
+                'price' => $unitPrice,
+                'unit_price' => $unitPrice,
+                'total_amount' => $lineTotal,
+                'totalAmount' => $lineTotal,
+                'productId' => (string) ($product->id ?? $pid ?? ''),
+                'inventory_voucher_mongo_id' => $voucherKey,
+                'voucherId' => $voucherCode,
+                'type' => $typeLabel,
+                'note' => (string) ($line['note'] ?? ''),
+                'unit' => (string) ($line['unit'] ?? $product->unit ?? ''),
+                'warehouse' => $branch?->name ?? ($payload['warehouse'] ?? null),
+                'warehouse_mongo_id' => $branch?->mongo_id,
+                'branch_mongo_id' => $branch?->mongo_id,
+                'creator' => $payload['creator'] ?? null,
+            ];
+
+            $attrs = $this->onlyExisting('inventory_products', [
+                'mongo_id' => $this->localMongoId(),
+                'code' => $lineCode,
+                'name' => $productName !== '' ? $productName : null,
+                'status' => (string) ($voucher->status ?? 'draft'),
+                'type' => $typeLabel,
+                'amount' => $qty,
+                'value' => $unitPrice,
+                'total' => $lineTotal,
+                'branch_mongo_id' => $branch?->mongo_id ?? $voucher->branch_mongo_id ?? $voucher->warehouse_mongo_id,
+                'product_mongo_id' => $product->mongo_id,
+                'business_date' => $businessDate,
+                'payload' => $linePayload,
+                'inventory_voucher_mongo_id' => $voucherKey,
+                'qty' => $qty,
+                'import_qty' => $isImport ? $qty : 0,
+                'export_qty' => $isExport ? $qty : 0,
+                'unit_price' => $unitPrice,
+                'total_amount' => $lineTotal,
+                'creator' => $payload['creator'] ?? null,
+                'branch_id' => $branch?->id ?? $voucher->branch_id,
+                'product_id' => $product->id,
+                'product_code' => $productCode !== '' ? $productCode : null,
+                'product_name' => $productName !== '' ? $productName : null,
+                'barcode' => $barcode !== '' ? $barcode : null,
+                'warehouse_name' => $branch?->name ?? ($payload['warehouse'] ?? null),
+                'refer_code' => $voucherCode !== '' ? $voucherCode : null,
+            ]);
+
+            (new MirrorRecord())->forTable('inventory_products')->newQuery()->create($attrs);
+        }
+    }
+
+    /**
      * Keep inventory_check_products in sync so /inventory-audit-items list is not empty
      * when items live primarily in the parent audit payload.
      */
@@ -1638,6 +1876,29 @@ class LocalWriteController extends Controller
     {
         $columns = array_flip(Schema::getColumnListing($table));
         return array_filter($attrs, fn ($key) => isset($columns[$key]), ARRAY_FILTER_USE_KEY);
+    }
+
+    /**
+     * Require a valid login token for any write (create/update/delete/action).
+     * Prevents unauthenticated API writes (SEC-005).
+     */
+    private function requireLocalUser(Request $request): ?JsonResponse
+    {
+        $authHeader = (string) $request->header('Authorization', '');
+        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
+        }
+        $user = User::find((int) $matches[1]);
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated. Tài khoản không tồn tại.'], 401);
+        }
+        $active = $user->is_active;
+        if ($active === false || $active === 0 || $active === '0') {
+            return response()->json(['message' => 'Unauthenticated. Tài khoản đã bị khóa.'], 401);
+        }
+        $request->attributes->set('localUser', $user);
+
+        return null;
     }
 
     /**

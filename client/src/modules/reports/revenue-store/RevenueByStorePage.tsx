@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Children, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -62,6 +62,7 @@ import {
   extractApiError,
   filtersFromSearchParams,
   filtersToSearchParams,
+  formatAxisMoney,
   formatDateTime,
   formatMoney,
   formatNumber,
@@ -131,11 +132,12 @@ function StoreMultiSelect({
   };
 
   return (
-    <div className="rbs-store-select" ref={rootRef}>
-      <div className="rbs-store-select-label">
-        <Building2 size={14} aria-hidden />
-        <span>Cửa hàng</span>
-      </div>
+    // Align like other filter fields: label on top + control below (same as rbs-field).
+    <div className="rbs-field rbs-store-select" ref={rootRef}>
+      <span>
+        <Building2 size={14} aria-hidden style={{ marginRight: 4, verticalAlign: -2 }} />
+        Cửa hàng
+      </span>
       <button
         type="button"
         className="rbs-store-select-trigger"
@@ -143,6 +145,7 @@ function StoreMultiSelect({
         disabled={disabled || stores.length === 0}
         aria-expanded={open}
         aria-controls={listId}
+        aria-label="Chọn cửa hàng"
       >
         <span>{selectedIds.length ? `Đã chọn ${selectedIds.length} cửa hàng` : 'Tất cả cửa hàng'}</span>
         <ChevronDown size={16} aria-hidden />
@@ -452,6 +455,19 @@ function RankingBarChart({
   );
 }
 
+type TrendChartRow = {
+  key: string;
+  label: string;
+  /** Aggregate metrics for the hovered period (sum across stores). */
+  _grossRevenue: number;
+  _revenue: number;
+  _refundAmount: number;
+  _netRevenue: number;
+  _invoiceCount: number;
+  _itemQuantity: number;
+  [storeId: string]: string | number;
+};
+
 function TrendMultiChart({
   report,
   metric,
@@ -468,17 +484,31 @@ function TrendMultiChart({
   const series = report?.trend?.series ?? [];
   const [hiddenStoreIds, setHiddenStoreIds] = useState<string[]>([]);
   const activeSeries = series.filter((item) => !hiddenStoreIds.includes(item.storeId));
-  const chartData = useMemo(() => {
+  const chartData = useMemo<TrendChartRow[]>(() => {
     if (!series.length) return [];
     const keys = series[0].points.map((p) => p.key);
     return keys.map((key, idx) => {
-      const row: Record<string, string | number> = {
+      const row: TrendChartRow = {
         key,
         label: series[0].points[idx]?.label ?? key,
+        _grossRevenue: 0,
+        _revenue: 0,
+        _refundAmount: 0,
+        _netRevenue: 0,
+        _invoiceCount: 0,
+        _itemQuantity: 0,
       };
       series.forEach((s) => {
         const pt = s.points.find((p) => p.key === key);
         row[s.storeId] = trendMetricValue(pt, metric);
+        if (pt) {
+          row._grossRevenue += Number(pt.grossRevenue ?? 0);
+          row._revenue += Number(pt.revenue ?? 0);
+          row._refundAmount += Number(pt.refundAmount ?? 0);
+          row._netRevenue += Number(pt.netRevenue ?? 0);
+          row._invoiceCount += Number(pt.invoiceCount ?? 0);
+          row._itemQuantity += Number(pt.itemQuantity ?? 0);
+        }
       });
       return row;
     });
@@ -494,6 +524,16 @@ function TrendMultiChart({
     });
   };
 
+  // Prefer activePayload (works for bar/line/area); fall back to activeLabel.
+  const handlePeriodClick = (state: {
+    activePayload?: Array<{ payload?: TrendChartRow }>;
+    activeLabel?: string | number;
+  }) => {
+    const payload = state?.activePayload?.[0]?.payload;
+    const label = payload?.label ?? state?.activeLabel;
+    if (label != null && String(label) !== '') onSelectPeriod(String(label));
+  };
+
   if (loading && !report) {
     return <div className="rbs-chart-wrap rbs-skeleton" style={{ height: 320 }} aria-busy="true" />;
   }
@@ -506,11 +546,18 @@ function TrendMultiChart({
     );
   }
 
-  const TrendTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value?: number; name?: string; color?: string; payload?: Record<string, string | number> }> }) => {
+  const TrendTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ value?: number; name?: string; color?: string; payload?: TrendChartRow }>;
+  }) => {
     if (!active || !payload?.length) return null;
     const row = payload[0]?.payload;
     if (!row) return null;
-    const total = payload.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
+    const aov =
+      row._invoiceCount > 0 ? row._revenue / row._invoiceCount : 0;
     return (
       <div className="rbs-tooltip rbs-tooltip-lg">
         <div className="rbs-tooltip-title">{String(row.label ?? '')}</div>
@@ -524,47 +571,233 @@ function TrendMultiChart({
             </div>
           );
         })}
+        {/* Summary block — same metrics as revenue-by-time hover tooltip */}
         <div className="rbs-tooltip-divider" />
-        <div className="rbs-tooltip-row rbs-tooltip-total">
-          <span>Tổng</span>
-          <strong>{isMoney ? formatMoney(total) : formatNumber(total)}</strong>
+        <div className="rbs-tooltip-row">
+          <span>Trước giảm</span>
+          <strong>{formatMoney(row._grossRevenue)}</strong>
         </div>
-        <p className="rbs-tooltip-hint">Nhấp vào kỳ để xem chi tiết</p>
+        <div className="rbs-tooltip-row">
+          <span>Doanh thu</span>
+          <strong>{formatMoney(row._revenue)}</strong>
+        </div>
+        <div className="rbs-tooltip-row">
+          <span>Trả hàng</span>
+          <strong>{formatMoney(row._refundAmount)}</strong>
+        </div>
+        <div className="rbs-tooltip-row">
+          <span>Thuần</span>
+          <strong>{formatMoney(row._netRevenue)}</strong>
+        </div>
+        <div className="rbs-tooltip-row">
+          <span>Hóa đơn</span>
+          <strong>{formatNumber(row._invoiceCount)}</strong>
+        </div>
+        <div className="rbs-tooltip-row">
+          <span>SP bán</span>
+          <strong>{formatNumber(row._itemQuantity, 2)}</strong>
+        </div>
+        <div className="rbs-tooltip-row">
+          <span>TB/HĐ</span>
+          <strong>{formatMoney(aov)}</strong>
+        </div>
+        <p className="rbs-tooltip-hint">Nhấp vào cột/điểm để xem chi tiết</p>
       </div>
     );
   };
 
-  const common = (
-    <>
-      <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.16)" />
-      <XAxis
-        dataKey="label"
-        tick={{ fontSize: 11, fill: '#334155' }}
-        axisLine={{ stroke: '#94a3b8' }}
-        tickLine={{ stroke: '#94a3b8' }}
-        minTickGap={16}
-        height={38}
-        label={{ value: 'Thời gian', position: 'insideBottom', offset: -2, style: { fill: '#475569', fontSize: 11 } }}
-      />
-      <YAxis
-        tick={{ fontSize: 11, fill: '#334155' }}
-        axisLine={{ stroke: '#94a3b8' }}
-        tickLine={{ stroke: '#94a3b8' }}
-        tickFormatter={(v) => formatNumber(v)}
-        width={72}
-        label={{ value: isMoney ? 'Giá trị (VND)' : 'Số lượng', angle: -90, position: 'insideLeft', style: { fill: '#475569', fontSize: 11 } }}
-      />
-      <Tooltip content={<TrendTooltip />} cursor={{ fill: 'rgba(16,185,129,0.08)' }} />
-      <Legend
-        formatter={(value) => series.find((s) => s.storeId === value)?.storeName ?? value}
-        wrapperStyle={{ paddingTop: 8, fontSize: 12, cursor: 'pointer' }}
-        onClick={(entry) => toggleSeries(String(entry.dataKey ?? entry.value ?? ''))}
-      />
-    </>
-  );
+  /**
+   * Chart scaffolding — same approach as revenue-time/RevenueTrendChart:
+   * return a flat array of keyed children (NOT a Fragment). Recharts scans
+   * direct children for CartesianGrid / XAxis / YAxis; Fragment wrapping can
+   * leave the plot without visible axes/grid.
+   */
+  const renderAxesAndChrome = (seriesNodes: React.ReactNode) => [
+    <CartesianGrid
+      key="grid"
+      strokeDasharray="3 3"
+      stroke="#cbd5e1"
+      horizontal
+      vertical
+    />,
+    <XAxis
+      key="x-axis"
+      dataKey="label"
+      hide={false}
+      type="category"
+      allowDuplicatedCategory={false}
+      tick={{ fontSize: 11, fill: '#475569', fontWeight: 600 }}
+      tickLine={{ stroke: '#94a3b8' }}
+      axisLine={{ stroke: '#94a3b8' }}
+      minTickGap={16}
+      interval="preserveStartEnd"
+      height={52}
+      tickMargin={8}
+      label={{
+        value: 'Thời gian',
+        position: 'insideBottom',
+        offset: -2,
+        style: { fill: '#64748b', fontSize: 11, fontWeight: 600 },
+      }}
+    />,
+    <YAxis
+      key="y-axis"
+      hide={false}
+      width={78}
+      domain={[0, 'auto']}
+      tickCount={6}
+      allowDecimals={!isMoney}
+      tick={{ fontSize: 11, fill: '#475569', fontWeight: 600 }}
+      tickLine={{ stroke: '#94a3b8' }}
+      axisLine={{ stroke: '#94a3b8' }}
+      tickMargin={6}
+      tickFormatter={(v) => (isMoney ? formatAxisMoney(Number(v)) : formatNumber(Number(v)))}
+      label={{
+        value: isMoney ? 'Số tiền (VND)' : 'Số lượng',
+        angle: -90,
+        position: 'insideLeft',
+        style: { fill: '#64748b', fontSize: 11, fontWeight: 600 },
+        offset: 10,
+      }}
+    />,
+    <Tooltip
+      key="tooltip"
+      content={<TrendTooltip />}
+      cursor={{ stroke: '#94a3b8', strokeDasharray: '4 4', fill: 'rgba(16, 185, 129, 0.06)' }}
+    />,
+    <Legend
+      key="legend"
+      formatter={(value) => series.find((s) => s.storeId === value)?.storeName ?? value}
+      wrapperStyle={{ paddingTop: 10, fontSize: 12, cursor: 'pointer' }}
+      onClick={(entry) => toggleSeries(String(entry.dataKey ?? entry.value ?? ''))}
+    />,
+    ...Children.toArray(seriesNodes),
+  ];
+
+  const renderLineSeries = () =>
+    activeSeries.map((s) => {
+      const i = series.findIndex((item) => item.storeId === s.storeId);
+      return (
+        <Line
+          key={s.storeId}
+          type="monotone"
+          dataKey={s.storeId}
+          name={s.storeId}
+          stroke={CHART_COLORS[i % CHART_COLORS.length]}
+          strokeWidth={2.5}
+          dot={{ r: 3, strokeWidth: 1, fill: '#fff' }}
+          activeDot={{ r: 5, strokeWidth: 2, cursor: 'pointer' }}
+          isAnimationActive={false}
+          cursor="pointer"
+        />
+      );
+    });
+
+  const renderBarSeries = (maxBarSize = 18) =>
+    activeSeries.map((s) => {
+      const i = series.findIndex((item) => item.storeId === s.storeId);
+      return (
+        <Bar
+          key={s.storeId}
+          dataKey={s.storeId}
+          name={s.storeId}
+          fill={CHART_COLORS[i % CHART_COLORS.length]}
+          radius={[4, 4, 0, 0]}
+          maxBarSize={maxBarSize}
+          isAnimationActive={false}
+          cursor="pointer"
+        />
+      );
+    });
+
+  const renderAreaSeries = () =>
+    activeSeries.map((s) => {
+      const i = series.findIndex((item) => item.storeId === s.storeId);
+      return (
+        <Area
+          key={s.storeId}
+          type="monotone"
+          dataKey={s.storeId}
+          name={s.storeId}
+          stroke={CHART_COLORS[i % CHART_COLORS.length]}
+          fill={CHART_COLORS[i % CHART_COLORS.length]}
+          fillOpacity={0.12}
+          strokeWidth={2.5}
+          dot={{ r: 3, strokeWidth: 1, fill: '#fff' }}
+          activeDot={{ r: 5, strokeWidth: 2, cursor: 'pointer' }}
+          isAnimationActive={false}
+          cursor="pointer"
+        />
+      );
+    });
+
+  // Generous margins so axis labels/ticks are never clipped.
+  const chartMargin = { top: 20, right: 28, left: 12, bottom: 36 };
+
+  let chart: React.ReactNode = null;
+  if (chartView === 'area') {
+    chart = (
+      <AreaChart data={chartData} margin={chartMargin} onClick={handlePeriodClick}>
+        {renderAxesAndChrome(renderAreaSeries())}
+      </AreaChart>
+    );
+  } else if (chartView === 'line') {
+    chart = (
+      <LineChart data={chartData} margin={chartMargin} onClick={handlePeriodClick}>
+        {renderAxesAndChrome(renderLineSeries())}
+      </LineChart>
+    );
+  } else if (chartView === 'combo') {
+    chart = (
+      <ComposedChart data={chartData} margin={chartMargin} onClick={handlePeriodClick}>
+        {renderAxesAndChrome(
+          <>
+            {activeSeries.slice(0, 1).map((s) => {
+              const i = series.findIndex((item) => item.storeId === s.storeId);
+              return (
+                <Bar
+                  key={s.storeId}
+                  dataKey={s.storeId}
+                  name={s.storeId}
+                  fill={CHART_COLORS[i % CHART_COLORS.length]}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={28}
+                  isAnimationActive={false}
+                  cursor="pointer"
+                />
+              );
+            })}
+            {activeSeries.slice(1).map((s) => {
+              const i = series.findIndex((item) => item.storeId === s.storeId);
+              return (
+                <Line
+                  key={s.storeId}
+                  type="monotone"
+                  dataKey={s.storeId}
+                  name={s.storeId}
+                  stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                  strokeWidth={2.5}
+                  dot={{ r: 3, strokeWidth: 1, fill: '#fff' }}
+                  activeDot={{ r: 5, strokeWidth: 2, cursor: 'pointer' }}
+                  isAnimationActive={false}
+                  cursor="pointer"
+                />
+              );
+            })}
+          </>,
+        )}
+      </ComposedChart>
+    );
+  } else {
+    chart = (
+      <BarChart data={chartData} margin={chartMargin} onClick={handlePeriodClick}>
+        {renderAxesAndChrome(renderBarSeries(18))}
+      </BarChart>
+    );
+  }
 
   return (
-    <div role="img" aria-label="Biểu đồ xu hướng doanh thu theo cửa hàng">
+    <div aria-label="Biểu đồ xu hướng doanh thu theo cửa hàng">
       {report?.trend?.note && (
         <p className="rbs-trend-note">{report.trend.note}</p>
       )}
@@ -586,101 +819,9 @@ function TrendMultiChart({
         })}
       </div>
       <div className="rbs-chart-wrap rbs-trend-chart-wrap">
-      <ResponsiveContainer width="100%" height={380}>
-        {chartView === 'area' ? (
-          <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
-            {common}
-            {activeSeries.map((s) => {
-              const i = series.findIndex((item) => item.storeId === s.storeId);
-              return (
-              <Area
-                key={s.storeId}
-                type="monotone"
-                dataKey={s.storeId}
-                name={s.storeId}
-                stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                fill={CHART_COLORS[i % CHART_COLORS.length]}
-                fillOpacity={0.12}
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-              );
-            })}
-          </AreaChart>
-        ) : chartView === 'line' ? (
-          <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
-            {common}
-            {activeSeries.map((s) => {
-              const i = series.findIndex((item) => item.storeId === s.storeId);
-              return (
-              <Line
-                key={s.storeId}
-                type="monotone"
-                dataKey={s.storeId}
-                name={s.storeId}
-                stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 5, strokeWidth: 2, cursor: 'pointer' }}
-                isAnimationActive={false}
-              />
-              );
-            })}
-          </LineChart>
-        ) : chartView === 'combo' ? (
-          <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
-            {common}
-            {activeSeries.slice(0, 1).map((s) => {
-              const i = series.findIndex((item) => item.storeId === s.storeId);
-              return (
-              <Bar
-                key={s.storeId}
-                dataKey={s.storeId}
-                name={s.storeId}
-                fill={CHART_COLORS[i % CHART_COLORS.length]}
-                radius={[4, 4, 0, 0]}
-                maxBarSize={28}
-                isAnimationActive={false}
-              />
-              );
-            })}
-            {activeSeries.slice(1).map((s) => {
-              const i = series.findIndex((item) => item.storeId === s.storeId);
-              return (
-              <Line
-                key={s.storeId}
-                type="monotone"
-                dataKey={s.storeId}
-                name={s.storeId}
-                stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-              );
-            })}
-          </ComposedChart>
-        ) : (
-          <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} onClick={(state) => state?.activeLabel && onSelectPeriod(String(state.activeLabel))}>
-            {common}
-            {activeSeries.map((s) => {
-              const i = series.findIndex((item) => item.storeId === s.storeId);
-              return (
-              <Bar
-                key={s.storeId}
-                dataKey={s.storeId}
-                name={s.storeId}
-                fill={CHART_COLORS[i % CHART_COLORS.length]}
-                radius={[4, 4, 0, 0]}
-                maxBarSize={18}
-                isAnimationActive={false}
-              />
-              );
-            })}
-          </BarChart>
-        )}
-      </ResponsiveContainer>
+        <ResponsiveContainer width="100%" height={400} minHeight={360} debounce={50}>
+          {chart as React.ReactElement}
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -765,10 +906,22 @@ function TrendPeriodModal({
   const titleId = useId();
   const periodRows = useMemo(() => {
     if (!report || !periodLabel) return [];
-    return report.trend.series.map((series) => {
-      const point = series.points.find((candidate) => candidate.label === periodLabel);
-      return { storeId: series.storeId, storeName: series.storeName, value: trendMetricValue(point, metric) };
-    }).sort((left, right) => right.value - left.value);
+    return report.trend.series
+      .map((series) => {
+        const point = series.points.find((candidate) => candidate.label === periodLabel);
+        return {
+          storeId: series.storeId,
+          storeName: series.storeName,
+          value: trendMetricValue(point, metric),
+          grossRevenue: Number(point?.grossRevenue ?? 0),
+          revenue: Number(point?.revenue ?? 0),
+          refundAmount: Number(point?.refundAmount ?? 0),
+          netRevenue: Number(point?.netRevenue ?? 0),
+          invoiceCount: Number(point?.invoiceCount ?? 0),
+          itemQuantity: Number(point?.itemQuantity ?? 0),
+        };
+      })
+      .sort((left, right) => right.value - left.value);
   }, [metric, periodLabel, report]);
 
   useEffect(() => {
@@ -789,13 +942,32 @@ function TrendPeriodModal({
   }, [onClose, periodLabel]);
 
   if (!periodLabel) return null;
-  const total = periodRows.reduce((sum, row) => sum + row.value, 0);
+
+  const totals = periodRows.reduce(
+    (acc, row) => ({
+      value: acc.value + row.value,
+      grossRevenue: acc.grossRevenue + row.grossRevenue,
+      revenue: acc.revenue + row.revenue,
+      refundAmount: acc.refundAmount + row.refundAmount,
+      netRevenue: acc.netRevenue + row.netRevenue,
+      invoiceCount: acc.invoiceCount + row.invoiceCount,
+      itemQuantity: acc.itemQuantity + row.itemQuantity,
+    }),
+    { value: 0, grossRevenue: 0, revenue: 0, refundAmount: 0, netRevenue: 0, invoiceCount: 0, itemQuantity: 0 },
+  );
   const isMoney = !['invoiceCount', 'itemQuantity'].includes(metric);
-  const formatValue = (value: number) => isMoney ? formatMoney(value) : formatNumber(value);
+  const formatValue = (value: number) => (isMoney ? formatMoney(value) : formatNumber(value));
+  const aov = totals.invoiceCount > 0 ? totals.revenue / totals.invoiceCount : 0;
 
   return (
     <div className="rbs-modal-backdrop" role="presentation" onClick={onClose}>
-      <section className="rbs-modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(event) => event.stopPropagation()}>
+      <section
+        className="rbs-modal rbs-modal-wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(event) => event.stopPropagation()}
+      >
         <header className="rbs-modal-header">
           <div>
             <p>Chi tiết kỳ</p>
@@ -806,16 +978,64 @@ function TrendPeriodModal({
           </button>
         </header>
         <div className="rbs-modal-body">
+          <div className="rbs-modal-kpi-grid">
+            <div className="rbs-modal-kpi">
+              <span>Trước giảm</span>
+              <strong>{formatMoney(totals.grossRevenue)}</strong>
+            </div>
+            <div className="rbs-modal-kpi">
+              <span>Doanh thu</span>
+              <strong>{formatMoney(totals.revenue)}</strong>
+            </div>
+            <div className="rbs-modal-kpi">
+              <span>Trả hàng</span>
+              <strong>{formatMoney(totals.refundAmount)}</strong>
+            </div>
+            <div className="rbs-modal-kpi">
+              <span>Thuần</span>
+              <strong>{formatMoney(totals.netRevenue)}</strong>
+            </div>
+            <div className="rbs-modal-kpi">
+              <span>Hóa đơn</span>
+              <strong>{formatNumber(totals.invoiceCount)}</strong>
+            </div>
+            <div className="rbs-modal-kpi">
+              <span>TB/HĐ</span>
+              <strong>{formatMoney(aov)}</strong>
+            </div>
+          </div>
           <div className="rbs-modal-total">
             <span>Tổng {METRIC_LABELS[metric] ?? metric}</span>
-            <strong>{formatValue(total)}</strong>
+            <strong>{formatValue(totals.value)}</strong>
           </div>
-          <table className="rbs-period-table">
-            <thead><tr><th>Cửa hàng</th><th>Giá trị</th></tr></thead>
-            <tbody>
-              {periodRows.map((row) => <tr key={row.storeId}><td>{row.storeName}</td><td>{formatValue(row.value)}</td></tr>)}
-            </tbody>
-          </table>
+          <div className="rbs-table-scroll">
+            <table className="rbs-period-table">
+              <thead>
+                <tr>
+                  <th>Cửa hàng</th>
+                  <th className="num">Doanh thu</th>
+                  <th className="num">Trả hàng</th>
+                  <th className="num">Thuần</th>
+                  <th className="num">HĐ</th>
+                  <th className="num">{METRIC_LABELS[metric] ?? 'Giá trị'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodRows.map((row) => (
+                  <tr key={row.storeId}>
+                    <td>{row.storeName}</td>
+                    <td className="num">{formatMoney(row.revenue)}</td>
+                    <td className="num">{formatMoney(row.refundAmount)}</td>
+                    <td className="num">{formatMoney(row.netRevenue)}</td>
+                    <td className="num">{formatNumber(row.invoiceCount)}</td>
+                    <td className="num">
+                      <strong>{formatValue(row.value)}</strong>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </div>
@@ -1458,77 +1678,68 @@ export function RevenueByStorePage() {
           </button>
         </div>
         <div className="rbs-filters-body">
+          {/* Flat primary row — same alignment pattern as revenue-by-time filters */}
           <div className="rbs-filter-grid rbs-filter-grid-primary">
-            <div className="rbs-store-select-wrap">
+            <label className="rbs-field">
+              Khoảng thời gian
+              <select
+                value={preset}
+                onChange={(e) => handlePresetChange(e.target.value as DatePreset)}
+                disabled={dateMode === 'custom'}
+                title={
+                  dateMode === 'custom'
+                    ? 'Đang dùng ngày tùy chỉnh. Nhấn Đặt lại để quay về khoảng thời gian có sẵn.'
+                    : undefined
+                }
+                aria-label="Preset khoảng thời gian"
+              >
+                {(options?.presets ?? Object.keys(PRESET_LABELS))
+                  .filter((p) => p !== 'custom')
+                  .map((p) => (
+                    <option key={p} value={p}>
+                      {PRESET_LABELS[p as DatePreset] ?? p}
+                    </option>
+                  ))}
+              </select>
+              {dateMode === 'custom' && (
+                <em className="rbs-field-hint">
+                  Đang dùng ngày tùy chỉnh — Đặt lại để quay về khoảng thời gian có sẵn.
+                </em>
+              )}
+            </label>
+            <label className="rbs-field">
+              Từ ngày
+              <input
+                type="date"
+                value={dateMode === 'custom' ? customFrom : ''}
+                max={dateMode === 'custom' && customTo ? customTo : undefined}
+                onChange={(e) => handleCustomDateChange('from', e.target.value)}
+                aria-invalid={Boolean(validationError) && dateMode === 'custom'}
+                aria-label="Từ ngày tùy chỉnh"
+              />
+            </label>
+            <label className="rbs-field">
+              Đến ngày
+              <input
+                type="date"
+                value={dateMode === 'custom' ? customTo : ''}
+                min={dateMode === 'custom' && customFrom ? customFrom : undefined}
+                onChange={(e) => handleCustomDateChange('to', e.target.value)}
+                aria-invalid={Boolean(validationError) && dateMode === 'custom'}
+                aria-label="Đến ngày tùy chỉnh"
+              />
+            </label>
+            <div className="rbs-store-field-cell">
               <StoreMultiSelect
                 stores={options?.stores ?? []}
                 selectedIds={draft.storeIds}
                 disabled={optionsLoading || Boolean(optionsError)}
                 onChange={(storeIds) => patchDraft({ storeIds, page: 1 })}
               />
-              {optionsLoading && <span className="rbs-field-hint">Đang tải danh sách cửa hàng…</span>}
+              {optionsLoading && <em className="rbs-field-hint">Đang tải danh sách cửa hàng…</em>}
               {!optionsLoading && !optionsError && (options?.stores.length ?? 0) === 0 && (
-                <span className="rbs-field-hint">API chưa trả về cửa hàng để chọn.</span>
+                <em className="rbs-field-hint">API chưa trả về cửa hàng để chọn.</em>
               )}
-              {optionsError && (
-                <div className="rbs-options-error" role="alert">
-                  <span>{optionsError}</span>
-                  <button type="button" className="btn btn-light" onClick={() => void loadOptions()} disabled={optionsLoading}>
-                    Thử lại
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="rbs-filter-grid-primary-fields">
-              <label className="rbs-field">
-                Khoảng thời gian
-                <select
-                  value={preset}
-                  onChange={(e) => handlePresetChange(e.target.value as DatePreset)}
-                  disabled={dateMode === 'custom'}
-                  title={
-                    dateMode === 'custom'
-                      ? 'Đang dùng ngày tùy chỉnh. Nhấn Đặt lại để quay về khoảng thời gian có sẵn.'
-                      : undefined
-                  }
-                  aria-label="Preset khoảng thời gian"
-                >
-                  {(options?.presets ?? Object.keys(PRESET_LABELS))
-                    .filter((p) => p !== 'custom')
-                    .map((p) => (
-                      <option key={p} value={p}>
-                        {PRESET_LABELS[p as DatePreset] ?? p}
-                      </option>
-                    ))}
-                </select>
-                {dateMode === 'custom' && (
-                  <em className="rbs-field-hint">
-                    Đang dùng ngày tùy chỉnh — Đặt lại để quay về khoảng thời gian có sẵn.
-                  </em>
-                )}
-              </label>
-              <label className="rbs-field">
-                Từ ngày
-                <input
-                  type="date"
-                  value={dateMode === 'custom' ? customFrom : ''}
-                  max={dateMode === 'custom' && customTo ? customTo : undefined}
-                  onChange={(e) => handleCustomDateChange('from', e.target.value)}
-                  aria-invalid={Boolean(validationError) && dateMode === 'custom'}
-                  aria-label="Từ ngày tùy chỉnh"
-                />
-              </label>
-              <label className="rbs-field">
-                Đến ngày
-                <input
-                  type="date"
-                  value={dateMode === 'custom' ? customTo : ''}
-                  min={dateMode === 'custom' && customFrom ? customFrom : undefined}
-                  onChange={(e) => handleCustomDateChange('to', e.target.value)}
-                  aria-invalid={Boolean(validationError) && dateMode === 'custom'}
-                  aria-label="Đến ngày tùy chỉnh"
-                />
-              </label>
             </div>
             <div className="rbs-filter-actions rbs-filter-actions-primary">
               {hasUnappliedChanges && <span className="rbs-pending-filter">Có thay đổi chưa áp dụng</span>}
@@ -1548,6 +1759,14 @@ export function RevenueByStorePage() {
               </button>
             </div>
           </div>
+          {optionsError && (
+            <div className="rbs-options-error" role="alert">
+              <span>{optionsError}</span>
+              <button type="button" className="btn btn-light" onClick={() => void loadOptions()} disabled={optionsLoading}>
+                Thử lại
+              </button>
+            </div>
+          )}
 
           {!filtersCollapsed && (
             <div id="rbs-advanced-filters" className="rbs-filter-advanced" aria-label="Bộ lọc nâng cao">

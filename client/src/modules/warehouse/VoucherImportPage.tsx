@@ -59,8 +59,13 @@ export function VoucherImportPage() {
   const [sysBranches, setSysBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  /** Stable per form mount — backend returns the same bill on double-submit (IM-018). */
+  const clientRequestIdRef = useRef(
+    `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+  );
 
   // Form states
   const [branchId, setBranchId] = useState('');
@@ -310,6 +315,7 @@ export function VoucherImportPage() {
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     setError('');
     setSuccessMsg('');
 
@@ -323,6 +329,7 @@ export function VoucherImportPage() {
       return;
     }
 
+    setSaving(true);
     try {
       const payload = {
         date: new Date().toISOString().slice(0, 10),
@@ -332,6 +339,7 @@ export function VoucherImportPage() {
         supplier,
         note: note || `Nhập kho tự động - Loại: ${importType}`,
         updatePriceFlag,
+        clientRequestId: clientRequestIdRef.current,
         items: validLines.map(line => ({
           productId: line.productId,
           quantity: line.quantity,
@@ -347,7 +355,7 @@ export function VoucherImportPage() {
       };
 
       const response = await http.post('/warehouse/vouchers/import', payload);
-      const voucherId = response.data?.voucher?.voucherId || 'PNK-xxxxxx';
+      const voucherId = response.data?.code || response.data?.voucher?.voucherId || response.data?._id || 'PNK-xxxxxx';
 
       setSuccessMsg(`Tạo thành công phiếu nhập kho ${voucherId}!`);
 
@@ -360,11 +368,14 @@ export function VoucherImportPage() {
           setNote('');
           setTags('');
           setSuccessMsg('');
+          clientRequestIdRef.current = `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+          setSaving(false);
         }
       }, 1500);
 
     } catch (err: any) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu phiếu nhập kho.');
+      setSaving(false);
     }
   };
 
@@ -385,8 +396,8 @@ export function VoucherImportPage() {
           <button className="btn btn-light" type="button" onClick={() => navigate('/warehouse/transactions')}>
             <ArrowLeft size={16} /> Quay lại
           </button>
-          <button className="btn btn-primary" type="button" onClick={handleSave} disabled={!branchId}>
-            Lưu phiếu nhập
+          <button className="btn btn-primary" type="button" onClick={handleSave} disabled={!branchId || saving}>
+            {saving ? 'Đang lưu…' : 'Lưu phiếu nhập'}
           </button>
         </div>
       </div>

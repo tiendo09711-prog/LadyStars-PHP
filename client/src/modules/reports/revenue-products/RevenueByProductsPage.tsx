@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Children, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -79,6 +79,43 @@ const CHART_COLORS = [
   '#f97316',
   '#64748b',
 ];
+
+function TimelineTooltip({
+  active,
+  label,
+  payload,
+}: {
+  active?: boolean;
+  label?: string;
+  payload?: Array<{ color?: string; dataKey?: string; name?: string; value?: number }>;
+}) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="rbp-tooltip rbp-tooltip-lg">
+      <div className="rbp-tooltip-title">{label}</div>
+      {payload.map((entry) => {
+        const key = String(entry.dataKey ?? entry.name ?? '');
+        const isQuantity = key === 'itemQuantity';
+        const labelText = isQuantity
+          ? 'SL bán'
+          : key === 'netRevenue'
+            ? 'DT thuần'
+            : key === 'refundAmount'
+              ? 'Hoàn'
+              : 'Doanh thu';
+
+        return (
+          <div className="rbp-tooltip-row" key={key}>
+            <span className="rbp-tooltip-dot" style={{ background: entry.color }} />
+            <span>{labelText}</span>
+            <strong>{isQuantity ? formatNumber(Number(entry.value ?? 0)) : formatMoney(Number(entry.value ?? 0))}</strong>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function ChangeBadge({ metric }: { metric: MetricComparison }) {
   if (!metric) {
@@ -317,52 +354,73 @@ function TimelineChart({
     );
   }
 
-  const common = (
-    <>
-      <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" />
-      <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} minTickGap={16} />
-      <YAxis yAxisId="money" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => formatNumber(v)} width={72} />
-      <YAxis yAxisId="qty" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} width={48} />
-      <Tooltip
-        formatter={(value: number, name: string) => {
-          if (name === 'itemQuantity') return [formatNumber(value), 'SL bán'];
-          return [formatMoney(value), name === 'netRevenue' ? 'DT thuần' : name === 'refundAmount' ? 'Hoàn' : 'Doanh thu'];
-        }}
-        contentStyle={{ borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)' }}
-      />
-      <Legend wrapperStyle={{ fontSize: 12 }} />
-    </>
-  );
+  const renderChartContent = (series: ReactNode) => [
+      <CartesianGrid key="grid" stroke="#dbe5ef" strokeDasharray="3 3" vertical horizontal />,
+      <XAxis
+        key="x-axis"
+        dataKey="label"
+        axisLine={{ stroke: '#cbd5e1' }}
+        tickLine={{ stroke: '#cbd5e1' }}
+        tick={{ fontSize: 11, fill: '#64748b' }}
+        minTickGap={16}
+      />,
+      <YAxis
+        key="money-axis"
+        yAxisId="money"
+        axisLine={{ stroke: '#cbd5e1' }}
+        tickLine={{ stroke: '#cbd5e1' }}
+        tick={{ fontSize: 11, fill: '#64748b' }}
+        tickFormatter={(value) => formatNumber(value)}
+        width={72}
+      />,
+      <YAxis
+        key="quantity-axis"
+        yAxisId="qty"
+        orientation="right"
+        axisLine={{ stroke: '#cbd5e1' }}
+        tickLine={{ stroke: '#cbd5e1' }}
+        tick={{ fontSize: 11, fill: '#64748b' }}
+        tickFormatter={(value) => formatNumber(value)}
+        width={48}
+      />,
+      <Tooltip key="tooltip" content={<TimelineTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />,
+      <Legend key="legend" wrapperStyle={{ fontSize: 12 }} />,
+      ...Children.toArray(series),
+    ];
 
   return (
     <div className="rbp-chart-wrap" role="img" aria-label="Doanh thu theo thời gian">
       <ResponsiveContainer width="100%" height={320}>
         {chartView === 'area' ? (
           <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {common}
-            <Area yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" fill="#10b981" fillOpacity={0.12} strokeWidth={2} />
-            <Area yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" fill="#059669" fillOpacity={0.08} strokeWidth={2} />
-            <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} />
+            {renderChartContent(<>
+              <Area yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" fill="#10b981" fillOpacity={0.12} strokeWidth={2} activeDot={{ r: 4 }} />
+              <Area yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" fill="#059669" fillOpacity={0.08} strokeWidth={2} activeDot={{ r: 4 }} />
+              <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            </>)}
           </AreaChart>
         ) : chartView === 'line' ? (
           <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {common}
-            <Line yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" strokeWidth={2} dot={false} />
-            <Line yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} />
-            <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} />
+            {renderChartContent(<>
+              <Line yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              <Line yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            </>)}
           </LineChart>
         ) : chartView === 'combo' ? (
           <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {common}
-            <Bar yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} />
-            <Line yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} />
-            <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} />
+            {renderChartContent(<>
+              <Bar yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <Line yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            </>)}
           </ComposedChart>
         ) : (
           <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {common}
-            <Bar yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
-            <Bar yAxisId="money" dataKey="refundAmount" name="Hoàn" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={22} />
+            {renderChartContent(<>
+              <Bar yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
+              <Bar yAxisId="money" dataKey="refundAmount" name="Hoàn" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={22} />
+            </>)}
           </BarChart>
         )}
       </ResponsiveContainer>
@@ -734,7 +792,7 @@ export function RevenueByProductsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [filtersAdvanced, setFiltersAdvanced] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [chartView, setChartView] = useState<ChartView>('area');
@@ -996,9 +1054,6 @@ export function RevenueByProductsPage() {
           </div>
         </div>
         <div className="rbp-hero-actions">
-          <button type="button" className="btn btn-light" onClick={() => setFiltersCollapsed((v) => !v)}>
-            {filtersCollapsed ? 'Hiện bộ lọc' : 'Ẩn bộ lọc'}
-          </button>
           <button type="button" className="btn btn-light" onClick={handleReset} disabled={busy}>
             <RotateCcw size={16} aria-hidden />
             Đặt lại
@@ -1068,8 +1123,10 @@ export function RevenueByProductsPage() {
         </div>
       </header>
 
-      {!filtersCollapsed && (
-        <section className="rbp-filters rbp-filters-sticky" aria-label="Bộ lọc báo cáo">
+      <section
+        className={filtersAdvanced ? 'rbp-filters rbp-filters-sticky is-advanced' : 'rbp-filters rbp-filters-sticky'}
+        aria-label="Bộ lọc báo cáo"
+      >
           <div className="rbp-filter-grid">
             <div className="rbp-field">
               <label htmlFor="rbp-preset">Khoảng thời gian</label>
@@ -1150,6 +1207,7 @@ export function RevenueByProductsPage() {
                 ))}
               </select>
             </div>
+            {filtersAdvanced && <>
             <div className="rbp-field">
               <label htmlFor="rbp-top">Top SP biểu đồ</label>
               <select
@@ -1280,9 +1338,22 @@ export function RevenueByProductsPage() {
                 onChange={(e) => patchDraft({ maxQuantity: e.target.value })}
               />
             </div>
+            </>}
           </div>
 
-          {(options?.stores?.length || options?.categories?.length) && (
+          <div className="rbp-advanced-toggle-row">
+            <button
+              type="button"
+              className="btn btn-light rbp-advanced-toggle"
+              onClick={() => setFiltersAdvanced((value) => !value)}
+              aria-expanded={filtersAdvanced}
+            >
+              {filtersAdvanced ? 'Thu gọn' : 'Nâng cao'}
+              <ChevronDown size={15} className={filtersAdvanced ? 'is-rotated' : undefined} aria-hidden />
+            </button>
+          </div>
+
+          {filtersAdvanced && (options?.stores?.length || options?.categories?.length) && (
             <div className="rbp-multi-row">
               {options?.stores && options.stores.length > 0 && (
                 <div className="rbp-field" style={{ gridColumn: '1 / -1' }}>
@@ -1343,8 +1414,7 @@ export function RevenueByProductsPage() {
               Đặt lại
             </button>
           </div>
-        </section>
-      )}
+      </section>
 
       {chips.length > 0 && (
         <div className="rbp-chips" aria-label="Bộ lọc đang áp dụng">

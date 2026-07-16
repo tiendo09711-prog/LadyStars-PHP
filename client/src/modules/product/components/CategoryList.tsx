@@ -274,6 +274,8 @@ export function CategoryList() {
   const handleRefresh = () => {
     setSearch('');
     setPage(1);
+    setStatusPill('all');
+    setSelectedIds([]);
     setError(null);
     setRefreshKey((value) => value + 1);
   };
@@ -321,10 +323,6 @@ export function CategoryList() {
 
   const handleToggleSelected = (id: string) => {
     setSelectedIds((current) => (current.includes(id) ? current.filter((itemId) => itemId !== id) : current.concat(id)));
-  };
-
-  const handleToggleSelectPage = (checked: boolean) => {
-    setSelectedIds(checked ? items.map((item) => item._id) : []);
   };
 
   const handleBulkStatus = async (isActive: boolean) => {
@@ -495,7 +493,19 @@ export function CategoryList() {
     }
   };
 
-  const allRowsSelected = items.length > 0 && selectedIds.length === items.length;
+  const visibleItems = useMemo(() => {
+    if (statusPill === 'active') return items.filter((item) => item.isActive !== false);
+    if (statusPill === 'inactive') return items.filter((item) => item.isActive === false);
+    if (statusPill === 'parent') return items.filter((item) => !item.parentId);
+    return items;
+  }, [items, statusPill]);
+
+  const handleToggleSelectPage = (checked: boolean) => {
+    // Chỉ chọn các dòng đang hiển thị (sau tab trạng thái), không chọn dòng bị tab ẩn.
+    setSelectedIds(checked ? visibleItems.map((item) => item._id) : []);
+  };
+
+  const allRowsSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.includes(item._id));
   const selectedCount = selectedIds.length;
   const activeCount = items.filter((item) => item.isActive !== false).length;
   const inactiveCount = items.filter((item) => item.isActive === false).length;
@@ -504,13 +514,6 @@ export function CategoryList() {
   const showingTo = total === 0 ? 0 : Math.min(page * limit, total);
   const hasSearch = search.trim().length > 0;
   const hasActiveFilters = hasSearch || statusPill !== 'all';
-
-  const visibleItems = useMemo(() => {
-    if (statusPill === 'active') return items.filter((item) => item.isActive !== false);
-    if (statusPill === 'inactive') return items.filter((item) => item.isActive === false);
-    if (statusPill === 'parent') return items.filter((item) => !item.parentId);
-    return items;
-  }, [items, statusPill]);
 
   const openRowActionMenu = (categoryId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();

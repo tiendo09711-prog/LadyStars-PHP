@@ -66,7 +66,7 @@ class LocalWriteApiTest extends TestCase
             'status' => 'active',
             'branch_id' => $this->branch->id,
         ]);
-        User::create([
+        $admin = User::create([
             'mongo_id' => 'userlocal00000000000001',
             'name' => 'Admin Local',
             'email' => 'admin.local@example.test',
@@ -77,6 +77,10 @@ class LocalWriteApiTest extends TestCase
             'default_warehouse_id' => $this->branch->id,
             'is_root_owner' => true,
             'is_active' => true,
+        ]);
+        // Default auth for write endpoints (SEC-005: unauthenticated writes rejected).
+        $this->withHeaders([
+            'Authorization' => 'Bearer local-laravel-token-'.$admin->id,
         ]);
     }
 
@@ -517,9 +521,28 @@ class LocalWriteApiTest extends TestCase
         ]);
         $voucher->assertCreated()->assertJsonPath('code', 'PNK-LOCAL');
 
-        $transfer = $this->postJson('/api/warehouse/transfers', [
+        $branchB = Branch::create([
+            'mongo_id' => 'branchlocal000000000002',
+            'name' => 'Kho Local B',
+            'code' => 'LOCALB',
+            'is_active' => true,
+        ]);
+
+        // Same source/destination must be rejected (TR-002).
+        $sameWh = $this->postJson('/api/warehouse/transfers', [
             'sourceWarehouseId' => (string) $this->branch->id,
             'destinationWarehouseId' => (string) $this->branch->id,
+            'status' => 'DRAFT',
+            'lines' => [[
+                'productId' => (string) $this->product->id,
+                'quantity' => 1,
+            ]],
+        ]);
+        $sameWh->assertStatus(422);
+
+        $transfer = $this->postJson('/api/warehouse/transfers', [
+            'sourceWarehouseId' => (string) $this->branch->id,
+            'destinationWarehouseId' => (string) $branchB->id,
             'status' => 'DRAFT',
             'lines' => [[
                 'productId' => (string) $this->product->id,

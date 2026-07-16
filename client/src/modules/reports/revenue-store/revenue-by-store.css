@@ -176,14 +176,10 @@
   padding: 7px 12px 8px;
 }
 
-.rbs-filters-sticky .rbs-filter-grid-primary {
-  grid-template-columns: minmax(175px, 1.2fr) minmax(420px, 2.8fr) auto;
+/* Primary filter row: period | from | to | store | actions — aligned like revenue-time */
+.rbs-filter-grid-primary {
+  grid-template-columns: minmax(140px, 1.15fr) repeat(2, minmax(132px, 0.9fr)) minmax(180px, 1.25fr) auto;
   align-items: end;
-}
-
-.rbs-filter-grid-primary-fields {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(150px, 1fr));
   gap: 8px;
 }
 
@@ -208,8 +204,15 @@
   border-radius: 8px;
 }
 
-.rbs-filters-sticky .rbs-store-select-wrap {
-  margin-top: 0;
+.rbs-store-field-cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rbs-store-field-cell .rbs-store-select {
+  width: 100%;
   max-width: none;
 }
 
@@ -232,6 +235,7 @@
   margin-top: 6px;
 }
 
+.rbs-filter-grid-primary .rbs-filter-actions,
 .rbs-filter-actions-primary {
   align-self: end;
   margin: 0;
@@ -422,24 +426,11 @@
   font-size: 12px;
 }
 
-.rbs-store-select-wrap {
-  position: relative;
-  margin-top: 14px;
-}
-
 .rbs-store-select {
   position: relative;
-  max-width: 440px;
-}
-
-.rbs-store-select-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--rbs-muted);
+  width: 100%;
+  max-width: none;
+  min-width: 0;
 }
 
 .rbs-store-select-trigger {
@@ -448,6 +439,7 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  height: 38px;
   min-height: 38px;
   padding: 0 10px;
   border: 1px solid var(--rbs-border);
@@ -455,8 +447,16 @@
   background: #fff;
   color: var(--rbs-ink);
   font: inherit;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
+}
+
+.rbs-store-select-trigger:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+  border-color: #d1d5db;
 }
 
 .rbs-store-select-trigger:focus-visible {
@@ -621,8 +621,42 @@
 }
 
 .rbs-trend-note { margin: 10px 16px 0; color: var(--rbs-muted); font-size: 12px; }
-.rbs-trend-chart-wrap { padding: 10px 18px 8px; background: linear-gradient(180deg, #fff 0%, #fbfdfc 100%); }
-.rbs-trend-chart-wrap .recharts-cartesian-axis-tick-value { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* Trend chart surface — keep axes/grid visible and unclipped */
+.rbs-trend-chart-wrap {
+  padding: 12px 12px 4px;
+  min-height: 400px;
+  overflow: visible;
+  background: linear-gradient(180deg, #fff 0%, #fbfdfc 100%);
+}
+.rbs-trend-chart-wrap .recharts-responsive-container,
+.rbs-trend-chart-wrap .recharts-wrapper,
+.rbs-trend-chart-wrap .recharts-surface {
+  overflow: visible !important;
+}
+/* Force axis text + lines visible (override any inherited color) */
+.rbs-trend-chart-wrap .recharts-cartesian-axis-tick-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  fill: #475569 !important;
+}
+.rbs-trend-chart-wrap .recharts-cartesian-axis-line,
+.rbs-trend-chart-wrap .recharts-cartesian-axis-tick-line {
+  stroke: #94a3b8 !important;
+}
+.rbs-trend-chart-wrap .recharts-label,
+.rbs-trend-chart-wrap .recharts-cartesian-axis .recharts-label {
+  fill: #64748b !important;
+}
+.rbs-trend-chart-wrap .recharts-cartesian-grid-horizontal line,
+.rbs-trend-chart-wrap .recharts-cartesian-grid-vertical line {
+  stroke: #cbd5e1 !important;
+  stroke-dasharray: 3 3;
+}
+.rbs-trend-chart-wrap .recharts-cartesian-grid-horizontal line:first-child,
+.rbs-trend-chart-wrap .recharts-cartesian-grid-horizontal line:last-child {
+  stroke: #94a3b8 !important;
+}
 
 .rbs-tooltip {
   background: rgba(15, 23, 42, 0.94);
@@ -711,6 +745,40 @@
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
 }
 
+.rbs-modal-wide {
+  width: min(760px, 100%);
+}
+
+.rbs-modal-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rbs-modal-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.rbs-modal-kpi span {
+  font-size: 11px;
+  color: var(--rbs-muted);
+  font-weight: 600;
+}
+
+.rbs-modal-kpi strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #064e3b;
+  font-variant-numeric: tabular-nums;
+}
+
 .rbs-modal-header {
   display: flex;
   align-items: flex-start;
@@ -767,9 +835,11 @@
   color: var(--rbs-muted);
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.rbs-period-table td:last-child {
+.rbs-period-table th.num,
+.rbs-period-table td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -1022,19 +1092,26 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 900px) {
-  .rbs-filters-sticky {
-    position: static;
-  }
-  .rbs-filters-sticky .rbs-filter-grid-primary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 1180px) {
+  .rbs-filter-grid-primary {
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
   }
   .rbs-filter-actions-primary {
     grid-column: 1 / -1;
     justify-content: flex-end;
   }
-  .rbs-filter-grid-primary-fields {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .rbs-filters-sticky {
+    position: static;
+  }
+  .rbs-filter-grid-primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rbs-filter-actions-primary {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
   .rbs-hero {
     flex-direction: column;
@@ -1048,6 +1125,9 @@
   .rbs-breakdown-body {
     grid-template-columns: 1fr;
   }
+  .rbs-modal-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -1057,14 +1137,9 @@
   .rbs-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .rbs-filter-grid {
-    grid-template-columns: 1fr;
-  }
-  .rbs-filters-sticky .rbs-filter-grid-primary,
-  .rbs-filters-sticky .rbs-filter-grid-secondary {
-    grid-template-columns: 1fr;
-  }
-  .rbs-filter-grid-primary-fields {
+  .rbs-filter-grid,
+  .rbs-filter-grid-primary,
+  .rbs-filter-grid-secondary {
     grid-template-columns: 1fr;
   }
   .rbs-filter-actions-primary {
@@ -1072,9 +1147,6 @@
   }
   .rbs-filter-actions-primary .rbs-pending-filter {
     position: static;
-  }
-  .rbs-filters-sticky .rbs-store-select-wrap {
-    max-width: none;
   }
   .rbs-filter-actions {
     flex-direction: column-reverse;
@@ -1085,6 +1157,9 @@
   .rbs-pagination {
     flex-direction: column;
     align-items: stretch;
+  }
+  .rbs-modal-kpi-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1115,7 +1190,7 @@
   .rbs-progress,
   .rbs-pagination,
   .rbs-surface-tools,
-  .rbs-store-select-wrap,
+  .rbs-store-field-cell,
   .rbs-options-error,
   .rbs-pending-filter,
   .rbs-alert,

@@ -184,6 +184,29 @@
   font-weight: 600;
 }
 
+.rbp-filters-sticky:not(.is-advanced) .rbp-filter-grid > :nth-child(n + 7),
+.rbp-filters-sticky:not(.is-advanced) .rbp-multi-row {
+  display: none;
+}
+
+.rbp-advanced-toggle-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 10px;
+}
+
+.rbp-advanced-toggle {
+  min-height: 34px;
+}
+
+.rbp-advanced-toggle svg {
+  transition: transform 0.18s ease;
+}
+
+.rbp-advanced-toggle svg.is-rotated {
+  transform: rotate(180deg);
+}
+
 .rbp-filters-sticky .rbp-multi-row {
   margin-top: 8px;
   gap: 8px;
@@ -325,28 +348,35 @@
 .rbp-charts-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
+}
+
+.rbp-kpi-grid + .rbp-charts-grid {
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
 }
 
 @media (max-width: 960px) {
   .rbp-charts-grid {
     grid-template-columns: 1fr;
   }
+  .rbp-kpi-grid + .rbp-charts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .rbp-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 12px;
 }
 
 .rbp-kpi {
   background: var(--rbp-surface);
   border: 1px solid var(--rbp-border);
   border-radius: 12px;
-  padding: 14px 14px 12px;
+  padding: 16px 16px 14px;
   box-shadow: var(--rbp-shadow);
-  min-height: 96px;
+  min-height: 104px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -368,7 +398,7 @@
 }
 
 .rbp-kpi-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 750;
   letter-spacing: -0.02em;
   color: #064e3b;
@@ -438,24 +468,62 @@
 }
 
 .rbp-chart-wrap {
-  padding: 4px 8px 16px;
-  min-height: 280px;
+  padding: 8px 12px 18px;
+  min-height: 300px;
+}
+
+.rbp-chart-wrap .recharts-cartesian-grid-horizontal line,
+.rbp-chart-wrap .recharts-cartesian-grid-vertical line {
+  stroke: #dbe5ef !important;
+  stroke-opacity: 1;
+}
+
+.rbp-chart-wrap .recharts-cartesian-axis-line,
+.rbp-chart-wrap .recharts-cartesian-axis-tick-line {
+  stroke: #cbd5e1 !important;
+}
+
+.rbp-chart-wrap .recharts-cartesian-axis-tick-value {
+  fill: #64748b;
+}
+
+.rbp-surface {
+  overflow: hidden;
+}
+
+.rbp-surface-head {
+  min-height: 68px;
+  align-items: center;
+}
+
+.rbp-surface-head h2 {
+  letter-spacing: -0.012em;
+}
+
+.rbp-kpi-grid + .rbp-charts-grid .rbp-surface:first-child {
+  background: linear-gradient(180deg, #fff 0%, #fbfffd 100%);
+}
+
+.rbp-kpi-grid + .rbp-charts-grid .rbp-surface:first-child .rbp-surface-head {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), transparent 58%);
 }
 
 .rbp-tooltip {
-  background: #fff;
-  border: 1px solid var(--rbp-border);
-  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  color: #fff;
   padding: 10px 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.28);
   font-size: 12px;
   max-width: 260px;
+  backdrop-filter: blur(6px);
 }
 
 .rbp-tooltip-title {
   font-weight: 700;
   margin-bottom: 6px;
-  color: var(--rbp-ink);
+  color: #cbd5e1;
 }
 
 .rbp-tooltip-row {
@@ -463,13 +531,14 @@
   align-items: center;
   gap: 8px;
   margin-top: 4px;
-  color: var(--rbp-muted);
+  color: #e2e8f0;
 }
 
 .rbp-tooltip-row strong {
   margin-left: auto;
-  color: var(--rbp-ink);
+  color: #fff;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .rbp-tooltip-dot {
@@ -481,9 +550,8 @@
 
 .rbp-breakdown-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 12px 16px 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .rbp-breakdown-card {

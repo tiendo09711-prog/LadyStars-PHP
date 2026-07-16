@@ -49,6 +49,22 @@ export function formatNumber(value: number | null | undefined, digits = 0): stri
   });
 }
 
+/** Compact Y-axis labels: 1,2tr / 1,5tỷ (same pattern as revenue-by-time). */
+export function formatAxisMoney(value: number): string {
+  const n = Number(value) || 0;
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) {
+    return `${(n / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}tỷ`;
+  }
+  if (abs >= 1_000_000) {
+    return `${(n / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}tr`;
+  }
+  if (abs >= 1_000) {
+    return `${(n / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 0 })}k`;
+  }
+  return formatNumber(n);
+}
+
 export function formatPercent(value: number | null | undefined, signed = true): string {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
   const sign = signed && value > 0 ? '+' : '';

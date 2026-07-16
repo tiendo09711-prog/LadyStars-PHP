@@ -120,6 +120,9 @@ class WarehouseTransferFlowTest extends TestCase
             'is_root_owner' => true,
             'is_active' => true,
         ]);
+        $this->withHeaders([
+            'Authorization' => 'Bearer local-laravel-token-'.$this->admin->id,
+        ]);
     }
 
     private function stock(int $productId, int $branchId): ProductBranchStock
