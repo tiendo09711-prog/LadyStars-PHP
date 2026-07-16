@@ -510,6 +510,13 @@ class ProductController extends Controller
                     $shape['selectedStock'] = (float) ($shape['stockByBranchId'][$key] ?? 0);
                     $shape['qty'] = $shape['selectedStock'];
                     $shape['quantity'] = $shape['selectedStock'];
+                    // Branch-scoped lock is required for transfer "có thể chuyển" = qty - locked.
+                    $branchStock = $product->relationLoaded('stocks')
+                        ? $product->stocks->first(fn ($s) => (string) $s->branch_id === $key)
+                        : null;
+                    $locked = (float) ($branchStock?->locked_quantity ?? ($shape['lockedByBranchId'][$key] ?? 0));
+                    $shape['lockedQuantity'] = $locked;
+                    $shape['availableStock'] = max(0.0, $shape['selectedStock'] - $locked);
                 }
 
                 return $shape;

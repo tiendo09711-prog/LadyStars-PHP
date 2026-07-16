@@ -869,6 +869,11 @@ class LocalWriteController extends Controller
             ], 422);
         }
 
+        // Enforce warehouse scope: admin 2-way; employee only on assigned warehouse side.
+        if ($deny = $this->denyTransferActionIfUnauthorized($request, $payload, $action)) {
+            return $deny;
+        }
+
         try {
             return match ($action) {
                 'confirm-source' => $this->warehouseTransferConfirmSource($record, $payload, $status, $kind),
@@ -879,6 +884,91 @@ class LocalWriteController extends Controller
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+    }
+
+    /**
+     * Admin/root: full access. Employee: confirm-source only at source warehouse,
+     * confirm-destination only at destination warehouse, return if either side matches.
+     */
+    private function denyTransferActionIfUnauthorized(Request $request, array $payload, string $action): ?JsonResponse
+    {
+        if ($this->isLocalAdmin($request)) {
+            return null;
+        }
+
+        $user = $request->attributes->get('localUser');
+        if (! $user instanceof User) {
+            $authHeader = (string) $request->header('Authorization', '');
+            if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+                $user = User::find((int) $matches[1]);
+            }
+        }
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $allowedMongo = $this->userTransferWarehouseMongoIds($user);
+        if ($allowedMongo === []) {
+            return response()->json([
+                'message' => 'Bạn chưa được gán kho. Không thể thao tác chuyển kho.',
+            ], 403);
+        }
+
+        $sourceId = (string) ($payload['sourceWarehouseId'] ?? $payload['from_branch_mongo_id'] ?? '');
+        $destId = (string) ($payload['destinationWarehouseId'] ?? $payload['to_branch_mongo_id'] ?? '');
+
+        $ok = match ($action) {
+            'confirm-source' => $sourceId !== '' && in_array($sourceId, $allowedMongo, true),
+            'confirm-destination' => $destId !== '' && in_array($destId, $allowedMongo, true),
+            'return' => ($sourceId !== '' && in_array($sourceId, $allowedMongo, true))
+                || ($destId !== '' && in_array($destId, $allowedMongo, true)),
+            default => false,
+        };
+
+        if (! $ok) {
+            return response()->json([
+                'message' => 'Bạn không có quyền thao tác trên kho này. Nhân viên chỉ được xử lý theo kho được gán (1 chiều).',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function userTransferWarehouseMongoIds(User $user): array
+    {
+        $localIds = [];
+        if ($user->default_warehouse_id) {
+            $localIds[] = (int) $user->default_warehouse_id;
+        }
+        if ($user->branch_id) {
+            $localIds[] = (int) $user->branch_id;
+        }
+        if (Schema::hasTable('user_warehouse_assignments')) {
+            $localIds = array_merge(
+                $localIds,
+                DB::table('user_warehouse_assignments')
+                    ->where('user_id', $user->id)
+                    ->pluck('branch_id')
+                    ->map(fn ($v) => (int) $v)
+                    ->all()
+            );
+        }
+        $localIds = array_values(array_unique(array_filter($localIds)));
+        if ($localIds === []) {
+            return [];
+        }
+
+        return Branch::query()
+            ->whereIn('id', $localIds)
+            ->where('is_active', true)
+            ->pluck('mongo_id')
+            ->filter()
+            ->map(fn ($v) => (string) $v)
+            ->values()
+            ->all();
     }
 
     private function transferKind(array $payload): string
@@ -955,6 +1045,10 @@ class LocalWriteController extends Controller
         $payload['lockedQuantity'] = collect($payload['lines'])->sum(
             fn ($line) => (float) (is_array($line) ? ($line['lockedQuantity'] ?? 0) : 0)
         );
+        // Linked source export reference (no second stock movement — lock already applied).
+        if (empty($payload['sourceExportBillId'])) {
+            $payload['sourceExportBillId'] = 'CK-EX-'.$this->nextSuffix();
+        }
         $record->forceFill(['status' => 'IN_TRANSIT', 'payload' => $payload])->save();
 
         return response()->json($this->serialize($record));
@@ -981,6 +1075,13 @@ class LocalWriteController extends Controller
         $payload['destinationConfirmedAt'] = now()->toISOString();
         $payload['lockedQuantity'] = 0;
         $payload['lines'] = $this->withLineLockedQuantity($payload['lines'] ?? [], 0);
+        // Linked destination import reference (stock already moved in applyTransferReceive).
+        if (empty($payload['destinationImportBillId'])) {
+            $payload['destinationImportBillId'] = 'CK-IM-'.$this->nextSuffix();
+        }
+        if (empty($payload['sourceExportBillId'])) {
+            $payload['sourceExportBillId'] = 'CK-EX-'.$this->nextSuffix();
+        }
         $record->forceFill(['status' => 'COMPLETED', 'payload' => $payload])->save();
 
         return response()->json($this->serialize($record));

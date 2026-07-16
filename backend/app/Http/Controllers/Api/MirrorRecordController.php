@@ -254,15 +254,98 @@ class MirrorRecordController extends Controller
         $serialized['date'] = $serialized['date'] ?? $serialized['business_date'] ?? $serialized['created_at'] ?? $serialized['date_send'] ?? null;
         $serialized['createdAt'] = $serialized['createdAt'] ?? $serialized['created_at'] ?? $serialized['date'] ?? null;
         $serialized['creator'] = $serialized['creator'] ?? $serialized['created_by'] ?? null;
-        $serialized['canEdit'] = $status === 'DRAFT';
-        $serialized['canCancel'] = $status === 'DRAFT';
-        $serialized['canConfirmSource'] = $status === 'DRAFT';
-        $serialized['canConfirmDestination'] = $status === 'IN_TRANSIT';
-        $serialized['canReturn'] = $status === 'IN_TRANSIT' && $kind !== 'RETURN_OF_TRANSFER';
+
+        // Permission flags: admin/root = 2 chiều; employee = 1 chiều theo kho được gán.
+        $access = $this->resolveTransferWarehouseAccess(request());
+        $sourceId = (string) ($serialized['sourceWarehouseId'] ?? '');
+        $destId = (string) ($serialized['destinationWarehouseId'] ?? '');
+        $canActOnSource = $access['isAdminOrRoot'] || ($sourceId !== '' && in_array($sourceId, $access['warehouseMongoIds'], true));
+        $canActOnDest = $access['isAdminOrRoot'] || ($destId !== '' && in_array($destId, $access['warehouseMongoIds'], true));
+
+        $serialized['canEdit'] = $status === 'DRAFT' && $canActOnSource;
+        $serialized['canCancel'] = $status === 'DRAFT' && $canActOnSource;
+        $serialized['canConfirmSource'] = $status === 'DRAFT' && $canActOnSource;
+        $serialized['canConfirmDestination'] = $status === 'IN_TRANSIT' && $canActOnDest;
+        $serialized['canReturn'] = $status === 'IN_TRANSIT' && $kind !== 'RETURN_OF_TRANSFER' && ($canActOnSource || $canActOnDest);
         $serialized['canPrint'] = $status === 'COMPLETED' || $status === 'RETURN_IN_PROGRESS' || $status === 'IN_TRANSIT';
         $serialized['audits'] = $serialized['audits'] ?? [];
 
         return $serialized;
+    }
+
+    /**
+     * Resolve warehouse access for transfer UI/actions.
+     * Admin/root owner: all active warehouses (2-way). Employee: assigned/default warehouses only (1-way).
+     *
+     * @return array{user: ?User, isAdminOrRoot: bool, warehouseMongoIds: array<int, string>, localBranchIds: array<int, int>}
+     */
+    private function resolveTransferWarehouseAccess(?Request $request = null): array
+    {
+        $request = $request ?? request();
+        $authHeader = (string) $request->header('Authorization', '');
+        $user = null;
+        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            $user = User::find((int) $matches[1]);
+        }
+
+        $activeBranches = Branch::query()
+            ->where('is_active', true)
+            ->get(['id', 'mongo_id']);
+
+        if (! $user) {
+            return [
+                'user' => null,
+                'isAdminOrRoot' => false,
+                'warehouseMongoIds' => [],
+                'localBranchIds' => [],
+            ];
+        }
+
+        $role = strtoupper((string) ($user->role ?: 'EMPLOYEE'));
+        $isAdminOrRoot = (bool) $user->is_root_owner || $role === 'ADMIN';
+
+        if ($isAdminOrRoot) {
+            return [
+                'user' => $user,
+                'isAdminOrRoot' => true,
+                'warehouseMongoIds' => $activeBranches->pluck('mongo_id')->filter()->values()->all(),
+                'localBranchIds' => $activeBranches->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            ];
+        }
+
+        $localIds = [];
+        if ($user->default_warehouse_id) {
+            $localIds[] = (int) $user->default_warehouse_id;
+        }
+        if ($user->branch_id) {
+            $localIds[] = (int) $user->branch_id;
+        }
+        if (Schema::hasTable('user_warehouse_assignments')) {
+            $assignRows = DB::table('user_warehouse_assignments')
+                ->where('user_id', $user->id)
+                ->pluck('branch_id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+            $localIds = array_merge($localIds, $assignRows);
+        }
+        $localIds = array_values(array_unique(array_filter($localIds)));
+
+        $branchMap = $activeBranches->keyBy('id');
+        $mongoIds = [];
+        foreach ($localIds as $lid) {
+            if ($b = $branchMap->get($lid)) {
+                if ($b->mongo_id) {
+                    $mongoIds[] = (string) $b->mongo_id;
+                }
+            }
+        }
+
+        return [
+            'user' => $user,
+            'isAdminOrRoot' => false,
+            'warehouseMongoIds' => array_values(array_unique($mongoIds)),
+            'localBranchIds' => $localIds,
+        ];
     }
 
     private function mirrorRecord(string $table, ?string $mongoId): ?array
@@ -1080,6 +1163,53 @@ class MirrorRecordController extends Controller
         $this->applyTransferWarehouseFilter($query, $columns, 'sourceWarehouseId', 'from_branch_mongo_id', 'from_branch_id', $request->query('sourceWarehouseId'));
         $this->applyTransferWarehouseFilter($query, $columns, 'destinationWarehouseId', 'to_branch_mongo_id', 'to_branch_id', $request->query('destinationWarehouseId'));
 
+        // Scope tabs by warehouse membership for non-admin (1 chiều):
+        // draft/outgoing → kho nguồn thuộc user; incoming → kho đích thuộc user.
+        $access = $this->resolveTransferWarehouseAccess($request);
+        if (! $access['isAdminOrRoot'] && $access['warehouseMongoIds'] !== []) {
+            $mongoIds = $access['warehouseMongoIds'];
+            $localIds = $access['localBranchIds'];
+            if ($tab === 'draft' || $tab === 'outgoing') {
+                $query->where(function ($builder) use ($columns, $mongoIds, $localIds): void {
+                    if ($columns->has('from_branch_mongo_id')) {
+                        $builder->whereIn('from_branch_mongo_id', $mongoIds);
+                    }
+                    if ($columns->has('from_branch_id') && $localIds !== []) {
+                        $builder->orWhereIn('from_branch_id', $localIds);
+                    }
+                });
+            } elseif ($tab === 'incoming') {
+                $query->where(function ($builder) use ($columns, $mongoIds, $localIds): void {
+                    if ($columns->has('to_branch_mongo_id')) {
+                        $builder->whereIn('to_branch_mongo_id', $mongoIds);
+                    }
+                    if ($columns->has('to_branch_id') && $localIds !== []) {
+                        $builder->orWhereIn('to_branch_id', $localIds);
+                    }
+                });
+            }
+            // tab=all: still visible for transparency of assigned warehouses only
+            if ($tab === 'all' && ! $request->filled('sourceWarehouseId') && ! $request->filled('destinationWarehouseId')) {
+                $query->where(function ($builder) use ($columns, $mongoIds, $localIds): void {
+                    if ($columns->has('from_branch_mongo_id')) {
+                        $builder->whereIn('from_branch_mongo_id', $mongoIds);
+                    }
+                    if ($columns->has('to_branch_mongo_id')) {
+                        $builder->orWhereIn('to_branch_mongo_id', $mongoIds);
+                    }
+                    if ($columns->has('from_branch_id') && $localIds !== []) {
+                        $builder->orWhereIn('from_branch_id', $localIds);
+                    }
+                    if ($columns->has('to_branch_id') && $localIds !== []) {
+                        $builder->orWhereIn('to_branch_id', $localIds);
+                    }
+                });
+            }
+        } elseif (! $access['isAdminOrRoot'] && $access['warehouseMongoIds'] === [] && $access['user'] !== null) {
+            // Employee without warehouse assignment: empty list (do not leak all transfers)
+            $query->whereRaw('1 = 0');
+        }
+
         $dateColumn = $columns->has('business_date') ? 'business_date' : ($columns->has('created_at') ? 'created_at' : null);
         if ($dateColumn) {
             if ($fromDate = trim((string) $request->query('fromDate', ''))) {
@@ -1123,8 +1253,20 @@ class MirrorRecordController extends Controller
 
         $query = (new MirrorRecord())->forTable($table)->newQuery();
         $record = ctype_digit($id)
-            ? $query->where('id', (int) $id)->firstOrFail()
-            : $query->where('mongo_id', $id)->firstOrFail();
+            ? $query->where('id', (int) $id)->first()
+            : $query->where('mongo_id', $id)->first();
+
+        if (! $record) {
+            $message = match ($resource) {
+                'warehouse-transfers' => 'Không tải được chi tiết đơn chuyển kho.',
+                'inventory-vouchers' => 'Không tải được chi tiết phiếu kho.',
+                'sale-payments' => 'Không tải được chi tiết hóa đơn.',
+                'product-refunds' => 'Không tải được chi tiết phiếu trả hàng.',
+                default => 'Không tìm thấy bản ghi.',
+            };
+
+            return response()->json(['message' => $message], 404);
+        }
 
         return response()->json($this->enrich($this->serialize($record), $resource, $table));
     }

@@ -182,8 +182,10 @@ class NodeShape
         $stocks = $product->relationLoaded('stocks') ? $product->stocks : collect();
 
         $stockByBranchId = [];
+        $lockedByBranchId = [];
         $stockByBranchCode = [];
         $totalStock = 0.0;
+        $totalLocked = 0.0;
         $legacyHanoi = 0.0;
         $legacyHcm = 0.0;
         $legacyCenter = 0.0;
@@ -191,12 +193,15 @@ class NodeShape
         foreach ($stocks as $stock) {
             $branchId = (string) $stock->branch_id;
             $qty = (float) $stock->qty;
+            $locked = (float) $stock->locked_quantity;
             $branch = $stock->relationLoaded('branch') ? $stock->branch : null;
 
             if (isset($stockByBranchId[$branchId])) {
                 $stockByBranchId[$branchId] += $qty;
+                $lockedByBranchId[$branchId] += $locked;
             } else {
                 $stockByBranchId[$branchId] = $qty;
+                $lockedByBranchId[$branchId] = $locked;
             }
 
             if ($branch) {
@@ -212,10 +217,13 @@ class NodeShape
             }
 
             $totalStock += $qty;
+            $totalLocked += $locked;
         }
 
         $primaryStock = $stocks->first();
         $primaryBranch = $primaryStock && $primaryStock->relationLoaded('branch') ? $primaryStock->branch : null;
+        $primaryQty = $primaryStock ? (float) $primaryStock->qty : $totalStock;
+        $primaryLocked = $primaryStock ? (float) $primaryStock->locked_quantity : $totalLocked;
 
         return [
             '_id' => (string) $product->id,
@@ -229,13 +237,16 @@ class NodeShape
             'wholesalePrice' => (float) $product->wholesale_price,
             'status' => $product->status,
             'stockByBranchId' => $stockByBranchId,
+            'lockedByBranchId' => $lockedByBranchId,
             'stockByBranchCode' => $stockByBranchCode,
             'stockHanoi' => $legacyHanoi,
             'stockHCM' => $legacyHcm,
             'stockCN' => $legacyCenter,
             'totalStock' => $totalStock,
-            'qty' => $primaryStock ? (float) $primaryStock->qty : $totalStock,
-            'quantity' => $primaryStock ? (float) $primaryStock->qty : $totalStock,
+            'qty' => $primaryQty,
+            'quantity' => $primaryQty,
+            'lockedQuantity' => $primaryLocked,
+            'availableStock' => max(0.0, $primaryQty - $primaryLocked),
             'product' => self::product($product),
             'branch' => $primaryBranch ? self::branch($primaryBranch) : null,
             'createdAt' => optional($product->created_at)->toISOString(),
