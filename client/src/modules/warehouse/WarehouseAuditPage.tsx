@@ -913,7 +913,19 @@ export function WarehouseAuditPage() {
     }
   };
 
-  const canMerge = selectedAuditRows.length >= 2;
+  const canMerge = useMemo(() => {
+    if (selectedAuditRows.length < 2) return false;
+    // Only Nháp / Đang kiểm, same warehouse, not already merged (backend re-validates).
+    for (const row of selectedAuditRows) {
+      const st = String(row.status || '').toUpperCase();
+      if (st !== 'DRAFT' && st !== 'COUNTING') return false;
+      if (row.mergedIntoAuditId) return false;
+    }
+    const warehouses = new Set(selectedAuditRows.map((row) => String(row.warehouseId || '')));
+    if (warehouses.size !== 1) return false;
+    const only = [...warehouses][0];
+    return Boolean(only);
+  }, [selectedAuditRows]);
   const auditColumnCount = 12;
   const itemColumnCount = 15;
   const currentTitle = activeTab === 'audits' ? 'Kiểm kho' : 'Sản phẩm kiểm kho';

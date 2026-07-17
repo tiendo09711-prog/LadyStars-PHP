@@ -13,11 +13,21 @@ import {
   AlertCircle,
   MoreHorizontal
 } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { productApi } from '../../core/api/product.api';
 import type { IStorageDuration, ICategory, IStorageDurationKpis } from '../../types/product.type';
 import { Pagination } from '../../core/components/Pagination';
 import { http } from '../../core/api/http';
 import * as XLSX from 'xlsx';
+import { InventoryReportShell } from '../reports/inventory/components/InventoryReportShell';
 import { ExportExcelModal, type ColumnOption } from './components/ExportExcelModal';
 import './product-compact.css';
 import './products-page.css';
@@ -614,6 +624,7 @@ export function StorageDurationPage() {
   const openActionItem = openActionMenu ? items.find((item) => item._id === openActionMenu) ?? null : null;
 
   return (
+    <InventoryReportShell>
     <div className="product-compact-shell storage-duration-page">
       {/* Toast Notification Banner */}
       {toast && (
@@ -695,9 +706,47 @@ export function StorageDurationPage() {
               </>
             ) : null}
             <span className="storage-summary-divider" aria-hidden="true" />
-            <span className="storage-summary-value">{formatKpiMoney(kpis.totalValue)}</span>
+            <span className="storage-summary-value" data-testid="storage-kpi-value">{formatKpiMoney(kpis.totalValue)}</span>
+            <span className="storage-summary-divider" aria-hidden="true" />
+            <span data-testid="storage-kpi-products">{Number(kpis.totalProducts || 0).toLocaleString('vi-VN')} SP</span>
+            <span className="storage-summary-divider" aria-hidden="true" />
+            <span data-testid="storage-kpi-unsold">{Number(kpis.unsoldLong || 0).toLocaleString('vi-VN')} tồn lâu</span>
+            <span className="storage-summary-divider" aria-hidden="true" />
+            <span data-testid="storage-kpi-slow">{Number(kpis.slowSelling || 0).toLocaleString('vi-VN')} bán chậm</span>
           </div>
         </div>
+
+        <section className="data-card" data-testid="storage-age-chart-card" aria-label="Phân bổ tuổi tồn">
+          <div className="data-card-header">
+            <h2 className="inventory-table-title">Phân bổ theo nhóm tuổi tồn</h2>
+            <p className="inventory-table-subtitle">Bucket do server tính trên toàn bộ kết quả đã lọc.</p>
+          </div>
+          {(kpis.ageBuckets && kpis.ageBuckets.length > 0) ? (
+            <div data-testid="storage-age-chart" style={{ width: '100%', minHeight: 240, padding: '8px 12px 16px' }}>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={kpis.ageBuckets} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      name === 'value'
+                        ? `${Number(value).toLocaleString('vi-VN')} đ`
+                        : Number(value).toLocaleString('vi-VN'),
+                      name === 'value' ? 'Giá trị vốn' : 'Số SP',
+                    ]}
+                  />
+                  <Bar dataKey="count" name="Số SP" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="value" name="Giá trị vốn" fill="#059669" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div data-testid="storage-age-chart-empty" style={{ padding: 16, color: '#64748b', fontSize: 13 }}>
+              {loading ? 'Đang tải phân bổ tuổi tồn...' : 'Không có dữ liệu tuổi tồn cho bộ lọc hiện tại.'}
+            </div>
+          )}
+        </section>
 
         <form className="storage-filter-bar" onSubmit={handleSearchSubmit}>
           <div className="storage-search">
@@ -1129,5 +1178,6 @@ export function StorageDurationPage() {
       ) : null}
 
     </div>
+    </InventoryReportShell>
   );
 }

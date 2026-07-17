@@ -20,8 +20,5 @@ function ReportPlaceholderPage({ title }: ReportPlaceholderPageProps) {
 export { RevenueByTimePage } from './revenue-time/RevenueByTimePage';
 export { RevenueByStorePage } from './revenue-store/RevenueByStorePage';
 export { RevenueByProductsPage } from './revenue-products/RevenueByProductsPage';
-export const SalesOverviewReportPage = () => <ReportPlaceholderPage title="Tổng quan bán hàng" />;
-export const SalesShiftClosingReportPage = () => <ReportPlaceholderPage title="Kết ca bán hàng" />;
-export const InventoryInOutStockReportPage = () => <ReportPlaceholderPage title="Xuất nhập tồn" />;
-export const InventoryPendingTransfersReportPage = () => <ReportPlaceholderPage title="Chuyển kho chưa xác nhận" />;
+export { InventoryInOutStockPage as InventoryInOutStockReportPage } from './inventory/InventoryInOutStockPage';
 export const ProductPerformanceReportPage = () => <ReportPlaceholderPage title="Hiệu suất sản phẩm" />;

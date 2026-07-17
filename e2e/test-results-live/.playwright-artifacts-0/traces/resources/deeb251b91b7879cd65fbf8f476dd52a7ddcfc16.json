@@ -1,0 +1,1 @@
+{"status":"draft","channel":"store","type":"wholesale","branchId":"1","customerId":"1767","valuePayment":420000,"typePayment":[{"methodId":"2bbef4d32c5b1151ef8d0f22","amount":420000}],"tenderedValue":420000,"items":[{"productId":"4232","amount":2,"value":100000},{"productId":"4233","amount":1,"value":220000}],"note":"QA-WS-WS-FULL-20260717125836-MULTI"}

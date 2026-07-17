@@ -38,6 +38,7 @@ import {
   YAxis,
 } from 'recharts';
 import { fetchRevenueByStoreOptions, fetchRevenueByStoreReport } from './revenueByStore.api';
+import { RevenueReportNav } from '../components/RevenueReportNav';
 import type {
   ChartView,
   DateMode,
@@ -277,45 +278,6 @@ function SummaryCards({
     if (!summary) return [];
     const list: Card[] = [
       {
-        key: 'netRevenue',
-        label: 'Doanh thu thuần',
-        value: formatMoney(summary.netRevenue),
-        metricKey: 'netRevenue',
-        tip: 'Doanh thu − hoàn tiền (product_refunds)',
-      },
-      {
-        key: 'revenue',
-        label: 'Doanh thu',
-        value: formatMoney(summary.revenue),
-        metricKey: 'revenue',
-        tip: 'Tổng value/value_payment sau giảm giá',
-      },
-      {
-        key: 'refundAmount',
-        label: 'Hoàn tiền',
-        value: formatMoney(summary.refundAmount),
-        metricKey: 'refundAmount',
-      },
-      {
-        key: 'invoiceCount',
-        label: 'Số hóa đơn',
-        value: formatNumber(summary.invoiceCount),
-        metricKey: 'invoiceCount',
-      },
-      {
-        key: 'itemQuantity',
-        label: 'Số sản phẩm',
-        value: formatNumber(summary.itemQuantity),
-        metricKey: 'itemQuantity',
-      },
-      {
-        key: 'averageOrderValue',
-        label: 'Giá trị đơn TB',
-        value: formatMoney(summary.averageOrderValue),
-        metricKey: 'averageOrderValue',
-        tip: 'Doanh thu / số hóa đơn (0 nếu không có hóa đơn)',
-      },
-      {
         key: 'storeCount',
         label: 'Cửa hàng có DT',
         value: formatNumber(summary.storeCount),
@@ -330,20 +292,6 @@ function SummaryCards({
           : '—',
       },
     ];
-    if (summary.costAmount !== null) {
-      list.push({
-        key: 'grossProfit',
-        label: 'Lợi nhuận gộp',
-        value: formatMoney(summary.grossProfit),
-        metricKey: 'grossProfit',
-        tip: 'Chỉ khi có total_cost',
-      });
-      list.push({
-        key: 'grossMarginPercent',
-        label: 'Biên LN',
-        value: summary.grossMarginPercent !== null ? formatPercent(summary.grossMarginPercent, false) : '—',
-      });
-    }
     return list;
   }, [summary]);
 
@@ -1571,6 +1519,8 @@ export function RevenueByStorePage() {
     <main className="rbs-page revenue-store-report-page">
       {busy && <div className="rbs-progress" aria-hidden />}
 
+      <RevenueReportNav />
+
       <header className="rbs-hero">
         <div>
           <div className="rbs-hero-meta" style={{ marginTop: 0, marginBottom: 4 }}>
@@ -1962,36 +1912,21 @@ export function RevenueByStorePage() {
         />
       </section>
 
-      {/* Share + secondary breakdowns */}
+      {/* Store-specific contribution */}
       <section className="rbs-surface">
         <div className="rbs-surface-head">
           <div>
-            <h2>Tỷ trọng &amp; phân tích phụ</h2>
-            <p>Tỷ trọng doanh thu thuần theo cửa hàng, kênh bán và phương thức thanh toán.</p>
+            <h2>Tỷ trọng theo cửa hàng</h2>
+            <p>Mức đóng góp doanh thu thuần của từng cửa hàng trong kỳ đã chọn.</p>
           </div>
         </div>
-        <div className="rbs-breakdown-grid">
+        <div className="rbs-breakdown-grid rbs-breakdown-grid-single">
           <div className="rbs-breakdown-card">
-            <h3>Tỷ trọng theo cửa hàng</h3>
+            <h3>Đóng góp doanh thu</h3>
             <SharePieChart
               items={report?.breakdowns?.revenueShareByStore ?? []}
               loading={loading && !report}
             />
-          </div>
-          <div className="rbs-breakdown-card">
-            <h3>Theo kênh bán</h3>
-            <SharePieChart items={report?.breakdowns?.channels ?? []} loading={loading && !report} />
-          </div>
-          <div className="rbs-breakdown-card">
-            <h3>Theo phương thức TT</h3>
-            <SharePieChart
-              items={report?.breakdowns?.paymentMethods ?? []}
-              loading={loading && !report}
-            />
-          </div>
-          <div className="rbs-breakdown-card">
-            <h3>Theo nhân viên</h3>
-            <SharePieChart items={report?.breakdowns?.staff ?? []} loading={loading && !report} />
           </div>
         </div>
       </section>

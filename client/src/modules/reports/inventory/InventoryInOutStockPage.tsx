@@ -1,0 +1,561 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { ChevronDown, Download, RefreshCw } from 'lucide-react';
+import { InventoryReportShell } from './components/InventoryReportShell';
+import { fetchAllInOutStockRows, fetchInOutStockOptions, fetchInOutStockReport, fetchInventoryReconciliation } from './in-out/inOutStock.api';
+import type { InventoryReconciliationResponse } from './in-out/inOutStock.api';
+import type {
+  InOutStockFilters,
+  InOutStockOptions,
+  InOutStockReportResponse,
+} from './in-out/inOutStock.types';
+import {
+  buildInOutCsv,
+  defaultFilters,
+  downloadTextFile,
+  exportFilename,
+  extractApiError,
+  formatDisplayDateTime,
+  formatMoney,
+  formatNumber,
+  isEmptyReport,
+  validateDateRange,
+} from './in-out/inOutStock.utils';
+import './in-out/in-out-stock-page.css';
+
+export function InventoryInOutStockPage() {
+  const [options, setOptions] = useState<InOutStockOptions | null>(null);
+  const [draft, setDraft] = useState<InOutStockFilters>(() => defaultFilters());
+  const [applied, setApplied] = useState<InOutStockFilters>(() => defaultFilters());
+  const [report, setReport] = useState<InOutStockReportResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [reconciliation, setReconciliation] = useState<InventoryReconciliationResponse | null>(null);
+  const [reconciliationError, setReconciliationError] = useState(false);
+
+  const abortRef = useRef<AbortController | null>(null);
+  const requestSeq = useRef(0);
+
+  const loadReport = useCallback(async (filters: InOutStockFilters, mode: 'load' | 'refresh' = 'load') => {
+    const maxDays = options?.maxRangeDays ?? 366;
+    const rangeErr = validateDateRange(filters.fromDate, filters.toDate, maxDays);
+    if (rangeErr) {
+      setValidationError(rangeErr);
+      setError('');
+      return;
+    }
+    setValidationError(null);
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const seq = ++requestSeq.current;
+
+    if (mode === 'refresh') setRefreshing(true);
+    else setLoading(true);
+    setError('');
+
+    try {
+      const data = await fetchInOutStockReport(filters, controller.signal);
+      if (seq !== requestSeq.current) return;
+      setReport(data);
+      setApplied(filters);
+      try {
+        setReconciliation(await fetchInventoryReconciliation(filters, controller.signal));
+        setReconciliationError(false);
+      } catch (reconcileErr: unknown) {
+        if ((reconcileErr as { code?: string })?.code === 'ERR_CANCELED') return;
+        setReconciliation(null);
+        setReconciliationError(true);
+      }
+    } catch (err: unknown) {
+      if (
+        (err as { code?: string; name?: string })?.code === 'ERR_CANCELED' ||
+        (err as { name?: string })?.name === 'CanceledError'
+      ) {
+        return;
+      }
+      if (seq !== requestSeq.current) return;
+      setError(extractApiError(err));
+    } finally {
+      if (seq === requestSeq.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, [options?.maxRangeDays]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const opts = await fetchInOutStockOptions();
+        if (active) setOptions(opts);
+      } catch (err: unknown) {
+        if (!active) return;
+        setError(extractApiError(err));
+      }
+      if (!active) return;
+      const filters = defaultFilters();
+      setDraft(filters);
+      setApplied(filters);
+      await loadReport(filters, 'load');
+    })();
+    return () => {
+      active = false;
+      abortRef.current?.abort();
+    };
+    // Bootstrap once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const patchDraft = (patch: Partial<InOutStockFilters>) => {
+    setDraft((prev) => ({ ...prev, ...patch }));
+  };
+
+  const handleApply = () => {
+    const next = { ...draft, page: 1 };
+    const rangeErr = validateDateRange(next.fromDate, next.toDate, options?.maxRangeDays ?? 366);
+    if (rangeErr) {
+      setValidationError(rangeErr);
+      return;
+    }
+    setValidationError(null);
+    setDraft(next);
+    void loadReport(next, 'load');
+  };
+
+  const handleReset = () => {
+    const next = defaultFilters();
+    setValidationError(null);
+    setError('');
+    setDraft(next);
+    void loadReport(next, 'load');
+  };
+
+  const handleRefresh = () => {
+    if (loading || refreshing) return;
+    void loadReport(applied, 'refresh');
+  };
+
+  const handleSort = (field: InOutStockFilters['sortBy']) => {
+    const next: InOutStockFilters = {
+      ...applied,
+      sortBy: field,
+      sortDir: applied.sortBy === field && applied.sortDir === 'asc' ? 'desc' : 'asc',
+      page: 1,
+    };
+    setDraft((d) => ({ ...d, sortBy: next.sortBy, sortDir: next.sortDir, page: 1 }));
+    void loadReport(next, 'load');
+  };
+
+  const handlePageChange = (page: number) => {
+    const next = { ...applied, page };
+    setDraft((d) => ({ ...d, page }));
+    void loadReport(next, 'load');
+  };
+
+  const handleExport = async () => {
+    if (exporting || loading) return;
+    if (isEmptyReport(report)) {
+      setError('Không có dữ liệu để xuất.');
+      return;
+    }
+    setExporting(true);
+    setError('');
+    try {
+      const rows = await fetchAllInOutStockRows(applied);
+      if (!rows.length) {
+        setError('Không có dữ liệu để xuất.');
+        return;
+      }
+      const csv = buildInOutCsv(rows);
+      downloadTextFile(csv, exportFilename(applied.fromDate, applied.toDate), 'text/csv;charset=utf-8');
+    } catch (err: unknown) {
+      setError(extractApiError(err));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const busy = loading || refreshing;
+  const summary = report?.summary;
+  const timeline = report?.timeline ?? [];
+  const tableRows = report?.table?.data ?? [];
+  const pagination = report?.table?.pagination;
+  const showValue = Boolean(options?.capabilities?.valueMetrics ?? report?.meta?.capabilities?.valueMetrics);
+  const empty = !loading && !error && isEmptyReport(report);
+  const chartHasData = timeline.some((p) => (p.qtyIn || 0) !== 0 || (p.qtyOut || 0) !== 0);
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!report?.meta?.generatedAt) return null;
+    return formatDisplayDateTime(report.meta.generatedAt);
+  }, [report?.meta?.generatedAt]);
+
+  const sortAria = (field: InOutStockFilters['sortBy']): 'ascending' | 'descending' | 'none' => {
+    if (applied.sortBy !== field) return 'none';
+    return applied.sortDir === 'asc' ? 'ascending' : 'descending';
+  };
+
+  return (
+    <InventoryReportShell lastUpdatedLabel={lastUpdatedLabel}>
+      <div className="inout-page" data-testid="inout-stock-page" aria-busy={busy || undefined}>
+        {busy ? <div className="inout-progress" aria-hidden /> : null}
+
+        <section className="inout-filters" aria-labelledby="inout-filters-title">
+          <div className="inout-filters__head">
+            <h2 id="inout-filters-title">Bộ lọc</h2>
+            <button
+              type="button"
+              className="inout-filters__toggle"
+              aria-expanded={!filtersCollapsed}
+              onClick={() => setFiltersCollapsed((v) => !v)}
+            >
+              <ChevronDown size={14} style={{ transform: filtersCollapsed ? 'rotate(-90deg)' : undefined }} />
+              {filtersCollapsed ? 'Mở bộ lọc' : 'Thu gọn'}
+            </button>
+          </div>
+
+          {!filtersCollapsed ? (
+            <>
+              <div className="inout-filters__grid">
+                <div className="inout-field">
+                  <label htmlFor="inout-from">Từ ngày</label>
+                  <input
+                    id="inout-from"
+                    type="date"
+                    value={draft.fromDate}
+                    onChange={(e) => patchDraft({ fromDate: e.target.value })}
+                  />
+                </div>
+                <div className="inout-field">
+                  <label htmlFor="inout-to">Đến ngày</label>
+                  <input
+                    id="inout-to"
+                    type="date"
+                    value={draft.toDate}
+                    onChange={(e) => patchDraft({ toDate: e.target.value })}
+                  />
+                </div>
+                <div className="inout-field">
+                  <label htmlFor="inout-warehouse">Kho / chi nhánh</label>
+                  <select
+                    id="inout-warehouse"
+                    value={draft.warehouseId}
+                    onChange={(e) => patchDraft({ warehouseId: e.target.value })}
+                  >
+                    <option value="">Tất cả kho</option>
+                    {(options?.warehouses ?? []).map((w) => (
+                      <option key={w.value} value={w.value}>{w.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="inout-field">
+                  <label htmlFor="inout-type">Loại giao dịch</label>
+                  <select
+                    id="inout-type"
+                    value={draft.type}
+                    onChange={(e) => patchDraft({ type: e.target.value })}
+                  >
+                    <option value="">Tất cả loại</option>
+                    {(options?.types ?? []).map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="inout-field">
+                  <label htmlFor="inout-q">Từ khóa</label>
+                  <input
+                    id="inout-q"
+                    type="search"
+                    placeholder="Mã phiếu, mã SP, tên SP..."
+                    value={draft.q}
+                    onChange={(e) => patchDraft({ q: e.target.value })}
+                  />
+                </div>
+                <div className="inout-field">
+                  <label htmlFor="inout-per-page">Số dòng / trang</label>
+                  <select
+                    id="inout-per-page"
+                    value={draft.perPage}
+                    onChange={(e) => patchDraft({ perPage: Number(e.target.value) || 20 })}
+                  >
+                    {(options?.perPageOptions ?? [20, 50, 100]).map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {validationError ? (
+                <p className="inout-validation" role="alert">{validationError}</p>
+              ) : null}
+
+              <div className="inout-actions">
+                {/* Apply/Reset stay enabled so users can supersede in-flight requests (stale abort). */}
+                <button type="button" className="inout-btn inout-btn--primary" onClick={handleApply}>
+                  Áp dụng
+                </button>
+                <button type="button" className="inout-btn inout-btn--secondary" onClick={handleReset}>
+                  Đặt lại
+                </button>
+                <button type="button" className="inout-btn inout-btn--ghost" onClick={handleRefresh} disabled={busy}>
+                  <RefreshCw size={14} /> Làm mới
+                </button>
+                <button
+                  type="button"
+                  className="inout-btn inout-btn--ghost"
+                  onClick={() => void handleExport()}
+                  disabled={exporting || empty || loading}
+                >
+                  <Download size={14} /> {exporting ? 'Đang xuất...' : 'Xuất CSV'}
+                </button>
+                {refreshing ? <span className="inout-refreshing-badge">Đang làm mới...</span> : null}
+              </div>
+            </>
+          ) : null}
+        </section>
+
+        {error ? (
+          <div className="inout-error" role="alert">
+            <span>{error}</span>
+            <button type="button" className="inout-btn inout-btn--secondary" onClick={handleRefresh}>
+              Thử lại
+            </button>
+          </div>
+        ) : null}
+
+        <section className="inout-reconciliation" aria-label="Đối soát tồn kho" data-testid="inventory-reconciliation">
+          <div>
+            <strong>Đối soát tồn đầu + nhập - xuất = tồn cuối</strong>
+            {reconciliation ? (
+              <span>
+                {reconciliation.summary.reconciledRows.toLocaleString('vi-VN')} dòng đã xác minh
+                {' · '}{reconciliation.summary.incompleteRows.toLocaleString('vi-VN')} dòng chưa đủ lịch sử
+                {' · '}{reconciliation.summary.varianceRows.toLocaleString('vi-VN')} dòng chênh lệch
+              </span>
+            ) : (
+              <span>{reconciliationError ? 'Chưa tải được dữ liệu đối soát; báo cáo biến động vẫn hoạt động bình thường.' : 'Đang tải dữ liệu đối soát...'}</span>
+            )}
+          </div>
+          {reconciliation ? (
+            <span className={reconciliation.summary.varianceRows > 0 ? 'is-warning' : reconciliation.summary.incompleteRows > 0 ? 'is-neutral' : 'is-verified'}>
+              {reconciliation.summary.varianceRows > 0 ? 'Có chênh lệch' : reconciliation.summary.incompleteRows > 0 ? 'Chưa đủ lịch sử' : 'Đã xác minh'}
+            </span>
+          ) : null}
+        </section>
+
+        <section className="inout-kpi-grid" aria-label="Chỉ số xuất nhập tồn">
+          {loading && !report ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div className="inout-kpi" key={i}><span className="inout-skeleton" style={{ width: '60%' }} /><strong className="inout-skeleton" style={{ width: '40%', height: 22 }} /></div>
+            ))
+          ) : (
+            <>
+              <div className="inout-kpi">
+                <span>Tổng nhập</span>
+                <strong className="is-pos" data-testid="kpi-total-in">{formatNumber(summary?.totalIn ?? 0)}</strong>
+              </div>
+              <div className="inout-kpi">
+                <span>Tổng xuất</span>
+                <strong className="is-neg" data-testid="kpi-total-out">{formatNumber(summary?.totalOut ?? 0)}</strong>
+              </div>
+              <div className="inout-kpi">
+                <span>Biến động ròng</span>
+                <strong
+                  className={(summary?.netQty ?? 0) >= 0 ? 'is-pos' : 'is-neg'}
+                  data-testid="kpi-net"
+                >
+                  {formatNumber(summary?.netQty ?? 0)}
+                </strong>
+              </div>
+              <div className="inout-kpi">
+                <span>Số chứng từ</span>
+                <strong data-testid="kpi-docs">{formatNumber(summary?.documentCount ?? 0)}</strong>
+              </div>
+              {showValue ? (
+                <div className="inout-kpi">
+                  <span>Giá trị nhập / xuất</span>
+                  <strong data-testid="kpi-value">
+                    {formatMoney(summary?.valueIn ?? 0)} / {formatMoney(summary?.valueOut ?? 0)}
+                  </strong>
+                </div>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        <section className="inout-card" aria-labelledby="inout-chart-title">
+          <h2 id="inout-chart-title">Biến động theo thời gian</h2>
+          <div className="inout-card__meta">Hai series chính: Nhập và Xuất trên toàn bộ dữ liệu đã lọc.</div>
+          {loading && !report ? (
+            <div className="inout-empty"><span className="inout-skeleton" style={{ width: '70%', height: 180 }} /></div>
+          ) : !chartHasData ? (
+            <div className="inout-empty" data-testid="inout-chart-empty">Không có dữ liệu biểu đồ trong khoảng đã chọn.</div>
+          ) : (
+            <div className="inout-chart" data-testid="inout-chart">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={timeline} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [formatNumber(value), name]}
+                    labelFormatter={(label) => `Kỳ: ${label}`}
+                  />
+                  <Legend />
+                  <Bar dataKey="qtyIn" name="Nhập" fill="#059669" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="qtyOut" name="Xuất" fill="#dc2626" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
+
+        {(report?.breakdowns?.byType?.length ?? 0) > 0 ? (
+          <section className="inout-card" aria-labelledby="inout-breakdown-title">
+            <h2 id="inout-breakdown-title">Theo loại giao dịch</h2>
+            <div className="inout-table-wrap">
+              <table className="inout-table">
+                <thead>
+                  <tr>
+                    <th>Loại</th>
+                    <th className="num">Nhập</th>
+                    <th className="num">Xuất</th>
+                    <th className="num">Số dòng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report!.breakdowns.byType.map((row) => (
+                    <tr key={row.type}>
+                      <td>{row.label}</td>
+                      <td className="num">{formatNumber(row.qtyIn)}</td>
+                      <td className="num">{formatNumber(row.qtyOut)}</td>
+                      <td className="num">{formatNumber(row.lineCount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="inout-card" aria-labelledby="inout-table-title">
+          <h2 id="inout-table-title">Chi tiết giao dịch</h2>
+          <div className="inout-card__meta">
+            {pagination
+              ? `${formatNumber(pagination.total)} dòng · trang ${pagination.page}/${pagination.totalPages}`
+              : '—'}
+          </div>
+
+          {empty ? (
+            <div className="inout-empty" data-testid="inout-table-empty">
+              Không có giao dịch kho trong bộ lọc hiện tại.
+            </div>
+          ) : (
+            <div className="inout-table-wrap">
+              <table className="inout-table" data-testid="inout-table">
+                <thead>
+                  <tr>
+                    <th aria-sort={sortAria('date')}>
+                      <button type="button" onClick={() => handleSort('date')}>Thời gian</button>
+                    </th>
+                    <th aria-sort={sortAria('billCode')}>
+                      <button type="button" onClick={() => handleSort('billCode')}>Mã chứng từ</button>
+                    </th>
+                    <th aria-sort={sortAria('type')}>
+                      <button type="button" onClick={() => handleSort('type')}>Loại</button>
+                    </th>
+                    <th aria-sort={sortAria('warehouseName')}>
+                      <button type="button" onClick={() => handleSort('warehouseName')}>Kho</button>
+                    </th>
+                    <th aria-sort={sortAria('productName')}>
+                      <button type="button" onClick={() => handleSort('productName')}>Sản phẩm</button>
+                    </th>
+                    <th className="num" aria-sort={sortAria('qtyIn')}>
+                      <button type="button" onClick={() => handleSort('qtyIn')}>Nhập</button>
+                    </th>
+                    <th className="num" aria-sort={sortAria('qtyOut')}>
+                      <button type="button" onClick={() => handleSort('qtyOut')}>Xuất</button>
+                    </th>
+                    <th>Người tạo</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && !report ? (
+                    <tr>
+                      <td colSpan={9}><div className="inout-skeleton" style={{ height: 40 }} /></td>
+                    </tr>
+                  ) : (
+                    tableRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>{formatDisplayDateTime(row.date)}</td>
+                        <td>{row.billCode || '—'}</td>
+                        <td>{row.typeLabel || row.type || '—'}</td>
+                        <td>{row.warehouseName || '—'}</td>
+                        <td>
+                          {[row.productCode, row.productName].filter(Boolean).join(' · ') || '—'}
+                        </td>
+                        <td className="num">{formatNumber(row.qtyIn)}</td>
+                        <td className="num">{formatNumber(row.qtyOut)}</td>
+                        <td>{row.createdByName || '—'}</td>
+                        <td>
+                          {row.detailPath ? (
+                            <Link to={row.detailPath}>Xem chi tiết</Link>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {pagination && pagination.totalPages > 1 ? (
+            <div className="inout-pagination">
+              <div className="inout-pagination__info">
+                Trang {pagination.page} / {pagination.totalPages}
+              </div>
+              <div className="inout-actions">
+                <button
+                  type="button"
+                  className="inout-btn inout-btn--secondary"
+                  disabled={busy || pagination.page <= 1}
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                >
+                  Trước
+                </button>
+                <button
+                  type="button"
+                  className="inout-btn inout-btn--secondary"
+                  disabled={busy || pagination.page >= pagination.totalPages}
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      </div>
+    </InventoryReportShell>
+  );
+}

@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\RevenueByProductReportController;
 use App\Http\Controllers\Api\RevenueByStoreReportController;
 use App\Http\Controllers\Api\RevenueByTimeReportController;
+use App\Http\Controllers\Api\InventoryInOutStockReportController;
+use App\Http\Controllers\Api\InventoryPendingTransfersReportController;
+use App\Http\Controllers\Api\InventoryLedgerReportController;
 use App\Http\Controllers\Api\WarehouseTransactionController;
 use App\Http\Controllers\Api\InventoryAuditController;
 use App\Models\Branch;
@@ -40,6 +43,12 @@ Route::get('/reports/revenue/store/options', [RevenueByStoreReportController::cl
 Route::get('/reports/revenue/store', [RevenueByStoreReportController::class, 'index']);
 Route::get('/reports/revenue/products/options', [RevenueByProductReportController::class, 'options']);
 Route::get('/reports/revenue/products', [RevenueByProductReportController::class, 'index']);
+Route::get('/reports/inventory/in-out-stock/options', [InventoryInOutStockReportController::class, 'options']);
+Route::get('/reports/inventory/in-out-stock', [InventoryInOutStockReportController::class, 'index']);
+Route::get('/reports/inventory/in-out-stock/export', [InventoryInOutStockReportController::class, 'export']);
+Route::get('/reports/inventory/pending-transfers/options', [InventoryPendingTransfersReportController::class, 'options']);
+Route::get('/reports/inventory/pending-transfers', [InventoryPendingTransfersReportController::class, 'index']);
+Route::get('/reports/inventory/reconciliation', InventoryLedgerReportController::class);
 
 Route::get('/staff', function () {
     $users = User::query()->orderBy('name')->get();

@@ -1,5 +1,6 @@
 import { Children, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { RevenueReportNav } from '../components/RevenueReportNav';
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -180,36 +181,10 @@ function SummaryCards({
     if (!summary) return [];
     return [
       {
-        key: 'netRevenue',
-        label: 'Doanh thu thuần',
-        value: formatMoney(summary.netRevenue),
-        metricKey: 'netRevenue',
-        tip: 'Doanh thu line items − hoàn tiền theo dòng product_refunds',
-      },
-      {
-        key: 'revenue',
-        label: 'Doanh thu',
-        value: formatMoney(summary.revenue),
-        metricKey: 'revenue',
-        tip: 'SUM(item.total ?? item.value) trên sale_payments',
-      },
-      {
-        key: 'refundAmount',
-        label: 'Hoàn tiền SP',
-        value: formatMoney(summary.refundAmount),
-        metricKey: 'refundAmount',
-      },
-      {
         key: 'itemQuantity',
         label: 'Số lượng bán',
         value: formatNumber(summary.itemQuantity),
         metricKey: 'itemQuantity',
-      },
-      {
-        key: 'invoiceCount',
-        label: 'Số hóa đơn',
-        value: formatNumber(summary.invoiceCount),
-        metricKey: 'invoiceCount',
       },
       {
         key: 'productCount',
@@ -1030,6 +1005,8 @@ export function RevenueByProductsPage() {
     <main className="rbp-page revenue-products-report-page">
       {busy && <div className="rbp-progress" aria-hidden />}
 
+      <RevenueReportNav />
+
       <header className="rbp-hero">
         <div>
           <div className="rbp-hero-meta" style={{ marginTop: 0, marginBottom: 4 }}>
@@ -1445,33 +1422,7 @@ export function RevenueByProductsPage() {
         loading={loading && !report}
       />
 
-      <div className="rbp-charts-grid">
-        <section className="rbp-surface">
-          <div className="rbp-surface-head">
-            <div>
-              <h2>Doanh thu theo thời gian</h2>
-              <p>Tổng line-item theo bucket thời gian (cùng bộ lọc).</p>
-            </div>
-            <div className="rbp-inline-field">
-              <label htmlFor="rbp-chart-view" className="sr-only">
-                Kiểu biểu đồ
-              </label>
-              <select
-                id="rbp-chart-view"
-                value={chartView}
-                onChange={(e) => setChartView(e.target.value as ChartView)}
-              >
-                {(Object.keys(CHART_VIEW_LABELS) as ChartView[]).map((k) => (
-                  <option key={k} value={k}>
-                    {CHART_VIEW_LABELS[k]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <TimelineChart report={report} chartView={chartView} loading={loading} />
-        </section>
-
+      <div className="rbp-charts-grid rbp-charts-grid-single">
         <section className="rbp-surface">
           <div className="rbp-surface-head">
             <div>
@@ -1528,18 +1479,6 @@ export function RevenueByProductsPage() {
             items={report?.breakdowns?.trademarks ?? []}
             loading={loading && !report}
             emptyLabel="Không có dữ liệu thương hiệu."
-          />
-        </section>
-        <section className="rbp-surface">
-          <div className="rbp-surface-head">
-            <div>
-              <h2>Theo loại bán</h2>
-            </div>
-          </div>
-          <SharePieChart
-            items={report?.breakdowns?.channels ?? []}
-            loading={loading && !report}
-            emptyLabel="Không có dữ liệu kênh."
           />
         </section>
       </div>

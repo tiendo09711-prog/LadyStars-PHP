@@ -26,12 +26,10 @@ const COLORS = [
 ];
 
 type Props = {
-  stores: BreakdownItem[];
   channels: BreakdownItem[];
   paymentMethods: BreakdownItem[];
   staff: BreakdownItem[];
   meta?: {
-    stores?: BreakdownDimensionMeta;
     channels?: BreakdownDimensionMeta;
     paymentMethods?: BreakdownDimensionMeta;
     staff?: BreakdownDimensionMeta;
@@ -194,21 +192,20 @@ function HBarBlock({
 }
 
 export function RevenueBreakdownCharts({
-  stores,
   channels,
   paymentMethods,
   staff,
   meta,
   loading,
 }: Props) {
-  if (loading && stores.length === 0 && channels.length === 0) {
+  if (loading && channels.length === 0) {
     return (
       <section className="rbt-surface">
         <div className="rbt-surface-head">
           <h2>Cơ cấu doanh thu</h2>
         </div>
         <div className="rbt-breakdown-grid">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="rbt-breakdown-card rbt-skeleton" style={{ minHeight: 220 }} />
           ))}
         </div>
@@ -222,18 +219,12 @@ export function RevenueBreakdownCharts({
         <div>
           <h2>Cơ cấu doanh thu</h2>
           <p>
-            Phân bổ theo cửa hàng, loại hóa đơn, thanh toán và nhân viên. Chỉ hiển thị khi có dữ liệu
+            Phân bổ theo loại hóa đơn, thanh toán và nhân viên. Chỉ hiển thị khi có dữ liệu
             phân loại thực.
           </p>
         </div>
       </div>
       <div className="rbt-breakdown-grid">
-        <HBarBlock
-          title="Theo cửa hàng"
-          data={stores}
-          dimMeta={meta?.stores}
-          emptyFallback="Không đủ dữ liệu cửa hàng để phân tích."
-        />
         <PieBlock
           title="Theo loại hóa đơn"
           data={channels}

@@ -45,11 +45,6 @@ const KPI_DEFS: KpiDef[] = [
     kind: 'money',
   },
   {
-    key: 'itemQuantity',
-    label: 'Sản phẩm đã bán',
-    kind: 'number',
-  },
-  {
     key: 'grossRevenue',
     label: 'Trước giảm giá',
     kind: 'money',

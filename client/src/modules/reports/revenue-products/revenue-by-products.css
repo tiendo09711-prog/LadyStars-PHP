@@ -351,6 +351,10 @@
   gap: 14px;
 }
 
+.rbp-charts-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .rbp-kpi-grid + .rbp-charts-grid {
   grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
 }

@@ -366,7 +366,7 @@ function InvoiceTemplateDesigner(props: InvoiceTemplateDesignerProps) {
           <div className="invoice-tpl-controls">
             <div className="invoice-tpl-control-group">
               <span className="invoice-tpl-control-title">Hiển thị</span>
-              <label><input type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => setToggle('showBranchName', event.target.checked)} disabled={disabled} />Tên kho</label>
+              <label><input type="checkbox" checked={form.invoiceProfile.showBranchName} onChange={(event) => setToggle('showBranchName', event.target.checked)} disabled={disabled} aria-label="Hiển thị tên kho" />Tên kho</label>
               <label><input type="checkbox" checked={form.invoiceProfile.showCashier} onChange={(event) => setToggle('showCashier', event.target.checked)} disabled={disabled} />Thu ngân</label>
               <label><input type="checkbox" checked={form.invoiceProfile.showProductCode} onChange={(event) => setToggle('showProductCode', event.target.checked)} disabled={disabled} />Mã sản phẩm</label>
               <label><input type="checkbox" checked={form.invoiceProfile.showLogo} onChange={(event) => setToggle('showLogo', event.target.checked)} disabled={disabled} />Logo</label>
@@ -636,7 +636,9 @@ export function WarehouseBranchesPage() {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    Promise.all([loadStoreSetting(), loadBranchesData()])
+    // Store settings only affect invoice preview — never block the branch list shell.
+    void loadStoreSetting();
+    loadBranchesData()
       .catch((err: any) => {
         if (!mounted) return;
         setError(err.response?.data?.message || 'Không tải được cấu hình kho hàng.');
@@ -777,6 +779,8 @@ export function WarehouseBranchesPage() {
     const targetBranchId = selectedBranchId;
     if ((confirmAction === 'create' || confirmAction === 'save') && hasInvalidPhone(form.phone)) {
       setError('Hotline không hợp lệ. Chỉ dùng số, khoảng trắng, dấu +, -, ., ( ).');
+      // Close confirm dialog so the page-level alert is visible (same as server error path).
+      finishConfirmModal();
       return;
     }
     submittingRef.current = true;
@@ -854,7 +858,14 @@ export function WarehouseBranchesPage() {
     popup.document.write(buildDemoReceiptHtml(form, storeSetting));
     popup.document.close();
     popup.focus();
-    popup.print();
+    // Defer print so the opener page is not blocked by the native print dialog.
+    window.setTimeout(() => {
+      try {
+        popup.print();
+      } catch {
+        /* popup may be closed */
+      }
+    }, 50);
   };
 
   if (loading) {

@@ -93,7 +93,7 @@ class InventoryAuditStateMachineTest extends TestCase
 
     private function createAudit(string $status = 'DRAFT', string $code = 'KK-SM'): string
     {
-        $resp = $this->postJson('/api/inventory-audits', [
+        $resp = $this->withHeaders($this->authHeaders($this->admin))->postJson('/api/inventory-audits', [
             'code' => $code,
             'warehouseId' => (string) $this->branch->id,
             'auditType' => 'BY_PRODUCT',
@@ -135,17 +135,18 @@ class InventoryAuditStateMachineTest extends TestCase
         $this->assertFalse((bool) ($employeeMeta['isAdmin'] ?? false));
     }
 
-    public function test_meta_without_auth_does_not_pretend_admin(): void
+    public function test_meta_without_auth_returns_401(): void
     {
-        $meta = $this->getJson('/api/inventory-audits/meta')->assertOk()->json();
-        $this->assertSame('GUEST', $meta['role']);
-        $this->assertFalse((bool) ($meta['isAdmin'] ?? false));
+        $this->getJson('/api/inventory-audits/meta')->assertStatus(401);
+        $this->getJson('/api/inventory-audits?limit=5')->assertStatus(401);
+        $this->getJson('/api/inventory-audits/dashboard')->assertStatus(401);
     }
 
     public function test_submit_moves_to_submitted_not_counting(): void
     {
         $id = $this->createAudit('DRAFT', 'KK-SUBMIT');
-        $this->postJson('/api/inventory-audits/'.$id.'/submit')
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$id.'/submit')
             ->assertOk()
             ->assertJsonPath('status', 'SUBMITTED');
     }
@@ -153,13 +154,16 @@ class InventoryAuditStateMachineTest extends TestCase
     public function test_reconcile_requires_submitted_and_admin(): void
     {
         $id = $this->createAudit('DRAFT', 'KK-REC');
-        $this->postJson('/api/inventory-audits/'.$id.'/submit')->assertOk();
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$id.'/submit')
+            ->assertOk();
 
         // Employee: 403, no status change
         $this->withHeaders($this->authHeaders($this->employee))
             ->postJson('/api/inventory-audits/'.$id.'/reconcile')
             ->assertStatus(403);
-        $this->getJson('/api/inventory-audits/'.$id)
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->getJson('/api/inventory-audits/'.$id)
             ->assertOk()
             ->assertJsonPath('status', 'SUBMITTED');
 
@@ -176,7 +180,8 @@ class InventoryAuditStateMachineTest extends TestCase
         $this->withHeaders($this->authHeaders($this->admin))
             ->postJson('/api/inventory-audits/'.$id.'/reconcile')
             ->assertStatus(422);
-        $this->getJson('/api/inventory-audits/'.$id)
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->getJson('/api/inventory-audits/'.$id)
             ->assertOk()
             ->assertJsonPath('status', 'COUNTING');
     }
@@ -184,7 +189,9 @@ class InventoryAuditStateMachineTest extends TestCase
     public function test_reverse_requires_reconciled_and_admin(): void
     {
         $id = $this->createAudit('DRAFT', 'KK-REV');
-        $this->postJson('/api/inventory-audits/'.$id.'/submit')->assertOk();
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$id.'/submit')
+            ->assertOk();
         $this->withHeaders($this->authHeaders($this->admin))
             ->postJson('/api/inventory-audits/'.$id.'/reconcile')
             ->assertOk();
@@ -202,10 +209,13 @@ class InventoryAuditStateMachineTest extends TestCase
     public function test_resnapshot_only_counting(): void
     {
         $id = $this->createAudit('DRAFT', 'KK-SNAP');
-        $this->postJson('/api/inventory-audits/'.$id.'/resnapshot')->assertStatus(422);
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$id.'/resnapshot')
+            ->assertStatus(422);
         // Move via save path: create as COUNTING
         $countId = $this->createAudit('COUNTING', 'KK-SNAP2');
-        $this->postJson('/api/inventory-audits/'.$countId.'/resnapshot')
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$countId.'/resnapshot')
             ->assertOk()
             ->assertJsonPath('status', 'COUNTING');
     }
@@ -221,7 +231,9 @@ class InventoryAuditStateMachineTest extends TestCase
         $this->assertContains('cancel', $draftActions);
         $this->assertNotContains('reconcile', $draftActions);
 
-        $this->postJson('/api/inventory-audits/'.$draftId.'/submit')->assertOk();
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$draftId.'/submit')
+            ->assertOk();
         $submittedActions = collect(
             $this->withHeaders($this->authHeaders($this->admin))
                 ->getJson('/api/inventory-audits/'.$draftId)->json('availableActions')
@@ -242,12 +254,71 @@ class InventoryAuditStateMachineTest extends TestCase
     public function test_employee_does_not_see_reconcile_action_on_submitted(): void
     {
         $id = $this->createAudit('DRAFT', 'KK-EMP');
-        $this->postJson('/api/inventory-audits/'.$id.'/submit')->assertOk();
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$id.'/submit')
+            ->assertOk();
         $actions = collect(
             $this->withHeaders($this->authHeaders($this->employee))
                 ->getJson('/api/inventory-audits/'.$id)->json('availableActions')
         )->pluck('action')->all();
         $this->assertNotContains('reconcile', $actions);
         $this->assertContains('cancel', $actions);
+    }
+
+    public function test_merge_two_drafts_same_warehouse(): void
+    {
+        $a = $this->createAudit('DRAFT', 'KK-MG-A');
+        $b = $this->createAudit('DRAFT', 'KK-MG-B');
+
+        $merged = $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/merge', [
+                'auditIds' => [$a, $b],
+                'note' => 'Gộp test',
+            ])
+            ->assertCreated()
+            ->json();
+
+        $this->assertNotEmpty($merged['_id'] ?? $merged['id'] ?? null);
+
+        $srcA = $this->withHeaders($this->authHeaders($this->admin))
+            ->getJson('/api/inventory-audits/'.$a)
+            ->assertOk()
+            ->json();
+        $this->assertNotEmpty($srcA['mergedIntoAuditId'] ?? null);
+        $this->assertSame([], $srcA['availableActions'] ?? []);
+    }
+
+    public function test_double_count_mismatch_blocks_submit(): void
+    {
+        $resp = $this->withHeaders($this->authHeaders($this->admin))->postJson('/api/inventory-audits', [
+            'code' => 'KK-DBL-MIS',
+            'warehouseId' => (string) $this->branch->id,
+            'auditType' => 'BY_PRODUCT',
+            'status' => 'DRAFT',
+            'doubleCount' => true,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'productCodeSnapshot' => 'SPAUD',
+                'productNameSnapshot' => 'SP Audit',
+                'systemQuantitySnapshot' => 5,
+                'physicalQuantity' => 5,
+                'physicalQuantity2' => 9,
+                'varianceQuantity' => 0,
+            ]],
+        ]);
+        $resp->assertCreated();
+        $id = (string) $resp->json('_id');
+
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->postJson('/api/inventory-audits/'.$id.'/submit')
+            ->assertStatus(422);
+    }
+
+    public function test_warehouse_checks_alias_requires_auth(): void
+    {
+        $this->getJson('/api/warehouse/checks?limit=5')->assertStatus(401);
+        $this->withHeaders($this->authHeaders($this->admin))
+            ->getJson('/api/warehouse/checks?limit=5')
+            ->assertOk();
     }
 }

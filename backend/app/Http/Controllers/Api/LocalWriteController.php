@@ -135,13 +135,27 @@ class LocalWriteController extends Controller
         $table = $this->table($resource);
         $payload = $request->all();
 
+        // POST /inventory-audits/merge — gộp nhiều phiếu nguồn thành phiếu mới.
+        if ($resource === 'inventory-checks') {
+            $path = (string) $request->path();
+            $auditIds = $payload['auditIds'] ?? $payload['ids'] ?? null;
+            if (str_contains($path, 'inventory-audits/merge') || (is_array($auditIds) && $auditIds !== [])) {
+                return $this->mergeInventoryAudits($request, is_array($auditIds) ? $auditIds : []);
+            }
+        }
+
         if ($resource === 'inventory-checks') {
             $warehouseId = trim((string) ($payload['warehouseId'] ?? $payload['branchId'] ?? $payload['warehouse'] ?? ''));
             if ($warehouseId === '') {
                 return response()->json(['message' => 'Vui lòng chọn kho hàng.'], 422);
             }
-            if (!$this->branch($warehouseId)) {
+            $branch = $this->branch($warehouseId);
+            if (!$branch) {
                 return response()->json(['message' => 'Kho hàng không hợp lệ.'], 422);
+            }
+            // Employee may only create audits for assigned warehouses (AUTH-02/03).
+            if ($deny = $this->denyInventoryAuditWarehouseIfUnauthorized($request, $branch)) {
+                return $deny;
             }
         }
 
@@ -453,6 +467,30 @@ class LocalWriteController extends Controller
                 if (!in_array($currentStatus, ['DRAFT', 'COUNTING'], true)) {
                     return response()->json(['message' => 'Không thể submit phiếu ở trạng thái hiện tại.'], 422);
                 }
+                // Double-count: both counts required and must match before submit.
+                if ((bool) ($payload['doubleCount'] ?? false)) {
+                    $items = $payload['items'] ?? $payload['lines'] ?? [];
+                    if (is_array($items)) {
+                        foreach ($items as $idx => $line) {
+                            if (!is_array($line)) {
+                                continue;
+                            }
+                            $p1 = $line['physicalQuantity'] ?? $line['actualStock'] ?? null;
+                            $p2 = $line['physicalQuantity2'] ?? $line['actualStock2'] ?? null;
+                            $code = (string) ($line['productCodeSnapshot'] ?? $line['productCode'] ?? ('#'.($idx + 1)));
+                            if ($p1 === null || $p1 === '' || $p2 === null || $p2 === '') {
+                                return response()->json([
+                                    'message' => "Phiếu đếm hai lần: sản phẩm {$code} cần đủ số lượng đếm lần 1 và lần 2 trước khi nộp.",
+                                ], 422);
+                            }
+                            if ((float) $p1 !== (float) $p2) {
+                                return response()->json([
+                                    'message' => "Phiếu đếm hai lần: sản phẩm {$code} có số lượng đếm lần 1 và lần 2 không khớp ({$p1} ≠ {$p2}).",
+                                ], 422);
+                            }
+                        }
+                    }
+                }
                 $status = 'SUBMITTED';
             } elseif ($action === 'reconcile') {
                 if ($currentStatus === 'RECONCILED') {
@@ -539,6 +577,37 @@ class LocalWriteController extends Controller
         $payload['status'] = $status;
         $payload[$action.'At'] = now()->toISOString();
         if ($request->filled('reason')) $payload['reason'] = $request->input('reason');
+
+        // Inventory audit trail: explicit actor + timestamps for UI (AUTH-06 / dashboard).
+        if ($resource === 'inventory-checks') {
+            /** @var \App\Models\User|null $actor */
+            $actor = $request->attributes->get('localUser');
+            $actorName = $actor?->name ?: ($actor?->email ?: 'System');
+            $nowIso = now()->toISOString();
+            if ($action === 'submit') {
+                $payload['submittedAt'] = $nowIso;
+                $payload['submittedByName'] = $actorName;
+                $payload['submittedById'] = $actor?->id;
+            } elseif ($action === 'reconcile') {
+                $payload['reconciledAt'] = $nowIso;
+                $payload['reconciledByName'] = $actorName;
+                $payload['reconciledById'] = $actor?->id;
+            } elseif ($action === 'reverse-reconcile') {
+                $payload['reversedAt'] = $nowIso;
+                $payload['reversedByName'] = $actorName;
+                $payload['reversedById'] = $actor?->id;
+                $payload['reverseReason'] = $request->input('reason') ?: ($payload['reason'] ?? null);
+            } elseif ($action === 'cancel') {
+                $payload['cancelledAt'] = $nowIso;
+                $payload['cancelledByName'] = $actorName;
+                $payload['cancelledById'] = $actor?->id;
+                $payload['cancelReason'] = $request->input('reason') ?: ($payload['reason'] ?? null);
+            } elseif ($action === 'resnapshot') {
+                $payload['snapshotAt'] = $nowIso;
+                $payload['resnapshotAt'] = $nowIso;
+                $payload['resnapshotByName'] = $actorName;
+            }
+        }
 
         $updates = ['status' => $status, 'payload' => $payload];
         if ($action === 'complete' && Schema::hasColumn($table, 'completed_at')) {
@@ -1215,7 +1284,31 @@ class LocalWriteController extends Controller
 
     private function createRecord(string $table, array $payload, string $resource): MirrorRecord
     {
-        return (new MirrorRecord())->forTable($table)->newQuery()->create($this->attributes($table, $payload, $resource));
+        // Retry on unique code collisions when creating many docs in the same second
+        // (sale_payments.code / similar unique indexes).
+        $attempts = 0;
+        $last = null;
+        while ($attempts < 6) {
+            $attempts++;
+            try {
+                // Force a fresh code on retries (do not reuse a colliding client-supplied code).
+                if ($attempts > 1) {
+                    unset($payload['code'], $payload['voucherId'], $payload['id']);
+                }
+                return (new MirrorRecord())->forTable($table)->newQuery()->create($this->attributes($table, $payload, $resource));
+            } catch (\Illuminate\Database\QueryException $e) {
+                $last = $e;
+                $msg = $e->getMessage();
+                $isDuplicate = str_contains($msg, '1062')
+                    || str_contains(strtolower($msg), 'duplicate')
+                    || str_contains(strtolower($msg), 'unique');
+                if (!$isDuplicate || $attempts >= 6) {
+                    throw $e;
+                }
+                usleep(random_int(2_000, 12_000));
+            }
+        }
+        throw $last ?? new \RuntimeException('createRecord failed without exception');
     }
 
     private function attributes(string $table, array $payload, string $resource, ?MirrorRecord $record = null): array
@@ -2003,6 +2096,223 @@ class LocalWriteController extends Controller
     }
 
     /**
+     * Employee may only write inventory audits for assigned warehouses.
+     */
+    private function denyInventoryAuditWarehouseIfUnauthorized(Request $request, Branch $branch): ?JsonResponse
+    {
+        if ($this->isLocalAdmin($request)) {
+            return null;
+        }
+        /** @var User|null $user */
+        $user = $request->attributes->get('localUser');
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
+        }
+        $allowed = $this->localBranchIdsForUser($user);
+        if ($allowed === [] || !in_array((int) $branch->id, $allowed, true)) {
+            return response()->json([
+                'message' => 'Bạn không có quyền tạo/sửa phiếu kiểm kho cho kho này.',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function localBranchIdsForUser(User $user): array
+    {
+        $ids = [];
+        if ($user->default_warehouse_id) {
+            $ids[] = (int) $user->default_warehouse_id;
+        }
+        if ($user->branch_id) {
+            $ids[] = (int) $user->branch_id;
+        }
+        if (Schema::hasTable('user_warehouse_assignments')) {
+            $assigned = DB::table('user_warehouse_assignments')
+                ->where('user_id', $user->id)
+                ->pluck('branch_id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+            $ids = array_merge($ids, $assigned);
+        }
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    /**
+     * Merge multiple DRAFT/COUNTING audits (same warehouse) into a new DRAFT audit.
+     * Source audits keep history and are locked via mergedIntoAuditId.
+     *
+     * @param  array<int, mixed>  $auditIds
+     */
+    private function mergeInventoryAudits(Request $request, array $auditIds): JsonResponse
+    {
+        $ids = array_values(array_unique(array_filter(array_map(
+            static fn ($v) => trim((string) $v),
+            $auditIds
+        ), static fn ($v) => $v !== '')));
+
+        if (count($ids) < 2) {
+            return response()->json([
+                'message' => 'Cần chọn ít nhất 2 phiếu kiểm kho để gộp.',
+            ], 422);
+        }
+
+        $table = $this->table('inventory-checks');
+        $sources = [];
+        foreach ($ids as $id) {
+            try {
+                $sources[] = $this->findRecord($table, $id);
+            } catch (\Throwable) {
+                return response()->json(['message' => "Không tìm thấy phiếu kiểm kho: {$id}."], 404);
+            }
+        }
+
+        $warehouseKey = null;
+        $warehouseBranch = null;
+        $mergedItems = [];
+        $sourceCodes = [];
+        $sourceMongoIds = [];
+
+        foreach ($sources as $record) {
+            $payload = is_array($record->payload) ? $record->payload : [];
+            $status = strtoupper((string) ($record->status ?? $payload['status'] ?? 'DRAFT'));
+            if (!in_array($status, ['DRAFT', 'COUNTING'], true)) {
+                return response()->json([
+                    'message' => 'Chỉ gộp được phiếu ở trạng thái Nháp hoặc Đang kiểm. Phiếu '.$record->code.' đang '.$status.'.',
+                ], 422);
+            }
+            if (!empty($payload['mergedIntoAuditId'])) {
+                return response()->json([
+                    'message' => 'Phiếu '.$record->code.' đã được gộp trước đó, không thể gộp lại.',
+                ], 422);
+            }
+
+            $whId = trim((string) ($payload['warehouseId'] ?? $record->branch_id ?? $record->branch_mongo_id ?? ''));
+            $branch = $this->branch($whId !== '' ? $whId : ($record->branch_id ?? null));
+            if (!$branch) {
+                return response()->json([
+                    'message' => 'Phiếu '.$record->code.' không có kho hợp lệ để gộp.',
+                ], 422);
+            }
+            if ($warehouseKey === null) {
+                $warehouseKey = (string) $branch->id;
+                $warehouseBranch = $branch;
+            } elseif ($warehouseKey !== (string) $branch->id) {
+                return response()->json([
+                    'message' => 'Không thể gộp phiếu thuộc các kho khác nhau.',
+                ], 422);
+            }
+
+            if ($deny = $this->denyInventoryAuditWarehouseIfUnauthorized($request, $branch)) {
+                return $deny;
+            }
+
+            $sourceCodes[] = (string) ($record->code ?? '');
+            $sourceMongoIds[] = (string) ($record->mongo_id ?: $record->id);
+
+            $items = $payload['items'] ?? $payload['lines'] ?? [];
+            if (!is_array($items) || $items === []) {
+                // Fallback: product rows table
+                $items = [];
+            }
+            foreach ($items as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $pid = (string) ($line['productId'] ?? $line['product_id'] ?? '');
+                $key = $pid !== '' ? $pid : ('code:'.($line['productCodeSnapshot'] ?? $line['productCode'] ?? uniqid('x', true)));
+                if (!isset($mergedItems[$key])) {
+                    $mergedItems[$key] = $line;
+                    continue;
+                }
+                // Prefer counted physical over null when merging duplicates.
+                $existing = $mergedItems[$key];
+                $exPhys = $existing['physicalQuantity'] ?? $existing['actualStock'] ?? null;
+                $newPhys = $line['physicalQuantity'] ?? $line['actualStock'] ?? null;
+                if (($exPhys === null || $exPhys === '') && $newPhys !== null && $newPhys !== '') {
+                    $mergedItems[$key] = $line;
+                }
+            }
+        }
+
+        if ($warehouseBranch === null) {
+            return response()->json(['message' => 'Không xác định được kho để gộp phiếu.'], 422);
+        }
+
+        /** @var User|null $actor */
+        $actor = $request->attributes->get('localUser');
+        $actorName = $actor?->name ?: ($actor?->email ?: 'System');
+        $note = trim((string) $request->input('note', ''));
+        $mergedNote = $note !== ''
+            ? $note
+            : ('Gộp từ: '.implode(', ', array_filter($sourceCodes)));
+
+        $createPayload = [
+            'code' => 'KK-MG'.$this->nextSuffix(),
+            'warehouseId' => (string) $warehouseBranch->id,
+            'warehouse' => $warehouseBranch->name,
+            'warehouseName' => $warehouseBranch->name,
+            'auditType' => 'BY_PRODUCT',
+            'status' => 'DRAFT',
+            'note' => $mergedNote,
+            'blindMode' => false,
+            'doubleCount' => false,
+            'createdByName' => $actorName,
+            'mergedFromAuditIds' => $sourceMongoIds,
+            'mergedFromAuditCodes' => array_values(array_filter($sourceCodes)),
+            'items' => array_values($mergedItems),
+        ];
+
+        try {
+            $created = DB::transaction(function () use ($table, $createPayload, $sources, $sourceMongoIds) {
+                $created = $this->createRecord($table, $createPayload, 'inventory-checks');
+                // Ensure status/payload consistent (createRecord may leave draft lowercase).
+                // Only touch columns that exist on inventory_checks (no bare `note` column on MySQL).
+                $payload = is_array($created->payload) ? $created->payload : [];
+                $payload = array_merge($payload, $createPayload);
+                $payload['status'] = 'DRAFT';
+                $payload['items'] = $createPayload['items'];
+                $updates = [
+                    'status' => 'DRAFT',
+                    'payload' => $payload,
+                ];
+                if (Schema::hasColumn($table, 'code')) {
+                    $updates['code'] = $createPayload['code'];
+                }
+                if (Schema::hasColumn($table, 'note')) {
+                    $updates['note'] = $createPayload['note'];
+                }
+                $created->forceFill($updates)->save();
+                $this->syncInventoryCheckProducts($created, $createPayload['items']);
+
+                $mergedInto = (string) ($created->mongo_id ?: $created->id);
+                foreach ($sources as $source) {
+                    $sp = is_array($source->payload) ? $source->payload : [];
+                    $sp['mergedIntoAuditId'] = $mergedInto;
+                    $sp['mergedAt'] = now()->toISOString();
+                    // Keep original status but lock mutating actions via mergedInto flag on read path.
+                    $source->forceFill(['payload' => $sp])->save();
+                }
+
+                return $created;
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $body = $this->serialize($created);
+        $body['status'] = 'DRAFT';
+        $body['mergedFromAuditIds'] = $sourceMongoIds;
+        $body['mergedFromAuditCodes'] = array_values(array_filter($sourceCodes));
+
+        return response()->json($body, 201);
+    }
+
+    /**
      * Admin gate: requires valid local-laravel-token-{id} for ADMIN or root owner.
      * Used for inventory audit reconcile and sale cancel/delete/edit of completed invoices.
      * Does not use unauthenticated ADMIN fallback (unlike /auth/me).
@@ -2052,7 +2362,11 @@ class LocalWriteController extends Controller
 
     private function nextSuffix(): string
     {
-        return now()->format('ymdHis').random_int(10, 99);
+        // High entropy: second precision alone collides under bulk fixture creates
+        // (old form was ymdHis + 2-digit random → only ~90 codes/sec).
+        $micro = str_pad((string) ((int) ((microtime(true) - floor(microtime(true))) * 1_000_000)), 6, '0', STR_PAD_LEFT);
+
+        return now()->format('ymdHis').$micro.sprintf('%04d', random_int(0, 9999)).bin2hex(random_bytes(2));
     }
 
     private function prefix(string $resource): string

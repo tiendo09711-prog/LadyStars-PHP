@@ -1,0 +1,16 @@
+{"version":8,"type":"context-options","origin":"library","browserName":"","playwrightVersion":"1.61.1","options":{},"platform":"win32","wallTime":1784267962742,"monotonicTime":44443.117,"sdkLanguage":"javascript","contextId":"request-context@c4d2f8140b9c423863fba50ab5a69f08","title":"wholesale.full.live.spec.ts:502 › Wholesale FULL live WS matrix › WS-AUTH-001..006 access and roles"}
+{"type":"before","callId":"call@483","startTime":138037.723,"class":"APIRequestContext","method":"fetch","params":{"url":"http://127.0.0.1:8000/api/products/sales/eac7fd4498baa8909925edb8/cancel","method":"POST","headers":[{"name":"Authorization","value":"Bearer local-laravel-token-9"}],"timeout":30000},"stepId":"pw:api@369"}
+{"type":"log","callId":"call@483","time":138039.286,"message":"→ POST http://127.0.0.1:8000/api/products/sales/eac7fd4498baa8909925edb8/cancel"}
+{"type":"log","callId":"call@483","time":138039.31,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36"}
+{"type":"log","callId":"call@483","time":138039.319,"message":"  accept: */*"}
+{"type":"log","callId":"call@483","time":138039.323,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@483","time":138039.329,"message":"  Authorization: Bearer local-laravel-token-9"}
+{"type":"log","callId":"call@483","time":138590.638,"message":"← 403 Forbidden"}
+{"type":"log","callId":"call@483","time":138590.676,"message":"  host: 127.0.0.1:8000"}
+{"type":"log","callId":"call@483","time":138590.684,"message":"  connection: close"}
+{"type":"log","callId":"call@483","time":138590.693,"message":"  x-powered-by: PHP/8.3.30"}
+{"type":"log","callId":"call@483","time":138590.699,"message":"  cache-control: no-cache, private"}
+{"type":"log","callId":"call@483","time":138590.707,"message":"  date: Fri, 17 Jul 2026 06:00:56 GMT"}
+{"type":"log","callId":"call@483","time":138590.712,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@483","time":138590.72,"message":"  access-control-allow-origin: *"}
+{"type":"after","callId":"call@483","endTime":138595.145,"result":{"response":{"url":"http://127.0.0.1:8000/api/products/sales/eac7fd4498baa8909925edb8/cancel","status":403,"statusText":"Forbidden","headers":[{"name":"Host","value":"127.0.0.1:8000"},{"name":"Connection","value":"close"},{"name":"X-Powered-By","value":"PHP/8.3.30"},{"name":"Cache-Control","value":"no-cache, private"},{"name":"Date","value":"Fri, 17 Jul 2026 06:00:56 GMT"},{"name":"Content-Type","value":"application/json"},{"name":"Access-Control-Allow-Origin","value":"*"}],"fetchUid":"fedf8b3a8de42665e9f948f99f5c780b"}}}

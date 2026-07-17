@@ -24,6 +24,15 @@ export function LoginPage() {
       const response = await http.post('/auth/login', { email, password });
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('lastLoginEmail', response.data.user?.email ?? email);
+      // Seed identity so AppLayout can render the correct admin/employee shell immediately
+      // without waiting on a second /auth/me round-trip (avoids sticky "Nhan vien" fallback).
+      if (response.data?.user) {
+        try {
+          localStorage.setItem('authUser', JSON.stringify(response.data.user));
+        } catch {
+          /* ignore quota */
+        }
+      }
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Đăng nhập thất bại.');

@@ -51,6 +51,7 @@ http.interceptors.response.use(
     if (status === 401 && typeof window !== 'undefined') {
       try {
         localStorage.removeItem('token');
+        localStorage.removeItem('authUser');
       } catch {
         // ignore storage errors
       }

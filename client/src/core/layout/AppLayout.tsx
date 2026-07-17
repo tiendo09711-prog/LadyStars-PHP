@@ -28,6 +28,7 @@ import {
 import { http } from '../api/http';
 import { canAccessPath, isAdminRole, normalizeRole, roleLabel } from '../auth/access';
 import { useProductScannerBridge } from '../hooks/productScanner';
+import { isInventoryReportPath } from '../../modules/reports/inventory/inventoryReport.tabs';
 
 type MenuLeaf = {
   to: string;
@@ -94,33 +95,8 @@ const baseMenuGroups: MenuGroup[] = [
     id: 'report',
     label: 'Báo Cáo',
     items: [
-      {
-        label: 'Doanh thu',
-        icon: FileText,
-        subItems: [
-          { to: '/reports/revenue/time', label: 'Theo thời gian', icon: List },
-          { to: '/reports/revenue/store', label: 'Theo cửa hàng', icon: List },
-          { to: '/reports/revenue/products', label: 'Theo sản phẩm / danh mục', icon: List },
-        ]
-      },
-      {
-        label: 'Bán hàng',
-        icon: ShoppingBag,
-        subItems: [
-          { to: '/reports/sales/overview', label: 'Tổng quan', icon: List },
-          { to: '/reports/sales/shift-closing', label: 'Kết ca', icon: List },
-        ]
-      },
-      {
-        label: 'Kho hàng',
-        icon: Package,
-        subItems: [
-          { to: '/reports/inventory/in-out-stock', label: 'Xuất nhập tồn', icon: List },
-          { to: '/products/inventory', label: 'Tồn kho', icon: List },
-          { to: '/products/storage-duration', label: 'Hàng tồn lâu / bán chậm', icon: List },
-          { to: '/reports/inventory/pending-transfers', label: 'Chuyển kho chưa xác nhận', icon: List },
-        ]
-      },
+      { to: '/reports/revenue', label: 'Doanh thu', icon: FileText },
+      { to: '/reports/inventory', label: 'Kho hàng', icon: Package },
       { to: '/reports/products/performance', label: 'Sản phẩm', icon: Boxes },
     ]
   },
@@ -301,21 +277,66 @@ export function AppLayout() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
+      localStorage.removeItem('authUser');
       navigate('/login');
       return;
     }
-    Promise.all([
-      http.get('/auth/me'),
-      http.get('/settings/store').catch(() => null),
-    ])
-      .then(([userResponse, settingResponse]) => {
-        setUser({ ...userResponse.data, role: normalizeRole(userResponse.data?.role) });
+
+    // Optimistic identity from login payload (if present) so admin menu is correct on first paint.
+    try {
+      const cachedRaw = localStorage.getItem('authUser');
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw) as CurrentUser & Record<string, unknown>;
+        if (cached && typeof cached === 'object') {
+          const nextRole = normalizeRole(cached.role as string);
+          setUser({
+            name: String(cached.name || ''),
+            email: String(cached.email || ''),
+            role: nextRole,
+            status: cached.status ? String(cached.status) : undefined,
+          });
+          document.body.dataset.authRole = nextRole;
+        }
+      }
+    } catch {
+      localStorage.removeItem('authUser');
+    }
+
+    // Load identity independently of store settings so admin menu is never blocked by /settings/store.
+    let active = true;
+    http
+      .get('/auth/me')
+      .then((userResponse) => {
+        const nextRole = normalizeRole(userResponse.data?.role);
+        setUser({ ...userResponse.data, role: nextRole });
+        try {
+          document.body.dataset.authRole = nextRole;
+          localStorage.setItem(
+            'authUser',
+            JSON.stringify({ ...userResponse.data, role: nextRole }),
+          );
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        localStorage.removeItem('token');
+        localStorage.removeItem('authUser');
+        navigate('/login');
+      });
+    http
+      .get('/settings/store')
+      .then((settingResponse) => {
+        if (!active) return;
         if (settingResponse?.data) setStoreSettings(settingResponse.data);
       })
       .catch(() => {
-        localStorage.removeItem('token');
-        navigate('/login');
+        // Store branding is optional for navigation; keep empty defaults.
       });
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -344,6 +365,7 @@ export function AppLayout() {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('authUser');
     navigate('/login');
   };
 
@@ -382,6 +404,7 @@ export function AppLayout() {
 
   const exactMenuPaths = new Set(['/products']);
   const routeMatches = (to: string) => {
+    if (to === '/reports/inventory') return isInventoryReportPath(location.pathname);
     if (to === '/' || exactMenuPaths.has(to)) return location.pathname === to;
     return location.pathname === to || location.pathname.startsWith(`${to}/`);
   };
@@ -408,8 +431,20 @@ export function AppLayout() {
 
   const renderMenuLink = (item: MenuLeaf) => {
     const Icon = item.icon;
+    const end = item.to === '/' || exactMenuPaths.has(item.to);
     return (
-      <NavLink key={item.to} to={item.to} end={item.to === '/' || exactMenuPaths.has(item.to)} onClick={closeSidebar}>
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={end}
+        onClick={closeSidebar}
+        className={({ isActive }) => {
+          const active = item.to === '/reports/inventory'
+            ? isInventoryReportPath(location.pathname)
+            : isActive;
+          return active ? 'active' : undefined;
+        }}
+      >
         <Icon size={16} className="menu-icon" />
         <span>{item.label}</span>
       </NavLink>

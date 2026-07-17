@@ -25,10 +25,12 @@ import {
 } from './revenueByTime.utils';
 import { PeriodDetailModal } from './components/PeriodDetailModal';
 import { RevenueBreakdownCharts } from './components/RevenueBreakdownCharts';
+import { RevenueInsights } from './components/RevenueInsights';
 import { RevenueReportFilters, type DateMode } from './components/RevenueReportFilters';
 import { RevenueSummaryCards } from './components/RevenueSummaryCards';
 import { RevenueTimelineTable } from './components/RevenueTimelineTable';
 import { RevenueTrendChart } from './components/RevenueTrendChart';
+import { RevenueReportNav } from '../components/RevenueReportNav';
 import './revenue-by-time-page.css';
 
 export function RevenueByTimePage() {
@@ -288,6 +290,8 @@ export function RevenueByTimePage() {
     <main className="rbt-page">
       {busy && <div className="rbt-progress" aria-hidden />}
 
+      <RevenueReportNav />
+
       <header className="rbt-hero">
         <div>
           <h1>Doanh thu theo thời gian</h1>
@@ -418,6 +422,12 @@ export function RevenueByTimePage() {
         loading={loading && !report}
       />
 
+      <RevenueInsights
+        report={report}
+        loading={loading && !report}
+        onSelectPoint={setDetailPoint}
+      />
+
       <RevenueTrendChart
         timeline={timelineAll}
         loading={loading && !report}
@@ -426,7 +436,6 @@ export function RevenueByTimePage() {
       />
 
       <RevenueBreakdownCharts
-        stores={report?.breakdowns?.stores ?? []}
         channels={report?.breakdowns?.channels ?? []}
         paymentMethods={report?.breakdowns?.paymentMethods ?? []}
         staff={report?.breakdowns?.staff ?? []}

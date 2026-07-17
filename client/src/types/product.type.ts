@@ -133,6 +133,15 @@ export interface IStorageDuration {
   branchName?: string;
 }
 
+export interface IStorageAgeBucket {
+  key: string;
+  label: string;
+  min: number;
+  max: number | null;
+  count: number;
+  value: number;
+}
+
 export interface IStorageDurationKpis {
   totalProducts: number;
   unsoldLong: number;
@@ -145,4 +154,5 @@ export interface IStorageDurationKpis {
   lastRefreshedAt?: string;
   topUnsoldLong?: IStorageDuration[];
   topSlowSelling?: IStorageDuration[];
+  ageBuckets?: IStorageAgeBucket[];
 }

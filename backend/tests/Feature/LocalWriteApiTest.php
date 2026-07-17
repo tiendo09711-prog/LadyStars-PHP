@@ -558,6 +558,7 @@ class LocalWriteApiTest extends TestCase
 
     public function test_inventory_audit_local_endpoints_are_available(): void
     {
+        // setUp() already attaches admin Authorization for write endpoints.
         $this->getJson('/api/inventory-audits/meta')->assertOk();
 
         // Create rich DRAFT with mixed items (positive, negative, zero, null physical, missing optional)
@@ -668,7 +669,7 @@ class LocalWriteApiTest extends TestCase
         $this->postJson('/api/inventory-audits/'.$cancId.'/submit')->assertOk();
         $this->postJson('/api/inventory-audits/'.$cancId.'/cancel', ['reason' => 'Sai'])->assertOk();
 
-        // Now verify list non-empty
+        // Now verify list non-empty (setUp already authenticates as admin)
         $list = $this->getJson('/api/inventory-audits?limit=20');
         $list->assertOk();
         $items = $list->json('items');

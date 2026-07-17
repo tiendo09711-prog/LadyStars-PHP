@@ -1,0 +1,1 @@
+{"_id":"1","id":1,"mongoId":null,"name":"Admin","email":"admin@gmail.com","phone":null,"role":"ADMIN","status":"ACTIVE","branchId":null,"defaultWarehouseId":null,"isRootOwner":true,"isActive":true}

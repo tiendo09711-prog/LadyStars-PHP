@@ -1025,6 +1025,56 @@
   margin-left: auto;
 }
 
+.inventory-root .inventory-transfer-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.inventory-root .inventory-transfer-alert > div {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inventory-root .inventory-transfer-alert strong,
+.inventory-root .inventory-transfer-alert span {
+  line-height: 1.4;
+}
+
+.inventory-root .inventory-transfer-alert span {
+  font-size: 12px;
+}
+
+.inventory-root .inventory-transfer-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.inventory-root .inventory-transfer-note button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #047857;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inventory-root .inventory-transfer-note button:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.35);
+  outline-offset: 2px;
+}
+
 .inventory-root .inventory-sticky-toolbar .inv-quick-pills {
   grid-column: 1 / -1;
   display: flex;
@@ -1382,5 +1432,14 @@
 
   .inventory-root .inventory-sticky-toolbar .inv-filter-actions .inv-btn {
     flex: 1 1 auto;
+  }
+
+  .inventory-root .inventory-transfer-alert {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .inventory-root .inventory-transfer-alert .inv-btn {
+    width: 100%;
   }
 }

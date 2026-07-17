@@ -1,0 +1,183 @@
+.inventory-report-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+
+.inventory-report-shell__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.inventory-report-shell__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.inventory-report-shell__title-block h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.inventory-report-shell__title-block p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  max-width: 52rem;
+}
+
+.inventory-report-shell__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.inventory-report-nav {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #f1f5f4;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.inventory-report-nav__tabs {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.inventory-report-nav__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 0 auto;
+  min-height: 40px;
+  min-width: max-content;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.inventory-report-nav__tab:hover {
+  color: #047857;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.inventory-report-nav__tab:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.28);
+  outline-offset: 1px;
+}
+
+.inventory-report-nav__tab.is-active {
+  border-color: rgba(5, 150, 105, 0.16);
+  color: #047857;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.inventory-report-shell__content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* When existing product pages are nested, hide their standalone page H1/hero to avoid double titles. */
+.inventory-report-shell__content .inventory-compact-heading-sr,
+.inventory-report-shell__content .storage-compact-heading-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.inventory-report-shell__content .inventory-page-shell,
+.inventory-report-shell__content .storage-duration-page,
+.inventory-report-shell__content .workspace-page {
+  gap: 12px;
+}
+
+.inventory-report-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.inventory-report-placeholder h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.inventory-report-placeholder p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .inventory-report-shell__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inventory-report-shell__meta {
+    align-self: flex-start;
+  }
+
+  .inventory-report-nav__tab {
+    flex: 0 0 auto;
+  }
+}
+
+@media print {
+  .inventory-report-nav {
+    display: none;
+  }
+}

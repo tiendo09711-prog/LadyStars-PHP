@@ -80,6 +80,27 @@ class MirrorRecordController extends Controller
         ]);
     }
 
+    /**
+     * Gate sensitive inventory-check mirror aliases (same sensitivity as /inventory-audits).
+     */
+    private function requireAuthForSensitiveResource(Request $request): ?JsonResponse
+    {
+        $authHeader = (string) $request->header('Authorization', '');
+        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
+        }
+        $user = User::find((int) $matches[1]);
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated. Tài khoản không tồn tại.'], 401);
+        }
+        $active = $user->is_active;
+        if ($active === false || $active === 0 || $active === '0') {
+            return response()->json(['message' => 'Unauthenticated. Tài khoản đã bị khóa.'], 401);
+        }
+
+        return null;
+    }
+
     private function enrich(array $serialized, string $resource, string $table): array
     {
         $serialized = match ($resource) {
@@ -835,6 +856,13 @@ class MirrorRecordController extends Controller
 
         abort_if($table === null, 404, 'Unknown mirror resource.');
 
+        // inventory-checks / inventory-check-products: same data as /inventory-audits — require auth.
+        if (in_array($resource, ['inventory-checks', 'inventory-check-products'], true)) {
+            if ($deny = $this->requireAuthForSensitiveResource($request)) {
+                return $deny;
+            }
+        }
+
         $page = max((int) $request->query('page', 1), 1);
         $limitParam = $request->query('limit', $request->query('perPage', 20));
         $limit = min(max((int) $limitParam, 1), 5000);
@@ -1250,6 +1278,12 @@ class MirrorRecordController extends Controller
         $table = MirrorRecord::TABLES[$resource] ?? null;
 
         abort_if($table === null, 404, 'Unknown mirror resource.');
+
+        if (in_array($resource, ['inventory-checks', 'inventory-check-products'], true)) {
+            if ($deny = $this->requireAuthForSensitiveResource($request)) {
+                return $deny;
+            }
+        }
 
         $query = (new MirrorRecord())->forTable($table)->newQuery();
         $record = ctype_digit($id)

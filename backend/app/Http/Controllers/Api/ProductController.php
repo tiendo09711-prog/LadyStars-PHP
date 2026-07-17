@@ -527,6 +527,46 @@ class ProductController extends Controller
         $payload['totalStockQuantity'] = $totalStockQuantity;
         $payload['totalInventoryValue'] = $totalInventoryValue;
 
+        // Full-set breakdown for inventory report chart (backward-compatible additive field).
+        // Scoped to the same filtered product set as totalStockQuantity / totalInventoryValue.
+        $byWarehouseQ = ProductBranchStock::query()
+            ->join('branches as b', 'b.id', '=', 'product_branch_stocks.branch_id')
+            ->join('products as p', 'p.id', '=', 'product_branch_stocks.product_id')
+            ->whereIn('product_branch_stocks.product_id', $productIdSub);
+        if ($branchId) {
+            $byWarehouseQ->where('product_branch_stocks.branch_id', $branchId);
+        }
+        $byWarehouse = $byWarehouseQ
+            ->groupBy('b.id', 'b.name', 'b.mongo_id')
+            ->orderBy('b.name')
+            ->get([
+                'b.id as branch_id',
+                'b.mongo_id as branch_mongo_id',
+                'b.name as branch_name',
+                DB::raw('COALESCE(SUM(product_branch_stocks.qty), 0) as qty'),
+                DB::raw('COALESCE(SUM(product_branch_stocks.qty * p.cost), 0) as value'),
+            ])
+            ->map(fn ($row): array => [
+                'branchId' => (string) ($row->branch_mongo_id ?: $row->branch_id),
+                'localBranchId' => (int) $row->branch_id,
+                'name' => (string) $row->branch_name,
+                'qty' => (float) $row->qty,
+                'value' => (float) $row->value,
+            ])
+            ->values()
+            ->all();
+
+        $payload['breakdowns'] = [
+            'byWarehouse' => $byWarehouse,
+        ];
+        $payload['meta'] = [
+            'generatedAt' => now()->toIso8601String(),
+            'capabilities' => [
+                'warehouseBreakdown' => true,
+                'valueMetrics' => true,
+            ],
+        ];
+
         return response()->json($payload);
     }
 
@@ -835,6 +875,32 @@ class ProductController extends Controller
             'from' => $total > 0 ? $offset + 1 : null,
             'to' => $total > 0 ? min($offset + $perPage, $total) : null,
         ];
+        $ageBuckets = [
+            ['key' => '0_30', 'label' => '0–30 ngày', 'min' => 0, 'max' => 30, 'count' => 0, 'value' => 0.0],
+            ['key' => '31_60', 'label' => '31–60 ngày', 'min' => 31, 'max' => 60, 'count' => 0, 'value' => 0.0],
+            ['key' => '61_90', 'label' => '61–90 ngày', 'min' => 61, 'max' => 90, 'count' => 0, 'value' => 0.0],
+            ['key' => 'over_90', 'label' => 'Trên 90 ngày', 'min' => 91, 'max' => null, 'count' => 0, 'value' => 0.0],
+        ];
+        foreach ($itemsForKpi as $item) {
+            $days = $item['daysFromLastSold'];
+            if ($days === null) {
+                $days = (int) ($item['daysFromStart'] ?? 0);
+            } else {
+                $days = (int) $days;
+            }
+            $value = $valueOf($item);
+            foreach ($ageBuckets as &$bucket) {
+                $min = (int) $bucket['min'];
+                $max = $bucket['max'];
+                if ($days >= $min && ($max === null || $days <= (int) $max)) {
+                    $bucket['count']++;
+                    $bucket['value'] += $value;
+                    break;
+                }
+            }
+            unset($bucket);
+        }
+
         $payload['kpis'] = [
             // Tab badges: after SQL + day filters, before active tab.
             'totalProducts' => $itemsForKpi->count(),
@@ -850,6 +916,16 @@ class ProductController extends Controller
             'lastRefreshedAt' => now()->toISOString(),
             'topUnsoldLong' => $itemsForKpi->where('status', 'unsold_long')->take(5)->values()->all(),
             'topSlowSelling' => $itemsForKpi->where('status', 'slow_selling')->take(5)->values()->all(),
+            'ageBuckets' => $ageBuckets,
+        ];
+        $payload['breakdowns'] = [
+            'ageBuckets' => $ageBuckets,
+        ];
+        $payload['meta'] = [
+            'generatedAt' => now()->toIso8601String(),
+            'capabilities' => [
+                'ageBuckets' => true,
+            ],
         ];
 
         return response()->json($payload);

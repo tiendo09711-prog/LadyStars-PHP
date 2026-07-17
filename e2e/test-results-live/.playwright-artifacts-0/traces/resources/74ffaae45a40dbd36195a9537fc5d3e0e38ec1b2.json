@@ -1,0 +1,1 @@
+{"status":"draft","channel":"store","type":"wholesale","branchId":"1","customerId":"1767","valuePayment":180000,"typePayment":[{"methodId":"2bbef4d32c5b1151ef8d0f22","amount":180000}],"tenderedValue":180000,"discountValue":20000,"discountType":"number","items":[{"productId":"4232","amount":2,"value":100000}],"note":"QA-WS-WS-FULL-20260717125836-DISC"}

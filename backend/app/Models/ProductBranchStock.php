@@ -4,9 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\InventoryMovementRecorder;
 
 class ProductBranchStock extends Model
 {
+    protected static function booted(): void
+    {
+        static::created(fn (self $stock) => app(InventoryMovementRecorder::class)->recordStockChange($stock, true));
+        static::updated(fn (self $stock) => app(InventoryMovementRecorder::class)->recordStockChange($stock, false));
+    }
     protected $fillable = [
         'mongo_id',
         'product_id',

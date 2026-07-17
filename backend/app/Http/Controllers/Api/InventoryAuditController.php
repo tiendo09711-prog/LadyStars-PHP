@@ -46,6 +46,9 @@ class InventoryAuditController extends Controller
 
     public function meta(): JsonResponse
     {
+        if ($deny = $this->requireAuth(request())) {
+            return $deny;
+        }
         $context = $this->resolveCallerContext(request());
         $activeBranches = Branch::query()
             ->where('is_active', true)
@@ -91,6 +94,9 @@ class InventoryAuditController extends Controller
 
     public function dashboard(Request $request): JsonResponse
     {
+        if ($deny = $this->requireAuth($request)) {
+            return $deny;
+        }
         $query = $this->auditQuery($request);
 
         $audits = $query->get();
@@ -141,6 +147,9 @@ class InventoryAuditController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        if ($deny = $this->requireAuth($request)) {
+            return $deny;
+        }
         $perPage = (int) min(max((int) $request->query('limit', self::PAGE_LIMIT), 1), self::MAX_LIMIT);
         $page = max((int) $request->query('page', 1), 1);
         $query = $this->auditQuery($request);
@@ -154,6 +163,9 @@ class InventoryAuditController extends Controller
 
     public function indexItems(Request $request): JsonResponse
     {
+        if ($deny = $this->requireAuth($request)) {
+            return $deny;
+        }
         $perPage = (int) min(max((int) $request->query('limit', self::PAGE_LIMIT), 1), self::MAX_LIMIT);
         $page = max((int) $request->query('page', 1), 1);
         $query = $this->itemQuery($request);
@@ -167,7 +179,13 @@ class InventoryAuditController extends Controller
 
     public function show(string $id): JsonResponse
     {
+        if ($deny = $this->requireAuth(request())) {
+            return $deny;
+        }
         $record = $this->findAudit($id);
+        if ($deny = $this->denyIfOutsideWarehouseScope(request(), $record)) {
+            return $deny;
+        }
         $payload = is_array($record->payload) ? $record->payload : [];
         $items = $this->itemsOf($record);
 
@@ -181,6 +199,9 @@ class InventoryAuditController extends Controller
 
     public function suggestions(Request $request): JsonResponse
     {
+        if ($deny = $this->requireAuth($request)) {
+            return $deny;
+        }
         $warehouseId = trim((string) $request->query('warehouseId', ''));
         $limit = (int) min(max((int) $request->query('limit', 6), 1), 50);
         $query = (new MirrorRecord())->forTable('inventory_check_products')->newQuery();
@@ -223,6 +244,9 @@ class InventoryAuditController extends Controller
 
     public function assignableUsers(Request $request): JsonResponse
     {
+        if ($deny = $this->requireAuth($request)) {
+            return $deny;
+        }
         $warehouseId = trim((string) $request->query('warehouseId', ''));
         $query = User::query();
         if ($warehouseId !== '') {
@@ -242,11 +266,18 @@ class InventoryAuditController extends Controller
 
     public function shelves(): JsonResponse
     {
+        if ($deny = $this->requireAuth(request())) {
+            return $deny;
+        }
+
         return response()->json(['items' => []]);
     }
 
     public function export(Request $request): \Symfony\Component\HttpFoundation\Response
     {
+        if ($deny = $this->requireAuth($request)) {
+            return $deny;
+        }
         $kind = trim((string) $request->query('kind', $request->route('kind', 'audits')));
         $rows = $kind === 'items'
             ? $this->itemQuery($request)->limit(5000)->get()->map(fn (MirrorRecord $record) => $this->itemRow($record))->all()
@@ -278,14 +309,112 @@ class InventoryAuditController extends Controller
         }, $kind === 'items' ? 'inventory-audit-items.csv' : 'inventory-audits.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
+    /**
+     * Require valid local-laravel-token for inventory-audit reads (SEC / AUTH-01).
+     */
+    private function requireAuth(Request $request): ?JsonResponse
+    {
+        $context = $this->resolveCallerContext($request);
+        if ($context['user'] === null) {
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
+        }
+        $active = $context['user']->is_active;
+        if ($active === false || $active === 0 || $active === '0') {
+            return response()->json(['message' => 'Unauthenticated. Tài khoản đã bị khóa.'], 401);
+        }
+
+        return null;
+    }
+
+    /**
+     * Deny show when employee tries to open audit of a warehouse outside their assignment.
+     */
+    private function denyIfOutsideWarehouseScope(Request $request, MirrorRecord $record): ?JsonResponse
+    {
+        $context = $this->resolveCallerContext($request);
+        if ($context['isAdminOrRoot']) {
+            return null;
+        }
+        $allowed = $context['localBranchIds'];
+        if ($allowed === []) {
+            return response()->json(['message' => 'Bạn không có quyền xem phiếu kiểm kho này.'], 403);
+        }
+        $payload = is_array($record->payload) ? $record->payload : [];
+        $warehouseId = (string) ($payload['warehouseId'] ?? $record->branch_id ?? $record->branch_mongo_id ?? '');
+        $branch = $this->branch($warehouseId);
+        $localId = $branch ? (int) $branch->id : (int) $warehouseId;
+        if ($localId <= 0 || !in_array($localId, $allowed, true)) {
+            return response()->json(['message' => 'Bạn không có quyền xem phiếu kiểm kho của kho này.'], 403);
+        }
+
+        return null;
+    }
+
+    private function applyWarehouseScope($query, Request $request, $columns, string $payloadWarehouseKey = 'warehouseId'): void
+    {
+        $context = $this->resolveCallerContext($request);
+        if ($context['isAdminOrRoot']) {
+            return;
+        }
+        $allowed = $context['localBranchIds'];
+        if ($allowed === []) {
+            // No warehouse assigned → empty result set
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+        $branches = Branch::query()->whereIn('id', $allowed)->get(['id', 'mongo_id', 'name']);
+        $localIds = $branches->pluck('id')->map(fn ($v) => (int) $v)->all();
+        $mongoIds = $branches->pluck('mongo_id')->filter()->map(fn ($v) => (string) $v)->all();
+        $names = $branches->pluck('name')->filter()->map(fn ($v) => (string) $v)->all();
+        $stringIds = array_map('strval', $localIds);
+
+        $query->where(function ($q) use ($columns, $localIds, $mongoIds, $names, $stringIds, $payloadWarehouseKey) {
+            $matched = false;
+            if ($columns->has('branch_id') && $localIds !== []) {
+                $q->whereIn('branch_id', $localIds);
+                $matched = true;
+            }
+            if ($columns->has('branch_mongo_id') && $mongoIds !== []) {
+                $matched ? $q->orWhereIn('branch_mongo_id', $mongoIds) : $q->whereIn('branch_mongo_id', $mongoIds);
+                $matched = true;
+            }
+            // Payload fallbacks (legacy / mirror rows without branch_id column filled)
+            foreach (array_merge($stringIds, $mongoIds) as $key) {
+                if ($key === '') {
+                    continue;
+                }
+                if ($matched) {
+                    $q->orWhere('payload->'.$payloadWarehouseKey, $key);
+                } else {
+                    $q->where('payload->'.$payloadWarehouseKey, $key);
+                    $matched = true;
+                }
+            }
+            foreach ($names as $name) {
+                $q->orWhere('payload->warehouse', $name)->orWhere('payload->warehouseName', $name);
+            }
+            if (!$matched) {
+                $q->whereRaw('1 = 0');
+            }
+        });
+    }
+
     private function auditQuery(Request $request)
     {
         $query = (new MirrorRecord())->forTable('inventory_checks')->newQuery();
         $columns = collect(Schema::getColumnListing('inventory_checks'))->flip();
 
+        // Employee / non-admin: only warehouses they are assigned to (AUTH-02/04).
+        $this->applyWarehouseScope($query, $request, $columns, 'warehouseId');
+
         if ($warehouseId = trim((string) $request->query('warehouseId', ''))) {
             $branch = $this->branch($warehouseId);
-            if ($branch) {
+            $context = $this->resolveCallerContext($request);
+            // Block employee from filtering into a warehouse outside scope
+            if ($branch && !$context['isAdminOrRoot'] && !in_array((int) $branch->id, $context['localBranchIds'], true)) {
+                $query->whereRaw('1 = 0');
+            } elseif ($branch) {
                 if ($columns->has('branch_id')) {
                     $query->where('branch_id', $branch->id);
                 } elseif ($columns->has('branch_mongo_id')) {
@@ -373,9 +502,13 @@ class InventoryAuditController extends Controller
     {
         $query = (new MirrorRecord())->forTable('inventory_check_products')->newQuery();
         $columns = collect(Schema::getColumnListing('inventory_check_products'))->flip();
+        $this->applyWarehouseScope($query, $request, $columns, 'warehouseId');
         if ($warehouseId = trim((string) $request->query('warehouseId', ''))) {
             $branch = $this->branch($warehouseId);
-            if ($branch) {
+            $context = $this->resolveCallerContext($request);
+            if ($branch && !$context['isAdminOrRoot'] && !in_array((int) $branch->id, $context['localBranchIds'], true)) {
+                $query->whereRaw('1 = 0');
+            } elseif ($branch) {
                 if ($columns->has('branch_id')) {
                     $query->where('branch_id', $branch->id);
                 } elseif ($columns->has('branch_mongo_id')) {

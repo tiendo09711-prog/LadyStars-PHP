@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
-import { ArrowDown, ArrowUp, ArrowUpDown, FileDown, RefreshCw, Search } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, FileDown, RefreshCw, Search } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
 import { http } from '../../../core/api/http';
@@ -12,23 +22,42 @@ import type { IInventory } from '../../../types/product.type';
 import { ColumnOption, ExportExcelModal } from './ExportExcelModal';
 import { getInventoryBranchStock } from './inventoryStock';
 
+type WarehouseBreakdown = {
+  branchId: string;
+  localBranchId?: number;
+  name: string;
+  qty: number;
+  value: number;
+};
+
+type PendingTransferSummary = {
+  totalPending: number;
+  totalQty: number;
+  maxWaitingDays: number;
+};
+
 export function InventoryList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<IInventory[]>([]);
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [branchesError, setBranchesError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [filterWarehouse, setFilterWarehouse] = useState('');
-  const [filterStockStatus, setFilterStockStatus] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
+  const [filterWarehouse, setFilterWarehouse] = useState(() => searchParams.get('branchId') || '');
+  const [filterStockStatus, setFilterStockStatus] = useState(() => searchParams.get('stockStatus') || '');
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalStockQuantity, setTotalStockQuantity] = useState(0);
   const [totalInventoryValue, setTotalInventoryValue] = useState(0);
+  const [warehouseBreakdown, setWarehouseBreakdown] = useState<WarehouseBreakdown[]>([]);
+  const [pendingTransfers, setPendingTransfers] = useState<PendingTransferSummary | null>(null);
+  const [pendingTransfersError, setPendingTransfersError] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -70,11 +99,65 @@ export function InventoryList() {
     void loadBranches();
   }, [loadBranches]);
 
-  const load = async (overrides?: { search?: string; page?: number }) => {
+  const loadPendingTransfers = useCallback(async () => {
+    setPendingTransfersError(false);
+    try {
+      const response = await http.get('/reports/inventory/pending-transfers', {
+        params: { page: 1, perPage: 1 },
+      });
+      if (!mountedRef.current) return;
+      const summary = response.data?.summary;
+      setPendingTransfers({
+        totalPending: Number(summary?.totalPending || 0),
+        totalQty: Number(summary?.totalQty || 0),
+        maxWaitingDays: Number(summary?.maxWaitingDays || 0),
+      });
+    } catch (loadError) {
+      console.error('Pending transfer summary load error', loadError);
+      if (!mountedRef.current) return;
+      setPendingTransfers(null);
+      setPendingTransfersError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPendingTransfers();
+  }, [loadPendingTransfers, refreshKey]);
+
+  // Keep deep-link query in sync (q / branchId / stockStatus) without clobbering unrelated params.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (search.trim()) next.set('q', search.trim());
+    else next.delete('q');
+    if (filterWarehouse) next.set('branchId', filterWarehouse);
+    else next.delete('branchId');
+    if (filterStockStatus) next.set('stockStatus', filterStockStatus);
+    else next.delete('stockStatus');
+    const current = searchParams.toString();
+    const upcoming = next.toString();
+    if (current !== upcoming) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filterWarehouse, filterStockStatus]);
+
+  // Hydrate from URL when user navigates Back/Forward.
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    const branchId = searchParams.get('branchId') || '';
+    const stockStatus = searchParams.get('stockStatus') || '';
+    setSearch((prev) => (prev === q ? prev : q));
+    setFilterWarehouse((prev) => (prev === branchId ? prev : branchId));
+    setFilterStockStatus((prev) => (prev === stockStatus ? prev : stockStatus));
+  }, [searchParams]);
+
+  const load = async (overrides?: { search?: string; page?: number; mode?: 'load' | 'refresh' }) => {
     const requestId = ++invRequestIdRef.current;
     const nextSearch = overrides?.search ?? search;
     const nextPage = overrides?.page ?? page;
-    setLoading(true);
+    const mode = overrides?.mode ?? (items.length > 0 ? 'refresh' : 'load');
+    if (mode === 'refresh') setRefreshing(true);
+    else setLoading(true);
     setError(null);
     try {
       // Session gate: many read APIs still answer without auth, so re-check /auth/me
@@ -90,24 +173,45 @@ export function InventoryList() {
         stockStatus: filterStockStatus || undefined,
         sort: sortField,
         order: sortOrder,
-      });
+      }) as {
+        items?: IInventory[];
+        total?: number;
+        totalStockQuantity?: number;
+        totalInventoryValue?: number;
+        breakdowns?: { byWarehouse?: WarehouseBreakdown[] };
+      };
       if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
       // Defensive contract handling (INV-ERR-04/05): missing items/total must not crash UI.
       setItems(Array.isArray(res?.items) ? res.items : []);
       setTotal(typeof res?.total === 'number' && Number.isFinite(res.total) ? res.total : 0);
       setTotalStockQuantity(typeof res.totalStockQuantity === 'number' ? res.totalStockQuantity : 0);
       setTotalInventoryValue(typeof res.totalInventoryValue === 'number' ? res.totalInventoryValue : 0);
+      const breakdown = Array.isArray(res?.breakdowns?.byWarehouse) ? res.breakdowns!.byWarehouse! : [];
+      setWarehouseBreakdown(
+        breakdown.map((row) => ({
+          branchId: String(row.branchId ?? ''),
+          localBranchId: row.localBranchId,
+          name: String(row.name ?? '—'),
+          qty: Number(row.qty) || 0,
+          value: Number(row.value) || 0,
+        })),
+      );
     } catch (err) {
       console.error('Inventory load error', err);
       if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
       setError('Không tải được dữ liệu tồn kho. Vui lòng thử Làm mới hoặc kiểm tra kết nối.');
-      setItems([]);
-      setTotal(0);
-      setTotalStockQuantity(0);
-      setTotalInventoryValue(0);
+      // Keep previous rows on refresh failure; only clear on hard initial load.
+      if (mode === 'load') {
+        setItems([]);
+        setTotal(0);
+        setTotalStockQuantity(0);
+        setTotalInventoryValue(0);
+        setWarehouseBreakdown([]);
+      }
     } finally {
       if (!mountedRef.current || requestId !== invRequestIdRef.current) return;
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -208,18 +312,16 @@ export function InventoryList() {
   };
 
   const handleRefresh = () => {
-    setSearch('');
-    setFilterWarehouse('');
-    setFilterStockStatus('');
-    setSortField('createdAt');
-    setSortOrder('desc');
-    setPage(1);
+    if (loading || refreshing) return;
     setError(null);
-    setTotalStockQuantity(0);
-    setTotalInventoryValue(0);
-    // Reload both inventories and branches (do not only clear branchesError)
+    // Soft refresh keeps applied filters (report pattern).
     void loadBranches();
-    setRefreshKey((value) => value + 1);
+    void load({ mode: 'refresh' });
+  };
+
+  const handleSoftRetry = () => {
+    setError(null);
+    void load({ mode: items.length ? 'refresh' : 'load' });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -310,16 +412,16 @@ export function InventoryList() {
         <div className="inventory-summary-strip" aria-label="Tóm tắt tồn kho">
           <div className="inventory-summary-cluster">
             <span className="inventory-summary-main">
-              <strong>{total.toLocaleString('vi-VN')}</strong>
+              <strong data-testid="inventory-kpi-total">{total.toLocaleString('vi-VN')}</strong>
               <span>bản ghi</span>
             </span>
             <span className="inventory-summary-divider" aria-hidden="true" />
             <span className="inventory-summary-main">
-              <strong>{totalStockQuantity.toLocaleString('vi-VN')}</strong>
+              <strong data-testid="inventory-kpi-stock">{totalStockQuantity.toLocaleString('vi-VN')}</strong>
               <span>tổng tồn</span>
             </span>
             <span className="inventory-summary-divider" aria-hidden="true" />
-            <span className="inventory-summary-value">{formatMoney(totalInventoryValue)}</span>
+            <span className="inventory-summary-value" data-testid="inventory-kpi-value">{formatMoney(totalInventoryValue)}</span>
             {hasActiveFilters ? (
               <>
                 <span className="inventory-summary-divider" aria-hidden="true" />
@@ -393,9 +495,33 @@ export function InventoryList() {
           <div className="inventory-error-bar" role="alert">
             {branchesError && <div>⚠ {branchesError}</div>}
             {error && <div>⚠ {error}</div>}
-            <button type="button" className="inv-btn inv-btn-secondary" onClick={handleRefresh}>Thử lại</button>
+            <button type="button" className="inv-btn inv-btn-secondary" onClick={handleSoftRetry}>Thử lại</button>
           </div>
         )}
+        {pendingTransfers && pendingTransfers.totalPending > 0 ? (
+          <div className="inventory-transfer-alert" role="status" data-testid="inventory-transfer-alert">
+            <AlertTriangle size={18} aria-hidden="true" />
+            <div>
+              <strong>{pendingTransfers.totalPending.toLocaleString('vi-VN')} phiếu chuyển kho chưa hoàn tất</strong>
+              <span>
+                {pendingTransfers.totalQty.toLocaleString('vi-VN')} sản phẩm đang treo
+                {pendingTransfers.maxWaitingDays > 0 ? ` · lâu nhất ${pendingTransfers.maxWaitingDays.toLocaleString('vi-VN')} ngày` : ''}
+              </span>
+            </div>
+            <button type="button" className="inv-btn inv-btn-secondary" onClick={() => navigate('/warehouse/transfers')}>
+              Mở chuyển kho
+            </button>
+          </div>
+        ) : null}
+        {pendingTransfersError ? (
+          <div className="inventory-transfer-note" data-testid="inventory-transfer-error">
+            Chưa tải được cảnh báo chuyển kho. Dữ liệu tồn kho bên dưới vẫn được giữ nguyên.
+            <button type="button" onClick={() => void loadPendingTransfers()}>Thử lại</button>
+          </div>
+        ) : null}
+        {refreshing ? (
+          <div className="inventory-refreshing-badge" data-testid="inventory-refreshing">Đang làm mới...</div>
+        ) : null}
 
         <div className="inv-quick-pills">
           <button
@@ -424,6 +550,43 @@ export function InventoryList() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="data-card inventory-chart-card" aria-labelledby="inventory-chart-title" data-testid="inventory-chart-card">
+        <div className="data-card-header">
+          <div>
+            <h2 id="inventory-chart-title" className="inventory-table-title">
+              {filterWarehouse ? 'Phân bổ giá trị tồn (kho đã chọn)' : 'Phân bổ giá trị tồn theo kho'}
+            </h2>
+            <p className="inventory-table-subtitle">Tổng hợp toàn bộ kết quả đã lọc — không lấy từ trang hiện tại.</p>
+          </div>
+        </div>
+        {warehouseBreakdown.length === 0 ? (
+          <div className="inventory-chart-empty" data-testid="inventory-chart-empty">
+            {loading ? 'Đang tải biểu đồ...' : 'Không có dữ liệu phân bổ kho cho bộ lọc hiện tại.'}
+          </div>
+        ) : (
+          <div className="inventory-chart" data-testid="inventory-chart" style={{ width: '100%', minHeight: 260 }}>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={warehouseBreakdown} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip
+                  formatter={(value: number, name: string) => [
+                    name === 'value'
+                      ? `${Number(value).toLocaleString('vi-VN')} đ`
+                      : Number(value).toLocaleString('vi-VN'),
+                    name === 'value' ? 'Giá trị' : 'Số lượng',
+                  ]}
+                />
+                <Legend />
+                <Bar dataKey="value" name="Giá trị" fill="#059669" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="qty" name="Số lượng" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </section>
 
       <section className="data-card inventory-table-card">
