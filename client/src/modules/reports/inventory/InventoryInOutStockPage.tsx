@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ChevronDown, Download, RefreshCw } from 'lucide-react';
+import { ChevronDown, Download, Eye, RefreshCw, X } from 'lucide-react';
 import { InventoryReportShell } from './components/InventoryReportShell';
 import { fetchAllInOutStockRows, fetchInOutStockOptions, fetchInOutStockReport, fetchInventoryReconciliation } from './in-out/inOutStock.api';
 import type { InventoryReconciliationResponse } from './in-out/inOutStock.api';
@@ -18,6 +18,8 @@ import type {
   InOutStockFilters,
   InOutStockOptions,
   InOutStockReportResponse,
+  InOutStockRow,
+  InOutTimelinePoint,
 } from './in-out/inOutStock.types';
 import {
   buildInOutCsv,
@@ -46,9 +48,16 @@ export function InventoryInOutStockPage() {
   const [exporting, setExporting] = useState(false);
   const [reconciliation, setReconciliation] = useState<InventoryReconciliationResponse | null>(null);
   const [reconciliationError, setReconciliationError] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<InOutTimelinePoint | null>(null);
+  const [periodRows, setPeriodRows] = useState<InOutStockRow[]>([]);
+  const [periodLoading, setPeriodLoading] = useState(false);
+  const [periodError, setPeriodError] = useState('');
 
   const abortRef = useRef<AbortController | null>(null);
   const requestSeq = useRef(0);
+  const periodRequestSeq = useRef(0);
+  const periodCloseRef = useRef<HTMLButtonElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const loadReport = useCallback(async (filters: InOutStockFilters, mode: 'load' | 'refresh' = 'load') => {
     const maxDays = options?.maxRangeDays ?? 366;
@@ -192,6 +201,55 @@ export function InventoryInOutStockPage() {
     }
   };
 
+  const closePeriodDetail = useCallback(() => {
+    periodRequestSeq.current += 1;
+    setSelectedPeriod(null);
+    setPeriodRows([]);
+    setPeriodError('');
+  }, []);
+
+  const handlePeriodClick = async (state: { activePayload?: Array<{ payload?: InOutTimelinePoint }> }) => {
+    const point = state?.activePayload?.[0]?.payload;
+    if (!point) return;
+    setSelectedPeriod(point);
+    setPeriodRows([]);
+    setPeriodError('');
+    setPeriodLoading(true);
+    const seq = ++periodRequestSeq.current;
+    try {
+      const rows = await fetchAllInOutStockRows({
+        ...applied,
+        fromDate: point.periodKey,
+        toDate: point.periodKey,
+        page: 1,
+      });
+      if (seq !== periodRequestSeq.current) return;
+      setPeriodRows(rows);
+    } catch (err: unknown) {
+      if (seq !== periodRequestSeq.current) return;
+      setPeriodError(extractApiError(err));
+    } finally {
+      if (seq === periodRequestSeq.current) setPeriodLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedPeriod) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    periodCloseRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closePeriodDetail();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [closePeriodDetail, selectedPeriod]);
+
   const busy = loading || refreshing;
   const summary = report?.summary;
   const timeline = report?.timeline ?? [];
@@ -216,7 +274,7 @@ export function InventoryInOutStockPage() {
       <div className="inout-page" data-testid="inout-stock-page" aria-busy={busy || undefined}>
         {busy ? <div className="inout-progress" aria-hidden /> : null}
 
-        <section className="inout-filters" aria-labelledby="inout-filters-title">
+        <section className="inout-filters inout-filters--sticky" aria-labelledby="inout-filters-title">
           <div className="inout-filters__head">
             <h2 id="inout-filters-title">Bộ lọc</h2>
             <button
@@ -305,7 +363,7 @@ export function InventoryInOutStockPage() {
                 <p className="inout-validation" role="alert">{validationError}</p>
               ) : null}
 
-              <div className="inout-actions">
+              <div className="inout-actions inout-filter-actions">
                 {/* Apply/Reset stay enabled so users can supersede in-flight requests (stale abort). */}
                 <button type="button" className="inout-btn inout-btn--primary" onClick={handleApply}>
                   Áp dụng
@@ -409,7 +467,7 @@ export function InventoryInOutStockPage() {
           ) : (
             <div className="inout-chart" data-testid="inout-chart">
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={timeline} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <BarChart data={timeline} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} onClick={handlePeriodClick}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
@@ -418,8 +476,8 @@ export function InventoryInOutStockPage() {
                     labelFormatter={(label) => `Kỳ: ${label}`}
                   />
                   <Legend />
-                  <Bar dataKey="qtyIn" name="Nhập" fill="#059669" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="qtyOut" name="Xuất" fill="#dc2626" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="qtyIn" name="Nhập" fill="#059669" radius={[3, 3, 0, 0]} cursor="pointer" />
+                  <Bar dataKey="qtyOut" name="Xuất" fill="#dc2626" radius={[3, 3, 0, 0]} cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -516,7 +574,9 @@ export function InventoryInOutStockPage() {
                         <td>{row.createdByName || '—'}</td>
                         <td>
                           {row.detailPath ? (
-                            <Link to={row.detailPath}>Xem chi tiết</Link>
+                            <Link className="inout-view-link" to={row.detailPath} aria-label={`Xem chi tiết ${row.billCode || 'giao dịch'}`} title="Xem chi tiết">
+                              <Eye size={16} aria-hidden="true" />
+                            </Link>
                           ) : (
                             '—'
                           )}
@@ -555,6 +615,39 @@ export function InventoryInOutStockPage() {
             </div>
           ) : null}
         </section>
+
+        {selectedPeriod ? (
+          <div className="inout-modal-backdrop" role="presentation" onMouseDown={closePeriodDetail}>
+            <section className="inout-modal" role="dialog" aria-modal="true" aria-labelledby="inout-period-title" onMouseDown={(event) => event.stopPropagation()}>
+              <header className="inout-modal__head">
+                <div>
+                  <h2 id="inout-period-title">Chi tiết xuất nhập ngày {selectedPeriod.label}</h2>
+                  <p>{formatNumber(selectedPeriod.lineCount)} dòng · Nhập {formatNumber(selectedPeriod.qtyIn)} · Xuất {formatNumber(selectedPeriod.qtyOut)}</p>
+                </div>
+                <button ref={periodCloseRef} type="button" className="inout-modal__close" onClick={closePeriodDetail} aria-label="Đóng chi tiết"><X size={18} aria-hidden="true" /></button>
+              </header>
+              <div className="inout-modal__body">
+                {periodLoading ? <div className="inout-empty" aria-busy="true">Đang tải chi tiết giao dịch...</div> : periodError ? (
+                  <div className="inout-error" role="alert">{periodError}</div>
+                ) : periodRows.length === 0 ? <div className="inout-empty">Không có giao dịch trong kỳ đã chọn.</div> : (
+                  <div className="inout-table-wrap">
+                    <table className="inout-table inout-period-table">
+                      <thead><tr><th>Thời gian</th><th>Mã chứng từ</th><th>Loại</th><th>Kho</th><th>Sản phẩm</th><th>Nhập</th><th>Xuất</th><th>Thao tác</th></tr></thead>
+                      <tbody>{periodRows.map((row) => (
+                        <tr key={row.id}>
+                          <td>{formatDisplayDateTime(row.date)}</td><td>{row.billCode || '—'}</td><td>{row.typeLabel || row.type || '—'}</td>
+                          <td>{row.warehouseName || '—'}</td><td>{[row.productCode, row.productName].filter(Boolean).join(' · ') || '—'}</td>
+                          <td className="num">{formatNumber(row.qtyIn)}</td><td className="num">{formatNumber(row.qtyOut)}</td>
+                          <td>{row.detailPath ? <Link className="inout-view-link" to={row.detailPath} aria-label={`Xem chi tiết ${row.billCode || 'giao dịch'}`} title="Xem chi tiết"><Eye size={16} aria-hidden="true" /></Link> : '—'}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        ) : null}
       </div>
     </InventoryReportShell>
   );

@@ -705,7 +705,10 @@ class MirrorRecordController extends Controller
      */
     private function applyProductRefundSearch($query, string $search, $columns): void
     {
-        $like = '%'.$search.'%';
+        // Escape LIKE wildcards so RF-027 keywords like % _ \ do not expand to full-table scans.
+        // MySQL default ESCAPE is backslash, so \% and \_ are literals.
+        $escaped = addcslashes($search, "%_\\");
+        $like = '%'.$escaped.'%';
         $salePaymentsTable = MirrorRecord::TABLES['sale-payments'] ?? 'sale_payments';
         $customersTable = 'customers';
 
@@ -869,7 +872,8 @@ class MirrorRecordController extends Controller
         $query = (new MirrorRecord())->forTable($table)->newQuery();
         $columns = collect(Schema::getColumnListing($table))->flip();
 
-        $search = trim((string) $request->query('q', $request->query('search', $request->query('keyword', ''))));
+        // Cap search length to keep product-refund EXISTS/LIKE queries bounded (RF-027).
+        $search = mb_substr(trim((string) $request->query('q', $request->query('search', $request->query('keyword', '')))), 0, 120);
         if ($resource === 'sale-payments') {
             $search = trim((string) $request->query('invoiceCode', $request->query('code', $search)));
         } elseif ($resource === 'warehouse-transfers') {

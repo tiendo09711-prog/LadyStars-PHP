@@ -62,7 +62,7 @@ export function RefundInvoiceDetailPage() {
       .then((res) => setRefund(res.data))
       .catch((err: any) => {
         if (err.code === 'ERR_CANCELED') return;
-        setError(err.response?.data?.message ?? 'Không tả được chi tiết đơn trả hàng.');
+        setError(err.response?.data?.message ?? 'Không tải được chi tiết đơn trả hàng.');
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);

@@ -147,11 +147,12 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
     ? items.find((item) => item._id === rowActionOpen) ?? null
     : null;
 
-  // Debounce search like DataModulePage (preserve prior behavior)
+  // Debounce search like DataModulePage (preserve prior behavior).
+  // Cap keyword length to avoid pathological LIKE queries (RF-027).
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setPage(1);
-      setAppliedSearch(search.trim());
+      setAppliedSearch(search.trim().slice(0, 120));
     }, 300);
     return () => window.clearTimeout(timeout);
   }, [search]);
@@ -160,40 +161,46 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
     setPage(1);
   }, [channel, statusFilter]);
 
-  const load = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError('');
-    try {
-      const params = new URLSearchParams();
-      params.set('channel', channel);
-      params.set('page', String(page));
-      params.set('limit', String(PAGE_SIZE));
-      if (appliedSearch) params.set('q', appliedSearch);
-      if (statusFilter) params.set('status', statusFilter);
-
-      const response = await http.get(`/products/refunds?${params.toString()}`, { signal });
-      const responseItems = Array.isArray(response.data) ? response.data : response.data.items ?? [];
-      setItems(responseItems);
-      setTotal(
-        Array.isArray(response.data)
-          ? responseItems.length
-          : Number(response.data.total ?? responseItems.length),
-      );
-      setSelectedIds(new Set());
-    } catch (err: any) {
-      if (err.code === 'ERR_CANCELED') return;
-      setItems([]);
-      setTotal(0);
-      setError(err.response?.data?.message ?? 'Không tải được dữ liệu trả hàng.');
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  };
-
   useEffect(() => {
     const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
+    let active = true;
+    setLoading(true);
+    setError('');
+
+    const params = new URLSearchParams();
+    params.set('channel', channel);
+    params.set('page', String(page));
+    params.set('limit', String(PAGE_SIZE));
+    if (appliedSearch) params.set('q', appliedSearch);
+    if (statusFilter) params.set('status', statusFilter);
+
+    http
+      .get(`/products/refunds?${params.toString()}`, { signal: controller.signal })
+      .then((response) => {
+        if (!active) return;
+        const responseItems = Array.isArray(response.data) ? response.data : response.data.items ?? [];
+        setItems(responseItems);
+        setTotal(
+          Array.isArray(response.data)
+            ? responseItems.length
+            : Number(response.data.total ?? responseItems.length),
+        );
+        setSelectedIds(new Set());
+      })
+      .catch((err: any) => {
+        if (!active || err.code === 'ERR_CANCELED' || err.name === 'CanceledError') return;
+        setItems([]);
+        setTotal(0);
+        setError(err.response?.data?.message ?? 'Không tải được dữ liệu trả hàng.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [channel, page, appliedSearch, statusFilter, refreshKey]);
 
   useEffect(() => {
@@ -256,7 +263,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
   const handleSearchSubmit = (event: FormEvent) => {
     event.preventDefault();
     setPage(1);
-    setAppliedSearch(search.trim());
+    setAppliedSearch(search.trim().slice(0, 120));
   };
 
   const resetFilters = () => {
@@ -477,7 +484,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
             <strong>Không tải được dữ liệu</strong>
             <span>{error}</span>
           </div>
-          <button type="button" onClick={() => void load()}>
+          <button type="button" onClick={() => setRefreshKey((value) => value + 1)}>
             Thử lại
           </button>
         </div>

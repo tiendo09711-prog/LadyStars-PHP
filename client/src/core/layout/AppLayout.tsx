@@ -97,7 +97,6 @@ const baseMenuGroups: MenuGroup[] = [
     items: [
       { to: '/reports/revenue', label: 'Doanh thu', icon: FileText },
       { to: '/reports/inventory', label: 'Kho hàng', icon: Package },
-      { to: '/reports/products/performance', label: 'Sản phẩm', icon: Boxes },
     ]
   },
 ];
@@ -274,11 +273,26 @@ export function AppLayout() {
     document.title = currentPageTitle === shopName ? shopName : `${currentPageTitle} • ${shopName}`;
   }, [currentPageTitle, storeSettings.shopName]);
 
+  // Gate protected shell on every route change (RF-002): token cleared mid-session must not keep pages open.
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       localStorage.removeItem('authUser');
-      navigate('/login');
+      setUser(null);
+      try {
+        delete document.body.dataset.authRole;
+      } catch {
+        /* ignore */
+      }
+      if (!/\/login\/?$/i.test(location.pathname)) {
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [navigate, location.pathname]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
       return;
     }
 
@@ -307,6 +321,7 @@ export function AppLayout() {
     http
       .get('/auth/me')
       .then((userResponse) => {
+        if (!active) return;
         const nextRole = normalizeRole(userResponse.data?.role);
         setUser({ ...userResponse.data, role: nextRole });
         try {
@@ -323,7 +338,8 @@ export function AppLayout() {
         if (!active) return;
         localStorage.removeItem('token');
         localStorage.removeItem('authUser');
-        navigate('/login');
+        setUser(null);
+        navigate('/login', { replace: true });
       });
     http
       .get('/settings/store')

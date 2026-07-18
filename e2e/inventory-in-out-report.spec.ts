@@ -482,4 +482,33 @@ test.describe('Inventory in-out stock report (INOUT)', () => {
     const exportUrls = downloads.filter((u) => u.includes('perPage=100') || u.includes('page='));
     expect(exportUrls.some((u) => u.includes('DRAFT-ONLY'))).toBeFalsy();
   });
+
+  test('INOUT-11 chart opens period detail and table uses eye action', async ({ page }) => {
+    const report = sampleReport();
+    report.table.data[0].detailPath = '/warehouse/imports/iv1';
+
+    await page.route('**/api/reports/inventory/in-out-stock?**', async (route) => {
+      if (route.request().url().includes('/options')) return route.fallback();
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(report) });
+    });
+
+    await page.goto('/reports/inventory/in-out-stock');
+    await expect(page.getByTestId('inout-chart')).toBeVisible();
+
+    const filters = page.locator('.inout-filters--sticky');
+    await expect(filters).toHaveCSS('position', 'sticky');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect.poll(async () => Math.round((await filters.boundingBox())?.y ?? 999)).toBeLessThanOrEqual(77);
+    await expect(page.getByRole('link', { name: 'Xem chi tiết PN-001' })).toBeVisible();
+    await expect(page.getByText('Xem chi tiết', { exact: true })).toHaveCount(0);
+
+    await page.locator('.inout-chart .recharts-bar-rectangle').first().click();
+    const dialog = page.getByRole('dialog', { name: /Chi tiết xuất nhập ngày/ });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('PN-001')).toBeVisible();
+    await expect(dialog.getByText(/SP01/).first()).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+  });
 });

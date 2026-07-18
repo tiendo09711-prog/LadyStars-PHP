@@ -717,19 +717,41 @@ class LocalWriteController extends Controller
         $refundPayments = is_array($body['refundPayments'] ?? null) ? $body['refundPayments'] : [];
         $salePayments = is_array($body['salePayments'] ?? null) ? $body['salePayments'] : [];
 
-        // Prefer explicit FE totals; fall back to amountDelta / refundAmount; last resort compute from lines.
+        // Compute settlement from line items (source of truth). FE may send totalAmount/amountDelta
+        // for prorated discounts, but must never exceed line-based bounds (anti over-refund / over-charge).
+        $returnedValue = collect($retItems)->sum(function ($i) {
+            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
+        });
+        $replacementValue = collect($repItems)->sum(function ($i) {
+            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
+        });
+        $computedDelta = $returnedValue - $replacementValue;
         $hasExplicitTotal = array_key_exists('totalAmount', $body)
             || array_key_exists('amountDelta', $body)
             || array_key_exists('refundAmount', $body);
-        $amountDelta = (float) ($body['totalAmount'] ?? $body['amountDelta'] ?? $body['refundAmount'] ?? 0);
-        if (!$hasExplicitTotal) {
-            $returnedValue = collect($retItems)->sum(function ($i) {
-                return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
-            });
-            $replacementValue = collect($repItems)->sum(function ($i) {
-                return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
-            });
-            $amountDelta = $returnedValue - $replacementValue;
+        if ($hasExplicitTotal) {
+            $amountDelta = (float) ($body['totalAmount'] ?? $body['amountDelta'] ?? $body['refundAmount'] ?? 0);
+            // Shop pays customer: cannot exceed returned goods value.
+            if ($amountDelta > $returnedValue + 0.01) {
+                return response()->json([
+                    'message' => 'Số tiền trả khách vượt quá giá trị hàng trả (tối đa '. $returnedValue .').',
+                ], 422);
+            }
+            // Customer pays shop: magnitude cannot exceed replacement goods value.
+            if ($amountDelta < 0 && abs($amountDelta) > $replacementValue + 0.01) {
+                return response()->json([
+                    'message' => 'Số tiền thu khách vượt quá giá trị hàng mua mới (tối đa '. $replacementValue .').',
+                ], 422);
+            }
+            // Positive delta larger than computed means FE inflated beyond lines even with zero discount.
+            if ($amountDelta > $computedDelta + 0.01 && $amountDelta > 0) {
+                // Allow only lower-or-equal than computed (discount proration), never higher.
+                return response()->json([
+                    'message' => 'Số tiền hoàn không hợp lệ so với giá trị hàng trả và hàng mua mới.',
+                ], 422);
+            }
+        } else {
+            $amountDelta = $computedDelta;
         }
 
         $branchId = $body['branchId'] ?? $payload['branchId'] ?? $payload['warehouseId'] ?? null;

@@ -244,14 +244,35 @@ export function RefundInvoiceCreatePage() {
               })
               .catch(() => null);
           }
+          const custObj = sale.customerId && typeof sale.customerId === 'object' ? sale.customerId : null;
+          const nextCustomerName = custObj?.name || sale.customerName || '';
+          const nextCustomerPhone = custObj?.phone || sale.customerPhone || '';
           setForm(prev => ({
             ...prev,
             paymentId: sale._id,
-            customerName: sale.customerId?.name || sale.customerName || '',
-            customerPhone: sale.customerId?.phone || sale.customerPhone || '',
-            address: sale.customerId?.address || '',
-            email: sale.customerId?.email || '',
+            customerName: nextCustomerName,
+            customerPhone: nextCustomerPhone,
+            address: custObj?.address || sale.customerAddress || '',
+            email: custObj?.email || sale.customerEmail || '',
           }));
+          // If sale only has customer id string, hydrate name/phone for form validation.
+          const customerIdRaw = custObj?._id || custObj?.id || (typeof sale.customerId === 'string' ? sale.customerId : '');
+          if ((!nextCustomerName || !nextCustomerPhone) && customerIdRaw) {
+            http
+              .get(`/customers/customers/${customerIdRaw}`)
+              .then((custRes) => {
+                const c = custRes.data;
+                if (!c) return;
+                setForm((prev) => ({
+                  ...prev,
+                  customerName: prev.customerName || c.name || '',
+                  customerPhone: prev.customerPhone || c.phone || '',
+                  address: prev.address || c.address || '',
+                  email: prev.email || c.email || '',
+                }));
+              })
+              .catch(() => null);
+          }
 
           // Compute original order financials for proration of source discount (anti-abuse)
           // Must use the full original subtotal and discountValue from the source sale,
@@ -270,9 +291,9 @@ export function RefundInvoiceCreatePage() {
               const retForPid = Number(returnedQuantityByProduct[pid] || 0);
               const maxRet = Math.max((Number(item.amount) || 0) - retForPid, 0);
               return {
-                _id: (pidRaw && typeof pidRaw === 'object') ? pidRaw._id : pidRaw,
-                code: (pidRaw && typeof pidRaw === 'object' ? pidRaw.code : '') || '',
-                name: (pidRaw && typeof pidRaw === 'object' ? pidRaw.name : '') || '',
+                _id: (pidRaw && typeof pidRaw === 'object') ? (pidRaw._id || pidRaw.id || pid) : pidRaw,
+                code: (pidRaw && typeof pidRaw === 'object' ? pidRaw.code : '') || item.productCode || item.code || '',
+                name: (pidRaw && typeof pidRaw === 'object' ? pidRaw.name : '') || item.productName || item.name || '',
                 stock: (pidRaw && typeof pidRaw === 'object' ? pidRaw.qty : 0) || 0,
                 qty: maxRet,
                 maxQty: maxRet,
@@ -280,7 +301,7 @@ export function RefundInvoiceCreatePage() {
                 price: item.value,
                 cost: (pidRaw && typeof pidRaw === 'object' ? pidRaw.cost : 0) || 0,
                 unit: (pidRaw && typeof pidRaw === 'object' ? pidRaw.unit : 'Cái') || 'Cái',
-                barcode: (pidRaw && typeof pidRaw === 'object' ? pidRaw.barcode : '') || '',
+                barcode: (pidRaw && typeof pidRaw === 'object' ? pidRaw.barcode : '') || item.barcode || '',
                 vat: 0,
                 refundFee: 0,
                 extendedWarrantyFee: 0,
@@ -290,6 +311,41 @@ export function RefundInvoiceCreatePage() {
             }).filter((item: RefundProduct) => Number(item.maxQty || 0) > 0);
             setReturnableProducts(sourceItems);
             setProducts(sourceItems);
+
+            // Hydrate missing product code/name when sale payload only has product ids.
+            const missing = sourceItems.filter((p: RefundProduct) => p._id && (!p.code || !p.name));
+            if (missing.length) {
+              Promise.all(
+                missing.map((p: RefundProduct) =>
+                  http
+                    .get(`/products/products/${p._id}`)
+                    .then((res) => ({ id: String(p._id), data: res.data }))
+                    .catch(() => null),
+                ),
+              ).then((rows) => {
+                const map = new Map(
+                  rows
+                    .filter((row): row is { id: string; data: any } => Boolean(row))
+                    .map((row) => [String(row.id), row.data]),
+                );
+                if (!map.size) return;
+                const patch = (list: RefundProduct[]) =>
+                  list.map((line) => {
+                    const prod = map.get(String(line._id));
+                    if (!prod) return line;
+                    return {
+                      ...line,
+                      code: line.code || prod.code || '',
+                      name: line.name || prod.name || '',
+                      barcode: line.barcode || prod.barcode || '',
+                      unit: line.unit || prod.unit || 'Cái',
+                      cost: line.cost || Number(prod.cost) || 0,
+                    };
+                  });
+                setReturnableProducts((prev) => patch(prev));
+                setProducts((prev) => patch(prev));
+              });
+            }
           }
         })
         .catch(err => console.error("Lỗi lấy thông tin hóa đơn:", err));
@@ -490,10 +546,10 @@ export function RefundInvoiceCreatePage() {
   ]);
 
   const handleChange = (field: string, value: any) => {
+    // Staff identity from original sale is read-only; customer contact fields remain editable
+    // so guest returns / phone lookup corrections still work (CR-060..CR-065).
     const readOnlyFields = new Set([
       'receiver', 'salesperson', 'salesAccount',
-      'customerName', 'cardId', 'email', 'gender', 'facebook', 'birthday', 'source', 'customerLevel',
-      'labels',
     ]);
     if (readOnlyFields.has(field)) return;
     setForm(prev => ({ ...prev, [field]: value }));

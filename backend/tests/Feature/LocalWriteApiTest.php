@@ -393,15 +393,29 @@ class LocalWriteApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'completed');
 
+        // Inflated totalAmount above returned line value must be rejected (anti over-refund).
+        $this->postJson('/api/products/sales/'.$saleId.'/return-exchange', [
+            'branchId' => (string) $this->branch->id,
+            'channel' => 'store',
+            'totalAmount' => 150000,
+            'returnedItems' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+            'replacementItems' => [],
+        ])->assertStatus(422);
+
         // Route defaults action='return' (not return-exchange) — must still create product-refund.
+        // Settlement is bounded by line totals (returned value 100000).
         $resp = $this->postJson('/api/products/sales/'.$saleId.'/return-exchange', [
             'code' => 'TH-TEST-001',
             'branchId' => (string) $this->branch->id,
             'channel' => 'store',
             'note' => 'E2E unit return',
-            'totalAmount' => 150000,
-            'amountDelta' => 150000,
-            'refundAmount' => 150000,
+            'totalAmount' => 100000,
+            'amountDelta' => 100000,
+            'refundAmount' => 100000,
             'returnedItems' => [[
                 'productId' => (string) $this->product->id,
                 'amount' => 1,
@@ -416,7 +430,7 @@ class LocalWriteApiTest extends TestCase
             ->assertJsonPath('status', 'completed'); // sale status not polluted to RETURNED
 
         $this->assertNotEmpty($resp->json('refund'), 'Response must include created refund');
-        $this->assertSame(150000.0, (float) $resp->json('refund.totalPayableAmount'));
+        $this->assertSame(100000.0, (float) $resp->json('refund.totalPayableAmount'));
         $this->assertSame('store', $resp->json('refund.channel'));
         $this->assertSame('completed', $resp->json('refund.status'));
 
@@ -432,7 +446,7 @@ class LocalWriteApiTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $refunds->count());
         $refund = $refunds->first();
         $this->assertSame('store', $refund->channel ?? ($refund->payload['channel'] ?? null));
-        $this->assertEqualsWithDelta(150000, (float) ($refund->payload['totalPayableAmount'] ?? 0), 0.01);
+        $this->assertEqualsWithDelta(100000, (float) ($refund->payload['totalPayableAmount'] ?? 0), 0.01);
 
         // List with channel=store must include the refund
         $list = $this->getJson('/api/products/refunds?channel=store&page=1&limit=15');

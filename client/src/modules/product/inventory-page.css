@@ -1443,3 +1443,285 @@
     width: 100%;
   }
 }
+
+/* Enhanced warehouse value chart, scoped to /products/inventory. */
+.inventory-root .inventory-chart-card {
+  position: relative;
+  overflow: hidden !important;
+  border-color: #dbe8e3 !important;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(56, 189, 248, 0.1), transparent 28%),
+    radial-gradient(circle at 8% 4%, rgba(16, 185, 129, 0.1), transparent 26%),
+    #ffffff !important;
+}
+
+.inventory-root .inventory-chart-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, #10b981 0%, #14b8a6 48%, #38bdf8 100%);
+}
+
+.inventory-root .inventory-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px 12px !important;
+}
+
+.inventory-root .inventory-chart-header > div:first-child {
+  min-width: 220px;
+}
+
+.inventory-root .inventory-chart-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.inventory-root .inventory-chart-summary__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 132px;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #64748b;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(8px);
+}
+
+.inventory-root .inventory-chart-summary__item > svg {
+  flex: 0 0 auto;
+}
+
+.inventory-root .inventory-chart-summary__item span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.inventory-root .inventory-chart-summary__item small {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.inventory-root .inventory-chart-summary__item strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-root .inventory-chart-summary__item--value {
+  border-color: #bbf7d0;
+  color: #059669;
+  background: rgba(236, 253, 245, 0.88);
+}
+
+.inventory-root .inventory-chart-summary__item--quantity {
+  border-color: #bae6fd;
+  color: #0284c7;
+  background: rgba(240, 249, 255, 0.88);
+}
+
+.inventory-root .inventory-chart-summary__item--leader {
+  max-width: 190px;
+  border-color: #fde68a;
+  color: #d97706;
+  background: rgba(255, 251, 235, 0.9);
+}
+
+.inventory-root .inventory-chart {
+  position: relative;
+  width: calc(100% - 24px);
+  min-height: 320px;
+  margin: 0 12px 12px;
+  padding: 6px 4px 0;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 15px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.92)),
+    repeating-linear-gradient(90deg, transparent 0, transparent 79px, rgba(148, 163, 184, 0.06) 80px);
+  box-sizing: border-box;
+}
+
+.inventory-root .inventory-chart .recharts-bar-rectangle path {
+  transition: filter 0.2s ease, opacity 0.2s ease;
+}
+
+.inventory-root .inventory-chart .recharts-bar-rectangle:hover path {
+  filter: brightness(1.08) saturate(1.08);
+  opacity: 0.96;
+}
+
+.inventory-root .inventory-chart .recharts-legend-item {
+  margin-right: 14px !important;
+}
+
+.inventory-root .inventory-chart-tooltip {
+  min-width: 210px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.95);
+  color: #e2e8f0;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.24);
+  backdrop-filter: blur(14px);
+  animation: inventory-tooltip-in 0.18s ease-out;
+}
+
+.inventory-root .inventory-chart-tooltip__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(120deg, rgba(16, 185, 129, 0.18), rgba(56, 189, 248, 0.12));
+}
+
+.inventory-root .inventory-chart-tooltip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #6ee7b7;
+}
+
+.inventory-root .inventory-chart-tooltip__head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.inventory-root .inventory-chart-tooltip__head small {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inventory-root .inventory-chart-tooltip__head strong {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.inventory-root .inventory-chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 8px 12px;
+  font-size: 11px;
+}
+
+.inventory-root .inventory-chart-tooltip__row span {
+  color: #94a3b8;
+}
+
+.inventory-root .inventory-chart-tooltip__row strong {
+  color: #f8fafc;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-root .inventory-chart-tooltip__row--value strong {
+  color: #6ee7b7;
+}
+
+.inventory-root .inventory-chart-tooltip__row--quantity strong {
+  color: #7dd3fc;
+}
+
+.inventory-root .inventory-chart-empty {
+  display: grid;
+  min-height: 190px;
+  place-items: center;
+  margin: 0 12px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 15px;
+  background: rgba(248, 250, 252, 0.78);
+  color: #64748b;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+@keyframes inventory-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 960px) {
+  .inventory-root .inventory-chart-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .inventory-root .inventory-chart-summary {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .inventory-root .inventory-chart-header {
+    padding: 14px 14px 10px !important;
+  }
+
+  .inventory-root .inventory-chart-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-root .inventory-chart-summary__item {
+    min-width: 0;
+  }
+
+  .inventory-root .inventory-chart-summary__item--leader {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .inventory-root .inventory-chart {
+    width: calc(100% - 16px);
+    margin: 0 8px 8px;
+    overflow-x: auto;
+  }
+
+  .inventory-root .inventory-chart > .recharts-responsive-container {
+    min-width: 520px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inventory-root .inventory-chart-tooltip {
+    animation: none;
+  }
+
+  .inventory-root .inventory-chart .recharts-bar-rectangle path {
+    transition: none;
+  }
+}

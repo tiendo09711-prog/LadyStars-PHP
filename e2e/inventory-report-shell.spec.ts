@@ -129,6 +129,17 @@ test.describe('Inventory report shell (NAV)', () => {
     await expect(page).toHaveURL(/\/warehouse\/transfers$/);
   });
 
+  test('NAV-07 legacy product performance URL redirects and report menu omits duplicate page', async ({ page }) => {
+    await page.goto('/reports/products/performance');
+    await expect(page).toHaveURL(/\/reports\/revenue\/products$/);
+
+    const reportGroup = page.locator('.menu-group-report');
+    await reportGroup.getByRole('button', { name: /Báo Cáo/i }).click();
+    await expect(reportGroup.getByRole('link', { name: 'Doanh thu' })).toBeVisible();
+    await expect(reportGroup.getByRole('link', { name: 'Kho hàng' })).toBeVisible();
+    await expect(reportGroup.getByRole('link', { name: 'Sản phẩm' })).toHaveCount(0);
+  });
+
   test('NAV-03 browser Back/Forward switches tabs by URL', async ({ page }) => {
     await openInventoryReport(page, '/reports/inventory/in-out-stock');
     await inventoryTab(page, 'Tồn kho').click();
