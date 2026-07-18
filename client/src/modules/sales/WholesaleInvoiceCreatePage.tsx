@@ -858,22 +858,36 @@ export function WholesaleInvoiceCreatePage() {
       if (existingCustomer) {
         customerId = existingCustomer._id;
       } else {
+        // Do not continue creating a sale without a customer when create fails.
+        // Previously errors were swallowed and sale could be saved with customerId=null.
+        const isCompany = Boolean(String(form.companyName || '').trim() || String(form.taxId || '').trim());
         const createCustRes = await http.post('/customers/customers', {
-          name: form.customerName,
-          phone: form.customerPhone,
-          email: form.email,
-          dob: form.dob,
-          cardId: form.customerCode,
-          addressLocation: form.addressLocation,
-          address: form.address,
+          name: form.customerName.trim(),
+          phone: form.customerPhone.trim() || undefined,
+          email: form.email || undefined,
+          birthday: form.dob || undefined,
+          cardId: form.customerCode || undefined,
+          addressLocation: form.addressLocation || undefined,
+          address: form.address || undefined,
           company: form.companyName || undefined,
           vat: form.taxId || undefined,
-        }).catch(e => console.log("Lỗi tạo khách hàng tự động:", e));
+          type: isCompany ? 'company' : 'person',
+          branchId: activeBranchId || undefined,
+        });
 
         if (createCustRes && createCustRes.data) {
           customerId = createCustRes.data._id;
           setCustomerSuggestions((current) => [createCustRes.data, ...current.filter((item) => item._id !== createCustRes.data._id)]);
         }
+      }
+
+      if (!customerId) {
+        setErrorMessage('Không tạo/gắn được khách hàng. Hóa đơn chưa được lưu.');
+        setIsSaving(false);
+        if (printPopup) {
+          try { printPopup.close(); } catch { /* ignore */ }
+        }
+        return;
       }
 
       const salePayload = {

@@ -763,7 +763,19 @@ export function CustomerListPage() {
       setModalOpen(false);
       await Promise.all([loadMeta(), loadCustomers()]);
     } catch (err: any) {
-      setFormError(err.response?.data?.message || 'Không lưu được khách hàng.');
+      const data = err.response?.data;
+      const fieldErrors = data?.errors
+        ? Object.values(data.errors as Record<string, string[]>)
+          .flat()
+          .filter(Boolean)
+          .join(' ')
+        : '';
+      let message = data?.message || fieldErrors || 'Không lưu được khách hàng.';
+      // Localize common Laravel unique-code validation message
+      if (/code has already been taken/i.test(String(message))) {
+        message = 'Mã khách hàng đã tồn tại.';
+      }
+      setFormError(message);
     } finally {
       setSaving(false);
     }
@@ -794,20 +806,30 @@ export function CustomerListPage() {
     setError('');
     try {
       const ids = Array.from(selectedIds);
+      let success = 0;
+      let failed = 0;
       // Sequential to be safe with backend
       for (const id of ids) {
         try {
           await http.delete(`/customers/customers/${id}`);
+          success += 1;
         } catch {
-          // continue with others; partial success is acceptable
+          failed += 1;
         }
       }
       setSelectedIds(new Set());
       // Adjust page if needed
-      if (items.length <= count && page > 1) {
+      if (items.length <= success && page > 1) {
         applyFilters(filters, page - 1);
       } else {
         await loadCustomers();
+      }
+      if (failed > 0) {
+        setError(
+          success > 0
+            ? `Đã xóa ${success}/${count} khách hàng. ${failed} khách xóa thất bại.`
+            : `Không xóa được ${failed} khách hàng đã chọn.`,
+        );
       }
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Xóa hàng loạt gặp lỗi.');

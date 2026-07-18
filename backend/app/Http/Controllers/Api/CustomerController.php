@@ -256,14 +256,21 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer): JsonResponse
     {
         $payload = $this->validatedPayload($request, $customer);
-        $groups = $payload['groups'] ?? null;
+        $hasGroups = array_key_exists('groups', $payload);
+        $groups = $hasGroups ? ($payload['groups'] ?? []) : null;
         unset($payload['groups']);
         if (($payload['code'] ?? '') === '') unset($payload['code']);
 
         try {
-            $customer = DB::transaction(function () use ($customer, $payload, $groups): Customer {
-                $customer->update($payload);
-                if (is_array($groups)) $customer->groups()->sync($groups);
+            $customer = DB::transaction(function () use ($customer, $payload, $groups, $hasGroups): Customer {
+                if ($payload !== []) {
+                    $customer->update($payload);
+                }
+                // Only sync groups when the client explicitly sent the field.
+                // Partial patches from sales (name/phone only) must not clear group membership.
+                if ($hasGroups && is_array($groups)) {
+                    $customer->groups()->sync($groups);
+                }
                 return $customer->load(['branch', 'groups']);
             });
         } catch (QueryException $error) {
@@ -292,10 +299,18 @@ class CustomerController extends Controller
     private function validatedPayload(Request $request, ?Customer $customer = null): array
     {
         $id = $customer?->id;
+        $isUpdate = $customer !== null;
+
+        // Sales forms historically send "dob"; accept it as an alias for birthday.
+        if (!$request->filled('birthday') && $request->filled('dob')) {
+            $request->merge(['birthday' => $request->input('dob')]);
+        }
+
         $data = $request->validate([
             'branchId' => ['nullable', 'integer', 'exists:branches,id'],
             'code' => ['nullable', 'string', 'max:255', Rule::unique('customers', 'code')->ignore($id)],
-            'name' => ['required', 'string', 'max:255'],
+            // name required on create; on update only when provided
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'type' => ['nullable', Rule::in(['person', 'company'])],
             'phone' => ['nullable', 'string', 'max:255'],
             'phone2' => ['nullable', 'string', 'max:255'],
@@ -303,6 +318,7 @@ class CustomerController extends Controller
             'cardId' => ['nullable', 'string', 'max:255'],
             'customerLevel' => ['nullable', 'string', 'max:255'],
             'birthday' => ['nullable', 'date'],
+            'dob' => ['nullable', 'date'],
             'sex' => ['nullable', Rule::in(['female', 'male', 'other'])],
             'addressLocation' => ['nullable', 'string'],
             'address' => ['nullable', 'string'],
@@ -315,27 +331,83 @@ class CustomerController extends Controller
             'groups.*' => ['integer', 'exists:customer_groups,id'],
         ]);
 
-        return [
-            'branch_id' => $data['branchId'] ?? null,
-            'code' => trim((string) ($data['code'] ?? '')),
-            'name' => trim((string) $data['name']),
-            'type' => $data['type'] ?? 'person',
-            'phone' => $data['phone'] ?? null,
-            'phone2' => $data['phone2'] ?? null,
-            'email' => $data['email'] ?? null,
-            'card_id' => $data['cardId'] ?? null,
-            'customer_level' => $data['customerLevel'] ?? null,
-            'birthday' => $data['birthday'] ?? null,
-            'sex' => $data['sex'] ?? 'female',
-            'address_location' => $data['addressLocation'] ?? null,
-            'address' => $data['address'] ?? null,
-            'company' => $data['company'] ?? null,
-            'vat' => $data['vat'] ?? null,
-            'facebook' => $data['facebook'] ?? null,
-            'note' => $data['note'] ?? null,
-            'status' => $data['status'] ?? 'active',
-            'groups' => $data['groups'] ?? [],
+        // Create: full payload with safe defaults.
+        // Update: only fields the client actually sent — avoid wiping type/status/groups/birthday
+        // when retail/wholesale PATCH only name/phone/email.
+        if (!$isUpdate) {
+            return [
+                'branch_id' => $data['branchId'] ?? null,
+                'code' => trim((string) ($data['code'] ?? '')),
+                'name' => trim((string) $data['name']),
+                'type' => $data['type'] ?? 'person',
+                'phone' => $data['phone'] ?? null,
+                'phone2' => $data['phone2'] ?? null,
+                'email' => $data['email'] ?? null,
+                'card_id' => $data['cardId'] ?? null,
+                'customer_level' => $data['customerLevel'] ?? null,
+                'birthday' => $data['birthday'] ?? null,
+                'sex' => $data['sex'] ?? 'female',
+                'address_location' => $data['addressLocation'] ?? null,
+                'address' => $data['address'] ?? null,
+                'company' => $data['company'] ?? null,
+                'vat' => $data['vat'] ?? null,
+                'facebook' => $data['facebook'] ?? null,
+                'note' => $data['note'] ?? null,
+                'status' => $data['status'] ?? 'active',
+                'groups' => $data['groups'] ?? [],
+            ];
+        }
+
+        $map = [
+            'branchId' => 'branch_id',
+            'code' => 'code',
+            'name' => 'name',
+            'type' => 'type',
+            'phone' => 'phone',
+            'phone2' => 'phone2',
+            'email' => 'email',
+            'cardId' => 'card_id',
+            'customerLevel' => 'customer_level',
+            'birthday' => 'birthday',
+            'sex' => 'sex',
+            'addressLocation' => 'address_location',
+            'address' => 'address',
+            'company' => 'company',
+            'vat' => 'vat',
+            'facebook' => 'facebook',
+            'note' => 'note',
+            'status' => 'status',
         ];
+
+        $payload = [];
+        foreach ($map as $inputKey => $column) {
+            if (!$request->exists($inputKey) && !($inputKey === 'birthday' && $request->exists('dob'))) {
+                continue;
+            }
+            if ($inputKey === 'code') {
+                $payload[$column] = trim((string) ($data['code'] ?? ''));
+                continue;
+            }
+            if ($inputKey === 'name') {
+                $payload[$column] = trim((string) ($data['name'] ?? ''));
+                continue;
+            }
+            if ($inputKey === 'birthday') {
+                $payload[$column] = $data['birthday'] ?? null;
+                continue;
+            }
+            if ($inputKey === 'branchId') {
+                $payload[$column] = $data['branchId'] ?? null;
+                continue;
+            }
+            $payload[$column] = $data[$inputKey] ?? null;
+        }
+
+        if ($request->exists('groups')) {
+            $payload['groups'] = $data['groups'] ?? [];
+        }
+
+        return $payload;
     }
 
     private function serializeCustomerActivity(MirrorRecord $record, string $kind): array

@@ -546,17 +546,18 @@ export function RetailInvoiceCreatePage() {
     try {
       let customerId: string | null = selectedCustomerId || null;
       const normalizedPhone = form.phone.trim();
-      const customerPayload = {
+      // API CustomerController expects `birthday` (also accepts `dob` alias).
+      // Send birthday explicitly so new/updated customers keep the date of birth.
+      const customerPayload: Record<string, unknown> = {
         name: form.customerName.trim(),
         phone: normalizedPhone,
         email: form.email,
         facebook: form.facebook,
-        dob: form.dob,
+        birthday: form.dob || undefined,
         cardId: form.cardId,
         customerLevel: form.customerLevel,
         addressLocation: form.addressLocation,
         address: form.address,
-        branchId: activeBranchId,
       };
 
       if (!customerId) {
@@ -574,6 +575,7 @@ export function RetailInvoiceCreatePage() {
       }
 
       if (customerId) {
+        // Partial PATCH only — never reassign branch / type / groups of existing customers.
         const customerResponse = await http.patch(`/customers/customers/${customerId}`, customerPayload);
         setDbCustomers((current) => [customerResponse.data, ...current.filter((item) => item._id !== customerResponse.data._id)]);
         setCustomerSuggestions((current) => [customerResponse.data, ...current.filter((item) => item._id !== customerResponse.data._id)]);
@@ -581,6 +583,7 @@ export function RetailInvoiceCreatePage() {
       } else {
         const customerResponse = await http.post('/customers/customers', {
           ...customerPayload,
+          branchId: activeBranchId,
         });
         customerId = customerResponse.data._id;
         setSelectedCustomerId(customerId || '');
