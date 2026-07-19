@@ -9,6 +9,7 @@ use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
 use App\Models\User;
+use App\Support\LocalToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -19,6 +20,8 @@ use Illuminate\Support\Str;
 
 class LocalWriteController extends Controller
 {
+    private const SETTINGS_RESOURCES = ['audit-logs', 'menu-items', 'permissions', 'roles', 'store-settings'];
+
     public function login(Request $request): JsonResponse
     {
         $email = trim((string) $request->input('email', ''));
@@ -96,7 +99,7 @@ class LocalWriteController extends Controller
                 'isRootOwner' => (bool) $user->is_root_owner,
             ];
 
-            $token = 'local-laravel-token-' . $user->id;
+            $token = LocalToken::issue($user);
 
             return response()->json([
                 'token' => $token,
@@ -132,6 +135,9 @@ class LocalWriteController extends Controller
         }
 
         $resource = (string) $request->route('resource');
+        if (in_array($resource, self::SETTINGS_RESOURCES, true)) {
+            return response()->json(['message' => 'Dữ liệu cài đặt chỉ được thay đổi qua API Settings chuyên biệt.'], 403);
+        }
         $table = $this->table($resource);
         $payload = $request->all();
 
@@ -272,6 +278,9 @@ class LocalWriteController extends Controller
         }
 
         $resource = (string) $request->route('resource');
+        if (in_array($resource, self::SETTINGS_RESOURCES, true)) {
+            return response()->json(['message' => 'Dữ liệu cài đặt chỉ được thay đổi qua API Settings chuyên biệt.'], 403);
+        }
         $id = (string) $request->route('id');
         $table = $this->table($resource);
         $record = $this->findRecord($table, $id);
@@ -367,6 +376,9 @@ class LocalWriteController extends Controller
         }
 
         $resource = (string) $request->route('resource');
+        if (in_array($resource, self::SETTINGS_RESOURCES, true)) {
+            return response()->json(['message' => 'Dữ liệu cài đặt chỉ được thay đổi qua API Settings chuyên biệt.'], 403);
+        }
         $id = (string) $request->route('id');
         $table = $this->table($resource);
         $record = $this->findRecord($table, $id);
@@ -989,10 +1001,7 @@ class LocalWriteController extends Controller
 
         $user = $request->attributes->get('localUser');
         if (! $user instanceof User) {
-            $authHeader = (string) $request->header('Authorization', '');
-            if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-                $user = User::find((int) $matches[1]);
-            }
+            $user = LocalToken::resolve($request);
         }
         if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -2100,17 +2109,9 @@ class LocalWriteController extends Controller
      */
     private function requireLocalUser(Request $request): ?JsonResponse
     {
-        $authHeader = (string) $request->header('Authorization', '');
-        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
-        }
-        $user = User::find((int) $matches[1]);
+        $user = LocalToken::resolve($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated. Tài khoản không tồn tại.'], 401);
-        }
-        $active = $user->is_active;
-        if ($active === false || $active === 0 || $active === '0') {
-            return response()->json(['message' => 'Unauthenticated. Tài khoản đã bị khóa.'], 401);
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
         }
         $request->attributes->set('localUser', $user);
 
@@ -2341,11 +2342,7 @@ class LocalWriteController extends Controller
      */
     private function isLocalAdmin(Request $request): bool
     {
-        $authHeader = (string) $request->header('Authorization', '');
-        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            return false;
-        }
-        $user = User::find((int) $matches[1]);
+        $user = LocalToken::resolve($request);
         if (!$user) {
             return false;
         }

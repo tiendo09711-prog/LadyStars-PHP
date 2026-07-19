@@ -337,10 +337,14 @@ class InventoryInOutStockReportService
         }
         $keys = $this->warehouseKeys($warehouseId);
         $name = $this->resolveBranch($warehouseId)?->name ?? '';
+        // inventory_products has branch_mongo_id / branch_id / warehouse_name (no warehouse_mongo_id column).
         $query->where(function ($builder) use ($keys, $name): void {
             if ($keys !== []) {
-                $builder->whereIn('branch_mongo_id', $keys)
-                    ->orWhereIn('warehouse_mongo_id', $keys);
+                $builder->whereIn('branch_mongo_id', $keys);
+                $numericKeys = array_values(array_filter($keys, static fn ($key) => is_numeric($key)));
+                if ($numericKeys !== []) {
+                    $builder->orWhereIn('branch_id', $numericKeys);
+                }
             }
             if ($name !== '') {
                 $builder->orWhere('warehouse_name', $name)

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\MirrorRecord;
-use App\Models\User;
+use App\Support\LocalToken;
 use Illuminate\Http\JsonResponse;
 
 class LocalContextController extends Controller
@@ -13,11 +13,9 @@ class LocalContextController extends Controller
     {
         // Require a valid login token (local-laravel-token-{userId}).
         // Invalid/missing tokens must not fall back to ADMIN (DB-AU-002 / security).
-        $authHeader = (string) request()->header('Authorization', '');
-        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            $loggedId = (int) $matches[1];
-            $user = User::find($loggedId);
-            if ($user && ($user->is_active === null || (bool) $user->is_active) && strtoupper((string) ($user->status ?? 'ACTIVE')) !== 'INACTIVE') {
+        $user = LocalToken::resolve(request());
+        if ($user) {
+            if (($user->is_active === null || (bool) $user->is_active) && strtoupper((string) ($user->status ?? 'ACTIVE')) !== 'INACTIVE') {
                 return response()->json([
                     '_id' => (string) $user->id,
                     'id' => $user->id,

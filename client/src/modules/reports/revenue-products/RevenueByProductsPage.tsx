@@ -65,6 +65,7 @@ import {
   rangeFromPreset,
   suggestedTrendGranularity,
   validateDateRange,
+  validateProductFilterDraft,
 } from './revenueByProducts.utils';
 import './revenue-by-products.css';
 
@@ -903,11 +904,12 @@ export function RevenueByProductsPage() {
 
   const handleApply = () => {
     const next = { ...draft, page: 1 };
-    const rangeErr = validateDateRange(next.from, next.to);
-    if (rangeErr) {
-      setValidationError(rangeErr);
+    const draftErr = validateProductFilterDraft(next);
+    if (draftErr) {
+      setValidationError(draftErr);
       return;
     }
+    setValidationError(null);
     setDraft(next);
     void loadReport(next, 'load');
   };
@@ -984,6 +986,8 @@ export function RevenueByProductsPage() {
   };
 
   const busy = loading || refreshing;
+  const draftValidationError = validateProductFilterDraft(draft);
+  const applyBlocked = busy || Boolean(draftValidationError);
   const ranking = report?.ranking ?? [];
   const rankingTop = ranking.slice(0, applied.top);
 
@@ -1377,14 +1381,20 @@ export function RevenueByProductsPage() {
             </div>
           )}
 
-          {validationError && (
+          {(draftValidationError || validationError) && (
             <p className="rbp-field-error" role="alert">
-              {validationError}
+              {draftValidationError || validationError}
             </p>
           )}
 
           <div className="rbp-filter-actions">
-            <button type="button" className="btn btn-primary" onClick={handleApply} disabled={busy}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleApply}
+              disabled={applyBlocked}
+              aria-disabled={applyBlocked}
+            >
               Áp dụng
             </button>
             <button type="button" className="btn btn-light" onClick={handleReset} disabled={busy}>
@@ -1431,6 +1441,33 @@ export function RevenueByProductsPage() {
             </div>
           </div>
           <RankingBarChart ranking={rankingTop} metric={applied.metric} loading={loading} />
+        </section>
+      </div>
+
+      <div className="rbp-charts-grid rbp-charts-grid-single">
+        <section className="rbp-surface">
+          <div className="rbp-surface-head">
+            <div>
+              <h2>Doanh thu theo thời gian</h2>
+              <p>Tổng doanh thu line-item theo kỳ đã nhóm.</p>
+            </div>
+            <div className="rbp-inline-field">
+              <label htmlFor="rbp-chart-view">Kiểu biểu đồ</label>
+              <select
+                id="rbp-chart-view"
+                aria-label="Kiểu biểu đồ"
+                value={chartView}
+                onChange={(e) => setChartView(e.target.value as ChartView)}
+              >
+                {(Object.entries(CHART_VIEW_LABELS) as [ChartView, string][]).map(([k, label]) => (
+                  <option key={k} value={k}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <TimelineChart report={report} chartView={chartView} loading={loading} />
         </section>
       </div>
 

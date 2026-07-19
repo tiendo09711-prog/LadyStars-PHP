@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\RevenueByProductReportController;
 use App\Http\Controllers\Api\RevenueByStoreReportController;
 use App\Http\Controllers\Api\RevenueByTimeReportController;
+use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\InventoryInOutStockReportController;
 use App\Http\Controllers\Api\InventoryPendingTransfersReportController;
 use App\Http\Controllers\Api\InventoryLedgerReportController;
@@ -26,12 +27,20 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [LocalWriteController::class, 'login']);
 Route::get('/auth/me', [LocalContextController::class, 'me']);
-Route::get('/settings/store', [LocalContextController::class, 'store']);
-Route::patch('/settings/store', [LocalWriteController::class, 'updateStore']);
-
-Route::post('/settings/security/change-owner-account', fn () => response()->json(['ok' => true, 'message' => 'Updated locally.']));
-Route::post('/settings/security/change-password', fn () => response()->json(['ok' => true, 'message' => 'Password changed locally.']));
-Route::post('/settings/security/logout-user-sessions', fn () => response()->json(['ok' => true, 'message' => 'Sessions revoked locally.']));
+Route::middleware('local.auth')->group(function (): void {
+    Route::get('/settings/store', [SettingsController::class, 'store']);
+    Route::middleware('settings.admin')->group(function (): void {
+        Route::patch('/settings/store', [SettingsController::class, 'updateStore']);
+        Route::get('/system/permissions', [SettingsController::class, 'permissions']);
+        Route::get('/system/roles', [SettingsController::class, 'roles']);
+        Route::get('/system/menus', [SettingsController::class, 'menus']);
+        Route::get('/audit-logs', [SettingsController::class, 'auditLogs']);
+        Route::get('/settings/security/staff', [SettingsController::class, 'staffOptions']);
+        Route::post('/settings/security/change-owner-account', [SettingsController::class, 'changeOwnerAccount']);
+        Route::post('/settings/security/change-password', [SettingsController::class, 'changeStaffPassword']);
+        Route::post('/settings/security/logout-user-sessions', [SettingsController::class, 'logoutStaffSessions']);
+    });
+});
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
 Route::get('/dashboard/daily-products', [DashboardController::class, 'dailyProducts']);
@@ -50,6 +59,7 @@ Route::get('/reports/inventory/pending-transfers/options', [InventoryPendingTran
 Route::get('/reports/inventory/pending-transfers', [InventoryPendingTransfersReportController::class, 'index']);
 Route::get('/reports/inventory/reconciliation', InventoryLedgerReportController::class);
 
+Route::middleware(['local.auth', 'settings.admin'])->group(function (): void {
 Route::get('/staff', function () {
     $users = User::query()->orderBy('name')->get();
     $creatorIds = $users->pluck('created_by_id')->filter()->unique()->values()->all();
@@ -161,6 +171,9 @@ Route::patch('/staff/{id}', function (Request $request, $id) {
         $data['status'] = $st;
         $data['is_active'] = $st === 'ACTIVE';
         $data['locked_at'] = $st === 'LOCKED' ? now() : null;
+        if ($st !== 'ACTIVE' && strtoupper((string) $user->status) === 'ACTIVE') {
+            $data['token_version'] = (int) $user->token_version + 1;
+        }
     }
     if ($request->has('defaultWarehouseId')) {
         $dw = $request->input('defaultWarehouseId');
@@ -186,7 +199,12 @@ Route::patch('/staff/{id}/{action}', function ($id, $action) {
     $user = User::findOrFail($id);
     if ($user->is_root_owner) return response()->json(['message' => 'Không thể thay đổi trạng thái root owner.'], 403);
     if ($action === 'lock') {
-        $user->update(['status' => 'LOCKED', 'locked_at' => now(), 'is_active' => false]);
+        $user->update([
+            'status' => 'LOCKED',
+            'locked_at' => now(),
+            'is_active' => false,
+            'token_version' => (int) $user->token_version + 1,
+        ]);
     } elseif ($action === 'open') {
         $user->update(['status' => 'ACTIVE', 'locked_at' => null, 'is_active' => true]);
     }
@@ -199,6 +217,7 @@ Route::post('/staff/{id}/reset-password', function (Request $request, $id) {
     $pw = (string)$request->input('password', '');
     if (strlen($pw) < 6) return response()->json(['message' => 'Mật khẩu mới phải có ít nhất 6 ký tự.'], 422);
     $user->password = $pw;
+    $user->token_version = (int) $user->token_version + 1;
     $user->save();
     return response()->json(['ok' => true, '_id' => (string)$id]);
 });
@@ -292,6 +311,7 @@ Route::get('/staff/{id}/activity', function ($id) {
     }
     $sorted = $items->sortByDesc('createdAt')->take(80)->values()->all();
     return response()->json(['items' => $sorted]);
+});
 });
 
 Route::get('/branches', [BranchController::class, 'index']);

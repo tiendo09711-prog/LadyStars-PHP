@@ -9,6 +9,7 @@ use App\Models\ProductBranchStock;
 use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\NodeShape;
+use App\Support\LocalToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -176,12 +177,7 @@ class BranchController extends Controller
      */
     private function requireAdminUser(Request $request): User
     {
-        $authHeader = (string) $request->header('Authorization', '');
-        $user = null;
-
-        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            $user = User::find((int) $matches[1]);
-        }
+        $user = LocalToken::resolve($request);
 
         if (!$user || (! $user->is_root_owner && strtoupper((string) $user->role) !== 'ADMIN')) {
             abort(403, 'Chỉ quản trị viên (ADMIN/root) mới được thực hiện thao tác quản lý kho hàng.');

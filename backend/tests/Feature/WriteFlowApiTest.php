@@ -467,7 +467,9 @@ class WriteFlowApiTest extends TestCase
         $this->flushHeaders();
         $this->getJson('/api/auth/me')->assertUnauthorized();
 
-        $settings = $this->getJson('/api/settings/store');
+        $settings = $this->withHeaders([
+            'Authorization' => 'Bearer local-laravel-token-'.$user->id,
+        ])->getJson('/api/settings/store');
         $settings->assertOk()
             ->assertJsonPath('shopName', 'LadyStars DB')
             ->assertJsonPath('phone', '0900000000');

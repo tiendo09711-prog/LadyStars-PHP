@@ -11,6 +11,7 @@ use App\Models\ProductBranchStock;
 use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\NodeShape;
+use App\Support\LocalToken;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -875,13 +876,15 @@ class ProductController extends Controller
             'from' => $total > 0 ? $offset + 1 : null,
             'to' => $total > 0 ? min($offset + $perPage, $total) : null,
         ];
+        // Age chart buckets follow active tab + common filters (same set as list/totalValue).
+        // Badge counts stay on $itemsForKpi (pre-tab); chart/export value use $filtered.
         $ageBuckets = [
             ['key' => '0_30', 'label' => '0–30 ngày', 'min' => 0, 'max' => 30, 'count' => 0, 'value' => 0.0],
             ['key' => '31_60', 'label' => '31–60 ngày', 'min' => 31, 'max' => 60, 'count' => 0, 'value' => 0.0],
             ['key' => '61_90', 'label' => '61–90 ngày', 'min' => 61, 'max' => 90, 'count' => 0, 'value' => 0.0],
             ['key' => 'over_90', 'label' => 'Trên 90 ngày', 'min' => 91, 'max' => null, 'count' => 0, 'value' => 0.0],
         ];
-        foreach ($itemsForKpi as $item) {
+        foreach ($filtered as $item) {
             $days = $item['daysFromLastSold'];
             if ($days === null) {
                 $days = (int) ($item['daysFromStart'] ?? 0);
@@ -1308,12 +1311,7 @@ class ProductController extends Controller
      */
     private function resolveAuthUser(Request $request): ?User
     {
-        $authHeader = (string) $request->header('Authorization', '');
-        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            return User::query()->find((int) $matches[1]);
-        }
-
-        return null;
+        return LocalToken::resolve($request);
     }
 
     private function isActiveUser(?User $user): bool

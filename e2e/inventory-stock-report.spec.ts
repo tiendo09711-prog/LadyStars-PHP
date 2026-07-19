@@ -224,6 +224,33 @@ test.describe('Inventory stock report tab (STOCK)', () => {
     expect(calls).toBeGreaterThan(0);
   });
 
+  test('STOCK-05B many long warehouse labels remain readable in a scrollable chart', async ({ page }) => {
+    const byWarehouse = Array.from({ length: 14 }, (_, index) => ({
+      branchId: `wh${index + 1}`,
+      name: `Kho kiểm thử tên rất dài số ${index + 1}`,
+      qty: 100 + index,
+      value: 1_000_000 + index * 100_000,
+    }));
+    await page.route('**/api/products/inventories**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(inventoryPayload({ breakdowns: { byWarehouse } })),
+      });
+    });
+
+    await page.goto('/products/inventory');
+    const chart = page.getByTestId('inventory-chart');
+    await expect(chart).toBeVisible();
+    await expect.poll(() => chart.evaluate((element) => element.scrollWidth > element.clientWidth)).toBeTruthy();
+
+    const ticks = chart.locator('.recharts-xAxis .recharts-cartesian-axis-tick-value');
+    await expect(ticks).toHaveCount(byWarehouse.length);
+    const labels = await ticks.allTextContents();
+    expect(labels.every((label) => label.length <= 18)).toBeTruthy();
+    expect(labels.some((label) => label.endsWith('…'))).toBeTruthy();
+  });
+
   test('STOCK-06 sort and pagination query', async ({ page }) => {
     const urls: string[] = [];
     await page.route('**/api/products/inventories**', async (route) => {

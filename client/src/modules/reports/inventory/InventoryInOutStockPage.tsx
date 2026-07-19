@@ -83,14 +83,6 @@ export function InventoryInOutStockPage() {
       if (seq !== requestSeq.current) return;
       setReport(data);
       setApplied(filters);
-      try {
-        setReconciliation(await fetchInventoryReconciliation(filters, controller.signal));
-        setReconciliationError(false);
-      } catch (reconcileErr: unknown) {
-        if ((reconcileErr as { code?: string })?.code === 'ERR_CANCELED') return;
-        setReconciliation(null);
-        setReconciliationError(true);
-      }
     } catch (err: unknown) {
       if (
         (err as { code?: string; name?: string })?.code === 'ERR_CANCELED' ||
@@ -105,6 +97,18 @@ export function InventoryInOutStockPage() {
         setLoading(false);
         setRefreshing(false);
       }
+    }
+
+    // Reconciliation is secondary: do not keep the whole page aria-busy while it loads.
+    if (seq !== requestSeq.current) return;
+    try {
+      setReconciliation(await fetchInventoryReconciliation(filters, controller.signal));
+      if (seq === requestSeq.current) setReconciliationError(false);
+    } catch (reconcileErr: unknown) {
+      if ((reconcileErr as { code?: string })?.code === 'ERR_CANCELED') return;
+      if (seq !== requestSeq.current) return;
+      setReconciliation(null);
+      setReconciliationError(true);
     }
   }, [options?.maxRangeDays]);
 
@@ -378,7 +382,8 @@ export function InventoryInOutStockPage() {
                   type="button"
                   className="inout-btn inout-btn--ghost"
                   onClick={() => void handleExport()}
-                  disabled={exporting || empty || loading}
+                  disabled={exporting || loading}
+                  title={empty ? 'Không có dữ liệu để xuất' : undefined}
                 >
                   <Download size={14} /> {exporting ? 'Đang xuất...' : 'Xuất CSV'}
                 </button>

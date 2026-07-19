@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\MirrorRecord;
 use App\Models\User;
+use App\Support\LocalToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -875,11 +876,7 @@ class InventoryAuditController extends Controller
      */
     private function resolveCallerContext(Request $request): array
     {
-        $authHeader = (string) $request->header('Authorization', '');
-        $user = null;
-        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            $user = User::find((int) $matches[1]);
-        }
+        $user = LocalToken::resolve($request);
 
         if (!$user) {
             return [

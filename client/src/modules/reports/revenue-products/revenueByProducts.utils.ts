@@ -161,6 +161,56 @@ export function validateDateRange(from: string, to: string): string | null {
   return null;
 }
 
+/** Client-side min/max range checks (aligned with backend RevenueByProductReportService). */
+export function validateMinMaxRange(
+  minRaw: string,
+  maxRaw: string,
+  labels: { min: string; max: string; minGtMax: string },
+): string | null {
+  const minStr = (minRaw || '').trim();
+  const maxStr = (maxRaw || '').trim();
+  if (minStr === '' && maxStr === '') return null;
+
+  const min = minStr === '' ? null : Number(minStr);
+  const max = maxStr === '' ? null : Number(maxStr);
+
+  if (minStr !== '' && (!Number.isFinite(min as number) || (min as number) < 0)) {
+    return `${labels.min} không hợp lệ.`;
+  }
+  if (maxStr !== '' && (!Number.isFinite(max as number) || (max as number) < 0)) {
+    return `${labels.max} không hợp lệ.`;
+  }
+  if (min !== null && max !== null && min > max) {
+    return labels.minGtMax;
+  }
+  return null;
+}
+
+export function validateProductFilterDraft(filters: {
+  from: string;
+  to: string;
+  minRevenue: string;
+  maxRevenue: string;
+  minQuantity: string;
+  maxQuantity: string;
+}): string | null {
+  const rangeErr = validateDateRange(filters.from, filters.to);
+  if (rangeErr) return rangeErr;
+
+  const revErr = validateMinMaxRange(filters.minRevenue, filters.maxRevenue, {
+    min: 'Doanh thu tối thiểu',
+    max: 'Doanh thu tối đa',
+    minGtMax: 'Doanh thu tối thiểu không được lớn hơn tối đa.',
+  });
+  if (revErr) return revErr;
+
+  return validateMinMaxRange(filters.minQuantity, filters.maxQuantity, {
+    min: 'Số lượng tối thiểu',
+    max: 'Số lượng tối đa',
+    minGtMax: 'Số lượng tối thiểu không được lớn hơn tối đa.',
+  });
+}
+
 export function filtersToQuery(
   filters: ProductReportFilters,
 ): Record<string, string | number | string[]> {

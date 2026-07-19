@@ -652,7 +652,7 @@ export function StorageDurationPage() {
       <section className="data-card storage-toolbar-card storage-sticky-toolbar">
         <div className="storage-toolbar-header-slot">
           <div className="storage-compact-head">
-            <h1 className="storage-compact-heading-sr">Hàng tồn lâu &amp; bán chậm</h1>
+            <p className="storage-compact-heading-sr">Hàng tồn lâu &amp; bán chậm</p>
             <div className="storage-tabs-row storage-tabs-row--title-slot">
               <span className="storage-toolbar-eyebrow">STORAGE DURATION</span>
               <div className="storage-tabbar is-compact" role="tablist" aria-label="Hàng tồn lâu tabs">

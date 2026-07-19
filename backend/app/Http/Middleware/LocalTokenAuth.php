@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
+use App\Support\LocalToken;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,19 +21,9 @@ class LocalTokenAuth
             return $next($request);
         }
 
-        $authHeader = (string) $request->header('Authorization', '');
-        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
-        }
-
-        $user = User::query()->find((int) $matches[1]);
+        $user = LocalToken::resolve($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated. Tài khoản không tồn tại.'], 401);
-        }
-
-        $active = $user->is_active;
-        if ($active === false || $active === 0 || $active === '0') {
-            return response()->json(['message' => 'Unauthenticated. Tài khoản đã bị khóa.'], 401);
+            return response()->json(['message' => 'Unauthenticated. Phiên đăng nhập không hợp lệ hoặc đã bị thu hồi.'], 401);
         }
 
         $request->attributes->set('localUser', $user);

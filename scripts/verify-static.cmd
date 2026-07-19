@@ -11,8 +11,8 @@ if errorlevel 1 exit /b 1
 
 echo ===== LARAVEL TESTS =====
 cd backend
-REM Run core passing tests (pre-existing staff/mirror test env issues in current workspace)
-call php artisan test --filter="CategoryCrudApi|Example|LocalWriteApi|ReadOnlyApi|WriteFlowApi|WarehouseTransferFlow"
+REM Run core API, Settings and Staff regression tests on isolated SQLite.
+call php artisan test --filter="CategoryCrudApi|Example|LocalWriteApi|ReadOnlyApi|SettingsApi|StaffManagement|WriteFlowApi|WarehouseTransferFlow"
 if errorlevel 1 exit /b 1
 cd ..
 

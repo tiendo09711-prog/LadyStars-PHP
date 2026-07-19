@@ -4,18 +4,31 @@ namespace Tests\Feature;
 
 use App\Models\Branch;
 use App\Models\User;
+use App\Support\LocalToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class StaffManagementTest extends TestCase
 {
-    // Note: intentionally no RefreshDatabase to avoid interfering with other tests in suite (e.g. login fixtures).
-    // Tests use unique emails and clean specific records.
+    use RefreshDatabase;
+
+    private User $admin;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->admin = User::factory()->create([
+            'name' => 'Staff Test Admin',
+            'email' => 'staff-admin@test.local',
+            'password' => 'AdminPass123!',
+            'role' => 'ADMIN',
+            'status' => 'ACTIVE',
+            'is_root_owner' => true,
+            'is_active' => true,
+        ]);
+        $this->withToken(LocalToken::issue($this->admin));
 
         if (!Branch::where('code', 'TKHO')->exists()) {
             Branch::create([
@@ -24,13 +37,6 @@ class StaffManagementTest extends TestCase
                 'is_active' => true,
             ]);
         }
-    }
-
-    protected function tearDown(): void
-    {
-        // Cleanup only our test data
-        User::where('email', 'like', '%@test.local')->delete();
-        parent::tearDown();
     }
 
     public function test_get_staff_returns_enhanced_data_with_warehouses(): void
@@ -62,6 +68,20 @@ class StaffManagementTest extends TestCase
         $this->assertEquals('EMPLOYEE', $found['role']);
         $this->assertNotEmpty($found['warehouseNames']);
         $this->assertNotEmpty($found['assignedWarehouseIds']);
+    }
+
+    public function test_employee_cannot_access_staff_management(): void
+    {
+        $employee = User::factory()->create([
+            'name' => 'Unauthorized Employee',
+            'email' => 'unauthorized@test.local',
+            'role' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
+
+        $this->withToken(LocalToken::issue($employee))->getJson('/api/staff')->assertForbidden();
     }
 
     public function test_create_staff_persists_with_hash_and_assignment(): void
@@ -133,6 +153,7 @@ class StaffManagementTest extends TestCase
         ]);
 
         // Lock
+        $oldToken = LocalToken::issue($user);
         $this->patchJson("/api/staff/{$user->id}/lock")->assertOk();
         $user->refresh();
         $this->assertEquals('LOCKED', $user->status);
@@ -141,11 +162,16 @@ class StaffManagementTest extends TestCase
         $this->patchJson("/api/staff/{$user->id}/open")->assertOk();
         $user->refresh();
         $this->assertEquals('ACTIVE', $user->status);
+        $this->withToken($oldToken)->getJson('/api/auth/me')->assertUnauthorized();
+        $this->withToken(LocalToken::issue($this->admin));
 
         // Reset pw
+        $tokenBeforeReset = LocalToken::issue($user);
         $this->postJson("/api/staff/{$user->id}/reset-password", ['password' => 'newpass123'])->assertOk();
         $user->refresh();
         $this->assertTrue(Hash::check('newpass123', $user->password));
+        $this->withToken($tokenBeforeReset)->getJson('/api/auth/me')->assertUnauthorized();
+        $this->withToken(LocalToken::issue($this->admin));
 
         // Lock again then delete
         $this->patchJson("/api/staff/{$user->id}/lock")->assertOk();

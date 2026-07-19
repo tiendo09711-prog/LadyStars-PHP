@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\MirrorRecord;
+use App\Support\LocalToken;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
 use Illuminate\Http\JsonResponse;
@@ -1587,13 +1588,9 @@ class WarehouseTransactionController extends Controller
 
     private function requireLocalUser(Request $request): ?JsonResponse
     {
-        $authHeader = (string) $request->header('Authorization', '');
-        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
-        }
-        $user = \App\Models\User::query()->find((int) $matches[1]);
+        $user = LocalToken::resolve($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated. Tài khoản không tồn tại.'], 401);
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
         }
 
         return null;
@@ -1619,6 +1616,5 @@ class WarehouseTransactionController extends Controller
             ->all();
     }
 }
-
 
 

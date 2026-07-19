@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\LocalToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Schema;
 
 class MirrorRecordController extends Controller
 {
+    private const SETTINGS_RESOURCES = ['audit-logs', 'menu-items', 'permissions', 'roles', 'store-settings'];
+
     private const PUBLIC_TRANSFER_STATUSES = [
         'DRAFT' => 'Chờ xác nhận xuất',
         'IN_TRANSIT' => 'Đang chuyển',
@@ -85,17 +88,9 @@ class MirrorRecordController extends Controller
      */
     private function requireAuthForSensitiveResource(Request $request): ?JsonResponse
     {
-        $authHeader = (string) $request->header('Authorization', '');
-        if (!preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
-        }
-        $user = User::find((int) $matches[1]);
+        $user = LocalToken::resolve($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated. Tài khoản không tồn tại.'], 401);
-        }
-        $active = $user->is_active;
-        if ($active === false || $active === 0 || $active === '0') {
-            return response()->json(['message' => 'Unauthenticated. Tài khoản đã bị khóa.'], 401);
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
         }
 
         return null;
@@ -303,11 +298,7 @@ class MirrorRecordController extends Controller
     private function resolveTransferWarehouseAccess(?Request $request = null): array
     {
         $request = $request ?? request();
-        $authHeader = (string) $request->header('Authorization', '');
-        $user = null;
-        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            $user = User::find((int) $matches[1]);
-        }
+        $user = LocalToken::resolve($request);
 
         $activeBranches = Branch::query()
             ->where('is_active', true)
@@ -859,6 +850,12 @@ class MirrorRecordController extends Controller
 
         abort_if($table === null, 404, 'Unknown mirror resource.');
 
+        if (in_array($resource, self::SETTINGS_RESOURCES, true)) {
+            if ($deny = $this->requireSettingsAdmin($request)) {
+                return $deny;
+            }
+        }
+
         // inventory-checks / inventory-check-products: same data as /inventory-audits — require auth.
         if (in_array($resource, ['inventory-checks', 'inventory-check-products'], true)) {
             if ($deny = $this->requireAuthForSensitiveResource($request)) {
@@ -1283,6 +1280,12 @@ class MirrorRecordController extends Controller
 
         abort_if($table === null, 404, 'Unknown mirror resource.');
 
+        if (in_array($resource, self::SETTINGS_RESOURCES, true)) {
+            if ($deny = $this->requireSettingsAdmin($request)) {
+                return $deny;
+            }
+        }
+
         if (in_array($resource, ['inventory-checks', 'inventory-check-products'], true)) {
             if ($deny = $this->requireAuthForSensitiveResource($request)) {
                 return $deny;
@@ -1309,16 +1312,24 @@ class MirrorRecordController extends Controller
         return response()->json($this->enrich($this->serialize($record), $resource, $table));
     }
 
+    private function requireSettingsAdmin(Request $request): ?JsonResponse
+    {
+        $user = LocalToken::resolve($request);
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
+        }
+        if (! $user->is_root_owner && strtoupper((string) $user->role) !== 'ADMIN') {
+            return response()->json(['message' => 'Chỉ Admin hoặc Root Owner được truy cập dữ liệu cài đặt.'], 403);
+        }
+
+        return null;
+    }
+
     public function warehouseTransferMeta(Request $request): JsonResponse
     {
         // Extract current user from Authorization header (same pattern as LocalContextController::me)
         // Token format: "Bearer local-laravel-token-{userId}"
-        $authHeader = $request->header('Authorization', '');
-        $user = null;
-        if (preg_match('/local-laravel-token-(\d+)/', $authHeader, $matches)) {
-            $loggedId = (int) $matches[1];
-            $user = User::find($loggedId);
-        }
+        $user = LocalToken::resolve($request);
 
         // Always return all active branches for dropdown options (warehouses list is global)
         $activeBranches = Branch::query()

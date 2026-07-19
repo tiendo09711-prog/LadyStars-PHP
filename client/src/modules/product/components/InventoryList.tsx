@@ -66,6 +66,11 @@ function InventoryChartTooltip({ active, payload }: InventoryChartTooltipProps) 
   );
 }
 
+function formatWarehouseChartTick(value: string | number) {
+  const label = String(value ?? '');
+  return label.length > 18 ? `${label.slice(0, 17)}…` : label;
+}
+
 export function InventoryList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -384,6 +389,7 @@ export function InventoryList() {
   const formatMoney = (val?: number) => `${Number(val || 0).toLocaleString('vi-VN')} đ`;
   const chartTotalValue = warehouseBreakdown.reduce((sum, warehouse) => sum + warehouse.value, 0);
   const chartTotalQuantity = warehouseBreakdown.reduce((sum, warehouse) => sum + warehouse.qty, 0);
+  const chartMinWidth = Math.max(520, warehouseBreakdown.length * 132);
   const leadingWarehouse = warehouseBreakdown.reduce<WarehouseBreakdown | null>(
     (leading, warehouse) => (!leading || warehouse.value > leading.value ? warehouse : leading),
     null,
@@ -443,7 +449,7 @@ export function InventoryList() {
       <section className="data-card inventory-toolbar-card inventory-sticky-toolbar">
         <div className="inventory-toolbar-header-slot">
           <div className="inventory-compact-head">
-            <h1 className="inventory-compact-heading-sr">Tồn kho theo kho hàng</h1>
+            <p className="inventory-compact-heading-sr">Tồn kho theo kho hàng</p>
             <div className="inventory-tabs-row inventory-tabs-row--title-slot">
               <span className="inventory-toolbar-eyebrow">INVENTORY</span>
               <span className="inventory-title-chip">Tồn kho chi tiết</span>
@@ -627,31 +633,33 @@ export function InventoryList() {
           </div>
         ) : (
           <div className="inventory-chart" data-testid="inventory-chart">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={warehouseBreakdown} margin={{ top: 18, right: 16, left: 4, bottom: 8 }} barGap={6} barCategoryGap="28%">
-                <defs>
-                  <linearGradient id="inventoryValueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" />
-                    <stop offset="100%" stopColor="#047857" />
-                  </linearGradient>
-                  <linearGradient id="inventoryQuantityGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="100%" stopColor="#0284c7" />
-                  </linearGradient>
-                  <filter id="inventoryBarShadow" x="-30%" y="-20%" width="160%" height="160%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.16" />
-                  </filter>
-                </defs>
-                <CartesianGrid vertical={false} strokeDasharray="4 6" stroke="#dbe5ef" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#475569', fontWeight: 650 }} interval={0} height={42} />
-                <YAxis yAxisId="value" axisLine={false} tickLine={false} width={58} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatChartAxis} />
-                <YAxis yAxisId="quantity" orientation="right" axisLine={false} tickLine={false} width={46} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatChartAxis} />
-                <Tooltip content={<InventoryChartTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.06)', radius: 10 }} />
-                <Legend verticalAlign="top" align="right" iconType="circle" iconSize={8} wrapperStyle={{ paddingBottom: 16, fontSize: 12, color: '#475569' }} />
-                <Bar yAxisId="value" dataKey="value" name="Giá trị tồn" fill="url(#inventoryValueGradient)" radius={[8, 8, 3, 3]} maxBarSize={46} animationDuration={900} animationEasing="ease-out" style={{ filter: 'url(#inventoryBarShadow)' }} />
-                <Bar yAxisId="quantity" dataKey="qty" name="Số lượng tồn" fill="url(#inventoryQuantityGradient)" radius={[8, 8, 3, 3]} maxBarSize={32} animationBegin={180} animationDuration={900} animationEasing="ease-out" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="inventory-chart__canvas" style={{ minWidth: chartMinWidth }}>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={warehouseBreakdown} margin={{ top: 18, right: 16, left: 4, bottom: 8 }} barGap={6} barCategoryGap="28%">
+                  <defs>
+                    <linearGradient id="inventoryValueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#047857" />
+                    </linearGradient>
+                    <linearGradient id="inventoryQuantityGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="100%" stopColor="#0284c7" />
+                    </linearGradient>
+                    <filter id="inventoryBarShadow" x="-30%" y="-20%" width="160%" height="160%">
+                      <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.16" />
+                    </filter>
+                  </defs>
+                  <CartesianGrid vertical={false} strokeDasharray="4 6" stroke="#dbe5ef" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#475569', fontWeight: 650 }} tickFormatter={formatWarehouseChartTick} interval={0} height={42} />
+                  <YAxis yAxisId="value" axisLine={false} tickLine={false} width={58} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatChartAxis} />
+                  <YAxis yAxisId="quantity" orientation="right" axisLine={false} tickLine={false} width={46} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={formatChartAxis} />
+                  <Tooltip content={<InventoryChartTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.06)', radius: 10 }} />
+                  <Legend verticalAlign="top" align="right" iconType="circle" iconSize={8} wrapperStyle={{ paddingBottom: 16, fontSize: 12, color: '#475569' }} />
+                  <Bar yAxisId="value" dataKey="value" name="Giá trị tồn" fill="url(#inventoryValueGradient)" radius={[8, 8, 3, 3]} maxBarSize={46} animationDuration={900} animationEasing="ease-out" style={{ filter: 'url(#inventoryBarShadow)' }} />
+                  <Bar yAxisId="quantity" dataKey="qty" name="Số lượng tồn" fill="url(#inventoryQuantityGradient)" radius={[8, 8, 3, 3]} maxBarSize={32} animationBegin={180} animationDuration={900} animationEasing="ease-out" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </section>
