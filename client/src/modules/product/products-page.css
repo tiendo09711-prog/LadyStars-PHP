@@ -1966,6 +1966,82 @@
   line-height: 1.35;
 }
 
+.storage-duration-page .storage-age-chart-card {
+  overflow: hidden;
+  max-width: 100%;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05) !important;
+}
+
+.storage-duration-page .storage-age-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 6px !important;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.storage-duration-page .storage-age-chart {
+  width: 100%;
+  min-height: 260px;
+  padding: 8px 12px 16px;
+  box-sizing: border-box;
+}
+
+.storage-duration-page .storage-age-chart-empty {
+  padding: 20px 16px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.storage-duration-page .storage-age-chart-tooltip {
+  min-width: 168px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__label {
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row span {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row strong {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row--count strong {
+  color: #0284c7;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row--value strong {
+  color: #047857;
+}
+
 .storage-duration-page .storage-table-card {
   overflow: hidden;
   max-width: 100%;

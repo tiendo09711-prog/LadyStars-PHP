@@ -17,13 +17,14 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import { productApi } from '../../core/api/product.api';
-import type { IStorageDuration, ICategory, IStorageDurationKpis } from '../../types/product.type';
+import type { IStorageAgeBucket, IStorageDuration, ICategory, IStorageDurationKpis } from '../../types/product.type';
 import { Pagination } from '../../core/components/Pagination';
 import { http } from '../../core/api/http';
 import * as XLSX from 'xlsx';
@@ -37,6 +38,51 @@ type StorageTab = 'all' | 'unsold_long' | 'slow_selling';
 
 function normalizeStorageTab(value: string | null): StorageTab {
   return value === 'unsold_long' || value === 'slow_selling' ? value : 'all';
+}
+
+function formatStorageChartAxis(value: number) {
+  if (Math.abs(value) >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} tỷ`;
+  }
+  if (Math.abs(value) >= 1_000_000) {
+    return `${(value / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} tr`;
+  }
+  if (Math.abs(value) >= 1_000) {
+    return `${(value / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}k`;
+  }
+  return Number(value || 0).toLocaleString('vi-VN');
+}
+
+type StorageAgeChartTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ dataKey?: string | number; name?: string; value?: number; payload?: IStorageAgeBucket }>;
+  label?: string;
+};
+
+function StorageAgeChartTooltip({ active, payload, label }: StorageAgeChartTooltipProps) {
+  if (!active || !payload?.length) return null;
+
+  const countEntry = payload.find((entry) => entry.dataKey === 'count' || entry.name === 'Số SP');
+  const valueEntry = payload.find((entry) => entry.dataKey === 'value' || entry.name === 'Giá trị vốn');
+  const bucketLabel = label || payload[0]?.payload?.label || '';
+
+  return (
+    <div className="storage-age-chart-tooltip" role="status">
+      <div className="storage-age-chart-tooltip__label">{bucketLabel}</div>
+      {countEntry != null ? (
+        <div className="storage-age-chart-tooltip__row storage-age-chart-tooltip__row--count">
+          <span>Số SP</span>
+          <strong>{Number(countEntry.value || 0).toLocaleString('vi-VN')}</strong>
+        </div>
+      ) : null}
+      {valueEntry != null ? (
+        <div className="storage-age-chart-tooltip__row storage-age-chart-tooltip__row--value">
+          <span>Giá trị vốn</span>
+          <strong>{Number(valueEntry.value || 0).toLocaleString('vi-VN')} đ</strong>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function StorageDurationPage() {
@@ -716,38 +762,6 @@ export function StorageDurationPage() {
           </div>
         </div>
 
-        <section className="data-card" data-testid="storage-age-chart-card" aria-label="Phân bổ tuổi tồn">
-          <div className="data-card-header">
-            <h2 className="inventory-table-title">Phân bổ theo nhóm tuổi tồn</h2>
-            <p className="inventory-table-subtitle">Bucket do server tính trên toàn bộ kết quả đã lọc.</p>
-          </div>
-          {(kpis.ageBuckets && kpis.ageBuckets.length > 0) ? (
-            <div data-testid="storage-age-chart" style={{ width: '100%', minHeight: 240, padding: '8px 12px 16px' }}>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={kpis.ageBuckets} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.08)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    formatter={(value: number, name: string) => [
-                      name === 'value'
-                        ? `${Number(value).toLocaleString('vi-VN')} đ`
-                        : Number(value).toLocaleString('vi-VN'),
-                      name === 'value' ? 'Giá trị vốn' : 'Số SP',
-                    ]}
-                  />
-                  <Bar dataKey="count" name="Số SP" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="value" name="Giá trị vốn" fill="#059669" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div data-testid="storage-age-chart-empty" style={{ padding: 16, color: '#64748b', fontSize: 13 }}>
-              {loading ? 'Đang tải phân bổ tuổi tồn...' : 'Không có dữ liệu tuổi tồn cho bộ lọc hiện tại.'}
-            </div>
-          )}
-        </section>
-
         <form className="storage-filter-bar" onSubmit={handleSearchSubmit}>
           <div className="storage-search">
             <Search size={15} />
@@ -873,6 +887,87 @@ export function StorageDurationPage() {
           <strong>Cách đọc:</strong> Lưu từ nhập đầu = ngày từ lô nhập đầu; Lưu từ XNK cuối = từ giao dịch kho cuối;
           Chưa bán ra = từ đơn bán gần nhất (hoặc “Chưa bán lần nào”). Ngưỡng cảnh báo {kpis.thresholdDays || STORAGE_ALERT_DAYS} ngày.
         </p>
+      </section>
+
+      <section className="data-card storage-age-chart-card" data-testid="storage-age-chart-card" aria-label="Phân bổ tuổi tồn">
+        <div className="data-card-header storage-age-chart-header">
+          <div>
+            <h2 className="inventory-table-title">Phân bổ theo nhóm tuổi tồn</h2>
+            <p className="inventory-table-subtitle">Bucket do server tính trên toàn bộ kết quả đã lọc.</p>
+          </div>
+        </div>
+        {(kpis.ageBuckets && kpis.ageBuckets.length > 0) ? (
+          <div className="storage-age-chart" data-testid="storage-age-chart">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={kpis.ageBuckets}
+                margin={{ top: 12, right: 12, left: 4, bottom: 4 }}
+                barGap={6}
+                barCategoryGap="28%"
+              >
+                <CartesianGrid vertical={false} strokeDasharray="4 6" stroke="#dbe5ef" />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#475569', fontWeight: 650 }}
+                />
+                <YAxis
+                  yAxisId="count"
+                  orientation="left"
+                  axisLine={false}
+                  tickLine={false}
+                  width={44}
+                  tick={{ fontSize: 10, fill: '#0284c7' }}
+                  tickFormatter={formatStorageChartAxis}
+                  allowDecimals={false}
+                />
+                <YAxis
+                  yAxisId="value"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  width={56}
+                  tick={{ fontSize: 10, fill: '#047857' }}
+                  tickFormatter={formatStorageChartAxis}
+                />
+                <Tooltip
+                  content={<StorageAgeChartTooltip />}
+                  cursor={{ fill: 'rgba(14, 165, 233, 0.06)', radius: 8 }}
+                />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ paddingBottom: 8, fontSize: 12, color: '#475569' }}
+                />
+                <Bar
+                  yAxisId="count"
+                  dataKey="count"
+                  name="Số SP"
+                  fill="#0ea5e9"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={36}
+                  activeBar={false}
+                />
+                <Bar
+                  yAxisId="value"
+                  dataKey="value"
+                  name="Giá trị vốn"
+                  fill="#059669"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={36}
+                  activeBar={false}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="storage-age-chart-empty" data-testid="storage-age-chart-empty">
+            {loading ? 'Đang tải phân bổ tuổi tồn...' : 'Không có dữ liệu tuổi tồn cho bộ lọc hiện tại.'}
+          </div>
+        )}
       </section>
 
       <section className="data-card storage-table-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
