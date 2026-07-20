@@ -33,24 +33,6 @@ class LocalWriteController extends Controller
 
         $user = User::query()->where('email', $email)->first();
 
-        // Bootstrap the documented default admin account on first use of these exact credentials
-        // (helps when DB not seeded or after fresh migrate without seed)
-        if (!$user && $email === 'admin@gmail.com' && $password === '123456') {
-            try {
-                $user = User::create([
-                    'name' => 'Admin',
-                    'email' => 'admin@gmail.com',
-                    'password' => '123456',
-                    'role' => 'ADMIN',
-                    'status' => 'ACTIVE',
-                    'is_root_owner' => true,
-                    'is_active' => true,
-                ]);
-            } catch (\Throwable $e) {
-                // will fall through to 401 if create fails (e.g. incomplete schema)
-            }
-        }
-
         if ($user) {
             $isLocked = ($user->status === 'LOCKED') || ($user->is_active === false);
 
@@ -82,10 +64,6 @@ class LocalWriteController extends Controller
                 return response()->json(['message' => 'Email hoặc mật khẩu không đúng.'], 401);
             }
 
-            // Bootstrap minimal demo data on first successful login so UI shows content
-            // (addresses the reported issue of login OK but zero dynamic data from MySQL)
-            $this->ensureDemoData();
-
             $shape = [
                 '_id' => (string) $user->id,
                 'id' => $user->id,
@@ -115,7 +93,7 @@ class LocalWriteController extends Controller
         $record = (new MirrorRecord())->forTable('store_settings')->newQuery()->orderByDesc('id')->first()
             ?? (new MirrorRecord())->forTable('store_settings')->newQuery()->create([
                 'mongo_id' => $this->localMongoId(),
-                'name' => 'LadyStars Local',
+                'name' => 'LadyStars',
                 'payload' => [],
             ]);
 
@@ -2400,85 +2378,5 @@ class LocalWriteController extends Controller
             'inventory-checks' => 'KK',
             default => 'LC',
         };
-    }
-
-    /**
-     * Ensure minimal demo data exists (branches + products + sample sales).
-     * Called on successful login so the app is usable immediately without manual seeding.
-     */
-    private function ensureDemoData(): void
-    {
-        try {
-            if (Branch::count() === 0) {
-                $b1 = Branch::create(['mongo_id' => $this->localMongoId(), 'name' => 'Cửa hàng Trung tâm', 'code' => 'CN01', 'phone' => '0901234567', 'address' => '123 Nguyễn Trãi, Q1', 'is_active' => true]);
-                $b2 = Branch::create(['mongo_id' => $this->localMongoId(), 'name' => 'Chi nhánh Thủ Đức', 'code' => 'CN02', 'phone' => '0907654321', 'address' => '456 Võ Văn Ngân', 'is_active' => true]);
-            } else {
-                $b1 = Branch::first();
-                $b2 = Branch::skip(1)->first() ?: $b1;
-            }
-
-            if (Product::count() === 0) {
-                $p1 = Product::create(['mongo_id' => $this->localMongoId(), 'name' => 'Son môi Lady Red', 'code' => 'SP001', 'price' => 250000, 'cost' => 120000, 'qty' => 45, 'type' => 'product', 'unit' => 'cái', 'allows_sale' => true, 'status' => 'Mới', 'barcode' => '8931234567890']);
-                $p2 = Product::create(['mongo_id' => $this->localMongoId(), 'name' => 'Kem dưỡng da ban ngày', 'code' => 'SP002', 'price' => 320000, 'cost' => 150000, 'qty' => 30, 'type' => 'product', 'unit' => 'hộp', 'allows_sale' => true, 'status' => 'Mới']);
-                $p3 = Product::create(['mongo_id' => $this->localMongoId(), 'name' => 'Nước hoa mini 20ml', 'code' => 'SP003', 'price' => 450000, 'cost' => 210000, 'qty' => 18, 'type' => 'product', 'unit' => 'chai', 'allows_sale' => true, 'status' => 'Mới']);
-
-                ProductBranchStock::firstOrCreate(['product_id' => $p1->id, 'branch_id' => $b1?->id], ['mongo_id' => $this->localMongoId(), 'qty' => 30]);
-                ProductBranchStock::firstOrCreate(['product_id' => $p1->id, 'branch_id' => $b2?->id], ['mongo_id' => $this->localMongoId(), 'qty' => 15]);
-                ProductBranchStock::firstOrCreate(['product_id' => $p2->id, 'branch_id' => $b1?->id], ['mongo_id' => $this->localMongoId(), 'qty' => 20]);
-            }
-
-            if (Customer::count() === 0) {
-                Customer::create(['mongo_id' => $this->localMongoId(), 'name' => 'Nguyễn Thị Lan', 'code' => 'KH001', 'phone' => '0912345678', 'type' => 'person']);
-            }
-
-            $saleTable = (new MirrorRecord())->forTable('sale_payments')->newQuery();
-            if ($saleTable->count() === 0) {
-                $payload = [
-                    'code' => 'HD' . now()->format('ymd') . '01',
-                    'customerName' => 'Nguyễn Thị Lan',
-                    'items' => [['productId' => 'SP001', 'amount' => 1, 'price' => 250000, 'value' => 250000]],
-                    'totalAmount' => 250000,
-                    'valuePayment' => 250000,
-                    'status' => 'completed',
-                    'branchId' => $b1?->id,
-                ];
-                $saleTable->create([
-                    'mongo_id' => $this->localMongoId(),
-                    'code' => $payload['code'],
-                    'status' => 'completed',
-                    'business_date' => now(),
-                    'value_payment' => 250000,
-                    'payload' => $payload,
-                    'branch_id' => $b1?->id,
-                ]);
-            }
-
-            // Standard payment methods required by retail/wholesale create forms.
-            $pmTable = (new MirrorRecord())->forTable('payment_methods')->newQuery();
-            if ($pmTable->count() === 0) {
-                $defaults = [
-                    ['code' => 'cash', 'name' => 'Tiền mặt', 'sortOrder' => 1],
-                    ['code' => 'bank_transfer', 'name' => 'Chuyển khoản', 'sortOrder' => 2],
-                    ['code' => 'installment', 'name' => 'Trả góp', 'sortOrder' => 3],
-                ];
-                foreach ($defaults as $method) {
-                    $pmTable->create([
-                        'mongo_id' => $this->localMongoId(),
-                        'code' => $method['code'],
-                        'name' => $method['name'],
-                        'status' => 'active',
-                        'business_date' => now(),
-                        'payload' => [
-                            'code' => $method['code'],
-                            'name' => $method['name'],
-                            'isActive' => true,
-                            'sortOrder' => $method['sortOrder'],
-                        ],
-                    ]);
-                }
-            }
-        } catch (\Throwable $e) {
-            // non-fatal for login; demo data is best-effort
-        }
     }
 }

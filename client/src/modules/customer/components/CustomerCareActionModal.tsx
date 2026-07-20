@@ -207,8 +207,8 @@ export function CustomerCareActionModal({
   const downloadImportTemplate = () => {
     const sample = [
       ['Mã KH', 'Tên khách hàng', 'SĐT', 'Lý do', 'Chi tiết / Trị giá', 'Ghi chú'],
-      ['KH001', 'Nguyễn Văn A', '0901234567', 'Tặng điểm', '50', 'Chăm sóc sinh nhật'],
-      ['', 'Trần Thị B', '0912345678', 'Gọi điện', 'Hẹn gặp lại', ''],
+      ['MA-KH', 'Ten khach hang mau', '0900000000', 'Tang diem', '50', 'Ghi chu mau'],
+      ['', 'Ten khach hang mau 2', '0910000000', 'Goi dien', 'Hen gap lai', ''],
     ];
     const ws = XLSX.utils.aoa_to_sheet(sample);
     const wb = XLSX.utils.book_new();

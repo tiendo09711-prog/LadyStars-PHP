@@ -541,18 +541,18 @@ export function AppLayout() {
       >
         <div className="brand user-dropdown-container" onClick={() => setUserMenuOpen(!userMenuOpen)}>
           <div className="brand-mark brand-avatar">
-            {user?.name?.slice(0, 1) ?? 'A'}
+            {user?.name?.slice(0, 1) ?? '?'}
           </div>
           <div>
-            <strong>{user?.name ?? 'Admin'}</strong>
-            <span>{user?.email ?? 'admin@gmail.com'}</span>
+            <strong>{user?.name ?? '—'}</strong>
+            <span>{user?.email ?? '—'}</span>
           </div>
           <ChevronDown size={14} className="brand-chevron" />
           
           {userMenuOpen && (
             <div className="user-dropdown-menu">
               <div className="user-dropdown-summary">
-                <strong>{user?.name ?? 'Admin'}</strong>
+                <strong>{user?.name ?? '—'}</strong>
                 <span>Vai trò: {roleLabel(user?.role)}</span>
               </div>
               <button 

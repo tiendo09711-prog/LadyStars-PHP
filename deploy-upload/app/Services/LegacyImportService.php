@@ -252,18 +252,25 @@ class LegacyImportService
             DB::statement('PRAGMA foreign_keys = ON');
         }
 
-        // Admin
-        User::updateOrCreate(
-            ['email' => 'admin@gmail.com'],
-            [
-                'name' => 'Admin',
-                'password' => '123456',
-                'role' => 'ADMIN',
-                'status' => 'ACTIVE',
-                'is_root_owner' => true,
-                'is_active' => true,
-            ]
-        );
+        // Optional bootstrap admin after wipe — only when env is explicitly set (no hardcoded secrets).
+        $adminEmail = trim((string) env('LEGACY_IMPORT_ADMIN_EMAIL', ''));
+        $adminPassword = (string) env('LEGACY_IMPORT_ADMIN_PASSWORD', '');
+        if ($adminEmail !== '' && $adminPassword !== '') {
+            User::updateOrCreate(
+                ['email' => $adminEmail],
+                [
+                    'name' => trim((string) env('LEGACY_IMPORT_ADMIN_NAME', 'Admin')) ?: 'Admin',
+                    'password' => $adminPassword,
+                    'role' => 'ADMIN',
+                    'status' => 'ACTIVE',
+                    'is_root_owner' => true,
+                    'is_active' => true,
+                ]
+            );
+            $this->log('Bootstrap admin created/updated from LEGACY_IMPORT_ADMIN_* env.');
+        } else {
+            $this->log('WARN: users wiped; set LEGACY_IMPORT_ADMIN_EMAIL + LEGACY_IMPORT_ADMIN_PASSWORD to bootstrap an admin.');
+        }
 
         // Ensure branches
         $this->createBranchIfNotExists(self::DEFAULT_BRANCH_NAME, 'HN');

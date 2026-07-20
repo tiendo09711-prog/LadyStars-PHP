@@ -22,7 +22,7 @@ return new class extends Migration
         });
 
         Schema::create('job_batches', function (Blueprint $table) {
-            $table->string('id')->primary();
+            $table->string('id', 191)->primary();
             $table->string('name');
             $table->integer('total_jobs');
             $table->integer('pending_jobs');
@@ -36,15 +36,16 @@ return new class extends Migration
 
         Schema::create('failed_jobs', function (Blueprint $table) {
             $table->id();
-            $table->string('uuid')->unique();
-            $table->string('connection');
-            $table->string('queue');
+            $table->string('uuid', 191)->unique();
+            $table->string('connection', 64);
+            $table->string('queue', 64);
             $table->longText('payload');
             $table->longText('exception');
             $table->timestamp('failed_at')->useCurrent();
 
             $table->index(['connection', 'queue', 'failed_at']);
         });
+
     }
 
     /**

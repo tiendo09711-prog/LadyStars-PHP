@@ -1,7 +1,7 @@
 # Legacy Data Import Mapping - LadyStars-PHP
 
 ## Mục tiêu
-- Wipe toàn bộ dữ liệu (trừ admin@gmail.com / 123456)
+- Wipe toàn bộ dữ liệu (bảng users cũng bị xóa; admin bootstrap chỉ khi có `LEGACY_IMPORT_ADMIN_EMAIL` + `LEGACY_IMPORT_ADMIN_PASSWORD` trong `.env`)
 - Import đầy đủ từ 10 file Excel legacy (không bỏ sót business rows)
 - Duy trì quan hệ: Customer <-> Sale/Return/Care , Product <-> Stock/Inventory/Category , Invoice <-> Return <-> Care (point)
 - Sử dụng cấu trúc DB hiện tại: normalized cho master (branches, customers, products, categories, product_branch_stocks) + mirror tables cho transactional (sale_payments, product_refunds, customer_cares, inventory_* , product_edit_logs ...)
@@ -27,7 +27,7 @@
 
 ## Thứ tự Phase (bắt buộc)
 1. Backup safety (nếu không dry)
-2. Reset (truncate reverse order + disable FK) + giữ lại/recreate admin
+2. Reset (truncate reverse order + disable FK) + optional admin bootstrap via LEGACY_IMPORT_ADMIN_* env
 3. Master: branches (từ data Kho) + categories + products + product_branch_stocks
 4. Customers (dedup SĐT + code)
 5. Transactional:
@@ -202,7 +202,7 @@ Lưu vào product_edit_logs (có các cột meta từ migration 2026_07_04).
 - customer "cô DUNG" (0986846668): điểm care + current
 - product sample: stock per kho == Tồn kho
 - No orphan FK nulls (nếu strict)
-- Chỉ 1 user admin@gmail.com , Hash::check('123456')
+- Users: chỉ có admin bootstrap nếu đã set LEGACY_IMPORT_ADMIN_* trong .env (không hardcode mật khẩu)
 - No negative stock invalid
 
 ### Báo cáo

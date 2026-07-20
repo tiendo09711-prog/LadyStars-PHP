@@ -30,7 +30,8 @@ return new class extends Migration
             $table->json('invoice_profile')->nullable();
             $table->timestamps();
 
-            $table->index(['name', 'code']);
+            // Avoid composite utf8mb4 indexes that exceed MySQL 1000-byte key limit on shared hosts.
+            $table->index('name');
         });
 
         Schema::create('user_warehouse_assignments', function (Blueprint $table) {
@@ -97,7 +98,8 @@ return new class extends Migration
             $table->index(['branch_id', 'name']);
             $table->index(['branch_id', 'phone']);
             $table->index(['branch_id', 'card_id']);
-            $table->index(['name', 'code']);
+            $table->index('name');
+            $table->index('code');
         });
 
         Schema::create('customer_customer_group', function (Blueprint $table) {
@@ -123,7 +125,8 @@ return new class extends Migration
             $table->string('url')->nullable();
             $table->timestamps();
 
-            $table->index(['name', 'code']);
+            $table->index('name');
+            $table->index('code');
         });
 
         Schema::create('trademarks', function (Blueprint $table) {
@@ -184,7 +187,8 @@ return new class extends Migration
             $table->json('extra')->nullable();
             $table->timestamps();
 
-            $table->index(['name', 'code']);
+            $table->index('name');
+            $table->index('code');
             $table->index('barcode');
             $table->index('parent_code');
         });

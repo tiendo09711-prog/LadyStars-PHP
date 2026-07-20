@@ -26,7 +26,7 @@
             <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                 <div class="font-semibold text-yellow-800">⚠️ CẢNH BÁO QUAN TRỌNG</div>
                 <ul class="list-disc ml-5 text-sm text-yellow-700 mt-1">
-                    <li>Hành động này sẽ <strong>XÓA TOÀN BỘ dữ liệu</strong> (trừ tài khoản admin@gmail.com).</li>
+                    <li>Hành động này sẽ <strong>XÓA TOÀN BỘ dữ liệu</strong> (bảng users cũng bị wipe). Admin bootstrap chỉ tạo lại nếu đã cấu hình <code>LEGACY_IMPORT_ADMIN_EMAIL</code> + <code>LEGACY_IMPORT_ADMIN_PASSWORD</code> trong .env.</li>
                     <li>Chỉ sử dụng khi bạn đã có bản backup database.</li>
                     <li>Trang này được giữ lại để sử dụng nhiều lần khi cần.</li>
                 </ul>

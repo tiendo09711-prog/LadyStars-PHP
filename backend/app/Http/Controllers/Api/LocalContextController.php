@@ -47,7 +47,7 @@ class LocalContextController extends Controller
         $payload = is_array($record?->payload) ? $record->payload : [];
 
         return response()->json([
-            'shopName' => $payload['shopName'] ?? $payload['name'] ?? $record?->name ?? 'LadyStars Laravel Local',
+            'shopName' => $payload['shopName'] ?? $payload['name'] ?? $record?->name ?? 'LadyStars',
             'logoUrl' => $payload['logoUrl'] ?? $payload['logo'] ?? null,
             'address' => $payload['address'] ?? null,
             'phone' => $payload['phone'] ?? null,

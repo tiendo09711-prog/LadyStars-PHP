@@ -118,7 +118,7 @@ export function VoucherExcelImportPage() {
       ['4', 'Sản phẩm phải khớp mã hoặc tên sản phẩm đang có trong hệ thống.'],
       ['5', 'Ngày hết hạn dùng định dạng dd/mm/yyyy nếu có.']
     ];
-    const xnkRows = [XNK_HEADERS, ['SP001', 'LOT-001', 'cái', 10, 100000, 0, 'Dữ liệu mẫu, xóa trước khi import', '31/12/2026', 30]];
+    const xnkRows = [XNK_HEADERS, ['MA-SP', 'LOT-001', 'cai', 10, 100000, 0, 'Dong mau — xoa truoc khi import', '31/12/2026', 30]];
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(noteRows), 'Ghi chú');
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(xnkRows), 'XNK');
     XLSX.writeFile(workbook, 'Nhanh.vn_Import_Imex_v0.1.8.xlsx');

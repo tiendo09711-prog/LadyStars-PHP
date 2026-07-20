@@ -20,7 +20,8 @@ return new class extends Migration
             $table->string('password');
             $table->string('phone')->nullable();
             $table->enum('role', ['ADMIN', 'EMPLOYEE'])->default('EMPLOYEE');
-            $table->string('status')->default('ACTIVE');
+            // Keep status short so composite indexes stay under MySQL 1000-byte key limit (utf8mb4).
+            $table->string('status', 32)->default('ACTIVE');
             $table->foreignId('branch_id')->nullable()->index();
             $table->foreignId('default_warehouse_id')->nullable()->index();
             $table->foreignId('created_by_id')->nullable()->index();
@@ -38,19 +39,20 @@ return new class extends Migration
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
+            $table->string('email', 191)->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
         Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
+            $table->string('id', 191)->primary();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
     }
 
     /**

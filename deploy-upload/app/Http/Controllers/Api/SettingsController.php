@@ -39,7 +39,7 @@ class SettingsController extends Controller
         $record = (new MirrorRecord())->forTable('store_settings')->newQuery()->orderByDesc('id')->first()
             ?? (new MirrorRecord())->forTable('store_settings')->newQuery()->create([
                 'mongo_id' => $this->mongoId(),
-                'name' => 'LadyStars Local',
+                'name' => 'LadyStars',
                 'payload' => [],
             ]);
         $before = $this->storePayload($record);
@@ -270,7 +270,7 @@ class SettingsController extends Controller
     {
         $payload = is_array($record?->payload) ? $record->payload : [];
         return [
-            'shopName' => $payload['shopName'] ?? $payload['name'] ?? $record?->name ?? 'LadyStars Laravel Local',
+            'shopName' => $payload['shopName'] ?? $payload['name'] ?? $record?->name ?? 'LadyStars',
             'logoUrl' => $payload['logoUrl'] ?? $payload['logo'] ?? '',
             'address' => $payload['address'] ?? '',
             'phone' => $payload['phone'] ?? '',
