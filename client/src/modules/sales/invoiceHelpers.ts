@@ -27,40 +27,84 @@ export function grossValue(invoice: Invoice) {
   );
 }
 
-/** True when invoice-level discount is stored as a percentage (10 = 10%). */
+/** True when invoice-level discount type is percentage (rate), not money. */
 export function isPercentDiscount(type: unknown): boolean {
   const t = String(type ?? '').toLowerCase().trim();
   return t === 'percent' || t === 'percentage' || t === '%';
 }
 
-/**
- * Order-level discount converted to money (đ).
- * - percent: discountValue is rate (e.g. 10 → 10% of gross)
- * - number/fixed: discountValue is already money
- * - fallback: gross − stored net value (covers line discounts reflected only in value)
- */
-export function discountMoneyAmount(invoice: Invoice) {
-  const gross = grossValue(invoice);
+/** True when a number is a plausible discount rate (0 < n ≤ 100). */
+export function isValidPercentRate(value: unknown): boolean {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 && n <= 100;
+}
+
+function discountRawValue(invoice: Invoice): number {
   const raw = Number(invoice.discountValue ?? invoice.discount_value ?? invoice.discount ?? 0);
-  const entered = Number.isFinite(raw) ? Math.max(0, raw) : 0;
-  const type = invoice.discountType ?? invoice.discount_type;
+  return Number.isFinite(raw) ? Math.max(0, raw) : 0;
+}
 
-  if (entered > 0) {
-    if (isPercentDiscount(type)) {
-      if (gross > 0) {
-        return Math.min(gross, Math.round((gross * Math.min(entered, 100)) / 100));
-      }
-      // Cannot convert % without a base; leave fallback below.
-    } else {
-      return gross > 0 ? Math.min(gross, entered) : entered;
-    }
-  }
-
+function derivedDiscountFromNet(invoice: Invoice, gross: number): number {
   const net = Number(invoice.value ?? invoice.totalAmount ?? invoice.total_amount);
   if (gross > 0 && Number.isFinite(net) && net >= 0 && gross > net + 0.0001) {
     return Math.max(0, Math.round(gross - net));
   }
   return 0;
+}
+
+/**
+ * Order-level discount converted to money (đ).
+ * - percent + rate ≤ 100: discountValue is rate (e.g. 10 → 10% of gross)
+ * - number/fixed: discountValue is already money
+ * - percent + value > 100: legacy/mis-tagged money stored with percent type
+ * - fallback: gross − stored net value
+ */
+export function discountMoneyAmount(invoice: Invoice) {
+  const gross = grossValue(invoice);
+  const entered = discountRawValue(invoice);
+  const type = invoice.discountType ?? invoice.discount_type;
+  const derived = derivedDiscountFromNet(invoice, gross);
+
+  if (entered > 0) {
+    if (isPercentDiscount(type) && isValidPercentRate(entered)) {
+      if (gross > 0) {
+        return Math.min(gross, Math.round((gross * entered) / 100));
+      }
+      // Prefer stored net delta when gross lines are missing.
+      if (derived > 0) return derived;
+      return 0;
+    }
+
+    // Money amount: type is number/fixed, OR type is percent but value is money (>100).
+    if (!isPercentDiscount(type) || entered > 100) {
+      // Prefer gross−net when it is present and consistent (avoids 100% cap bugs).
+      if (derived > 0) {
+        // Use derived when entered looks like the same money (or absurd percent residue).
+        if (!isPercentDiscount(type) || Math.abs(derived - entered) <= 1 || entered > 100) {
+          return derived;
+        }
+      }
+      return gross > 0 ? Math.min(gross, entered) : entered;
+    }
+  }
+
+  if (derived > 0) return derived;
+  return 0;
+}
+
+/**
+ * Percent rate to show under the money amount.
+ * Only when the invoice was actually discounted by % (type=percent and rate 0–100).
+ * Fixed/money discounts → null (UI shows money only, no %).
+ */
+export function discountPercentRate(invoice: Invoice): number | null {
+  if (!isPercentDiscount(invoice.discountType ?? invoice.discount_type)) return null;
+
+  const entered = discountRawValue(invoice);
+  // Do not invent % from money; only show the stored rate when it is a real percentage input.
+  if (!isValidPercentRate(entered)) return null;
+
+  return Math.round(entered * 100) / 100;
 }
 
 /**

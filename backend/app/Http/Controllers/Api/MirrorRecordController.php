@@ -551,15 +551,18 @@ class MirrorRecordController extends Controller
 
         // When net total was reconstructed from line items only (legacy retail create
         // omitted `value`), apply order-level discount so totals match payments.
+        // percent rate is only valid in (0, 100]; larger values are treated as money
+        // (legacy rows sometimes store money amount with discount_type=percent).
         $grossFromItems = (float) ($value ?? 0);
         if ($valueFromItems && $serialized['discountValue'] > 0 && $grossFromItems > 0) {
             $typeNorm = strtolower(trim((string) $discountType));
             $isPercent = in_array($typeNorm, ['percent', 'percentage', '%'], true);
-            if ($isPercent) {
-                $rate = min(100.0, max(0.0, $serialized['discountValue']));
-                $value = max(0.0, round($grossFromItems * (1 - ($rate / 100)), 2));
+            $discEntered = (float) $serialized['discountValue'];
+            if ($isPercent && $discEntered > 0 && $discEntered <= 100) {
+                $value = max(0.0, round($grossFromItems * (1 - ($discEntered / 100)), 2));
             } else {
-                $value = max(0.0, round($grossFromItems - $serialized['discountValue'], 2));
+                // fixed money, or percent type with mis-tagged money amount (>100)
+                $value = max(0.0, round($grossFromItems - $discEntered, 2));
             }
         }
 

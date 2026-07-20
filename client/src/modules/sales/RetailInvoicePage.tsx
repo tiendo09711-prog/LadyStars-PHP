@@ -40,7 +40,7 @@ import {
   totalQuantity,
   grossValue,
   discountMoneyAmount,
-  isPercentDiscount,
+  discountPercentRate,
   netValue,
   statusMeta,
   hasGiftItems,
@@ -493,7 +493,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       sections: [{ lines: receiptLines }],
       summary: hideTotals ? [] : [
         { label: 'Tổng cộng', value: safeMoney(gross) },
-        { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${isPercentDiscount(invoice.discountType) ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—' },
+        { label: 'Giảm giá', value: discountMoneyAmount(invoice) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${discountPercentRate(invoice) != null ? ` (${discountPercentRate(invoice)}%)` : ''}` : '—' },
         { label: 'Thành tiền', value: safeMoney(total), strong: true },
         { label: 'Đã thanh toán', value: safeMoney(paid) },
         ...(hasDistinctTendered ? [{ label: 'Tiền khách trả', value: safeMoney(tendered) }] : []),
@@ -648,7 +648,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       { label: 'Giá trị hàng hóa', key: 'gross', getValue: (invoice: Invoice) => grossValue(invoice) },
       { label: 'Tổng SL', key: 'qty', getValue: (invoice: Invoice) => totalQuantity(invoice) },
       { label: 'Giảm giá', key: 'discount', getValue: (invoice: Invoice) => discountMoneyAmount(invoice) },
-      { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => isPercentDiscount(invoice.discountType) ? Number(invoice.discountValue) || 0 : 0 },
+      { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => discountPercentRate(invoice) ?? 0 },
       { label: 'Tổng tiền', key: 'value', getValue: (invoice: Invoice) => invoiceTotalValue(invoice) },
       { label: 'Phương thức thanh toán', key: 'paymentMethods', getValue: (invoice: Invoice) => paymentRows(invoice).map((p) => p.label).join(', ') || '—' },
       { label: 'Đã thanh toán', key: 'paid', getValue: (invoice: Invoice) => invoicePaidValue(invoice) },
@@ -980,12 +980,12 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                     </td>
                     <td
                       className="number col-center discount col-discount"
-                      title={Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${isPercentDiscount(invoice.discountType) ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—'}
+                      title={discountMoneyAmount(invoice) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${discountPercentRate(invoice) != null ? ` (${discountPercentRate(invoice)}%)` : ''}` : '—'}
                     >
-                      {Number(invoice.discountValue) > 0 ? (
+                      {discountMoneyAmount(invoice) > 0 ? (
                         <span className="retail-discount-cell">
                           <span className="retail-discount-money">-{safeMoney(discountMoneyAmount(invoice))}</span>
-                          {isPercentDiscount(invoice.discountType) ? <span className="retail-discount-rate">{Number(invoice.discountValue)}%</span> : null}
+                          {discountPercentRate(invoice) != null ? <span className="retail-discount-rate">{discountPercentRate(invoice)}%</span> : null}
                         </span>
                       ) : '—'}
                     </td>
@@ -1243,10 +1243,10 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           <h3>Thanh toán</h3>
           <dl className="retail-money-summary">
             <div><dt>Giá trị hàng hóa</dt><dd>{items.length ? safeMoney(grossValue(invoice)) : '—'}</dd></div>
-            <div><dt>Giảm giá</dt><dd className="discount">{Number(invoice.discountValue) > 0 ? (
+            <div><dt>Giảm giá</dt><dd className="discount">{discountMoneyAmount(invoice) > 0 ? (
               <span className="retail-discount-detail">
                 <span>-{safeMoney(discountMoneyAmount(invoice))}</span>
-                {isPercentDiscount(invoice.discountType) ? <span className="retail-discount-rate">{Number(invoice.discountValue)}%</span> : null}
+                {discountPercentRate(invoice) != null ? <span className="retail-discount-rate">{discountPercentRate(invoice)}%</span> : null}
               </span>
             ) : '—'}</dd></div>
             <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(invoiceTotalValue(invoice))}</dd></div>

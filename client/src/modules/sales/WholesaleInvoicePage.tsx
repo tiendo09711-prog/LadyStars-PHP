@@ -45,7 +45,7 @@ import {
   totalQuantity,
   grossValue,
   discountMoneyAmount,
-  isPercentDiscount,
+  discountPercentRate,
   netValue,
   statusMeta,
   hasGiftItems,
@@ -527,7 +527,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       sections: [{ lines: receiptLines }],
       summary: hideTotals ? [] : [
         { label: 'Tổng cộng', value: safeMoney(grossValue(invoice)) },
-        { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${isPercentDiscount(invoice.discountType) ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—' },
+        { label: 'Giảm giá', value: discountMoneyAmount(invoice) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${discountPercentRate(invoice) != null ? ` (${discountPercentRate(invoice)}%)` : ''}` : '—' },
         ...(invoice.hasVat && Number(invoice.vatAmount) > 0
           ? [{ label: `VAT${Number(invoice.vatPercent) > 0 ? ` (${Number(invoice.vatPercent)}%)` : ''}`, value: safeMoney(invoice.vatAmount) }]
           : []),
@@ -688,7 +688,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       { label: 'Số lượng SP', get: (invoice) => String(totalQuantity(invoice)) },
       { label: 'Giá trị hàng hóa', get: (invoice) => String(grossValue(invoice)) },
       { label: 'Giảm giá', get: (invoice) => String(discountMoneyAmount(invoice)) },
-      { label: '% chiết khấu', get: (invoice) => String(isPercentDiscount(invoice.discountType) ? Number(invoice.discountValue) || 0 : 0) },
+      { label: '% chiết khấu', get: (invoice) => String(discountPercentRate(invoice) ?? 0) },
       { label: 'Tổng tiền', get: (invoice) => String(netValue(invoice)) },
       { label: 'Đã thanh toán', get: (invoice) => String(Number(invoice.valuePayment) || 0) },
       { label: 'Trạng thái', get: (invoice) => statusMeta(invoice.status, invoice.refundStatus).label },
@@ -731,7 +731,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       { label: 'Giá trị hàng hóa', key: 'gross', getValue: (invoice: Invoice) => grossValue(invoice) },
       { label: 'Tổng SL', key: 'qty', getValue: (invoice: Invoice) => totalQuantity(invoice) },
       { label: 'Giảm giá', key: 'discount', getValue: (invoice: Invoice) => discountMoneyAmount(invoice) },
-      { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => isPercentDiscount(invoice.discountType) ? Number(invoice.discountValue) || 0 : 0 },
+      { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => discountPercentRate(invoice) ?? 0 },
       { label: 'Tổng tiền', key: 'value', getValue: (invoice: Invoice) => netValue(invoice) },
       { label: 'Phương thức thanh toán', key: 'paymentMethods', getValue: (invoice: Invoice) => paymentRows(invoice).map((p) => p.label).join(', ') || '—' },
       { label: 'Đã thanh toán', key: 'paid', getValue: (invoice: Invoice) => Number(invoice.valuePayment) || 0 },
@@ -1119,16 +1119,16 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                         <td
                           className="number discount"
                           title={
-                            Number(invoice.discountValue) > 0
-                              ? `-${safeMoney(discountMoneyAmount(invoice))}${isPercentDiscount(invoice.discountType) ? ` (${Number(invoice.discountValue)}%)` : ''}`
+                            discountMoneyAmount(invoice) > 0
+                              ? `-${safeMoney(discountMoneyAmount(invoice))}${discountPercentRate(invoice) != null ? ` (${discountPercentRate(invoice)}%)` : ''}`
                               : '—'
                           }
                         >
-                          {Number(invoice.discountValue) > 0 ? (
+                          {discountMoneyAmount(invoice) > 0 ? (
                             <span className="ws-discount-cell">
                               <span className="ws-discount-money">-{safeMoney(discountMoneyAmount(invoice))}</span>
-                              {isPercentDiscount(invoice.discountType) ? (
-                                <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span>
+                              {discountPercentRate(invoice) != null ? (
+                                <span className="ws-discount-rate">{discountPercentRate(invoice)}%</span>
                               ) : null}
                             </span>
                           ) : (
@@ -1415,10 +1415,10 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
           <h3>Thanh toán</h3>
           <dl className="ws-money-summary">
             <div><dt>Giá trị hàng hóa</dt><dd>{items.length ? safeMoney(grossValue(invoice)) : '—'}</dd></div>
-            <div><dt>Giảm giá</dt><dd className="discount">{Number(invoice.discountValue) > 0 ? (
+            <div><dt>Giảm giá</dt><dd className="discount">{discountMoneyAmount(invoice) > 0 ? (
               <span className="ws-discount-detail">
                 <span>-{safeMoney(discountMoneyAmount(invoice))}</span>
-                {isPercentDiscount(invoice.discountType) ? <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span> : null}
+                {discountPercentRate(invoice) != null ? <span className="ws-discount-rate">{discountPercentRate(invoice)}%</span> : null}
               </span>
             ) : '—'}</dd></div>
             {invoice.hasVat && Number(invoice.vatAmount) > 0 ? (

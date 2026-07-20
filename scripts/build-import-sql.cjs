@@ -108,6 +108,83 @@ function jsonSql(obj) {
   return sqlStr(JSON.stringify(obj));
 }
 
+/**
+ * Emit idempotent ALTER TABLE guards so import works on DBs missing extract columns
+ * (notably inventory_products.refer_code after partial/gated migrations).
+ */
+function writeSchemaGuards(write) {
+  write('-- ============================================================');
+  write('-- Schema guards (idempotent): ensure columns this import needs');
+  write('-- Fixes local DBs missing inventory_products.refer_code etc.');
+  write('-- ============================================================');
+  write('SET @__ls_db := DATABASE();');
+  write('');
+
+  const columns = [
+    // inventory_products (import lines)
+    ['inventory_products', 'inventory_voucher_mongo_id', "VARCHAR(24) NULL"],
+    ['inventory_products', 'branch_id', 'BIGINT UNSIGNED NULL'],
+    ['inventory_products', 'product_id', 'BIGINT UNSIGNED NULL'],
+    ['inventory_products', 'qty', 'DECIMAL(18,3) NULL'],
+    ['inventory_products', 'unit_price', 'DECIMAL(18,2) NULL'],
+    ['inventory_products', 'refer_code', 'VARCHAR(255) NULL'],
+    // inventory_vouchers
+    ['inventory_vouchers', 'warehouse_mongo_id', 'VARCHAR(24) NULL'],
+    ['inventory_vouchers', 'branch_id', 'BIGINT UNSIGNED NULL'],
+    ['inventory_vouchers', 'import_export_type', 'VARCHAR(255) NULL'],
+    ['inventory_vouchers', 'voucher_code', 'VARCHAR(255) NULL'],
+    ['inventory_vouchers', 'product_id', 'BIGINT UNSIGNED NULL'],
+    ['inventory_vouchers', 'qty', 'DECIMAL(18,3) NULL'],
+    ['inventory_vouchers', 'unit_price', 'DECIMAL(18,2) NULL'],
+    ['inventory_vouchers', 'refer_code', 'VARCHAR(255) NULL'],
+    ['inventory_vouchers', 'total_amount', 'DECIMAL(18,2) NULL'],
+    // sale_payments
+    ['sale_payments', 'sale_channel_id', 'VARCHAR(24) NULL'],
+    ['sale_payments', 'customer_id', 'BIGINT UNSIGNED NULL'],
+    ['sale_payments', 'branch_id', 'BIGINT UNSIGNED NULL'],
+    ['sale_payments', 'amount_products', 'DECIMAL(18,3) NULL'],
+    ['sale_payments', 'total_cost', 'DECIMAL(18,2) NULL'],
+    ['sale_payments', 'discount_value', 'DECIMAL(18,2) NULL'],
+    ['sale_payments', 'discount_type', 'VARCHAR(255) NULL'],
+    ['sale_payments', 'tendered_value', 'DECIMAL(18,2) NULL'],
+    ['sale_payments', 'settlement_value', 'DECIMAL(18,2) NULL'],
+    ['sale_payments', 'is_delivery', 'TINYINT(1) NOT NULL DEFAULT 0'],
+    ['sale_payments', 'is_cod', 'TINYINT(1) NOT NULL DEFAULT 0'],
+    // product_edit_logs
+    ['product_edit_logs', 'product_id', 'BIGINT UNSIGNED NULL'],
+    ['product_edit_logs', 'branch_id', 'BIGINT UNSIGNED NULL'],
+    ['product_edit_logs', 'field_name', 'VARCHAR(255) NULL'],
+    ['product_edit_logs', 'old_value', 'TEXT NULL'],
+    ['product_edit_logs', 'new_value', 'TEXT NULL'],
+    ['product_edit_logs', 'product_code', 'VARCHAR(255) NULL'],
+    ['product_edit_logs', 'product_name', 'VARCHAR(255) NULL'],
+    // warehouse_transfers
+    ['warehouse_transfers', 'from_branch_id', 'BIGINT UNSIGNED NULL'],
+    ['warehouse_transfers', 'to_branch_id', 'BIGINT UNSIGNED NULL'],
+    ['warehouse_transfers', 'date_send', 'DATE NULL'],
+    ['warehouse_transfers', 'date_take', 'DATE NULL'],
+    // customer_cares
+    ['customer_cares', 'branch_id', 'BIGINT UNSIGNED NULL'],
+    ['customer_cares', 'details', 'TEXT NULL'],
+    ['customer_cares', 'reason', 'TEXT NULL'],
+    ['customer_cares', 'description', 'TEXT NULL'],
+    ['customer_cares', 'creator', 'VARCHAR(255) NULL'],
+    ['customer_cares', 'customer_name', 'VARCHAR(255) NULL'],
+  ];
+
+  for (const [table, column, ddl] of columns) {
+    write(`-- ensure ${table}.${column}`);
+    write(`SET @__ls_exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @__ls_db AND TABLE_NAME = '${table}' AND COLUMN_NAME = '${column}');`);
+    write(`SET @__ls_sql := IF(@__ls_exists = 0, 'ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${ddl}', 'DO 0');`);
+    write('PREPARE __ls_stmt FROM @__ls_sql;');
+    write('EXECUTE __ls_stmt;');
+    write('DEALLOCATE PREPARE __ls_stmt;');
+    write('');
+  }
+
+  write('-- End schema guards');
+}
+
 function main() {
   const report = [];
   const warnings = [];
@@ -122,6 +199,8 @@ function main() {
   write('SET FOREIGN_KEY_CHECKS=0;');
   write('SET UNIQUE_CHECKS=0;');
   write('SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";');
+  write('');
+  writeSchemaGuards(write);
   write('');
 
   // Truncate business tables (keep migrations)

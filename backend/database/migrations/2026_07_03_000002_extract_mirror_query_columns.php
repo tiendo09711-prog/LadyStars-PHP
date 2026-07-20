@@ -40,15 +40,32 @@ return new class extends Migration
             });
         }
 
+        // Add each column independently — prior batching skipped refer_code when branch_id already existed.
         if (!Schema::hasColumn('inventory_products', 'branch_id')) {
             Schema::table('inventory_products', function (Blueprint $table) {
-            $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete()->after('inventory_voucher_mongo_id');
-            $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete()->after('product_mongo_id');
-            $table->decimal('qty', 18, 3)->nullable()->after('value');
-            $table->decimal('unit_price', 18, 2)->nullable()->after('qty');
-            $table->string('refer_code')->nullable()->after('code');
-            $table->index(['inventory_voucher_mongo_id', 'product_id']);
+                $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete()->after('inventory_voucher_mongo_id');
                 $table->index(['branch_id', 'business_date']);
+            });
+        }
+        if (!Schema::hasColumn('inventory_products', 'product_id')) {
+            Schema::table('inventory_products', function (Blueprint $table) {
+                $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete()->after('product_mongo_id');
+                $table->index(['inventory_voucher_mongo_id', 'product_id']);
+            });
+        }
+        if (!Schema::hasColumn('inventory_products', 'qty')) {
+            Schema::table('inventory_products', function (Blueprint $table) {
+                $table->decimal('qty', 18, 3)->nullable()->after('value');
+            });
+        }
+        if (!Schema::hasColumn('inventory_products', 'unit_price')) {
+            Schema::table('inventory_products', function (Blueprint $table) {
+                $table->decimal('unit_price', 18, 2)->nullable()->after('qty');
+            });
+        }
+        if (!Schema::hasColumn('inventory_products', 'refer_code')) {
+            Schema::table('inventory_products', function (Blueprint $table) {
+                $table->string('refer_code')->nullable()->after('code');
             });
         }
 

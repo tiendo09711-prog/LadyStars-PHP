@@ -215,8 +215,15 @@ export function RetailInvoiceCreatePage() {
             cardId: sale.customerId?.cardId || '',
             customerLevel: sale.customerId?.customerLevel || '',
             note: sale.note || '',
-            discount: Number(sale.discountValue) || 0,
-            discountType: sale.discountType === 'percent' ? 'percentage' : 'fixed',
+            // Sanitize legacy rows that stored money under type=percent (value > 100).
+            ...(() => {
+              const rawDisc = Math.max(0, Number(sale.discountValue) || 0);
+              const typeIsPercent = sale.discountType === 'percent' || sale.discountType === 'percentage';
+              if (typeIsPercent && rawDisc > 0 && rawDisc <= 100) {
+                return { discount: rawDisc, discountType: 'percentage' as const };
+              }
+              return { discount: rawDisc, discountType: 'fixed' as const };
+            })(),
           }));
 
           setProducts((sale.items || []).map((item: any) => {
@@ -822,8 +829,30 @@ export function RetailInvoiceCreatePage() {
               <div className="discount-row">
                 <dt>Giảm giá</dt>
                 <dd>
-                  <input type="number" min={0} value={form.discount || ''} onChange={(event) => setForm((current) => ({ ...current, discount: Number(event.target.value) || 0 }))} />
-                  <button type="button" onClick={() => setForm((current) => ({ ...current, discountType: current.discountType === 'fixed' ? 'percentage' : 'fixed' }))}>
+                  <input
+                    type="number"
+                    min={0}
+                    max={form.discountType === 'percentage' ? 100 : undefined}
+                    value={form.discount || ''}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setForm((current) => ({
+                        ...current,
+                        discount: current.discountType === 'percentage' ? Math.min(Math.max(value, 0), 100) : Math.max(value, 0),
+                      }));
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => {
+                      const nextType = current.discountType === 'fixed' ? 'percentage' : 'fixed';
+                      return {
+                        ...current,
+                        discountType: nextType,
+                        discount: nextType === 'percentage' ? Math.min(Math.max(Number(current.discount) || 0, 0), 100) : Math.max(Number(current.discount) || 0, 0),
+                      };
+                    })}
+                  >
                     {form.discountType === 'percentage' ? '%' : 'đ'}
                   </button>
                 </dd>
