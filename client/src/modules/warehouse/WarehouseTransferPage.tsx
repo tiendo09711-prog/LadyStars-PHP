@@ -19,7 +19,9 @@ import {
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import { suggestWarehouseTransfers } from '../../core/api/filterSuggestions';
 import { Pagination } from '../../core/components/Pagination';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { printWarehouseTransfer } from './transferPrint';
 import './warehouseRecords.css';
 import './warehouse-transfer-list-ui.css';
@@ -514,9 +516,11 @@ export function WarehouseTransferPage() {
         >
           <div className={`wt-search${activeTab === 'all' ? ' wt-search--compact' : ''}`}>
             <Search size={15} aria-hidden="true" />
-            <input
+            <FilterSuggestInput
+              bare
               value={filters.id}
-              onChange={(e) => setFilters({ ...filters, id: e.target.value })}
+              onChange={(next) => setFilters({ ...filters, id: next })}
+              fetchSuggestions={suggestWarehouseTransfers}
               placeholder="ID / mã phiếu"
               aria-label="Tìm theo ID hoặc mã phiếu"
             />

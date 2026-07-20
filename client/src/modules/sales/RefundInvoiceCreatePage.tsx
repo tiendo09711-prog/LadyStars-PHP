@@ -149,7 +149,8 @@ export function RefundInvoiceCreatePage() {
   // Refunded Products state
   const [products, setProducts] = useState<RefundProduct[]>([]);
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  /** Which customer field is actively searching for existing customers. */
+  const [customerSuggestField, setCustomerSuggestField] = useState<'name' | 'phone' | null>(null);
   
   // New Purchased Products state
   const [newProducts, setNewProducts] = useState<RefundProduct[]>([]);
@@ -555,6 +556,31 @@ export function RefundInvoiceCreatePage() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    if (!customerSuggestField) {
+      setCustomerSuggestions([]);
+      return;
+    }
+    const keyword = (customerSuggestField === 'phone' ? form.customerPhone : form.customerName).trim();
+    if (!keyword) {
+      setCustomerSuggestions([]);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      http.get('/customers/customers', {
+        params: {
+          keyword,
+          limit: 20,
+          sort: 'lastPurchaseDate',
+          order: 'desc',
+        },
+      })
+        .then((response) => setCustomerSuggestions(response.data?.items || []))
+        .catch(() => setCustomerSuggestions([]));
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [form.customerName, form.customerPhone, customerSuggestField]);
+
   const selectCustomer = (c: any) => {
     setForm(prev => ({
       ...prev,
@@ -562,35 +588,19 @@ export function RefundInvoiceCreatePage() {
       customerName: c.name || '',
       email: c.email || '',
       address: c.address || '',
-      gender: c.gender || 'N?',
+      gender: c.gender || prev.gender || '',
       facebook: c.facebook || '',
       birthday: c.birthday || '',
-      customerLevel: c.customerLevel || '??ng',
+      customerLevel: c.customerLevel || prev.customerLevel || '',
       cardId: c.cardId || '',
       labels: c.labels || '',
       companyAddress: c.companyAddress || '',
       companyName: c.companyName || c.company || '',
       taxId: c.taxId || c.vat || '',
-      note: c.note || '',
+      note: c.note || prev.note || '',
     }));
-    setShowCustomerDropdown(false);
-  };
-
-  // Look up customer by phone
-  const lookupCustomer = async (phoneStr: string) => {
-    const keyword = phoneStr.trim();
-    if (!keyword) {
-      setCustomerSuggestions([]);
-      return;
-    }
-    try {
-      const res = await http.get('/customers/customers', { params: { phone: keyword, keyword, limit: 20, sort: 'lastPurchaseDate', order: 'desc' } });
-      setCustomerSuggestions(res.data.items ?? []);
-      setShowCustomerDropdown(true);
-    } catch (err) {
-      console.error("L???i t??m ki???m kh??ch h??ng:", err);
-      setCustomerSuggestions([]);
-    }
+    setCustomerSuggestField(null);
+    setCustomerSuggestions([]);
   };
 
   // Add Product Helpers (Refund Products)
@@ -771,7 +781,11 @@ export function RefundInvoiceCreatePage() {
       return;
     }
     if (!form.customerName.trim()) {
-      setErrorMessage('Vui lòng nhập tên khách hàng hoặc tìm kiếm bằng SĐT');
+      setErrorMessage('Vui lòng nhập tên khách hàng.');
+      return;
+    }
+    if (!form.customerPhone.trim()) {
+      setErrorMessage('Vui lòng nhập số điện thoại khách hàng.');
       return;
     }
     if (products.length === 0) {
@@ -1612,40 +1626,33 @@ export function RefundInvoiceCreatePage() {
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* SDT Search */}
+              {/* Phone with customer suggestions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Số điện thoại (F4)</span>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', flex: 1, background: '#ffffff' }}>
-                    <Phone size={14} color="#94a3b8" />
-                    <input
-                      type="text"
-                      id="customer-phone-input"
-                      placeholder="Gõ SĐT tìm nhanh..."
-                      value={form.customerPhone}
-                      onFocus={() => setShowCustomerDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
-                      onChange={(e) => {
-                        handleChange('customerPhone', e.target.value);
-                        lookupCustomer(e.target.value);
-                      }}
-                      style={{ border: 'none', background: 'transparent', outline: 'none', padding: '8px 0', width: '100%', fontSize: '13px', color: '#1e293b' }}
-                    />
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => lookupCustomer(form.customerPhone)}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 12px', fontSize: '12px', fontWeight: '600', color: '#475569', cursor: 'pointer' }}
-                  >
-                    Tìm
-                  </button>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Số điện thoại (F4) <span style={{ color: '#ef4444' }}>*</span></span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px', background: '#ffffff' }}>
+                  <Phone size={14} color="#94a3b8" />
+                  <input
+                    type="text"
+                    id="customer-phone-input"
+                    placeholder="Nhập SĐT để tìm khách đã mua"
+                    value={form.customerPhone}
+                    autoComplete="off"
+                    aria-required="true"
+                    onFocus={() => setCustomerSuggestField('phone')}
+                    onBlur={() => setTimeout(() => setCustomerSuggestField((current) => (current === 'phone' ? null : current)), 200)}
+                    onChange={(e) => {
+                      handleChange('customerPhone', e.target.value);
+                      setCustomerSuggestField('phone');
+                    }}
+                    style={{ border: 'none', background: 'transparent', outline: 'none', padding: '8px 0', width: '100%', fontSize: '13px', color: '#1e293b' }}
+                  />
                 </div>
-                {showCustomerDropdown && form.customerPhone.trim().length > 0 && customerSuggestions.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 8px 16px rgba(15,23,42,0.12)', maxHeight: '220px', overflowY: 'auto' }}>
+                {customerSuggestField === 'phone' && customerSuggestions.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 8px 16px rgba(15,23,42,0.12)', maxHeight: '220px', overflowY: 'auto' }} role="listbox" aria-label="Gợi ý khách hàng theo SĐT">
                     {customerSuggestions.map(c => (
                       <div key={c._id} onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{c.name || 'Kh?ch h?ng'}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{c.phone || '?'} ? {c.code || c.cardId || ''}</div>
+                        <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{c.name || 'Khách hàng'}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>{c.phone || '—'}{c.code || c.cardId ? ` · ${c.code || c.cardId}` : ''}</div>
                       </div>
                     ))}
                   </div>
@@ -1654,15 +1661,32 @@ export function RefundInvoiceCreatePage() {
 
               {/* Name & Member Card ID */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Họ và tên khách hàng</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Họ và tên khách hàng <span style={{ color: '#ef4444' }}>*</span></span>
                   <input
                     type="text"
-                    placeholder="Tên khách hàng..."
+                    placeholder="Nhập tên để tìm khách đã mua"
                     value={form.customerName}
-                    onChange={(e) => handleChange('customerName', e.target.value)}
+                    autoComplete="off"
+                    aria-required="true"
+                    onFocus={() => setCustomerSuggestField('name')}
+                    onBlur={() => setTimeout(() => setCustomerSuggestField((current) => (current === 'name' ? null : current)), 200)}
+                    onChange={(e) => {
+                      handleChange('customerName', e.target.value);
+                      setCustomerSuggestField('name');
+                    }}
                     style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', outline: 'none', fontSize: '13px', color: '#1e293b' }}
                   />
+                  {customerSuggestField === 'name' && customerSuggestions.length > 0 && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', marginTop: '4px', boxShadow: '0 8px 16px rgba(15,23,42,0.12)', maxHeight: '220px', overflowY: 'auto' }} role="listbox" aria-label="Gợi ý khách hàng theo tên">
+                      {customerSuggestions.map(c => (
+                        <div key={c._id} onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                          <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{c.name || 'Khách hàng'}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b' }}>{c.phone || '—'}{c.code || c.cardId ? ` · ${c.code || c.cardId}` : ''}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Mã thẻ thành viên</span>

@@ -549,24 +549,24 @@
 .wt-root .wt-table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
+  min-width: 0;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
   border-top: 0;
   min-height: 260px;
 }
 
 /*
- * Fill full container width (no empty strip on the right).
- * table-layout:fixed + width 100%; column widths act as proportions.
- * On narrow viewports scroll still works via .wt-table-scroll.
+ * Fill full container width when possible; floor min-width on variant tables
+ * creates horizontal scroll instead of clipping columns.
  */
 .wt-root .wt-data-table,
 .wt-root .warehouse-transaction-table,
 .wt-root .warehouse-transaction-table.ant-table,
 .wt-root .warehouse-transaction-table .ant-table {
   width: 100% !important;
-  max-width: 100%;
+  max-width: none;
   min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -574,23 +574,16 @@
   background: transparent;
 }
 
-/* Soft floor only for very small screens so columns remain usable */
+/*
+ * Floor min-widths so column sets create horizontal scroll instead of
+ * clipping the sticky "Thao tác" column at the card edge.
+ */
 .wt-root .wt-data-table--bills {
-  min-width: min(100%, 980px);
+  min-width: 1040px;
 }
 
 .wt-root .wt-data-table--items {
-  min-width: min(100%, 1080px);
-}
-
-@media (max-width: 1100px) {
-  .wt-root .wt-data-table--bills {
-    min-width: 980px;
-  }
-
-  .wt-root .wt-data-table--items {
-    min-width: 1080px;
-  }
+  min-width: 1200px;
 }
 
 .wt-root .warehouse-transaction-table .wt-col,
@@ -627,61 +620,46 @@
   top: 0;
   z-index: 2;
   border-bottom: 1px solid #e2e8f0;
-  text-align: left;
+  text-align: center;
   padding-top: 12px;
   padding-bottom: 12px;
   line-height: 1.3;
 }
 
-/* ---- Tab bills — proportional widths (sum ~1110, stretches to 100%) ---- */
-.wt-root .wt-data-table--bills .wt-col-identity { width: 16.2%; }
-.wt-root .wt-data-table--bills .wt-col-warehouse { width: 15.8%; }
-.wt-root .wt-data-table--bills .wt-col-products { width: 5.9%; }
-.wt-root .wt-data-table--bills .wt-col-quantity { width: 5.9%; }
-.wt-root .wt-data-table--bills .wt-col-amount { width: 11.3%; }
-.wt-root .wt-data-table--bills .wt-col-direction { width: 10.4%; }
-.wt-root .wt-data-table--bills .wt-col-creator { width: 8.6%; }
-.wt-root .wt-data-table--bills .wt-col-note { width: 20.7%; }
-.wt-root .wt-data-table--bills .wt-col-actions,
-.wt-root .wt-data-table--bills th.action-cell,
-.wt-root .wt-data-table--bills td.action-cell {
-  width: 5.4% !important;
-  min-width: 60px !important;
-  max-width: 72px !important;
-}
+/* ---- Tab bills — proportional widths; action is fixed px below ---- */
+.wt-root .wt-data-table--bills .wt-col-identity { width: 15.5%; min-width: 120px; }
+.wt-root .wt-data-table--bills .wt-col-warehouse { width: 14.5%; min-width: 110px; }
+.wt-root .wt-data-table--bills .wt-col-products { width: 5.5%; min-width: 48px; }
+.wt-root .wt-data-table--bills .wt-col-quantity { width: 5.5%; min-width: 48px; }
+.wt-root .wt-data-table--bills .wt-col-amount { width: 11%; min-width: 96px; }
+.wt-root .wt-data-table--bills .wt-col-direction { width: 10.5%; min-width: 104px; }
+.wt-root .wt-data-table--bills .wt-col-creator { width: 9%; min-width: 88px; }
+.wt-root .wt-data-table--bills .wt-col-note { width: 18%; min-width: 140px; }
 
-/* ---- Tab items — product + note get more share ---- */
-.wt-root .wt-data-table--items .wt-col-identity { width: 12.9%; }
-.wt-root .wt-data-table--items .wt-col-warehouse { width: 12.5%; }
-.wt-root .wt-data-table--items .wt-col-product { width: 22.2%; }
-.wt-root .wt-data-table--items .wt-col-quantity { width: 4.7%; }
-.wt-root .wt-data-table--items .wt-col-price { width: 7.5%; }
-.wt-root .wt-data-table--items .wt-col-direction { width: 8.2%; }
-.wt-root .wt-data-table--items .wt-col-amount { width: 9.0%; }
-.wt-root .wt-data-table--items .wt-col-note { width: 18.6%; }
-.wt-root .wt-data-table--items .wt-col-actions,
-.wt-root .wt-data-table--items th.action-cell,
-.wt-root .wt-data-table--items td.action-cell {
-  width: 4.3% !important;
-  min-width: 60px !important;
-  max-width: 72px !important;
-}
+/* ---- Tab items — product + note get more share; long note → scroll x ---- */
+.wt-root .wt-data-table--items .wt-col-identity { width: 12.5%; min-width: 118px; }
+.wt-root .wt-data-table--items .wt-col-warehouse { width: 11.5%; min-width: 100px; }
+.wt-root .wt-data-table--items .wt-col-product { width: 20%; min-width: 160px; }
+.wt-root .wt-data-table--items .wt-col-quantity { width: 5%; min-width: 48px; }
+.wt-root .wt-data-table--items .wt-col-price { width: 8.5%; min-width: 88px; }
+.wt-root .wt-data-table--items .wt-col-direction { width: 10.5%; min-width: 108px; }
+.wt-root .wt-data-table--items .wt-col-amount { width: 9.5%; min-width: 96px; }
+.wt-root .wt-data-table--items .wt-col-note { width: 16%; min-width: 160px; }
 
-/* Numeric columns: center (user preference) */
+/*
+ * Toàn bộ header + nội dung ô bảng dữ liệu — căn giữa.
+ */
+.wt-root .warehouse-transaction-table th,
+.wt-root .warehouse-transaction-table td,
+.wt-root .warehouse-transaction-table .wt-col,
+.wt-root .warehouse-transaction-table .ant-table-cell,
 .wt-root .warehouse-transaction-table .wt-col--center,
-.wt-root .warehouse-transaction-table .wt-col-products,
-.wt-root .warehouse-transaction-table .wt-col-quantity,
-.wt-root .warehouse-transaction-table .wt-col-price,
-.wt-root .warehouse-transaction-table .wt-col-amount,
-.wt-root .warehouse-transaction-table th.wt-col-products,
-.wt-root .warehouse-transaction-table th.wt-col-quantity,
-.wt-root .warehouse-transaction-table th.wt-col-price,
-.wt-root .warehouse-transaction-table th.wt-col-amount {
-  text-align: center !important;
-}
-
 .wt-root .warehouse-transaction-table .align-right {
   text-align: center !important;
+}
+
+.wt-root .warehouse-transaction-table .wt-col-direction .wt-kind {
+  text-align: center;
 }
 
 .wt-root .wt-data-table tbody tr:nth-child(even) td {
@@ -692,39 +670,62 @@
   background: #f0fdf4;
 }
 
-/* Sticky action column — proper "Thao tác" header + centered row menu */
+/*
+ * Sticky right "Thao tác" — fixed px width so header/button never clip.
+ * Horizontal scroll (on .wt-table-scroll) handles long Ghi chú / product names.
+ * display:table-cell overrides any global flex on .action-cell.
+ * No transform — transform creates a containing block that can break sticky.
+ */
 .wt-root .wt-data-table th.action-cell,
-.wt-root .wt-data-table td.action-cell {
-  padding-right: 8px !important;
-  padding-left: 8px !important;
+.wt-root .wt-data-table td.action-cell,
+.wt-root .wt-data-table .wt-col-actions,
+.wt-root .wt-data-table--bills th.action-cell,
+.wt-root .wt-data-table--bills td.action-cell,
+.wt-root .wt-data-table--bills .wt-col-actions,
+.wt-root .wt-data-table--items th.action-cell,
+.wt-root .wt-data-table--items td.action-cell,
+.wt-root .wt-data-table--items .wt-col-actions {
+  display: table-cell !important;
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+  padding: 8px 6px !important;
   text-align: center !important;
   vertical-align: middle !important;
-  position: sticky;
-  right: 0;
+  position: sticky !important;
+  right: 0 !important;
   background-clip: padding-box;
   border-left: 1px solid #eef2f7;
-  box-shadow: none !important;
-  transform: translateZ(0);
+  box-shadow: -6px 0 10px -8px rgba(15, 23, 42, 0.18);
+  transform: none !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  overflow: visible !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  align-items: unset !important;
+  justify-content: unset !important;
 }
 
 .wt-root .wt-data-table th.action-cell {
   z-index: 8;
-  background: #f8fafc;
-  white-space: normal !important;
-  letter-spacing: 0.04em;
+  background: #f8fafc !important;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .wt-root .wt-data-table td.action-cell {
   z-index: 6;
-  background: #ffffff;
+  background: #ffffff !important;
 }
 
 .wt-root .wt-data-table tbody tr:nth-child(even) td.action-cell {
-  background: #fbfcfe;
+  background: #fbfcfe !important;
 }
 
 .wt-root .wt-data-table tbody tr:hover td.action-cell {
-  background: #f0fdf4;
+  background: #f0fdf4 !important;
 }
 
 .wt-root .wt-actions {
@@ -773,11 +774,12 @@
 .wt-root .id-date-cell {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 2px;
   line-height: 1.3;
   min-width: 0;
   max-width: 100%;
+  text-align: center;
 }
 
 .wt-root .id-date-cell__id {
@@ -837,7 +839,7 @@
   line-height: 1.35;
   white-space: normal;
   word-break: break-word;
-  text-align: left;
+  text-align: center;
   max-width: 100%;
 }
 
@@ -903,6 +905,7 @@
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 4px 6px;
   min-width: 0;
   max-width: 100%;

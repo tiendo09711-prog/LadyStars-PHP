@@ -351,8 +351,8 @@
   max-width: 100%;
   min-width: 0;
   /* scroll inside table container only — never clip sticky action col off-page */
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -366,7 +366,7 @@
 .product-compact-shell .products-data-table,
 .product-compact-shell .categories-data-table {
   width: 100%;
-  max-width: 100%;
+  max-width: none;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
@@ -382,7 +382,7 @@
   color: #5a6a7e;
   background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
   padding: 8px 10px;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -855,7 +855,7 @@
 .product-compact-shell .products-price,
 .product-compact-shell .products-stock,
 .product-compact-shell .number {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -886,9 +886,21 @@
 .product-compact-shell .products-actions,
 .product-compact-shell .categories-row-actions {
   display: inline-flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 4px;
   width: 100%;
+}
+
+/* Shared product tables: center headers + cells (products / storage / categories shells) */
+.product-compact-shell .data-table th,
+.product-compact-shell .data-table td,
+.product-compact-shell .products-data-table th,
+.product-compact-shell .products-data-table td,
+.product-compact-shell .categories-data-table th,
+.product-compact-shell .categories-data-table td,
+.product-compact-shell .product-compact-table th,
+.product-compact-shell .product-compact-table td {
+  text-align: center !important;
 }
 
 /* Storage card */

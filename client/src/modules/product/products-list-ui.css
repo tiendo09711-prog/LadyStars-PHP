@@ -557,18 +557,19 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
   border-top: 0;
 }
 
 .products-root .products-data-table {
   width: 100%;
-  min-width: 0;
+  /* Floor for product list columns; scroll when viewport is narrower */
+  min-width: 1100px;
+  max-width: none;
   border-collapse: separate;
   border-spacing: 0;
-  /* Fixed layout + % widths keeps all columns inside the card; no horizontal squeeze on Thao tác */
   table-layout: fixed;
   background: transparent;
 }
@@ -663,34 +664,37 @@
 }
 
 /*
- * Product list: center cell content for
- * Mã vạch | Giá vốn | Giá bán | Tổng tồn | Trạng thái | Thao tác
- * (columns 4–9)
+ * Product list + history: center ALL header labels and cell content
+ * (checkbox | code | name | barcode | cost | price | stock | status | actions)
  */
-.products-root .products-data-table:has(.action-cell) th:nth-child(n + 4):nth-child(-n + 9),
-.products-root .products-data-table:has(.action-cell) td:nth-child(n + 4):nth-child(-n + 9) {
+.products-root .products-data-table th,
+.products-root .products-data-table td {
   text-align: center !important;
 }
 
-.products-root .products-data-table:has(.action-cell) th:nth-child(n + 4):nth-child(-n + 9) > div {
+.products-root .products-data-table th > div {
   justify-content: center;
 }
 
-.products-root .products-data-table:has(.action-cell) .products-barcode,
-.products-root .products-data-table:has(.action-cell) .products-price,
-.products-root .products-data-table:has(.action-cell) .products-stock,
-.products-root .products-data-table:has(.action-cell) .number {
+.products-root .products-data-table .products-barcode,
+.products-root .products-data-table .products-price,
+.products-root .products-data-table .products-stock,
+.products-root .products-data-table .number,
+.products-root .products-data-table .products-code,
+.products-root .products-data-table .products-link-button,
+.products-root .products-data-table .products-age-link,
+.products-root .products-data-table .products-name-main,
+.products-root .products-data-table .products-name-sub,
+.products-root .products-data-table .products-name-cell,
+.products-root .products-data-table .products-history-action-text {
   text-align: center !important;
 }
 
-.products-root .products-data-table:has(.action-cell) td:nth-child(6) .storage-risk-badge {
+.products-root .products-data-table .storage-risk-badge,
+.products-root .products-data-table .status-badge {
   display: inline-flex;
   margin-left: auto;
   margin-right: auto;
-}
-
-.products-root .products-data-table:has(.action-cell) td:nth-child(8) {
-  text-align: center !important;
 }
 
 /* Sticky action column — full "Thao tác" label + menu button always visible */
@@ -800,7 +804,7 @@
   color: #94a3b8;
   font-size: 11px;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
 }
 
 .products-root .products-age-link:hover {
@@ -845,7 +849,7 @@
 .products-root .products-price,
 .products-root .products-stock,
 .products-root .number {
-  text-align: center;
+  text-align: center !important;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   font-size: 12.5px;
@@ -960,6 +964,7 @@
   min-width: 0 !important;
   max-width: none;
   vertical-align: middle;
+  text-align: center !important;
 }
 
 /* 1. Mã SP — short codes */

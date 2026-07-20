@@ -32,8 +32,14 @@ import {
   X,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import {
+  suggestCustomers,
+  suggestProducts,
+  suggestSaleInvoices,
+} from '../../core/api/filterSuggestions';
 import { isAdminRole } from '../../core/auth/access';
 import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { buildReceiptHtml } from './invoicePrint';
 import * as XLSX from 'xlsx';
@@ -92,14 +98,32 @@ type WholesaleTab = 'all' | 'discount' | 'debt';
 const PAGE_SIZE = 15;
 const PRINT_WINDOW_NAME = 'wholesale-invoice-print';
 const PRINT_WINDOW_FEATURES = 'popup=yes,width=900,height=1200';
-const EMPTY_FILTERS: Filters = {
-  invoiceCode: '',
-  storeId: '',
-  dateFrom: '',
-  dateTo: '',
-  customerKeyword: '',
-  productKeyword: '',
-};
+
+/** Format local calendar date as YYYY-MM-DD for <input type="date">. */
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/** Last 15 calendar days inclusive (today and 14 days back). */
+function defaultDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - 14);
+  return { dateFrom: formatDateInput(start), dateTo: formatDateInput(end) };
+}
+
+function createDefaultFilters(): Filters {
+  return {
+    invoiceCode: '',
+    storeId: '',
+    ...defaultDateRange(),
+    customerKeyword: '',
+    productKeyword: '',
+  };
+}
 
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -187,8 +211,8 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   const createInvoiceBtnRef = useRef<HTMLButtonElement | null>(null);
   const pendingPrintWindowRef = useRef<Window | null>(null);
   const productKeywordRef = useRef<HTMLInputElement>(null);
-  const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<Filters>(() => createDefaultFilters());
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(() => createDefaultFilters());
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [page, setPage] = useState(1);
@@ -376,9 +400,10 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   });
 
   const resetFilters = () => {
-    setDraftFilters(EMPTY_FILTERS);
+    const next = createDefaultFilters();
+    setDraftFilters(next);
     setPage(1);
-    setAppliedFilters({ ...EMPTY_FILTERS });
+    setAppliedFilters(next);
   };
 
   const closeBranchModal = (restoreFocus = false) => {
@@ -413,14 +438,17 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showBranchModal]);
 
-  const hasActiveFilters = Boolean(
-    appliedFilters.invoiceCode.trim() ||
-      appliedFilters.storeId ||
-      appliedFilters.dateFrom ||
-      appliedFilters.dateTo ||
-      appliedFilters.customerKeyword.trim() ||
-      appliedFilters.productKeyword.trim(),
-  );
+  const hasActiveFilters = (() => {
+    const defaults = createDefaultFilters();
+    return (
+      appliedFilters.invoiceCode !== defaults.invoiceCode
+      || appliedFilters.storeId !== defaults.storeId
+      || appliedFilters.dateFrom !== defaults.dateFrom
+      || appliedFilters.dateTo !== defaults.dateTo
+      || appliedFilters.customerKeyword !== defaults.customerKeyword
+      || appliedFilters.productKeyword !== defaults.productKeyword
+    );
+  })();
 
   const currentTabLabel = TAB_LIST.find((tab) => tab.key === activeTab)?.label ?? 'Hóa đơn bán sỉ';
 
@@ -866,9 +894,13 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
         <form className="ws-filter-bar" onSubmit={applyFilters}>
           <div className="ws-search">
             <Search size={15} />
-            <input
+            <FilterSuggestInput
+              bare
               value={draftFilters.invoiceCode}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, invoiceCode: event.target.value }))}
+              onChange={(next) => setDraftFilters((current) => ({ ...current, invoiceCode: next }))}
+              fetchSuggestions={(query, signal) =>
+                suggestSaleInvoices(query, signal, { type: 'wholesale', channel })
+              }
               placeholder="Mã hóa đơn sỉ..."
               aria-label="Mã hóa đơn"
             />
@@ -906,19 +938,23 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
             title="Đến ngày"
           />
 
-          <input
+          <FilterSuggestInput
+            wrapperClassName="ws-filter-suggest"
             className="ws-filter-input"
             value={draftFilters.customerKeyword}
-            onChange={(event) => setDraftFilters((current) => ({ ...current, customerKeyword: event.target.value }))}
+            onChange={(next) => setDraftFilters((current) => ({ ...current, customerKeyword: next }))}
+            fetchSuggestions={suggestCustomers}
             placeholder="Khách hàng..."
             aria-label="Khách hàng"
           />
 
-          <input
+          <FilterSuggestInput
             ref={productKeywordRef}
+            wrapperClassName="ws-filter-suggest"
             className="ws-filter-input"
             value={draftFilters.productKeyword}
-            onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
+            onChange={(next) => setDraftFilters((current) => ({ ...current, productKeyword: next }))}
+            fetchSuggestions={suggestProducts}
             data-product-search-scan="true"
             data-product-search-primary="true"
             placeholder="Sản phẩm / quét barcode..."

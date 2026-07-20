@@ -148,7 +148,7 @@ class RevenueByProductReportService
             ],
             'paymentMethods' => $this->distinctPaymentMethodLabels(),
             'presets' => [
-                'today', 'yesterday', 'last_7_days', 'last_30_days',
+                'today', 'yesterday', 'last_7_days', 'last_15_days', 'last_30_days',
                 'this_week', 'this_month', 'last_month', 'this_quarter', 'this_year', 'custom',
             ],
             'compareModes' => [

@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { http } from '../../core/api/http';
+import { suggestRefunds } from '../../core/api/filterSuggestions';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import { buildRefundReceiptHtml, writeAndPrintPopup } from './invoicePrint';
 import './refund-invoice-page.css';
@@ -435,9 +437,11 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
         <form className="refund-filter-bar" onSubmit={handleSearchSubmit}>
           <div className="refund-search">
             <Search size={15} aria-hidden="true" />
-            <input
+            <FilterSuggestInput
+              bare
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={setSearch}
+              fetchSuggestions={(query, signal) => suggestRefunds(query, signal, { channel })}
               placeholder="Mã trả hàng, hóa đơn gốc, tên/SĐT khách..."
               aria-label="Tìm kiếm trả hàng"
             />

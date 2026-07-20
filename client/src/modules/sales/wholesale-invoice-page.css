@@ -259,9 +259,16 @@
   min-width: 118px;
 }
 
+.ws-invoice-page .ws-filter-suggest {
+  flex: 1 1 140px;
+  min-width: 120px;
+  width: auto;
+}
+
 .ws-invoice-page .ws-filter-input {
   flex: 1 1 140px;
   min-width: 120px;
+  width: 100%;
   height: 34px;
   min-height: 34px;
   padding: 0 10px;
@@ -523,15 +530,17 @@
 .ws-invoice-page .ws-table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
+  min-width: 0;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
   border-top: 0;
 }
 
 .ws-invoice-page .ws-data-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 1080px !important;
+  max-width: none !important;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto;
@@ -543,6 +552,7 @@
   padding: 11px 12px;
   font-size: 12.5px;
   vertical-align: middle;
+  text-align: center;
   min-width: 0;
   max-width: none;
   border-bottom: 1px solid #f1f5f9;
@@ -561,7 +571,7 @@
   top: 0;
   z-index: 2;
   border-bottom: 1px solid #e2e8f0;
-  text-align: left;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-data-table tbody tr:nth-child(even) td {
@@ -578,7 +588,7 @@
 }
 
 .ws-invoice-page .ws-data-table .number {
-  text-align: right;
+  text-align: center !important;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   font-weight: 600;
@@ -663,10 +673,11 @@
   outline-offset: 2px;
 }
 
-/* Cell content */
+/* Cell content — center-aligned */
 .ws-invoice-page .ws-name-cell {
   min-width: 140px;
   max-width: 220px;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-name-main {
@@ -678,6 +689,7 @@
   font-size: 13px;
   line-height: 1.35;
   color: #0f172a;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-name-sub {
@@ -688,6 +700,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.3;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-code,
@@ -701,7 +714,7 @@
   cursor: pointer;
   font-size: 12.5px;
   line-height: 1.3;
-  text-align: left;
+  text-align: center;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -721,7 +734,9 @@
   max-width: 220px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-product-cell strong {
@@ -732,6 +747,8 @@
   font-weight: 700;
   font-size: 13px;
   color: #0f172a;
+  text-align: center;
+  width: 100%;
 }
 
 .ws-invoice-page .ws-product-cell span {
@@ -740,6 +757,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
+  width: 100%;
 }
 
 .ws-invoice-page .ws-product-cell em {
@@ -752,9 +771,10 @@
 .ws-invoice-page .ws-discount-cell {
   display: inline-flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 1px;
   line-height: 1.3;
+  width: 100%;
 }
 
 .ws-invoice-page .ws-discount-money {
@@ -771,7 +791,7 @@
 .ws-invoice-page .ws-discount-detail {
   display: inline-flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 1px;
   line-height: 1.3;
 }
@@ -779,14 +799,18 @@
 .ws-invoice-page .ws-payment-column {
   min-width: 0;
   max-width: 140px;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-payments {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 6px;
   min-width: 0;
   max-width: 140px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-payment-item {
@@ -794,8 +818,9 @@
   min-width: 0;
   max-width: 100%;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 2px;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-payment-amount {
@@ -808,6 +833,7 @@
   white-space: nowrap;
   color: #0f172a;
   font-size: 12.5px;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-payment-method {
@@ -819,6 +845,7 @@
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
 }
 
 .ws-invoice-page .ws-status,

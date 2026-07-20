@@ -49,7 +49,8 @@ export function formatMoney(value: number | null | undefined): string {
 export function defaultFilters(today = new Date()): InOutStockFilters {
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const start = new Date(end);
-  start.setDate(start.getDate() - 29);
+  // Last 15 calendar days inclusive (today and 14 days back).
+  start.setDate(start.getDate() - 14);
   return {
     fromDate: formatDateYmd(start),
     toDate: formatDateYmd(end),
@@ -168,4 +169,45 @@ export function exportFilename(fromDate: string, toDate: string): string {
 export function isEmptyReport(report: InOutStockReportResponse | null): boolean {
   if (!report) return false;
   return (report.table?.pagination?.total ?? 0) === 0 && (report.summary?.lineCount ?? 0) === 0;
+}
+
+/** Resolve API keys used by GET /warehouse/transactions/bills/{source}/{sourceId}. */
+export function resolveBillDetailKey(
+  row: Pick<InOutStockRow, 'source' | 'sourceId' | 'billCode' | 'type' | 'detailPath'>,
+): { source: string; sourceId: string } | null {
+  const sourceId = String(row.sourceId || '').trim();
+  const source = String(row.source || '').trim();
+  if (source && sourceId) {
+    return { source, sourceId };
+  }
+
+  if (row.detailPath) {
+    const transferMatch = row.detailPath.match(/^\/warehouse\/transfers\/([^/?#]+)/);
+    if (transferMatch?.[1]) {
+      return { source: 'warehouse-transfer', sourceId: decodeURIComponent(transferMatch[1]) };
+    }
+    try {
+      const url = new URL(row.detailPath, 'http://local');
+      const qSource = url.searchParams.get('source')?.trim() || '';
+      const qSourceId = url.searchParams.get('sourceId')?.trim() || '';
+      if (qSource && qSourceId) {
+        return { source: qSource, sourceId: qSourceId };
+      }
+    } catch {
+      // ignore invalid relative path
+    }
+  }
+
+  const billCode = String(row.billCode || '').trim();
+  if (!billCode) return null;
+
+  const type = String(row.type || '').toUpperCase();
+  if (type === 'TRANSFER') {
+    return { source: 'warehouse-transfer', sourceId: billCode };
+  }
+  if (type === 'IMPORT' || type === 'EXPORT' || type === 'UNKNOWN' || type === '') {
+    return { source: 'inventory-voucher', sourceId: billCode };
+  }
+
+  return null;
 }

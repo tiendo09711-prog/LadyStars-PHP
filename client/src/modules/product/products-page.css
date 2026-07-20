@@ -166,7 +166,7 @@
 
 .products-data-table .action-cell {
   width: 132px;
-  text-align: right !important;
+  text-align: center !important;
 }
 
 .products-code {
@@ -1360,7 +1360,7 @@
   padding: 0;
   color: inherit;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
 }
 
 .products-link-button:hover,
@@ -2095,19 +2095,19 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
   border-top: 0;
 }
 
 .storage-duration-page .storage-data-table {
   width: 100%;
-  max-width: 100%;
-  min-width: 0;
+  max-width: none;
+  /* Floor so 11 columns scroll instead of crushing "Thao tác" / status cols */
+  min-width: 1180px;
   border-collapse: separate;
   border-spacing: 0;
-  /* Fixed layout + colgroup % keeps all 11 cols inside the card */
   table-layout: fixed;
   background: transparent;
 }
@@ -2190,37 +2190,31 @@
   width: 9%;
 }
 
-/* Center content: price, stock, dates, day metrics, actions */
-.storage-duration-page .storage-data-table th.storage-col-price,
-.storage-duration-page .storage-data-table td.storage-col-price,
-.storage-duration-page .storage-data-table th.storage-col-qty,
-.storage-duration-page .storage-data-table td.storage-col-qty,
-.storage-duration-page .storage-data-table th.storage-col-xnk,
-.storage-duration-page .storage-data-table td.storage-col-xnk,
-.storage-duration-page .storage-data-table th.storage-col-sold,
-.storage-duration-page .storage-data-table td.storage-col-sold,
-.storage-duration-page .storage-data-table th.storage-col-days,
-.storage-duration-page .storage-data-table td.storage-col-days,
-.storage-duration-page .storage-data-table th.storage-col-unsold,
-.storage-duration-page .storage-data-table td.storage-col-unsold {
+/* Center ALL header labels and cell content in storage table */
+.storage-duration-page .storage-data-table th,
+.storage-duration-page .storage-data-table td {
   text-align: center !important;
-}
-
-/* Override global .number { text-align: right } on these columns */
-.storage-duration-page .storage-data-table td.storage-col-price.number,
-.storage-duration-page .storage-data-table td.storage-col-qty.number {
-  text-align: center !important;
-}
-
-/* Keep multi-line blocks (price pair, XNK dates) centered as a unit */
-.storage-duration-page .storage-data-table td.storage-col-price,
-.storage-duration-page .storage-data-table td.storage-col-xnk,
-.storage-duration-page .storage-data-table td.storage-col-days,
-.storage-duration-page .storage-data-table td.storage-col-unsold {
   vertical-align: middle;
 }
 
-.storage-duration-page .storage-data-table td.storage-col-days .status-badge {
+/* Override global .number { text-align: right } */
+.storage-duration-page .storage-data-table td.number,
+.storage-duration-page .storage-data-table .number {
+  text-align: center !important;
+}
+
+.storage-duration-page .storage-data-table .storage-code,
+.storage-duration-page .storage-data-table .storage-name-main,
+.storage-duration-page .storage-data-table .storage-name-sub,
+.storage-duration-page .storage-data-table .storage-group-main,
+.storage-duration-page .storage-data-table .storage-name-cell,
+.storage-duration-page .storage-data-table .products-link-button {
+  text-align: center !important;
+}
+
+.storage-duration-page .storage-data-table .status-badge,
+.storage-duration-page .storage-data-table .storage-risk-badge {
+  display: inline-flex;
   margin-left: auto;
   margin-right: auto;
 }

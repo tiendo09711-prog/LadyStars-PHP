@@ -26,6 +26,8 @@ import {
 import { productApi } from '../../core/api/product.api';
 import type { IStorageAgeBucket, IStorageDuration, ICategory, IStorageDurationKpis } from '../../types/product.type';
 import { Pagination } from '../../core/components/Pagination';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
+import { suggestProducts } from '../../core/api/filterSuggestions';
 import { http } from '../../core/api/http';
 import * as XLSX from 'xlsx';
 import { InventoryReportShell } from '../reports/inventory/components/InventoryReportShell';
@@ -765,13 +767,16 @@ export function StorageDurationPage() {
         <form className="storage-filter-bar" onSubmit={handleSearchSubmit}>
           <div className="storage-search">
             <Search size={15} />
-            <input
+            <FilterSuggestInput
+              bare
               value={tempSearch}
-              onChange={(e) => setTempSearch(e.target.value)}
+              onChange={setTempSearch}
               ref={searchRef}
               data-product-search-scan="true"
               data-product-search-primary="true"
+              fetchSuggestions={suggestProducts}
               placeholder="Tìm theo tên, mã SP..."
+              aria-label="Tìm theo tên hoặc mã sản phẩm"
             />
           </div>
 

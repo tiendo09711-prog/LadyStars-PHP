@@ -596,14 +596,16 @@
 .audit-root .audit-table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
+  min-width: 0;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
   border-top: 0;
 }
 
 .audit-root .audit-data-table {
   width: 100% !important;
+  max-width: none !important;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -662,10 +664,12 @@
   top: 0;
   z-index: 2;
   border-bottom: 1px solid #e2e8f0;
-  text-align: left;
+  text-align: center;
 }
 
-/* Column alignment helpers */
+/* Toàn bộ header + nội dung ô bảng dữ liệu — căn giữa */
+.audit-root .audit-data-table th,
+.audit-root .audit-data-table td,
 .audit-root .audit-col-center,
 .audit-root .audit-data-table th.audit-col-center,
 .audit-root .audit-data-table td.audit-col-center {
@@ -794,6 +798,12 @@
 .audit-root .audit-name-cell {
   min-width: 0;
   max-width: none;
+  text-align: center;
+}
+
+.audit-root .audit-data-table .audit-link-button,
+.audit-root .audit-data-table .audit-code {
+  width: 100%;
 }
 
 .audit-root .audit-name-main {
@@ -827,7 +837,7 @@
   cursor: pointer;
   font-size: 12.5px;
   line-height: 1.3;
-  text-align: left;
+  text-align: center;
 }
 
 .audit-root .audit-code:hover,

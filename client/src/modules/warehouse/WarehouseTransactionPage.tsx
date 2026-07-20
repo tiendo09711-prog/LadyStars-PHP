@@ -24,7 +24,9 @@ import {
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import { suggestProducts, suggestWarehouseBills } from '../../core/api/filterSuggestions';
 import { Pagination } from '../../core/components/Pagination';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import './warehouseRecords.css';
@@ -712,9 +714,11 @@ export function WarehouseTransactionPage() {
 
           <div className="wt-search wt-search--compact">
             <Search size={15} aria-hidden="true" />
-            <input
+            <FilterSuggestInput
+              bare
               value={currentFilters.billId}
-              onChange={(event) => updateFilter('billId', event.target.value)}
+              onChange={(next) => updateFilter('billId', next)}
+              fetchSuggestions={suggestWarehouseBills}
               placeholder="ID phiếu"
               aria-label="ID phiếu"
             />
@@ -749,10 +753,12 @@ export function WarehouseTransactionPage() {
           {activeTab === 'items' ? (
             <div className="wt-search wt-search--product">
               <Search size={15} aria-hidden="true" />
-              <input
+              <FilterSuggestInput
+                bare
                 ref={productKeywordRef}
                 value={currentFilters.productKeyword}
-                onChange={(event) => updateFilter('productKeyword', event.target.value)}
+                onChange={(next) => updateFilter('productKeyword', next)}
+                fetchSuggestions={suggestProducts}
                 data-product-search-scan="true"
                 data-product-search-primary="true"
                 placeholder="Tên, mã, mã vạch — quét barcode"
@@ -987,13 +993,23 @@ export function WarehouseTransactionPage() {
                       {formatMoney(row.unitPrice)}
                     </td>
                   )}
+                  {/* Items: direction before amount (matches itemColumns header order) */}
+                  {activeTab === 'items' && visibility.direction && (
+                    <td className="wt-col wt-col-direction wt-col--center">
+                      <span className={`wt-status-badge wr-direction ${row.directionTone || 'neutral'}`}>
+                        {row.directionLabel || row.kindLabel || 'Không xác định'}
+                      </span>
+                      <small className="wt-kind">{row.kindLabel || '-'}</small>
+                    </td>
+                  )}
                   {visibility.amount && (
                     <td className="wt-col wt-col-amount wt-price wt-col--center">
                       {formatMoney(row.totalAmount)}
                     </td>
                   )}
-                  {visibility.direction && (
-                    <td className="wt-col wt-col-direction">
+                  {/* Bills: amount then direction (matches billColumns header order) */}
+                  {activeTab === 'bills' && visibility.direction && (
+                    <td className="wt-col wt-col-direction wt-col--center">
                       <span className={`wt-status-badge wr-direction ${row.directionTone || 'neutral'}`}>
                         {row.directionLabel || row.kindLabel || 'Không xác định'}
                       </span>

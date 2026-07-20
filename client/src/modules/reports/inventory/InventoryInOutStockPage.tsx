@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -11,11 +10,20 @@ import {
   YAxis,
 } from 'recharts';
 import { ChevronDown, Download, Eye, RefreshCw, X } from 'lucide-react';
+import { suggestProducts } from '../../../core/api/filterSuggestions';
+import { FilterSuggestInput } from '../../../core/components/ui/FilterSuggestInput';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { InventoryReportShell } from './components/InventoryReportShell';
-import { fetchAllInOutStockRows, fetchInOutStockOptions, fetchInOutStockReport, fetchInventoryReconciliation } from './in-out/inOutStock.api';
+import {
+  fetchAllInOutStockRows,
+  fetchInOutBillDetail,
+  fetchInOutStockOptions,
+  fetchInOutStockReport,
+  fetchInventoryReconciliation,
+} from './in-out/inOutStock.api';
 import type { InventoryReconciliationResponse } from './in-out/inOutStock.api';
 import type {
+  InOutBillDetail,
   InOutStockFilters,
   InOutStockOptions,
   InOutStockReportResponse,
@@ -32,9 +40,27 @@ import {
   formatMoney,
   formatNumber,
   isEmptyReport,
+  resolveBillDetailKey,
   validateDateRange,
 } from './in-out/inOutStock.utils';
 import './in-out/in-out-stock-page.css';
+
+function billDetailTitle(detail: InOutBillDetail): string {
+  const code = detail.code || detail.billCode || detail.sourceId || '—';
+  if (detail.kind === 'TRANSFER' || detail.source === 'warehouse-transfer') {
+    return `Phiếu chuyển kho: ${code}`;
+  }
+  if (detail.type === 'IMPORT') return `Hóa đơn nhập kho: ${code}`;
+  if (detail.type === 'EXPORT') return `Hóa đơn xuất kho: ${code}`;
+  return `Chi tiết phiếu: ${code}`;
+}
+
+function billWarehouseLabel(detail: InOutBillDetail): string {
+  if (detail.kind === 'TRANSFER' || detail.source === 'warehouse-transfer') {
+    return `${detail.fromWarehouseName || '—'} → ${detail.toWarehouseName || '—'}`;
+  }
+  return detail.warehouseName || '—';
+}
 
 export function InventoryInOutStockPage() {
   const [options, setOptions] = useState<InOutStockOptions | null>(null);
@@ -45,7 +71,7 @@ export function InventoryInOutStockPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [reconciliation, setReconciliation] = useState<InventoryReconciliationResponse | null>(null);
   const [reconciliationError, setReconciliationError] = useState(false);
@@ -53,11 +79,17 @@ export function InventoryInOutStockPage() {
   const [periodRows, setPeriodRows] = useState<InOutStockRow[]>([]);
   const [periodLoading, setPeriodLoading] = useState(false);
   const [periodError, setPeriodError] = useState('');
+  const [billDetail, setBillDetail] = useState<InOutBillDetail | null>(null);
+  const [billDetailLoading, setBillDetailLoading] = useState(false);
+  const [billDetailError, setBillDetailError] = useState('');
+  const [billDetailOpen, setBillDetailOpen] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const requestSeq = useRef(0);
   const periodRequestSeq = useRef(0);
+  const billDetailRequestSeq = useRef(0);
   const periodCloseRef = useRef<HTMLButtonElement | null>(null);
+  const billDetailCloseRef = useRef<HTMLButtonElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const productSearchRef = useRef<HTMLInputElement>(null);
 
@@ -227,6 +259,36 @@ export function InventoryInOutStockPage() {
     setPeriodError('');
   }, []);
 
+  const closeBillDetail = useCallback(() => {
+    billDetailRequestSeq.current += 1;
+    setBillDetailOpen(false);
+    setBillDetail(null);
+    setBillDetailError('');
+    setBillDetailLoading(false);
+  }, []);
+
+  const openBillDetail = useCallback(async (row: InOutStockRow) => {
+    const key = resolveBillDetailKey(row);
+    if (!key) return;
+
+    setBillDetailOpen(true);
+    setBillDetail(null);
+    setBillDetailError('');
+    setBillDetailLoading(true);
+    const seq = ++billDetailRequestSeq.current;
+
+    try {
+      const detail = await fetchInOutBillDetail(key.source, key.sourceId);
+      if (seq !== billDetailRequestSeq.current) return;
+      setBillDetail(detail);
+    } catch (err: unknown) {
+      if (seq !== billDetailRequestSeq.current) return;
+      setBillDetailError(extractApiError(err) || 'Không tải được chi tiết phiếu.');
+    } finally {
+      if (seq === billDetailRequestSeq.current) setBillDetailLoading(false);
+    }
+  }, []);
+
   const handlePeriodClick = async (state: { activePayload?: Array<{ payload?: InOutTimelinePoint }> }) => {
     const point = state?.activePayload?.[0]?.payload;
     if (!point) return;
@@ -253,11 +315,20 @@ export function InventoryInOutStockPage() {
   };
 
   useEffect(() => {
-    if (!selectedPeriod) return;
+    if (!selectedPeriod && !billDetailOpen) return;
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
-    periodCloseRef.current?.focus();
+    if (billDetailOpen) {
+      billDetailCloseRef.current?.focus();
+    } else {
+      periodCloseRef.current?.focus();
+    }
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closePeriodDetail();
+      if (event.key !== 'Escape') return;
+      if (billDetailOpen) {
+        closeBillDetail();
+        return;
+      }
+      if (selectedPeriod) closePeriodDetail();
     };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -267,7 +338,23 @@ export function InventoryInOutStockPage() {
       document.removeEventListener('keydown', handleKeyDown);
       previouslyFocusedRef.current?.focus?.();
     };
-  }, [closePeriodDetail, selectedPeriod]);
+  }, [billDetailOpen, closeBillDetail, closePeriodDetail, selectedPeriod]);
+
+  const renderViewAction = (row: InOutStockRow) => {
+    const key = resolveBillDetailKey(row);
+    if (!key) return '—';
+    return (
+      <button
+        type="button"
+        className="inout-view-link"
+        onClick={() => void openBillDetail(row)}
+        aria-label={`Xem chi tiết ${row.billCode || 'giao dịch'}`}
+        title="Xem chi tiết"
+      >
+        <Eye size={16} aria-hidden="true" />
+      </button>
+    );
+  };
 
   const busy = loading || refreshing;
   const summary = report?.summary;
@@ -356,15 +443,16 @@ export function InventoryInOutStockPage() {
                 </div>
                 <div className="inout-field">
                   <label htmlFor="inout-q">Từ khóa</label>
-                  <input
+                  <FilterSuggestInput
                     id="inout-q"
                     ref={productSearchRef}
-                    type="search"
                     data-product-search-scan="true"
                     data-product-search-primary="true"
                     placeholder="Mã phiếu, mã SP, quét barcode..."
                     value={draft.q}
-                    onChange={(e) => patchDraft({ q: e.target.value })}
+                    onChange={(next) => patchDraft({ q: next })}
+                    fetchSuggestions={suggestProducts}
+                    aria-label="Từ khóa xuất nhập tồn"
                   />
                 </div>
                 <div className="inout-field">
@@ -595,15 +683,7 @@ export function InventoryInOutStockPage() {
                         <td className="num">{formatNumber(row.qtyIn)}</td>
                         <td className="num">{formatNumber(row.qtyOut)}</td>
                         <td>{row.createdByName || '—'}</td>
-                        <td>
-                          {row.detailPath ? (
-                            <Link className="inout-view-link" to={row.detailPath} aria-label={`Xem chi tiết ${row.billCode || 'giao dịch'}`} title="Xem chi tiết">
-                              <Eye size={16} aria-hidden="true" />
-                            </Link>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
+                        <td className="inout-actions-cell">{renderViewAction(row)}</td>
                       </tr>
                     ))
                   )}
@@ -661,11 +741,108 @@ export function InventoryInOutStockPage() {
                           <td>{formatDisplayDateTime(row.date)}</td><td>{row.billCode || '—'}</td><td>{row.typeLabel || row.type || '—'}</td>
                           <td>{row.warehouseName || '—'}</td><td>{[row.productCode, row.productName].filter(Boolean).join(' · ') || '—'}</td>
                           <td className="num">{formatNumber(row.qtyIn)}</td><td className="num">{formatNumber(row.qtyOut)}</td>
-                          <td>{row.detailPath ? <Link className="inout-view-link" to={row.detailPath} aria-label={`Xem chi tiết ${row.billCode || 'giao dịch'}`} title="Xem chi tiết"><Eye size={16} aria-hidden="true" /></Link> : '—'}</td>
+                          <td className="inout-actions-cell">{renderViewAction(row)}</td>
                         </tr>
                       ))}</tbody>
                     </table>
                   </div>
+                )}
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {billDetailOpen ? (
+          <div className="inout-modal-backdrop" role="presentation" onMouseDown={(event) => {
+            if (event.currentTarget === event.target && !billDetailLoading) closeBillDetail();
+          }}>
+            <section
+              className="inout-modal inout-bill-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="inout-bill-title"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <header className="inout-modal__head">
+                <div>
+                  <p className="inout-bill-eyebrow">{billDetail?.kindLabel || billDetail?.type || 'Chi tiết phiếu'}</p>
+                  <h2 id="inout-bill-title">
+                    {billDetailLoading
+                      ? 'Đang tải chi tiết phiếu...'
+                      : billDetail
+                        ? billDetailTitle(billDetail)
+                        : 'Chi tiết phiếu'}
+                  </h2>
+                </div>
+                <button
+                  ref={billDetailCloseRef}
+                  type="button"
+                  className="inout-modal__close"
+                  onClick={closeBillDetail}
+                  aria-label="Đóng chi tiết phiếu"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </header>
+              <div className="inout-modal__body">
+                {billDetailLoading ? (
+                  <div className="inout-empty" aria-busy="true">Đang tải chi tiết phiếu...</div>
+                ) : billDetailError ? (
+                  <div className="inout-error" role="alert">{billDetailError}</div>
+                ) : billDetail ? (
+                  <>
+                    <div className="inout-bill-summary">
+                      <div><span>Kho hàng</span><strong>{billWarehouseLabel(billDetail)}</strong></div>
+                      <div><span>Thời gian</span><strong>{formatDisplayDateTime(billDetail.date)}</strong></div>
+                      <div><span>Người tạo</span><strong>{billDetail.createdByName || '—'}</strong></div>
+                      <div><span>Tổng tiền</span><strong>{formatMoney(billDetail.totalAmount)}</strong></div>
+                      {billDetail.customerName ? (
+                        <div><span>Khách hàng</span><strong>{billDetail.customerName}</strong></div>
+                      ) : null}
+                      {billDetail.relatedCode ? (
+                        <div><span>Phiếu liên quan</span><strong>{billDetail.relatedCode}</strong></div>
+                      ) : null}
+                      <div className="wide"><span>Ghi chú</span><strong>{billDetail.note || '—'}</strong></div>
+                    </div>
+                    <div className="inout-table-wrap">
+                      <table className="inout-table inout-bill-items-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Sản phẩm</th>
+                            <th>Mã</th>
+                            <th className="num">SL</th>
+                            <th className="num">Giá</th>
+                            <th className="num">Tổng</th>
+                            <th>Ghi chú</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(billDetail.items || []).map((item, index) => (
+                            <tr key={item.rowKey || `${item.productCode || 'item'}-${index}`}>
+                              <td>{index + 1}</td>
+                              <td>
+                                <strong>{item.productName || '—'}</strong>
+                                {item.barcode ? <div className="inout-muted">{item.barcode}</div> : null}
+                              </td>
+                              <td>{item.productCode || '—'}</td>
+                              <td className="num">{formatNumber(item.quantity)}</td>
+                              <td className="num">{formatMoney(item.unitPrice)}</td>
+                              <td className="num">{formatMoney(item.totalAmount)}</td>
+                              <td>{item.note || '—'}</td>
+                            </tr>
+                          ))}
+                          {!(billDetail.items || []).length ? (
+                            <tr>
+                              <td className="inout-empty" colSpan={7}>Phiếu chưa có dòng sản phẩm.</td>
+                            </tr>
+                          ) : null}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="inout-empty">Không có dữ liệu chi tiết.</div>
                 )}
               </div>
             </section>

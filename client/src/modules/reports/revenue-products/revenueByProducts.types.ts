@@ -2,6 +2,7 @@ export type DatePreset =
   | 'today'
   | 'yesterday'
   | 'last_7_days'
+  | 'last_15_days'
   | 'last_30_days'
   | 'this_week'
   | 'this_month'

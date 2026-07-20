@@ -27,8 +27,14 @@ import {
   X,
 } from 'lucide-react';
 import { http } from '../../core/api/http';
+import {
+  suggestCustomers,
+  suggestProducts,
+  suggestSaleInvoices,
+} from '../../core/api/filterSuggestions';
 import { isAdminRole } from '../../core/auth/access';
 import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { buildReceiptHtml, writeAndPrintPopup } from './invoicePrint';
 import * as XLSX from 'xlsx';
@@ -84,14 +90,32 @@ type Invoice = Record<string, any>;
 const PAGE_SIZE = 15;
 const PRINT_WINDOW_NAME = 'retail-invoice-print';
 const PRINT_WINDOW_FEATURES = 'popup=yes,width=900,height=1200';
-const EMPTY_FILTERS: Filters = {
-  invoiceCode: '',
-  storeId: '',
-  dateFrom: '',
-  dateTo: '',
-  customerKeyword: '',
-  productKeyword: '',
-};
+
+/** Format local calendar date as YYYY-MM-DD for <input type="date">. */
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/** Last 15 calendar days inclusive (today and 14 days back). */
+function defaultDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - 14);
+  return { dateFrom: formatDateInput(start), dateTo: formatDateInput(end) };
+}
+
+function createDefaultFilters(): Filters {
+  return {
+    invoiceCode: '',
+    storeId: '',
+    ...defaultDateRange(),
+    customerKeyword: '',
+    productKeyword: '',
+  };
+}
 
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -166,8 +190,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   /** Monotonic load id so an aborted request never leaves loading=true while a newer load is active. */
   const invoiceLoadSeqRef = useRef(0);
   const productKeywordRef = useRef<HTMLInputElement>(null);
-  const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<Filters>(() => createDefaultFilters());
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(() => createDefaultFilters());
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [page, setPage] = useState(1);
@@ -322,10 +346,17 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
   const selectedAll = invoices.length > 0 && invoices.every((invoice) => selectedIds.has(invoice._id));
 
-  const hasActiveFilters = useMemo(
-    () => Object.values(appliedFilters).some((value) => Boolean(value)),
-    [appliedFilters],
-  );
+  const hasActiveFilters = useMemo(() => {
+    const defaults = createDefaultFilters();
+    return (
+      appliedFilters.invoiceCode !== defaults.invoiceCode
+      || appliedFilters.storeId !== defaults.storeId
+      || appliedFilters.dateFrom !== defaults.dateFrom
+      || appliedFilters.dateTo !== defaults.dateTo
+      || appliedFilters.customerKeyword !== defaults.customerKeyword
+      || appliedFilters.productKeyword !== defaults.productKeyword
+    );
+  }, [appliedFilters]);
 
   const openRowInvoice = rowActionOpen
     ? invoices.find((invoice) => invoice._id === rowActionOpen) ?? null
@@ -366,9 +397,10 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   };
 
   const resetFilters = () => {
-    setDraftFilters(EMPTY_FILTERS);
+    const next = createDefaultFilters();
+    setDraftFilters(next);
     setPage(1);
-    setAppliedFilters({ ...EMPTY_FILTERS });
+    setAppliedFilters(next);
   };
 
   useProductScanTarget(productKeywordRef, (rawBarcode) => {
@@ -768,9 +800,13 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
         <form className="retail-toolbar-row retail-filter-bar" onSubmit={applyFilters}>
           <label className="retail-search">
             <Search size={15} aria-hidden="true" />
-            <input
+            <FilterSuggestInput
+              bare
               value={draftFilters.invoiceCode}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, invoiceCode: event.target.value }))}
+              onChange={(next) => setDraftFilters((current) => ({ ...current, invoiceCode: next }))}
+              fetchSuggestions={(query, signal) =>
+                suggestSaleInvoices(query, signal, { type: 'retail', channel })
+              }
               placeholder="Nhập mã hóa đơn"
               aria-label="ID hóa đơn"
             />
@@ -811,9 +847,11 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
           <label className="retail-search">
             <UserRound size={14} aria-hidden="true" />
-            <input
+            <FilterSuggestInput
+              bare
               value={draftFilters.customerKeyword}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, customerKeyword: event.target.value }))}
+              onChange={(next) => setDraftFilters((current) => ({ ...current, customerKeyword: next }))}
+              fetchSuggestions={suggestCustomers}
               placeholder="Tên hoặc số điện thoại"
               aria-label="Khách hàng"
             />
@@ -821,10 +859,12 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 
           <label className="retail-search">
             <Package size={14} aria-hidden="true" />
-            <input
+            <FilterSuggestInput
+              bare
               ref={productKeywordRef}
               value={draftFilters.productKeyword}
-              onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
+              onChange={(next) => setDraftFilters((current) => ({ ...current, productKeyword: next }))}
+              fetchSuggestions={suggestProducts}
               data-product-search-scan="true"
               data-product-search-primary="true"
               placeholder="Mã, tên SP hoặc quét barcode"

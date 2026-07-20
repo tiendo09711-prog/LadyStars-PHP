@@ -836,14 +836,18 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
+  /* Allow horizontal scroll when columns exceed viewport (do not clip columns) */
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .workspace-page:not(:has(.inventory-page-shell)) .data-table,
 .page-stack .data-table,
 .compact-page .data-table {
   width: 100%;
-  max-width: 100%;
+  /* max-width:none so page-level min-width can expand table and enable scroll */
+  max-width: none;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
@@ -1143,14 +1147,17 @@
 .wr-transfer-create .table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .warehouse-records table,
 .warehouse-audit-admin table,
 .wr-transfer-create table {
   width: 100%;
-  max-width: 100%;
+  max-width: none;
   table-layout: fixed;
   font-size: 12.5px;
 }
@@ -1786,7 +1793,8 @@
 .retail-invoice-page .data-table,
 .ws-invoice-page .data-table {
   width: 100% !important;
-  max-width: 100% !important;
+  /* Allow page min-width (e.g. 1325px retail) to expand and create horizontal scroll */
+  max-width: none !important;
   table-layout: fixed;
   font-size: 12.5px;
 }
@@ -1820,4 +1828,242 @@
 .invoice-tpl-col-header {
   font-size: 14px !important;
   font-weight: 700 !important;
+}
+
+/* ============================================================
+   DATA LIST TABLES — horizontal scroll + sticky "Thao tác"
+   Covers: products, storage-duration, inventory, categories,
+   warehouse transactions/transfers/audit, retail/wholesale/refund,
+   customers list/care.
+   Loaded last so densify cannot clip columns again.
+   ============================================================ */
+
+.products-root .table-scroll,
+.products-root .inventory-table-scroll,
+.product-compact-shell .table-scroll,
+.product-compact-shell .categories-table-scroll,
+.storage-duration-page .storage-table-scroll,
+.storage-duration-page .table-scroll,
+.inventory-root .inventory-table-scroll,
+.inventory-page-shell .inventory-table-scroll,
+.inventory-page-shell .table-scroll,
+.categories-page-shell .categories-table-scroll,
+.categories-page-shell .table-scroll,
+.wt-root .wt-table-scroll,
+.wt-root .table-scroll,
+.warehouse-transfer-root .wt-table-scroll,
+.warehouse-transfer-root .table-scroll,
+.audit-root .audit-table-scroll,
+.audit-root .table-scroll,
+.retail-root .retail-table-scroll,
+.retail-root .table-scroll,
+.ws-invoice-page .ws-table-scroll,
+.ws-invoice-page .table-scroll,
+.refund-root .refund-table-scroll,
+.refund-root .table-scroll,
+.customer-list-page .table-scroll,
+.customer-list-root .table-scroll,
+.customer-care-page .table-scroll,
+.care-root .table-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Let table min-width expand past the card so the scrollport activates */
+.products-root .products-data-table,
+.product-compact-shell .data-table,
+.product-compact-shell .products-data-table,
+.product-compact-shell .categories-data-table,
+.storage-duration-page .storage-data-table,
+.inventory-root .inventory-data-table,
+.inventory-page-shell .inventory-data-table,
+.categories-page-shell .categories-data-table,
+.wt-root .wt-data-table,
+.warehouse-transfer-root .wt-data-table,
+.audit-root .audit-data-table,
+.retail-root .retail-data-table,
+.ws-invoice-page .ws-data-table,
+.refund-root .refund-data-table,
+.customer-list-page .customer-list-data-table,
+.customer-list-root .customer-list-data-table,
+.customer-care-page .care-data-table,
+.care-root .care-data-table {
+  max-width: none !important;
+}
+
+/* Sticky right action column — always last and reachable while scrolling */
+.products-root .data-table th.action-cell,
+.products-root .data-table td.action-cell,
+.products-root .products-data-table th.action-cell,
+.products-root .products-data-table td.action-cell,
+.product-compact-shell .data-table th.action-cell,
+.product-compact-shell .data-table td.action-cell,
+.storage-duration-page .data-table th.action-cell,
+.storage-duration-page .data-table td.action-cell,
+.storage-duration-page .storage-data-table th.action-cell,
+.storage-duration-page .storage-data-table td.action-cell,
+.categories-page-shell .data-table th.action-cell,
+.categories-page-shell .data-table td.action-cell,
+.categories-page-shell .categories-data-table th.action-cell,
+.categories-page-shell .categories-data-table td.action-cell,
+.wt-root .data-table th.action-cell,
+.wt-root .data-table td.action-cell,
+.wt-root .wt-data-table th.action-cell,
+.wt-root .wt-data-table td.action-cell,
+.warehouse-transfer-root .data-table th.action-cell,
+.warehouse-transfer-root .data-table td.action-cell,
+.warehouse-transfer-root .wt-data-table th.action-cell,
+.warehouse-transfer-root .wt-data-table td.action-cell,
+.audit-root .data-table th.action-cell,
+.audit-root .data-table td.action-cell,
+.audit-root .audit-data-table th.action-cell,
+.audit-root .audit-data-table td.action-cell,
+.retail-root .data-table th.action-cell,
+.retail-root .data-table td.action-cell,
+.retail-root .retail-data-table th.action-cell,
+.retail-root .retail-data-table td.action-cell,
+.ws-invoice-page .data-table th.action-cell,
+.ws-invoice-page .data-table td.action-cell,
+.ws-invoice-page .ws-data-table th.action-cell,
+.ws-invoice-page .ws-data-table td.action-cell,
+.refund-root .data-table th.action-cell,
+.refund-root .data-table td.action-cell,
+.refund-root .refund-data-table th.action-cell,
+.refund-root .refund-data-table td.action-cell,
+.customer-list-page .data-table th.action-cell,
+.customer-list-page .data-table td.action-cell,
+.customer-list-page .customer-list-data-table th.action-cell,
+.customer-list-page .customer-list-data-table td.action-cell,
+.customer-list-root .data-table th.action-cell,
+.customer-list-root .data-table td.action-cell,
+.customer-care-page .data-table th.action-cell,
+.customer-care-page .data-table td.action-cell,
+.customer-care-page .care-data-table th.action-cell,
+.customer-care-page .care-data-table td.action-cell,
+.care-root .data-table th.action-cell,
+.care-root .data-table td.action-cell {
+  display: table-cell !important;
+  position: sticky !important;
+  right: 0 !important;
+  z-index: 6;
+  background-clip: padding-box;
+  box-shadow: -6px 0 10px -8px rgba(15, 23, 42, 0.18);
+  vertical-align: middle !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow: visible !important;
+}
+
+.products-root .data-table th.action-cell,
+.products-root .products-data-table th.action-cell,
+.product-compact-shell .data-table th.action-cell,
+.storage-duration-page .data-table th.action-cell,
+.storage-duration-page .storage-data-table th.action-cell,
+.categories-page-shell .data-table th.action-cell,
+.categories-page-shell .categories-data-table th.action-cell,
+.wt-root .data-table th.action-cell,
+.wt-root .wt-data-table th.action-cell,
+.warehouse-transfer-root .data-table th.action-cell,
+.warehouse-transfer-root .wt-data-table th.action-cell,
+.audit-root .data-table th.action-cell,
+.audit-root .audit-data-table th.action-cell,
+.retail-root .data-table th.action-cell,
+.retail-root .retail-data-table th.action-cell,
+.ws-invoice-page .data-table th.action-cell,
+.ws-invoice-page .ws-data-table th.action-cell,
+.refund-root .data-table th.action-cell,
+.refund-root .refund-data-table th.action-cell,
+.customer-list-page .data-table th.action-cell,
+.customer-list-page .customer-list-data-table th.action-cell,
+.customer-list-root .data-table th.action-cell,
+.customer-care-page .data-table th.action-cell,
+.customer-care-page .care-data-table th.action-cell,
+.care-root .data-table th.action-cell {
+  z-index: 8;
+  background: #f8fafc !important;
+}
+
+.products-root .data-table td.action-cell,
+.products-root .products-data-table td.action-cell,
+.product-compact-shell .data-table td.action-cell,
+.storage-duration-page .data-table td.action-cell,
+.storage-duration-page .storage-data-table td.action-cell,
+.categories-page-shell .data-table td.action-cell,
+.categories-page-shell .categories-data-table td.action-cell,
+.wt-root .data-table td.action-cell,
+.wt-root .wt-data-table td.action-cell,
+.warehouse-transfer-root .data-table td.action-cell,
+.warehouse-transfer-root .wt-data-table td.action-cell,
+.audit-root .data-table td.action-cell,
+.audit-root .audit-data-table td.action-cell,
+.retail-root .data-table td.action-cell,
+.retail-root .retail-data-table td.action-cell,
+.ws-invoice-page .data-table td.action-cell,
+.ws-invoice-page .ws-data-table td.action-cell,
+.refund-root .data-table td.action-cell,
+.refund-root .refund-data-table td.action-cell,
+.customer-list-page .data-table td.action-cell,
+.customer-list-page .customer-list-data-table td.action-cell,
+.customer-list-root .data-table td.action-cell,
+.customer-care-page .data-table td.action-cell,
+.customer-care-page .care-data-table td.action-cell,
+.care-root .data-table td.action-cell {
+  background: #ffffff !important;
+}
+
+.products-root .data-table tbody tr:nth-child(even) td.action-cell,
+.products-root .products-data-table tbody tr:nth-child(even) td.action-cell,
+.product-compact-shell .data-table tbody tr:nth-child(even) td.action-cell,
+.storage-duration-page .data-table tbody tr:nth-child(even) td.action-cell,
+.storage-duration-page .storage-data-table tbody tr:nth-child(even) td.action-cell,
+.categories-page-shell .data-table tbody tr:nth-child(even) td.action-cell,
+.categories-page-shell .categories-data-table tbody tr:nth-child(even) td.action-cell,
+.wt-root .data-table tbody tr:nth-child(even) td.action-cell,
+.wt-root .wt-data-table tbody tr:nth-child(even) td.action-cell,
+.warehouse-transfer-root .data-table tbody tr:nth-child(even) td.action-cell,
+.warehouse-transfer-root .wt-data-table tbody tr:nth-child(even) td.action-cell,
+.audit-root .data-table tbody tr:nth-child(even) td.action-cell,
+.audit-root .audit-data-table tbody tr:nth-child(even) td.action-cell,
+.retail-root .data-table tbody tr:nth-child(even) td.action-cell,
+.retail-root .retail-data-table tbody tr:nth-child(even) td.action-cell,
+.ws-invoice-page .data-table tbody tr:nth-child(even) td.action-cell,
+.ws-invoice-page .ws-data-table tbody tr:nth-child(even) td.action-cell,
+.refund-root .data-table tbody tr:nth-child(even) td.action-cell,
+.refund-root .refund-data-table tbody tr:nth-child(even) td.action-cell,
+.customer-list-page .data-table tbody tr:nth-child(even) td.action-cell,
+.customer-list-page .customer-list-data-table tbody tr:nth-child(even) td.action-cell,
+.customer-care-page .data-table tbody tr:nth-child(even) td.action-cell,
+.customer-care-page .care-data-table tbody tr:nth-child(even) td.action-cell {
+  background: #fbfcfe !important;
+}
+
+.products-root .data-table tbody tr:hover td.action-cell,
+.products-root .products-data-table tbody tr:hover td.action-cell,
+.product-compact-shell .data-table tbody tr:hover td.action-cell,
+.storage-duration-page .data-table tbody tr:hover td.action-cell,
+.storage-duration-page .storage-data-table tbody tr:hover td.action-cell,
+.categories-page-shell .data-table tbody tr:hover td.action-cell,
+.categories-page-shell .categories-data-table tbody tr:hover td.action-cell,
+.wt-root .data-table tbody tr:hover td.action-cell,
+.wt-root .wt-data-table tbody tr:hover td.action-cell,
+.warehouse-transfer-root .data-table tbody tr:hover td.action-cell,
+.warehouse-transfer-root .wt-data-table tbody tr:hover td.action-cell,
+.audit-root .data-table tbody tr:hover td.action-cell,
+.audit-root .audit-data-table tbody tr:hover td.action-cell,
+.retail-root .data-table tbody tr:hover td.action-cell,
+.retail-root .retail-data-table tbody tr:hover td.action-cell,
+.ws-invoice-page .data-table tbody tr:hover td.action-cell,
+.ws-invoice-page .ws-data-table tbody tr:hover td.action-cell,
+.refund-root .data-table tbody tr:hover td.action-cell,
+.refund-root .refund-data-table tbody tr:hover td.action-cell,
+.customer-list-page .data-table tbody tr:hover td.action-cell,
+.customer-list-page .customer-list-data-table tbody tr:hover td.action-cell,
+.customer-care-page .data-table tbody tr:hover td.action-cell,
+.customer-care-page .care-data-table tbody tr:hover td.action-cell {
+  background: #f0fdf4 !important;
 }

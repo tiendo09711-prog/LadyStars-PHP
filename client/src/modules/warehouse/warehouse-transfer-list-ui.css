@@ -469,16 +469,17 @@
   min-height: 240px;
 }
 
-/* Full-width fixed layout: columns share 100% of the card (no empty right gap) */
+/* Full-width fixed layout; min-width enables horizontal scroll when columns exceed viewport */
 .warehouse-transfer-root .warehouse-transfer-table,
 .warehouse-transfer-root .warehouse-transfer-table .wt-data-table,
 .warehouse-transfer-root .warehouse-transfer-table__table {
   width: 100% !important;
-  max-width: 100%;
+  max-width: none;
 }
 
 .warehouse-transfer-root .wt-data-table.warehouse-transfer-table__table {
-  min-width: 0;
+  /* ~875px base cols; ~1015px with draft/outgoing/incoming extra col */
+  min-width: 900px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -536,7 +537,13 @@
   top: 0;
   z-index: 2;
   border-bottom: 1px solid #e2e8f0;
-  text-align: left;
+  text-align: center;
+}
+
+/* Toàn bộ header + nội dung ô bảng dữ liệu — căn giữa */
+.warehouse-transfer-root .wt-data-table th,
+.warehouse-transfer-root .wt-data-table td {
+  text-align: center !important;
 }
 
 .warehouse-transfer-root .wt-data-table tbody tr:nth-child(even) td {
@@ -678,6 +685,12 @@
   max-width: 100%;
 }
 
+.warehouse-transfer-root .wt-name-cell,
+.warehouse-transfer-root .wt-direction-cell,
+.warehouse-transfer-root .wt-col-extra {
+  text-align: center;
+}
+
 .warehouse-transfer-root .wt-link-button {
   font-weight: 700;
   color: #0f172a;
@@ -687,7 +700,7 @@
   cursor: pointer;
   font-size: 12.5px;
   line-height: 1.3;
-  text-align: left;
+  text-align: center;
 }
 
 .warehouse-transfer-root .wt-link-button:hover {

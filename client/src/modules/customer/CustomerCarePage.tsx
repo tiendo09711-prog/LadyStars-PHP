@@ -17,7 +17,9 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import { suggestCustomerCare } from '../../core/api/filterSuggestions';
 import { Pagination } from '../../core/components/Pagination';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import { CareActionType, CareActionIcons, CustomerCareActionModal } from './components/CustomerCareActionModal';
 import * as XLSX from 'xlsx';
@@ -563,10 +565,12 @@ export function CustomerCarePage() {
         <form className="care-filter-bar" onSubmit={handleSubmitFilters}>
           <div className="care-search">
             <Search size={15} />
-            <input
+            <FilterSuggestInput
+              bare
               value={draftFilters.keyword}
               placeholder="ID phiếu, tên KH, SĐT..."
-              onChange={(event) => setDraftFilters((current) => ({ ...current, keyword: event.target.value }))}
+              onChange={(next) => setDraftFilters((current) => ({ ...current, keyword: next }))}
+              fetchSuggestions={suggestCustomerCare}
               data-testid="customers-care-keyword-filter"
               aria-label="Tìm kiếm phiếu chăm sóc"
             />

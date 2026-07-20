@@ -534,9 +534,9 @@
   color: #0f172a;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
-  text-align: left;
+  text-align: center;
 }
 
 .categories-name-title {
@@ -1803,6 +1803,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #f8fafc;
+  overflow: visible;
 }
 
 .categories-page-shell .categories-search {
@@ -1810,6 +1811,7 @@
   min-width: 170px;
   height: 34px;
   min-height: 34px;
+  max-height: 34px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1819,25 +1821,87 @@
   background: #ffffff;
   color: #94a3b8;
   box-sizing: border-box;
+  /* Keep overflow visible so FilterSuggest dropdown is not clipped */
+  overflow: visible;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .categories-page-shell .categories-search:focus-within {
   border-color: #6ee7b7;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+  color: #64748b;
 }
 
-.categories-page-shell .categories-search input {
-  flex: 1;
+.categories-page-shell .categories-search > svg {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* FilterSuggestInput wrapper must fill the chrome, not add a second box */
+.categories-page-shell .categories-search .filter-suggest,
+.categories-page-shell .categories-search .filter-suggest--bare {
+  flex: 1 1 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
   min-width: 0;
-  height: 32px;
-  min-height: 32px;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+}
+
+/*
+  Neutralize global ui-contract input chrome inside the search shell.
+  Parent .categories-search owns border + radius; the nested input stays flat.
+*/
+.categories-page-shell .categories-search input,
+.categories-page-shell .categories-search .filter-suggest__input,
+.categories-page-shell .categories-search input.filter-suggest__input {
+  flex: 1 1 auto;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
   border: 0 !important;
-  outline: 0;
+  outline: 0 !important;
   border-radius: 0 !important;
-  background: transparent;
-  color: #0f172a;
-  font-size: 12.5px;
+  background: transparent !important;
   box-shadow: none !important;
+  color: #0f172a !important;
+  font-size: 12.5px !important;
+  font-weight: 500;
+  line-height: 1.2;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.categories-page-shell .categories-search input::placeholder,
+.categories-page-shell .categories-search .filter-suggest__input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+.categories-page-shell .categories-search input:focus,
+.categories-page-shell .categories-search input:focus-visible,
+.categories-page-shell .categories-search .filter-suggest__input:focus,
+.categories-page-shell .categories-search .filter-suggest__input:focus-visible {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* WebKit search cancel button should not break the compact row */
+.categories-page-shell .categories-search input[type='search']::-webkit-search-decoration,
+.categories-page-shell .categories-search input[type='search']::-webkit-search-cancel-button,
+.categories-page-shell .categories-search input[type='search']::-webkit-search-results-button,
+.categories-page-shell .categories-search input[type='search']::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .categories-page-shell .categories-filter-actions {
@@ -2047,11 +2111,11 @@
 
 .categories-page-shell .categories-data-table {
   width: 100%;
-  max-width: 100%;
-  min-width: 0;
+  max-width: none;
+  /* Floor so columns scroll instead of clipping action / status */
+  min-width: 920px;
   border-collapse: separate;
   border-spacing: 0;
-  /* Fixed layout + %/px col widths keep all columns inside the card */
   table-layout: fixed;
   background: transparent;
 }
@@ -2176,7 +2240,9 @@
   border: 0;
   background: none;
   color: inherit;
-  text-align: left;
+  text-align: center;
+  justify-items: center;
+  align-items: center;
   cursor: pointer;
   transform: none !important;
 }
@@ -2245,7 +2311,12 @@
   text-decoration: underline;
 }
 
-/* Short columns: center header + cell content (status / count / date / actions) */
+/* Center ALL header labels and cell content (code / name / status / count / date / actions) */
+.categories-page-shell .categories-data-table th,
+.categories-page-shell .categories-data-table td {
+  text-align: center !important;
+}
+
 .categories-page-shell .categories-data-table th:nth-child(4),
 .categories-page-shell .categories-data-table td:nth-child(4),
 .categories-page-shell .categories-data-table th:nth-child(5),
@@ -2254,17 +2325,23 @@
 .categories-page-shell .categories-data-table td:nth-child(6),
 .categories-page-shell .categories-data-table th:nth-child(7),
 .categories-page-shell .categories-data-table td:nth-child(7) {
-  text-align: center !important;
   white-space: nowrap;
   overflow-wrap: normal;
   word-break: normal;
 }
 
-.categories-page-shell .categories-data-table td:nth-child(4) .categories-status-badge,
-.categories-page-shell .categories-data-table td:nth-child(4) .status-badge,
-.categories-page-shell .categories-data-table td:nth-child(5) .categories-count-button {
+.categories-page-shell .categories-data-table .categories-code-badge,
+.categories-page-shell .categories-data-table .categories-status-badge,
+.categories-page-shell .categories-data-table .status-badge,
+.categories-page-shell .categories-data-table .categories-count-button {
   margin-left: auto;
   margin-right: auto;
+}
+
+.categories-page-shell .categories-data-table .categories-name-title,
+.categories-page-shell .categories-data-table .categories-name-meta,
+.categories-page-shell .categories-data-table .categories-code-cell {
+  text-align: center !important;
 }
 
 .categories-page-shell .categories-status-badge,

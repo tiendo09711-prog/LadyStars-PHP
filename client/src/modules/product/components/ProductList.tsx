@@ -42,6 +42,8 @@ import { http } from '../../../core/api/http';
 import { isAdminRole } from '../../../core/auth/access';
 import { listBranches, type BranchRecord } from '../../../core/api/branch.api';
 import { Pagination } from '../../../core/components/Pagination';
+import { FilterSuggestInput } from '../../../core/components/ui/FilterSuggestInput';
+import { suggestProducts } from '../../../core/api/filterSuggestions';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import type { ICategory, IProduct } from '../../../types/product.type';
 import { ExportExcelModal, type ColumnOption } from './ExportExcelModal';
@@ -2801,13 +2803,16 @@ export function ProductList({
         <form className="inv-filter-bar" onSubmit={handleSearch}>
           <div className="inv-search">
             <Search size={15} />
-            <input
+            <FilterSuggestInput
+              bare
               ref={productListSearchRef}
               value={draftSearch}
-              onChange={(event) => setDraftSearch(event.target.value)}
+              onChange={setDraftSearch}
+              fetchSuggestions={suggestProducts}
               data-product-search-scan="true"
               data-product-search-primary="true"
               placeholder="Tìm theo tên, mã hoặc barcode..."
+              aria-label="Tìm theo tên, mã hoặc barcode"
             />
           </div>
 

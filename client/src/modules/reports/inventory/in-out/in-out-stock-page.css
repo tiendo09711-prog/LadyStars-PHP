@@ -288,8 +288,8 @@
 .inout-table td {
   padding: 9px 10px;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-  text-align: left;
-  vertical-align: top;
+  text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -322,17 +322,18 @@
 }
 
 .inout-table .num {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 .inout-table th.num { text-align: center; }
 
 .inout-view-link,
-.inout-modal__close { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 8px; background: #fff; color: #047857; cursor: pointer; }
+.inout-modal__close { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 8px; background: #fff; color: #047857; cursor: pointer; padding: 0; text-decoration: none; }
 .inout-view-link:hover { background: #ecfdf5; border-color: rgba(5, 150, 105, 0.3); }
 .inout-view-link:focus-visible,
 .inout-modal__close:focus-visible { outline: 3px solid rgba(16, 185, 129, 0.25); outline-offset: 1px; }
+.inout-actions-cell { width: 72px; text-align: center; white-space: nowrap; }
 
 .inout-modal-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: rgba(15, 23, 42, 0.5); }
 .inout-modal { display: flex; flex-direction: column; width: min(1180px, 96vw); max-height: min(760px, 90vh); overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24); }
@@ -342,6 +343,53 @@
 .inout-modal__close { flex: 0 0 auto; color: #475569; }
 .inout-modal__body { min-height: 180px; overflow: auto; padding: 14px 18px 18px; }
 .inout-period-table { min-width: 980px; }
+
+.inout-bill-eyebrow {
+  margin: 0 0 4px !important;
+  color: #047857 !important;
+  font-size: 12px !important;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.inout-bill-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 14px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.inout-bill-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.inout-bill-summary > div.wide { grid-column: 1 / -1; }
+
+.inout-bill-summary span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.inout-bill-summary strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 650;
+  word-break: break-word;
+}
+
+.inout-bill-items-table { min-width: 720px; }
+.inout-muted { margin-top: 2px; color: #94a3b8; font-size: 11px; }
 
 .inout-table tbody tr:hover td {
   background: rgba(16, 185, 129, 0.04);

@@ -82,6 +82,9 @@ export function rangeFromPreset(preset: DatePreset, today = new Date()): { from:
     case 'last_7_days':
       start.setDate(start.getDate() - 6);
       break;
+    case 'last_15_days':
+      start.setDate(start.getDate() - 14);
+      break;
     case 'last_30_days':
       start.setDate(start.getDate() - 29);
       break;
@@ -126,7 +129,7 @@ export function suggestedTrendGranularity(from: string, to: string): TrendGranul
 }
 
 export function defaultFilters(): ProductReportFilters {
-  const range = rangeFromPreset('last_30_days');
+  const range = rangeFromPreset('last_15_days');
   return {
     from: range.from,
     to: range.to,
@@ -276,7 +279,10 @@ export function filtersFromSearchParams(sp: URLSearchParams): {
   const base = defaultFilters();
   const from = sp.get('from') || base.from;
   const to = sp.get('to') || base.to;
-  const presetRaw = (sp.get('preset') as DatePreset) || 'custom';
+  const hasUrlDates = Boolean(sp.get('from') || sp.get('to'));
+  // Clean route (no date/preset params): default to last 15 days, matching defaultFilters().
+  const presetRaw = (sp.get('preset') as DatePreset | null)
+    ?? (hasUrlDates ? 'custom' : 'last_15_days');
   const storeIds = (sp.get('storeIds') || '')
     .split(',')
     .map((s) => s.trim())
@@ -303,6 +309,7 @@ export function filtersFromSearchParams(sp: URLSearchParams): {
       'today',
       'yesterday',
       'last_7_days',
+      'last_15_days',
       'last_30_days',
       'this_week',
       'this_month',
@@ -312,7 +319,7 @@ export function filtersFromSearchParams(sp: URLSearchParams): {
       'custom',
     ].includes(presetRaw)
       ? presetRaw
-      : 'custom',
+      : 'last_15_days',
     filters: {
       from,
       to,
@@ -475,6 +482,7 @@ export const PRESET_LABELS: Record<DatePreset, string> = {
   today: 'Hôm nay',
   yesterday: 'Hôm qua',
   last_7_days: '7 ngày gần nhất',
+  last_15_days: '15 ngày gần nhất',
   last_30_days: '30 ngày gần nhất',
   this_week: 'Tuần này',
   this_month: 'Tháng này',

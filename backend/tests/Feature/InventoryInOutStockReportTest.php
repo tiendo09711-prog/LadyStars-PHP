@@ -190,6 +190,29 @@ class InventoryInOutStockReportTest extends TestCase
         $this->assertSame(0.0, (float) $response->json('summary.totalOut'));
     }
 
+    public function test_api_detail_path_and_source_for_rows(): void
+    {
+        $response = $this->getJson('/api/reports/inventory/in-out-stock?fromDate=2026-07-01&toDate=2026-07-03&perPage=20&page=1');
+        $response->assertOk();
+
+        $rows = $response->json('table.data');
+        $this->assertNotEmpty($rows);
+
+        $import = collect($rows)->firstWhere('type', 'IMPORT');
+        $this->assertNotNull($import);
+        $this->assertSame('inventory-voucher', $import['source']);
+        $this->assertSame('iv0000000000000000000001', $import['sourceId']);
+        $this->assertNotEmpty($import['detailPath']);
+        $this->assertStringContainsString('source=inventory-voucher', (string) $import['detailPath']);
+        $this->assertStringContainsString('sourceId=iv0000000000000000000001', (string) $import['detailPath']);
+
+        $transfer = collect($rows)->firstWhere('type', 'TRANSFER');
+        $this->assertNotNull($transfer);
+        $this->assertSame('warehouse-transfer', $transfer['source']);
+        $this->assertSame('tf0000000000000000000001', $transfer['sourceId']);
+        $this->assertSame('/warehouse/transfers/tf0000000000000000000001', $transfer['detailPath']);
+    }
+
     public function test_api_06_pagination(): void
     {
         $page1 = $this->getJson('/api/reports/inventory/in-out-stock?fromDate=2026-07-01&toDate=2026-07-03&perPage=2&page=1&sortBy=date&sortDir=asc');

@@ -19,9 +19,14 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import {
+  suggestInventoryAudits,
+  suggestProducts,
+} from '../../core/api/filterSuggestions';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import { Pagination } from '../../core/components/Pagination';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import './warehouseRecords.css';
 import './warehouseAudit.css';
@@ -1250,10 +1255,13 @@ export function WarehouseAuditPage() {
             <>
               <div className="audit-search">
                 <Search size={15} />
-                <input
+                <FilterSuggestInput
+                  bare
                   value={auditFilters.keyword}
-                  onChange={(event) => setAuditFilters({ ...auditFilters, keyword: event.target.value })}
+                  onChange={(next) => setAuditFilters({ ...auditFilters, keyword: next })}
+                  fetchSuggestions={suggestInventoryAudits}
                   placeholder="ID phiếu kiểm kho"
+                  aria-label="ID phiếu kiểm kho"
                 />
               </div>
               <select
@@ -1313,13 +1321,16 @@ export function WarehouseAuditPage() {
             <>
               <div className="audit-search">
                 <Search size={15} />
-                <input
+                <FilterSuggestInput
+                  bare
                   ref={productKeywordRef}
                   value={itemFilters.productKeyword}
-                  onChange={(event) => setItemFilters({ ...itemFilters, productKeyword: event.target.value })}
+                  onChange={(next) => setItemFilters({ ...itemFilters, productKeyword: next })}
+                  fetchSuggestions={suggestProducts}
                   data-product-search-scan="true"
                   data-product-search-primary="true"
                   placeholder="Sản phẩm / quét barcode"
+                  aria-label="Sản phẩm / quét barcode"
                 />
               </div>
               <select
@@ -1348,10 +1359,13 @@ export function WarehouseAuditPage() {
               />
               <div className="audit-search audit-search--note">
                 <Search size={15} />
-                <input
+                <FilterSuggestInput
+                  bare
                   value={itemFilters.auditId}
-                  onChange={(event) => setItemFilters({ ...itemFilters, auditId: event.target.value })}
+                  onChange={(next) => setItemFilters({ ...itemFilters, auditId: next })}
+                  fetchSuggestions={suggestInventoryAudits}
                   placeholder="ID phiếu kiểm kho"
+                  aria-label="ID phiếu kiểm kho"
                 />
               </div>
               <select

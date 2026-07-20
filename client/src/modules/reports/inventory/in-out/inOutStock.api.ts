@@ -1,5 +1,6 @@
 import { http } from '../../../../core/api/http';
 import type {
+  InOutBillDetail,
   InOutStockFilters,
   InOutStockOptions,
   InOutStockReportResponse,
@@ -59,4 +60,17 @@ export async function fetchAllInOutStockRows(
     rows = rows.concat(next.table?.data ?? []);
   }
   return rows;
+}
+
+/** Load voucher/transfer bill detail for the report "Xem chi tiết" action. */
+export async function fetchInOutBillDetail(
+  source: string,
+  sourceId: string,
+  signal?: AbortSignal,
+): Promise<InOutBillDetail> {
+  const res = await http.get<InOutBillDetail>(
+    `/warehouse/transactions/bills/${encodeURIComponent(source)}/${encodeURIComponent(sourceId)}`,
+    { signal },
+  );
+  return res.data;
 }

@@ -30,4 +30,9 @@ if not "%ERR%"=="0" (
 
 echo.
 echo IMPORT OK
+echo.
+echo NOTE: import SQL TRUNCATES users and does NOT create admin (security).
+echo After import, create login account:
+echo   scripts\create-local-admin.cmd
+echo Default: admin@gmail.com / 123456  (override ADMIN_EMAIL / ADMIN_PASSWORD env)
 exit /b 0

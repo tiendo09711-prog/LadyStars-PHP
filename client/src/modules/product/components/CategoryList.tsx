@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
+import { FilterSuggestInput } from '../../../core/components/ui/FilterSuggestInput';
+import { suggestCategories } from '../../../core/api/filterSuggestions';
 import { productApi } from '../../../core/api/product.api';
 import { listBranches } from '../../../core/api/branch.api';
 import type { BranchRecord } from '../../../core/api/branch.api';
@@ -649,7 +651,14 @@ export function CategoryList() {
         <form className="categories-filter-bar" onSubmit={handleSearch}>
           <label className="categories-search">
             <Search size={15} aria-hidden="true" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tên danh mục, mã..." aria-label="Tìm danh mục" />
+            <FilterSuggestInput
+              bare
+              value={search}
+              onChange={setSearch}
+              fetchSuggestions={suggestCategories}
+              placeholder="Tên danh mục, mã..."
+              aria-label="Tìm danh mục"
+            />
           </label>
 
           <div className="categories-filter-actions">

@@ -87,6 +87,38 @@ export type InOutStockRow = {
   detailPath: string | null;
 };
 
+/** Bill detail payload from GET /warehouse/transactions/bills/{source}/{sourceId} */
+export type InOutBillDetailItem = {
+  rowKey: string;
+  productCode?: string;
+  productName?: string;
+  barcode?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalAmount?: number;
+  note?: string;
+};
+
+export type InOutBillDetail = {
+  source: string;
+  sourceId: string;
+  code?: string;
+  billCode?: string;
+  date?: string;
+  type?: string;
+  kind?: string;
+  kindLabel?: string;
+  warehouseName?: string;
+  fromWarehouseName?: string;
+  toWarehouseName?: string;
+  createdByName?: string;
+  customerName?: string;
+  relatedCode?: string;
+  note?: string;
+  totalAmount?: number;
+  items: InOutBillDetailItem[];
+};
+
 export type InOutStockReportResponse = {
   filters: InOutStockFilters;
   summary: InOutStockSummary;

@@ -20,7 +20,9 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { http } from '../../core/api/http';
+import { suggestCustomers } from '../../core/api/filterSuggestions';
 import { Pagination } from '../../core/components/Pagination';
+import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import './customer-list-page.css';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
@@ -986,10 +988,12 @@ export function CustomerListPage() {
         <form className="customer-list-filter-bar" onSubmit={handleSubmitFilters}>
           <div className="customer-list-search">
             <Search size={15} />
-            <input
+            <FilterSuggestInput
+              bare
               value={draftFilters.keyword}
               placeholder="Tên, SĐT, mã khách, mã thẻ, email..."
-              onChange={(event) => setDraftFilters((current) => ({ ...current, keyword: event.target.value }))}
+              onChange={(next) => setDraftFilters((current) => ({ ...current, keyword: next }))}
+              fetchSuggestions={suggestCustomers}
               data-testid="customers-keyword-filter"
               aria-label="Tìm kiếm khách hàng"
             />

@@ -477,6 +477,17 @@ class InventoryInOutStockReportService
         $valueIn = $type === 'IMPORT' ? abs($totalAmount) : 0.0;
         $valueOut = $type === 'EXPORT' ? abs($totalAmount) : 0.0;
 
+        // Prefer voucher mongo id for detail API; fall back to human codes used by show().
+        $sourceId = $this->firstNonEmptyString([
+            $record->inventory_voucher_mongo_id ?? null,
+            $payload['inventory_voucher_mongo_id'] ?? null,
+            $payload['voucher_mongo_id'] ?? null,
+            $payload['voucherId'] ?? null,
+            $payload['voucher_code'] ?? null,
+            $payload['refer_code'] ?? null,
+            $billCode !== null && (string) $billCode !== (string) ($record->mongo_id ?? '') ? $billCode : null,
+        ]);
+
         return [
             'id' => 'ip:'.$record->mongo_id,
             'date' => $this->dateString($payload, $record),
@@ -496,9 +507,26 @@ class InventoryInOutStockReportService
             'unitPrice' => $unitPrice,
             'createdByName' => $record->creator ?? ($payload['creator'] ?? null),
             'source' => 'inventory-voucher',
-            'sourceId' => $record->inventory_voucher_mongo_id ?: ($payload['inventory_voucher_mongo_id'] ?? null),
-            'detailPath' => null,
+            'sourceId' => $sourceId,
+            // No dedicated voucher detail route; FE opens modal via transactions bills API.
+            'detailPath' => $sourceId ? '/warehouse/transactions?source=inventory-voucher&sourceId='.rawurlencode($sourceId) : null,
         ];
+    }
+
+    /** @param  list<mixed>  $candidates */
+    private function firstNonEmptyString(array $candidates): ?string
+    {
+        foreach ($candidates as $value) {
+            if ($value === null) {
+                continue;
+            }
+            $text = trim((string) $value);
+            if ($text !== '') {
+                return $text;
+            }
+        }
+
+        return null;
     }
 
     /** @return list<array<string, mixed>> */

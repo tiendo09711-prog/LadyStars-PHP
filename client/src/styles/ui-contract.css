@@ -293,13 +293,23 @@ textarea:focus-visible,
 .wr-actions,
 .wr-detail-actions,
 .customer-chip-actions,
-.action-cell,
-.wr-action-cell,
+/* Flex layout for action toolbars — NOT for table cells (sticky needs table-cell) */
+.action-cell:not(th):not(td),
+.wr-action-cell:not(th):not(td),
 .modal-footer {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* Table action columns must stay table-cell for sticky-right + horizontal scroll */
+th.action-cell,
+td.action-cell,
+th.wr-action-cell,
+td.wr-action-cell {
+  display: table-cell;
+  vertical-align: middle;
 }
 
 .btn,

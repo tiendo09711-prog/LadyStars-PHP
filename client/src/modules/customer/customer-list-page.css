@@ -620,12 +620,13 @@
   max-width: 80px !important;
 }
 
-/* Cells — match products-data-table spacing */
+/* Cells — match products-data-table spacing; all content centered */
 .customer-list-root .customer-list-data-table th,
 .customer-list-root .customer-list-data-table td {
   padding: 11px 10px !important;
   font-size: 12.5px;
   vertical-align: middle;
+  text-align: center !important;
   border-bottom: 1px solid #f1f5f9;
   line-height: 1.35;
   box-sizing: border-box;
@@ -672,7 +673,7 @@
   background: #f0fdf4;
 }
 
-/* Alignment */
+/* Alignment — entire data table centered (headers + cells) */
 .customer-list-root .customer-list-data-table .col-center {
   text-align: center !important;
 }
@@ -690,10 +691,7 @@
 .customer-list-root .customer-list-data-table th.col-phone,
 .customer-list-root .customer-list-data-table td.col-phone,
 .customer-list-root .customer-list-data-table th.col-group,
-.customer-list-root .customer-list-data-table td.col-group {
-  text-align: left;
-}
-
+.customer-list-root .customer-list-data-table td.col-group,
 .customer-list-root .customer-list-data-table th.col-type,
 .customer-list-root .customer-list-data-table td.col-type,
 .customer-list-root .customer-list-data-table th.col-level,
@@ -890,14 +888,14 @@
   background: #fef2f2;
 }
 
-/* Customer name cell */
+/* Customer name cell — centered with rest of table */
 .customer-list-root .customer-list-data-table th.customer-list-name-cell {
-  text-align: left;
+  text-align: center !important;
   white-space: nowrap !important;
 }
 
 .customer-list-root .customer-list-data-table td.customer-list-name-cell {
-  text-align: left;
+  text-align: center !important;
   white-space: normal !important;
   word-break: break-word !important;
   overflow-wrap: anywhere;
@@ -906,12 +904,12 @@
 .customer-list-root .customer-name-button {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 2px;
   border: 0;
   background: transparent;
   padding: 0;
-  text-align: left;
+  text-align: center;
   color: inherit;
   cursor: pointer;
   width: 100%;
@@ -930,6 +928,8 @@
   color: #0f172a;
   white-space: normal;
   word-break: break-word;
+  text-align: center;
+  width: 100%;
 }
 
 .customer-list-root .customer-list-name-sub {
@@ -941,6 +941,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
+  width: 100%;
 }
 
 .customer-list-root .customer-name-button:hover .customer-list-name-main {
@@ -1005,22 +1007,24 @@
 }
 
 .customer-list-root .align-right {
-  text-align: right;
+  text-align: center !important;
 }
 
 /*
   Sort headers — products uses flex + gap:6 for label/icon.
   Keep inline-flex so icon never collides with label.
+  Centered to match full-table center alignment.
 */
 .customer-list-root .customer-sort-button {
   display: inline-flex !important;
   flex-wrap: nowrap;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   border: 0;
   background: transparent;
   padding: 0;
-  margin: 0;
+  margin: 0 auto;
   color: inherit !important;
   font-family: inherit;
   font-size: 11px !important;
@@ -1033,7 +1037,7 @@
   height: auto;
   white-space: nowrap !important;
   word-break: normal !important;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
   box-sizing: border-box;
 }
@@ -1065,8 +1069,16 @@
 }
 
 .customer-list-root .customer-sort-button.align-right {
-  justify-content: flex-end;
+  justify-content: center;
   width: 100%;
+  text-align: center;
+}
+
+/* Ensure all header sort buttons span cell and center */
+.customer-list-root .customer-list-data-table th .customer-sort-button {
+  justify-content: center;
+  width: 100%;
+  text-align: center;
 }
 
 .customer-list-root .customer-sort-button:hover {

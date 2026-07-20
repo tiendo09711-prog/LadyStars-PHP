@@ -1,4 +1,4 @@
-import { Children, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RevenueReportNav } from '../components/RevenueReportNav';
 import {
@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import {
   Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -32,6 +31,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { suggestProducts } from '../../../core/api/filterSuggestions';
+import { FilterSuggestInput } from '../../../core/components/ui/FilterSuggestInput';
 import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { fetchRevenueByProductsOptions, fetchRevenueByProductsReport } from './revenueByProducts.api';
 import type {
@@ -268,15 +269,17 @@ function RankingBarChart({
   const data = useMemo(
     () =>
       ranking.map((r) => ({
-        name: r.productName.length > 18 ? `${r.productName.slice(0, 16)}…` : r.productName,
+        name: r.productName.length > 28 ? `${r.productName.slice(0, 26)}…` : r.productName,
         fullName: r.productName,
-        value: metricValue(r, metric),
+        value: Number(metricValue(r, metric)) || 0,
         productId: r.productId,
       })),
     [ranking, metric],
   );
   const isMoney = !['invoiceCount', 'itemQuantity'].includes(metric);
   const hasData = data.some((d) => d.value > 0);
+  // Wider Y labels on full-width chart; keep enough right margin for value ticks.
+  const yAxisWidth = 168;
 
   if (loading && ranking.length === 0) {
     return <div className="rbp-chart-wrap rbp-skeleton" style={{ height: 320 }} aria-busy="true" />;
@@ -290,18 +293,18 @@ function RankingBarChart({
   }
 
   return (
-    <div className="rbp-chart-wrap" role="img" aria-label={`Top sản phẩm theo ${METRIC_LABELS[metric]}`}>
-      <ResponsiveContainer width="100%" height={Math.max(280, data.length * 36)}>
-        <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+    <div className="rbp-chart-wrap rbp-chart-wrap-full" role="img" aria-label={`Top sản phẩm theo ${METRIC_LABELS[metric]}`}>
+      <ResponsiveContainer width="100%" height={Math.max(300, data.length * 38)}>
+        <BarChart data={data} layout="vertical" margin={{ top: 8, right: 28, left: 4, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" horizontal={false} />
-          <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => formatNumber(v)} />
-          <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#64748b' }} />
+          <XAxis type="number" domain={[0, 'auto']} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => formatNumber(v)} />
+          <YAxis type="category" dataKey="name" width={yAxisWidth} tick={{ fontSize: 11, fill: '#64748b' }} />
           <Tooltip
             formatter={(value: number) => [isMoney ? formatMoney(value) : formatNumber(value), METRIC_LABELS[metric]]}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
             contentStyle={{ borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)' }}
           />
-          <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} maxBarSize={22} />
+          <Bar dataKey="value" fill="#10b981" radius={[0, 6, 6, 0]} maxBarSize={24} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -317,8 +320,21 @@ function TimelineChart({
   chartView: ChartView;
   loading: boolean;
 }) {
-  const data = report?.timeline ?? [];
-  const hasData = data.some((d) => d.revenue > 0 || d.refundAmount > 0 || d.itemQuantity > 0);
+  // Coerce numeric fields — Recharts silently fails to plot non-number values.
+  const data = useMemo(
+    () =>
+      (report?.timeline ?? []).map((d) => ({
+        key: d.key,
+        label: d.label,
+        revenue: Number(d.revenue) || 0,
+        refundAmount: Number(d.refundAmount) || 0,
+        netRevenue: Number(d.netRevenue) || 0,
+        itemQuantity: Number(d.itemQuantity) || 0,
+        invoiceCount: Number(d.invoiceCount) || 0,
+      })),
+    [report?.timeline],
+  );
+  const hasData = data.some((d) => d.revenue > 0 || d.refundAmount > 0 || d.netRevenue > 0 || d.itemQuantity > 0);
 
   if (loading && !report) {
     return <div className="rbp-chart-wrap rbp-skeleton" style={{ height: 320 }} aria-busy="true" />;
@@ -331,75 +347,81 @@ function TimelineChart({
     );
   }
 
-  const renderChartContent = (series: ReactNode) => [
-      <CartesianGrid key="grid" stroke="#dbe5ef" strokeDasharray="3 3" vertical horizontal />,
-      <XAxis
-        key="x-axis"
-        dataKey="label"
-        axisLine={{ stroke: '#cbd5e1' }}
-        tickLine={{ stroke: '#cbd5e1' }}
-        tick={{ fontSize: 11, fill: '#64748b' }}
-        minTickGap={16}
-      />,
-      <YAxis
-        key="money-axis"
-        yAxisId="money"
-        axisLine={{ stroke: '#cbd5e1' }}
-        tickLine={{ stroke: '#cbd5e1' }}
-        tick={{ fontSize: 11, fill: '#64748b' }}
-        tickFormatter={(value) => formatNumber(value)}
-        width={72}
-      />,
-      <YAxis
-        key="quantity-axis"
-        yAxisId="qty"
-        orientation="right"
-        axisLine={{ stroke: '#cbd5e1' }}
-        tickLine={{ stroke: '#cbd5e1' }}
-        tick={{ fontSize: 11, fill: '#64748b' }}
-        tickFormatter={(value) => formatNumber(value)}
-        width={48}
-      />,
-      <Tooltip key="tooltip" content={<TimelineTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />,
-      <Legend key="legend" wrapperStyle={{ fontSize: 12 }} />,
-      ...Children.toArray(series),
+  // Shared axes/tooltip as a flat array (Recharts does not always flatten Fragments).
+  // Prefer ComposedChart when mixing Area/Bar + Line so dual-axis series always render.
+  const commonAxes: ReactNode[] = [
+    <CartesianGrid key="grid" stroke="#dbe5ef" strokeDasharray="3 3" vertical horizontal />,
+    <XAxis
+      key="x"
+      dataKey="label"
+      axisLine={{ stroke: '#cbd5e1' }}
+      tickLine={{ stroke: '#cbd5e1' }}
+      tick={{ fontSize: 11, fill: '#64748b' }}
+      minTickGap={16}
+      interval="preserveStartEnd"
+    />,
+    <YAxis
+      key="money"
+      yAxisId="money"
+      domain={[0, 'auto']}
+      axisLine={{ stroke: '#cbd5e1' }}
+      tickLine={{ stroke: '#cbd5e1' }}
+      tick={{ fontSize: 11, fill: '#64748b' }}
+      tickFormatter={(value) => formatNumber(Number(value))}
+      width={72}
+    />,
+    <YAxis
+      key="qty"
+      yAxisId="qty"
+      orientation="right"
+      domain={[0, 'auto']}
+      axisLine={{ stroke: '#cbd5e1' }}
+      tickLine={{ stroke: '#cbd5e1' }}
+      tick={{ fontSize: 11, fill: '#6366f1' }}
+      tickFormatter={(value) => formatNumber(Number(value))}
+      width={48}
+      allowDecimals={false}
+    />,
+    <Tooltip key="tip" content={<TimelineTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />,
+    <Legend key="legend" wrapperStyle={{ fontSize: 12, paddingTop: 4 }} />,
+  ];
+
+  const margin = { top: 12, right: 16, left: 4, bottom: 8 };
+
+  let series: ReactNode[] = [];
+  if (chartView === 'area') {
+    series = [
+      <Area key="revenue" yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" fill="#10b981" fillOpacity={0.18} strokeWidth={2} isAnimationActive={false} activeDot={{ r: 4 }} />,
+      <Area key="net" yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" fill="#059669" fillOpacity={0.1} strokeWidth={2} isAnimationActive={false} activeDot={{ r: 4 }} />,
+      <Line key="qty-line" yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4 }} />,
     ];
+  } else if (chartView === 'line') {
+    series = [
+      <Line key="revenue" yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4 }} />,
+      <Line key="net" yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4 }} />,
+      <Line key="qty-line" yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4 }} />,
+    ];
+  } else if (chartView === 'combo') {
+    series = [
+      <Bar key="revenue" yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />,
+      <Line key="net" yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4 }} />,
+      <Line key="qty-line" yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4 }} />,
+    ];
+  } else {
+    series = [
+      <Bar key="revenue" yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />,
+      <Bar key="refund" yAxisId="money" dataKey="refundAmount" name="Hoàn" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />,
+      <Line key="qty-line" yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 4 }} />,
+    ];
+  }
 
   return (
     <div className="rbp-chart-wrap" role="img" aria-label="Doanh thu theo thời gian">
-      <ResponsiveContainer width="100%" height={320}>
-        {chartView === 'area' ? (
-          <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {renderChartContent(<>
-              <Area yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" fill="#10b981" fillOpacity={0.12} strokeWidth={2} activeDot={{ r: 4 }} />
-              <Area yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" fill="#059669" fillOpacity={0.08} strokeWidth={2} activeDot={{ r: 4 }} />
-              <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            </>)}
-          </AreaChart>
-        ) : chartView === 'line' ? (
-          <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {renderChartContent(<>
-              <Line yAxisId="money" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-              <Line yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-              <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            </>)}
-          </LineChart>
-        ) : chartView === 'combo' ? (
-          <ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {renderChartContent(<>
-              <Bar yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} />
-              <Line yAxisId="money" type="monotone" dataKey="netRevenue" name="DT thuần" stroke="#059669" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-              <Line yAxisId="qty" type="monotone" dataKey="itemQuantity" name="SL bán" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            </>)}
-          </ComposedChart>
-        ) : (
-          <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {renderChartContent(<>
-              <Bar yAxisId="money" dataKey="revenue" name="Doanh thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={22} />
-              <Bar yAxisId="money" dataKey="refundAmount" name="Hoàn" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={22} />
-            </>)}
-          </BarChart>
-        )}
+      <ResponsiveContainer width="100%" height={340}>
+        <ComposedChart data={data} margin={margin}>
+          {commonAxes}
+          {series}
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
@@ -492,7 +514,21 @@ function SharePieChart({
   loading: boolean;
   emptyLabel: string;
 }) {
-  const total = items.reduce((s, i) => s + i.revenue, 0);
+  const pieData = useMemo(
+    () =>
+      items
+        .map((i) => ({
+          ...i,
+          revenue: Number(i.revenue) || 0,
+          percent: Number(i.percent) || 0,
+        }))
+        .filter((i) => i.revenue > 0),
+    [items],
+  );
+  const total = pieData.reduce((s, i) => s + i.revenue, 0);
+  // Single-slice pie + paddingAngle creates a visible "gap corner" (góc thừa).
+  const paddingAngle = pieData.length > 1 ? 2 : 0;
+
   if (loading && items.length === 0) {
     return <div className="rbp-skeleton" style={{ height: 220, borderRadius: 12 }} aria-busy="true" />;
   }
@@ -504,22 +540,38 @@ function SharePieChart({
     );
   }
   return (
-    <div className="rbp-breakdown-body">
-      <ResponsiveContainer width="100%" height={200}>
-        <PieChart>
-          <Pie data={items} dataKey="revenue" nameKey="label" cx="50%" cy="50%" innerRadius={48} outerRadius={78} paddingAngle={2}>
-            {items.map((entry, i) => (
-              <Cell key={entry.key} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value: number, name: string) => [formatMoney(value), name]}
-            contentStyle={{ borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)' }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+    <div className={`rbp-breakdown-body${pieData.length === 1 ? ' is-single' : ''}`}>
+      <div className="rbp-pie-chart">
+        <ResponsiveContainer width="100%" height={200}>
+          <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <Pie
+              data={pieData}
+              dataKey="revenue"
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              innerRadius={52}
+              outerRadius={80}
+              paddingAngle={paddingAngle}
+              stroke="#fff"
+              strokeWidth={pieData.length > 1 ? 1 : 0}
+              isAnimationActive={false}
+              startAngle={90}
+              endAngle={-270}
+            >
+              {pieData.map((entry, i) => (
+                <Cell key={entry.key} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value: number, name: string) => [formatMoney(value), name]}
+              contentStyle={{ borderRadius: 10, border: '1px solid rgba(15,23,42,0.08)' }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
       <ul className="rbp-legend-list">
-        {items.map((item, i) => (
+        {pieData.map((item, i) => (
           <li key={item.key}>
             <span className="rbp-tooltip-dot" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} aria-hidden />
             <span className="rbp-legend-label" title={item.label}>
@@ -632,11 +684,28 @@ function ProductTable({
       <div className="rbp-surface-head">
         <div>
           <h2>Chi tiết theo sản phẩm</h2>
-          <p>Sắp xếp và phân trang phía máy chủ. Tổng cộng phản ánh toàn bộ kết quả đã lọc (không chỉ trang hiện tại).</p>
+          <p>Sắp xếp và phân trang phía máy chủ. Tổng cộng phản ánh toàn bộ kết quả đã lọc (không chỉ trang hiện tại). Cuộn ngang khi bảng rộng hơn màn hình.</p>
         </div>
       </div>
       <div className="rbp-table-scroll">
-        <table className="rbp-table">
+        <table className="rbp-table rbp-table-detail">
+          <colgroup>
+            <col className="rbp-col-stt" />
+            <col className="rbp-col-rank" />
+            <col className="rbp-col-code" />
+            <col className="rbp-col-name" />
+            <col className="rbp-col-category" />
+            <col className="rbp-col-qty" />
+            <col className="rbp-col-qty" />
+            <col className="rbp-col-invoice" />
+            <col className="rbp-col-money" />
+            <col className="rbp-col-money" />
+            <col className="rbp-col-money" />
+            <col className="rbp-col-money" />
+            <col className="rbp-col-money" />
+            <col className="rbp-col-share" />
+            <col className="rbp-col-date" />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">
@@ -652,15 +721,15 @@ function ProductTable({
                   Danh mục
                 </span>
               </th>
-              {sortBtn('itemQuantity', 'SL bán', 'num')}
-              {sortBtn('qtyReturned', 'SL trả', 'num')}
-              {sortBtn('invoiceCount', 'Số HĐ', 'num')}
-              {sortBtn('revenue', 'Doanh thu', 'num')}
-              {sortBtn('discountAmount', 'Giảm dòng', 'num')}
-              {sortBtn('refundAmount', 'Hoàn', 'num')}
-              {sortBtn('netRevenue', 'DT thuần', 'num')}
-              {sortBtn('averageSellingPrice', 'Giá TB', 'num')}
-              {sortBtn('revenueSharePercent', 'Tỷ trọng', 'num')}
+              {sortBtn('itemQuantity', 'SL bán')}
+              {sortBtn('qtyReturned', 'SL trả')}
+              {sortBtn('invoiceCount', 'Số HĐ')}
+              {sortBtn('revenue', 'Doanh thu')}
+              {sortBtn('discountAmount', 'Giảm dòng')}
+              {sortBtn('refundAmount', 'Hoàn')}
+              {sortBtn('netRevenue', 'DT thuần')}
+              {sortBtn('averageSellingPrice', 'Giá TB')}
+              {sortBtn('revenueSharePercent', 'Tỷ trọng')}
               {sortBtn('lastSoldAt', 'Bán gần nhất')}
             </tr>
           </thead>
@@ -682,25 +751,27 @@ function ProductTable({
                 <tr key={r.productId}>
                   <td>{startIndex + idx + 1}</td>
                   <td>{r.rank}</td>
-                  <td>{r.productCode || '—'}</td>
-                  <td>
-                    <span title={r.productName} style={{ display: 'inline-block', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {r.productName}
-                    </span>
+                  <td className="rbp-cell-wrap" title={r.productCode ?? undefined}>
+                    {r.productCode || '—'}
                   </td>
-                  <td title={r.categoryName ?? undefined}>{r.categoryName || '—'}</td>
-                  <td className="num">{formatNumber(r.itemQuantity)}</td>
-                  <td className="num">{formatNumber(r.qtyReturned)}</td>
-                  <td className="num">{formatNumber(r.invoiceCount)}</td>
-                  <td className="num">{formatMoney(r.revenue)}</td>
-                  <td className="num">{formatMoney(r.discountAmount)}</td>
-                  <td className="num">{formatMoney(r.refundAmount)}</td>
-                  <td className="num">
+                  <td className="rbp-cell-wrap" title={r.productName}>
+                    {r.productName}
+                  </td>
+                  <td className="rbp-cell-wrap" title={r.categoryName ?? undefined}>
+                    {r.categoryName || '—'}
+                  </td>
+                  <td>{formatNumber(r.itemQuantity)}</td>
+                  <td>{formatNumber(r.qtyReturned)}</td>
+                  <td>{formatNumber(r.invoiceCount)}</td>
+                  <td>{formatMoney(r.revenue)}</td>
+                  <td>{formatMoney(r.discountAmount)}</td>
+                  <td>{formatMoney(r.refundAmount)}</td>
+                  <td>
                     <strong>{formatMoney(r.netRevenue)}</strong>
                   </td>
-                  <td className="num">{formatMoney(r.averageSellingPrice)}</td>
-                  <td className="num">{formatPercent(r.revenueSharePercent, false)}</td>
-                  <td>{formatDateTime(r.lastSoldAt)}</td>
+                  <td>{formatMoney(r.averageSellingPrice)}</td>
+                  <td>{formatPercent(r.revenueSharePercent, false)}</td>
+                  <td className="rbp-cell-wrap">{formatDateTime(r.lastSoldAt)}</td>
                 </tr>
               ))
             )}
@@ -709,15 +780,15 @@ function ProductTable({
             <tfoot>
               <tr>
                 <td colSpan={5}>Tổng cộng (toàn bộ đã lọc)</td>
-                <td className="num">{formatNumber(totals.itemQuantity)}</td>
-                <td className="num">{formatNumber(totals.qtyReturned)}</td>
-                <td className="num">{formatNumber(totals.invoiceCount)}</td>
-                <td className="num">{formatMoney(totals.revenue)}</td>
-                <td className="num">{formatMoney(totals.discountAmount)}</td>
-                <td className="num">{formatMoney(totals.refundAmount)}</td>
-                <td className="num">{formatMoney(totals.netRevenue)}</td>
-                <td className="num">{formatMoney(totals.averageSellingPrice)}</td>
-                <td className="num">100%</td>
+                <td>{formatNumber(totals.itemQuantity)}</td>
+                <td>{formatNumber(totals.qtyReturned)}</td>
+                <td>{formatNumber(totals.invoiceCount)}</td>
+                <td>{formatMoney(totals.revenue)}</td>
+                <td>{formatMoney(totals.discountAmount)}</td>
+                <td>{formatMoney(totals.refundAmount)}</td>
+                <td>{formatMoney(totals.netRevenue)}</td>
+                <td>{formatMoney(totals.averageSellingPrice)}</td>
+                <td>100%</td>
                 <td />
               </tr>
             </tfoot>
@@ -763,7 +834,7 @@ export function RevenueByProductsPage() {
   const [options, setOptions] = useState<RevenueByProductsOptions | null>(null);
   const [draft, setDraft] = useState<ProductReportFilters>(() => defaultFilters());
   const [applied, setApplied] = useState<ProductReportFilters>(() => defaultFilters());
-  const [preset, setPreset] = useState<DatePreset>('last_30_days');
+  const [preset, setPreset] = useState<DatePreset>('last_15_days');
   const [report, setReport] = useState<ProductReportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -927,7 +998,7 @@ export function RevenueByProductsPage() {
 
   const handleReset = () => {
     const next = defaultFilters();
-    setPreset('last_30_days');
+    setPreset('last_15_days');
     setDraft(next);
     void loadReport(next, 'load');
   };
@@ -1282,15 +1353,16 @@ export function RevenueByProductsPage() {
             </div>
             <div className="rbp-field">
               <label htmlFor="rbp-search">Tìm SP / mã / SKU</label>
-              <input
+              <FilterSuggestInput
                 id="rbp-search"
                 ref={productSearchRef}
-                type="search"
                 value={draft.search}
                 data-product-search-scan="true"
                 data-product-search-primary="true"
                 placeholder="Tên, mã, SKU hoặc quét barcode…"
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={handleSearchChange}
+                fetchSuggestions={suggestProducts}
+                aria-label="Tìm SP / mã / SKU"
               />
             </div>
             <div className="rbp-field">

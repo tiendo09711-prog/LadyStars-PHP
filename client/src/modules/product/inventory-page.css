@@ -1154,18 +1154,22 @@
   flex: 0 0 auto;
 }
 
-.inventory-root .inventory-table-scroll {
+.inventory-root .inventory-table-scroll,
+.inventory-page-shell .inventory-table-scroll {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto !important;
   overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
   border-top: 0;
 }
 
-.inventory-root .inventory-data-table {
+.inventory-root .inventory-data-table,
+.inventory-page-shell .inventory-data-table {
   width: 100%;
   min-width: 920px;
+  max-width: none;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto !important;
@@ -1201,7 +1205,7 @@
 .inventory-root .inventory-sort-button {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 6px;
   width: 100%;
   min-height: 26px;
@@ -1211,7 +1215,7 @@
   color: inherit;
   font: inherit;
   letter-spacing: inherit;
-  text-align: left;
+  text-align: center;
   text-transform: inherit;
   cursor: pointer;
 }
@@ -1668,6 +1672,27 @@
   background: rgba(248, 250, 252, 0.78);
   color: #64748b;
   font-size: 12.5px;
+  text-align: center;
+}
+
+/* Center ALL header labels and cell content in inventory data table */
+.inventory-root .inventory-data-table th,
+.inventory-root .inventory-data-table td {
+  text-align: center !important;
+}
+
+.inventory-root .inventory-data-table .inventory-product-cell,
+.inventory-root .inventory-data-table .inventory-product-name,
+.inventory-root .inventory-data-table .inventory-product-cell small,
+.inventory-root .inventory-data-table .inventory-money-cell,
+.inventory-root .inventory-data-table .inventory-number-cell,
+.inventory-root .inventory-data-table .inventory-link-button,
+.inventory-root .inventory-data-table .number {
+  text-align: center !important;
+}
+
+.inventory-root .inventory-data-table .inventory-sort-button {
+  justify-content: center;
   text-align: center;
 }
 

@@ -14,7 +14,9 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { Pagination } from '../../../core/components/Pagination';
+import { FilterSuggestInput } from '../../../core/components/ui/FilterSuggestInput';
 import { http } from '../../../core/api/http';
+import { suggestInventories } from '../../../core/api/filterSuggestions';
 import { productApi } from '../../../core/api/product.api';
 import { listBranches } from '../../../core/api/branch.api';
 import type { BranchRecord } from '../../../core/api/branch.api';
@@ -482,13 +484,16 @@ export function InventoryList() {
         <form className="inv-filter-bar" onSubmit={handleSearch}>
           <div className="inv-search">
             <Search size={15} />
-            <input
+            <FilterSuggestInput
+              bare
               ref={searchRef}
               data-product-search-scan="true"
               data-product-search-primary="true"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={setSearch}
+              fetchSuggestions={suggestInventories}
               placeholder="Tên SP, mã SP..."
+              aria-label="Tìm theo tên hoặc mã sản phẩm"
             />
           </div>
 

@@ -115,7 +115,8 @@ export function RetailInvoiceCreatePage() {
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   /** Remote search hits (catalog may exceed initial inventory page). */
   const [remoteProductHits, setRemoteProductHits] = useState<any[]>([]);
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  /** Which customer field is actively searching for existing customers. */
+  const [customerSuggestField, setCustomerSuggestField] = useState<'name' | 'phone' | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -361,11 +362,11 @@ export function RetailInvoiceCreatePage() {
   }, [productSearch, activeBranchId, showProductDropdown]);
 
   useEffect(() => {
-    if (!showCustomerDropdown) {
+    if (!customerSuggestField) {
       setCustomerSuggestions([]);
       return;
     }
-    const keyword = (form.customerName || form.phone).trim();
+    const keyword = (customerSuggestField === 'phone' ? form.phone : form.customerName).trim();
     if (!keyword) {
       setCustomerSuggestions([]);
       return;
@@ -383,7 +384,7 @@ export function RetailInvoiceCreatePage() {
         .catch(() => setCustomerSuggestions([]));
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [form.customerName, form.phone, showCustomerDropdown]);
+  }, [form.customerName, form.phone, customerSuggestField]);
 
   const addProduct = (product: any) => {
     const stock = getAvailableStock(product, activeBranchId);
@@ -489,7 +490,8 @@ export function RetailInvoiceCreatePage() {
       cardId: customer.cardId || '',
       customerLevel: customer.customerLevel || '',
     }));
-    setShowCustomerDropdown(false);
+    setCustomerSuggestField(null);
+    setCustomerSuggestions([]);
   };
 
   const handleBranchChange = async (branchId: string) => {
@@ -527,6 +529,7 @@ export function RetailInvoiceCreatePage() {
     if (editBlockedReason) return setErrorMessage(editBlockedReason);
     if (!activeBranchId) return setErrorMessage('Vui lòng chọn cửa hàng/kho xuất hàng.');
     if (!form.customerName.trim()) return setErrorMessage('Vui lòng nhập tên khách hàng.');
+    if (!form.phone.trim()) return setErrorMessage('Vui lòng nhập số điện thoại khách hàng.');
     if (products.length === 0) return setErrorMessage('Vui lòng thêm ít nhất một sản phẩm.');
     if (products.some((line) => line.quantity > line.stock + line.originalQuantity)) {
       return setErrorMessage('Số lượng sản phẩm vượt quá tồn kho của cửa hàng.');
@@ -720,18 +723,19 @@ export function RetailInvoiceCreatePage() {
                 <span>Tên khách hàng *</span>
                 <input
                   value={form.customerName}
-                  placeholder="Nhập họ tên hoặc số điện thoại"
+                  placeholder="Nhập họ tên để tìm khách đã mua"
                   aria-required="true"
-                  onFocus={() => setShowCustomerDropdown(true)}
-                  onBlur={() => window.setTimeout(() => setShowCustomerDropdown(false), 150)}
+                  autoComplete="off"
+                  onFocus={() => setCustomerSuggestField('name')}
+                  onBlur={() => window.setTimeout(() => setCustomerSuggestField((current) => (current === 'name' ? null : current)), 150)}
                   onChange={(event) => {
                     setSelectedCustomerId('');
                     setForm((current) => ({ ...current, customerName: event.target.value }));
-                    setShowCustomerDropdown(true);
+                    setCustomerSuggestField('name');
                   }}
                 />
-                {showCustomerDropdown && customerSuggestions.length > 0 && (
-                  <div className="create-dropdown">
+                {customerSuggestField === 'name' && customerSuggestions.length > 0 && (
+                  <div className="create-dropdown" role="listbox" aria-label="Gợi ý khách hàng theo tên">
                     {customerSuggestions.map((customer) => (
                       <button type="button" key={customer._id} onMouseDown={(event) => event.preventDefault()} onClick={() => selectCustomer(customer)}>
                         <strong>{customer.name}</strong><span>{customer.phone || '—'}</span>
@@ -740,7 +744,31 @@ export function RetailInvoiceCreatePage() {
                   </div>
                 )}
               </label>
-              <label><span>Số điện thoại</span><input value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} /></label>
+              <label className="customer-search">
+                <span>Số điện thoại *</span>
+                <input
+                  value={form.phone}
+                  placeholder="Nhập SĐT để tìm khách đã mua"
+                  aria-required="true"
+                  autoComplete="off"
+                  onFocus={() => setCustomerSuggestField('phone')}
+                  onBlur={() => window.setTimeout(() => setCustomerSuggestField((current) => (current === 'phone' ? null : current)), 150)}
+                  onChange={(event) => {
+                    setSelectedCustomerId('');
+                    setForm((current) => ({ ...current, phone: event.target.value }));
+                    setCustomerSuggestField('phone');
+                  }}
+                />
+                {customerSuggestField === 'phone' && customerSuggestions.length > 0 && (
+                  <div className="create-dropdown" role="listbox" aria-label="Gợi ý khách hàng theo SĐT">
+                    {customerSuggestions.map((customer) => (
+                      <button type="button" key={customer._id} onMouseDown={(event) => event.preventDefault()} onClick={() => selectCustomer(customer)}>
+                        <strong>{customer.name}</strong><span>{customer.phone || '—'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </label>
               <label><span>Email</span><input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /></label>
               <label><span>Facebook</span><input value={form.facebook} onChange={(event) => setForm((current) => ({ ...current, facebook: event.target.value }))} /></label>
               <label><span>Ngày sinh</span><input type="date" value={form.dob} onChange={(event) => setForm((current) => ({ ...current, dob: event.target.value }))} /></label>

@@ -580,7 +580,7 @@
   z-index: 1;
   background: #f8fafc;
   border-bottom: 1px solid var(--rbt-border);
-  text-align: left;
+  text-align: center;
   padding: 0;
   color: var(--rbt-muted);
   font-weight: 700;
@@ -592,7 +592,7 @@
   background: transparent;
   padding: 10px 12px;
   width: 100%;
-  text-align: left;
+  text-align: center;
   font: inherit;
   font-weight: 700;
   color: inherit;
@@ -607,6 +607,7 @@
   padding: 10px 12px;
   border-bottom: 1px solid rgba(15, 23, 42, 0.05);
   white-space: nowrap;
+  text-align: center;
 }
 
 .rbt-table tbody tr:hover td {
@@ -615,7 +616,7 @@
 
 .rbt-table td.num,
 .rbt-table th.num {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
