@@ -60,6 +60,7 @@ import {
   deleteActionState,
 } from './invoiceHelpers';
 import './wholesale-invoice-page.css';
+import './wholesale-invoice-soft-type.css';
 
 type WholesaleInvoicePageProps = {
   channel: string;

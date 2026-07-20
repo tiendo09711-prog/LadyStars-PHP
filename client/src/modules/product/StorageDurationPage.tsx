@@ -34,6 +34,7 @@ import { InventoryReportShell } from '../reports/inventory/components/InventoryR
 import { ExportExcelModal, type ColumnOption } from './components/ExportExcelModal';
 import './product-compact.css';
 import './products-page.css';
+import './storage-duration-soft-type.css';
 
 const STORAGE_ALERT_DAYS = 30;
 type StorageTab = 'all' | 'unsold_long' | 'slow_selling';

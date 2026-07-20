@@ -1,0 +1,460 @@
+/* ============================================================
+   Warehouse Branches soft type — match staff-page / products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .warehouse-branches-root only (/warehouse/branches).
+   Modal is in-tree (not portaled); styled via root descendants.
+   ============================================================ */
+
+.warehouse-branches-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.warehouse-branches-root h1,
+.warehouse-branches-root h2,
+.warehouse-branches-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.warehouse-branches-root h1 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.warehouse-branches-root h2 {
+  font-size: 15px;
+}
+
+.warehouse-branches-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.warehouse-branches-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-branches-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.warehouse-branches-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn (actions row, invoice actions, confirm modal) */
+.warehouse-branches-root .btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.warehouse-branches-root .btn:hover {
+  transform: none;
+}
+
+.warehouse-branches-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.16);
+}
+
+.warehouse-branches-root .warehouse-actions-row .btn,
+.warehouse-branches-root .invoice-tpl-actions .btn {
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ---------- Loading / alerts / notice ---------- */
+.warehouse-branches-root.warehouse-branches-loading {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-branches-root .data-alert {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.warehouse-branches-root .warehouse-branches-notice {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #047857;
+}
+
+/* ---------- Toolbar eyebrow + tabs ---------- */
+.warehouse-branches-root .warehouse-branches-toolbar-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #0f766e;
+}
+
+.warehouse-branches-root .warehouse-branches-tab.is-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.warehouse-branches-root .warehouse-branches-tab.is-compact:hover {
+  color: #0f766e;
+}
+
+.warehouse-branches-root .warehouse-branches-tab.is-compact.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+/* ---------- Summary strip (KPI-like) ---------- */
+.warehouse-branches-root .warehouse-branches-summary-cluster {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #047857;
+}
+
+.warehouse-branches-root .warehouse-branches-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-branches-root .warehouse-branches-summary-main strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.warehouse-branches-root .warehouse-branches-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+/* ---------- Filter / search / toolbar buttons ---------- */
+.warehouse-branches-root .warehouse-branches-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.warehouse-branches-root .warehouse-branches-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.warehouse-branches-root .warehouse-branches-btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.warehouse-branches-root .warehouse-branches-btn:hover {
+  transform: none;
+}
+
+.warehouse-branches-root .warehouse-branches-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.14);
+}
+
+/* ---------- List panel ---------- */
+.warehouse-branches-root .warehouse-branch-list-title,
+.warehouse-branches-root h2.warehouse-branch-list-title {
+  margin: 0;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.warehouse-branches-root .warehouse-branch-list-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.warehouse-branches-root .warehouse-branch-name-main {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.warehouse-branches-root .warehouse-branch-code {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .warehouse-branch-meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-branches-root .warehouse-branches-status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* Empty state */
+.warehouse-branches-root .warehouse-empty-state {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .warehouse-empty-state strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.warehouse-branches-root .warehouse-empty-state span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Detail sections ---------- */
+.warehouse-branches-root .warehouse-branch-section-title,
+.warehouse-branches-root .invoice-tpl-module-head h2,
+.warehouse-branches-root .section-heading h2 {
+  margin: 0;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.warehouse-branches-root .warehouse-branch-section-subtitle,
+.warehouse-branches-root .invoice-tpl-module-head p,
+.warehouse-branches-root .section-heading p {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* Form labels / inputs */
+.warehouse-branches-root .warehouse-branch-grid span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .warehouse-branch-grid input,
+.warehouse-branches-root .warehouse-branch-grid textarea {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.warehouse-branches-root .warehouse-branch-grid input::placeholder,
+.warehouse-branches-root .warehouse-branch-grid textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.warehouse-branches-root .warehouse-branch-grid textarea {
+  min-height: 72px;
+}
+
+/* State card (status KPI-ish) */
+.warehouse-branches-root .warehouse-state-card span {
+  font-size: 11px;
+  font-weight: 550;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.warehouse-branches-root .warehouse-state-card strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.warehouse-branches-root .warehouse-state-card strong.is-active {
+  color: #047857;
+}
+
+.warehouse-branches-root .warehouse-state-card strong.is-inactive {
+  color: #b91c1c;
+}
+
+/* Usage summary */
+.warehouse-branches-root .usage-summary-top strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.warehouse-branches-root .usage-summary-top span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-branches-root .usage-summary-item span {
+  font-size: 11px;
+  font-weight: 550;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .usage-summary-item strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.warehouse-branches-root .usage-empty {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .usage-legacy-note {
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+/* ---------- Invoice template chrome (UI chrome only; paper stays readable) ---------- */
+.warehouse-branches-root .invoice-tpl-col-header {
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: #334155;
+}
+
+.warehouse-branches-root .invoice-tpl-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-branches-root .invoice-tpl-control-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .invoice-tpl-control-group label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.warehouse-branches-root .invoice-tpl-control-group select {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.warehouse-branches-root .invoice-tpl-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* Soften paper mock title weights slightly (still looks like a receipt) */
+.warehouse-branches-root .invoice-tpl-inline-input.is-brand {
+  font-weight: 650;
+  font-size: 15px;
+}
+
+.warehouse-branches-root .invoice-tpl-inline-input.is-title {
+  font-weight: 650;
+  font-size: 16px;
+}
+
+.warehouse-branches-root .invoice-tpl-demo-table th {
+  font-weight: 600;
+}
+
+.warehouse-branches-root .invoice-tpl-total-row.is-strong {
+  font-weight: 650;
+}
+
+/* ---------- Confirm modal (inside root) ---------- */
+.warehouse-branches-root .warehouse-modal-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.warehouse-branches-root .warehouse-modal-header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .warehouse-modal-body p {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.warehouse-branches-root .warehouse-modal-body span,
+.warehouse-branches-root .warehouse-modal-body label > span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .warehouse-password-field input,
+.warehouse-branches-root .warehouse-modal-body input {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.warehouse-branches-root .warehouse-password-field input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.warehouse-branches-root .warehouse-modal-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.warehouse-branches-root .warehouse-modal-actions .btn {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+}

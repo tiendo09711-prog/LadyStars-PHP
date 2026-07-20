@@ -25,6 +25,7 @@ import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput'
 import { printWarehouseTransfer } from './transferPrint';
 import './warehouseRecords.css';
 import './warehouse-transfer-list-ui.css';
+import './warehouse-transfer-soft-type.css';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 
@@ -781,7 +782,7 @@ export function WarehouseTransferPage() {
       {openRow && rowMenuPos
         ? createPortal(
             <div
-              className="wt-row-action-menu wt-row-action-menu--portal"
+              className="wt-row-action-menu wt-row-action-menu--portal wt-transfer-row-menu"
               role="menu"
               style={{ top: rowMenuPos.top, left: rowMenuPos.left }}
             >

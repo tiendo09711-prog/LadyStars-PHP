@@ -8,14 +8,17 @@ type InventoryReportShellProps = {
   children: ReactNode;
   /** ISO timestamp or pre-formatted label from a real API response only. */
   lastUpdatedLabel?: string | null;
+  /** Optional page-scoped class (e.g. soft-type root) on the shell wrapper. */
+  className?: string;
 };
 
-export function InventoryReportShell({ children, lastUpdatedLabel }: InventoryReportShellProps) {
+export function InventoryReportShell({ children, lastUpdatedLabel, className }: InventoryReportShellProps) {
   const location = useLocation();
   const activeTab = resolveInventoryReportTab(location.pathname);
+  const shellClass = ['inventory-report-shell', className].filter(Boolean).join(' ');
 
   return (
-    <main className="inventory-report-shell" data-inventory-report-shell="true">
+    <main className={shellClass} data-inventory-report-shell="true">
       <header className="inventory-report-shell__header">
         <div className="inventory-report-shell__title-block">
           <h1>Báo cáo kho hàng</h1>

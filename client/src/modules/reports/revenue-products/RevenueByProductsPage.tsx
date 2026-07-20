@@ -70,6 +70,7 @@ import {
   validateProductFilterDraft,
 } from './revenueByProducts.utils';
 import './revenue-by-products.css';
+import './revenue-by-products-soft-type.css';
 
 const CHART_COLORS = [
   '#10b981',

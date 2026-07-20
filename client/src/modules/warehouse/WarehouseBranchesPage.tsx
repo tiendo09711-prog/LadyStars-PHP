@@ -45,6 +45,7 @@ import {
 } from '../../core/api/branch.api';
 import { buildReceiptHtml } from '../sales/invoicePrint';
 import './warehouseBranchesPage.css';
+import './warehouse-branches-soft-type.css';
 
 type BranchFormState = {
   name: string;

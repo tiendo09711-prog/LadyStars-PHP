@@ -1,0 +1,408 @@
+/* ============================================================
+   Customer Care soft type — match staff-page / products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .customer-care-page / .care-root only.
+   Dropdowns render in-root (not body portal).
+   ============================================================ */
+
+.customer-care-page.care-root,
+.customer-care-page {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.customer-care-page h1,
+.customer-care-page h2,
+.customer-care-page h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.customer-care-page h1 {
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.customer-care-page h2 {
+  font-size: 15px;
+}
+
+.customer-care-page h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.customer-care-page p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.customer-care-page strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.customer-care-page small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn used in modals */
+.customer-care-page .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.customer-care-page .btn:hover {
+  transform: none;
+}
+
+.customer-care-page .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+.customer-care-page .icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+/* ---------- Toolbar title chip / eyebrow ---------- */
+.customer-care-page .care-toolbar-eyebrow {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .06em;
+  color: #047857;
+}
+
+.customer-care-page .care-title-chip {
+  min-height: 30px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #047857;
+  box-shadow: none;
+}
+
+/* ---------- Summary / KPI strip ---------- */
+.customer-care-page .care-summary-cluster {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #047857;
+}
+
+.customer-care-page .care-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.customer-care-page .care-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.customer-care-page .care-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+/* ---------- Filters / toolbar actions ---------- */
+.customer-care-page .care-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.customer-care-page .care-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.customer-care-page .care-filter-select {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  border-radius: 10px;
+}
+
+.customer-care-page .care-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.customer-care-page .care-btn:hover {
+  transform: none;
+}
+
+.customer-care-page .care-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .14);
+}
+
+/* ---------- Filter chips / pills ---------- */
+.customer-care-page .care-chip {
+  min-height: 24px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.customer-care-page .care-selected-pill,
+.customer-care-page .care-selected-count,
+.customer-care-page .care-busy-pill {
+  min-height: 24px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.customer-care-page .care-selected-count {
+  color: #047857;
+}
+
+/* ---------- Dropdown (in-root) ---------- */
+.customer-care-page .care-dropdown-item {
+  min-height: 34px;
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+.customer-care-page .care-floating-dropdown {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Table card header ---------- */
+.customer-care-page .care-table-title,
+.customer-care-page h2.care-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.customer-care-page .care-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Table ---------- */
+.customer-care-page .care-data-table th,
+.customer-care-page .care-data-table td {
+  padding: 10px 12px !important;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.customer-care-page .care-data-table thead th,
+.customer-care-page .care-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.customer-care-page .care-data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+}
+
+.customer-care-page .care-data-table td strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.customer-care-page .care-data-table small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-care-page .care-sort-button {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: inherit;
+}
+
+/* Cell content */
+.customer-care-page .care-name-main {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.customer-care-page .care-name-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-care-page .care-code,
+.customer-care-page .care-link-button {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.customer-care-page .care-number,
+.customer-care-page .care-data-table td.care-col-phone,
+.customer-care-page .care-data-table td.care-col-date {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+}
+
+.customer-care-page .care-clamp-cell {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Badge ---------- */
+.customer-care-page .care-status-badge,
+.customer-care-page .status-badge,
+.customer-care-page .record-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Empty / feedback ---------- */
+.customer-care-page .care-empty-cell {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-care-page .care-empty-state strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.customer-care-page .care-empty-state span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-care-page .care-feedback {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.customer-care-page .care-feedback.error,
+.customer-care-page .customer-feedback.error {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Pagination ---------- */
+.customer-care-page .pagination,
+.customer-care-page .pagination button,
+.customer-care-page .pagination span,
+.customer-care-page .page-size-select,
+.customer-care-page [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Modal (create/edit + action modal render in-root) ---------- */
+.customer-care-page .modal-header h2 {
+  font-size: 16px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.customer-care-page .modal-header p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-care-page .form-field > span,
+.customer-care-page .form-field span,
+.customer-care-page label.form-field > span,
+.customer-care-page .customer-modal-grid .form-field span {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.customer-care-page .form-field input,
+.customer-care-page .form-field select,
+.customer-care-page .form-field textarea,
+.customer-care-page .customer-modal-grid .form-field input,
+.customer-care-page .customer-modal-grid .form-field select,
+.customer-care-page .customer-modal-grid .form-field textarea {
+  min-height: 34px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  border-radius: 10px;
+}
+
+.customer-care-page .form-field textarea {
+  min-height: 72px;
+}
+
+.customer-care-page .modal-card .data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.customer-care-page .modal-card .data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+}
+
+.customer-care-page .field-error-text,
+.customer-care-page .form-error {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+/* Soften any remaining ultra-bold text under care root */
+.customer-care-page [style*='font-weight: 800'],
+.customer-care-page [style*='font-weight:800'],
+.customer-care-page [style*='font-weight: 900'],
+.customer-care-page [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+@media (max-width: 720px) {
+  .customer-care-page .care-table-title {
+    font-size: 14px !important;
+  }
+
+  .customer-care-page .modal-header h2 {
+    font-size: 15px;
+  }
+}

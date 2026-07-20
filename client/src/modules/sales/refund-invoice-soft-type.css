@@ -1,0 +1,444 @@
+/* ============================================================
+   Refund invoice soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .refund-root (list route sales-channels channel refund).
+   Portal row menu styled separately (body-level).
+   ============================================================ */
+
+.refund-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Base headings / text ---------- */
+.refund-root h1,
+.refund-root h2,
+.refund-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.refund-root h1 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.refund-root h2 {
+  font-size: 15px;
+}
+
+.refund-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.refund-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.refund-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.refund-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Shared chrome (.btn if any) ---------- */
+.refund-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.refund-root .btn:hover {
+  transform: none;
+}
+
+.refund-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.16);
+}
+
+.refund-root .record-badge,
+.refund-root .status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Toolbar chips / title ---------- */
+.refund-root .refund-toolbar-eyebrow {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #047857;
+}
+
+.refund-root .refund-toolbar-title-chip {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: #047857;
+  box-shadow: none;
+}
+
+/* ---------- Summary KPI strip ---------- */
+.refund-root .refund-summary-cluster {
+  font-size: 11.5px !important;
+  font-weight: 550 !important;
+  color: #047857;
+}
+
+.refund-root .refund-summary-main {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.refund-root .refund-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #065f46 !important;
+  letter-spacing: -0.01em;
+}
+
+.refund-root .refund-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+/* ---------- Filters / inputs / buttons ---------- */
+.refund-root .refund-search {
+  min-height: 34px;
+}
+
+.refund-root .refund-search input,
+.refund-root .filter-suggest__input {
+  min-height: 32px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+}
+
+.refund-root .refund-search input::placeholder,
+.refund-root .filter-suggest__input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.refund-root .refund-filter-select {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+  border-radius: 10px;
+}
+
+.refund-root .refund-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+
+.refund-root .refund-btn:hover {
+  transform: none;
+}
+
+.refund-root .refund-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.14) !important;
+}
+
+/* ---------- Alert ---------- */
+.refund-root .refund-alert {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.refund-root .refund-alert strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #b42318;
+}
+
+.refund-root .refund-alert span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #b42318;
+}
+
+.refund-root .refund-alert button {
+  font-size: 12.5px;
+  font-weight: 600 !important;
+}
+
+/* ---------- Table header / section title ---------- */
+.refund-root .refund-table-title,
+.refund-root h2.refund-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.refund-root .refund-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.refund-root .refund-selected-count {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #64748b;
+}
+
+.refund-root .refund-selected-count.is-active {
+  font-weight: 600 !important;
+  color: #047857;
+}
+
+/* ---------- Data table ---------- */
+.refund-root .refund-data-table th,
+.refund-root .data-table.refund-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+  padding: 10px 12px;
+}
+
+.refund-root .refund-data-table td,
+.refund-root .data-table.refund-data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.refund-root .refund-data-table td strong,
+.refund-root .refund-stack strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.refund-root .refund-stack span,
+.refund-root .refund-name-sub {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.refund-root .refund-name-main {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.refund-root .refund-code,
+.refund-root .refund-link-button {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.refund-root .refund-code:hover,
+.refund-root .refund-link-button:hover {
+  color: #059669 !important;
+}
+
+.refund-root .refund-data-table .number,
+.refund-root .refund-number,
+.refund-root .refund-price {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+/* ---------- Status badge ---------- */
+.refund-root .refund-status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Empty / skeleton ---------- */
+.refund-root .refund-empty-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.refund-root .refund-empty-state strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+}
+
+.refund-root .refund-empty-state span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Pagination ---------- */
+.refund-root .refund-pagination,
+.refund-root .refund-pagination span,
+.refund-root .refund-pagination strong {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+.refund-root .refund-pagination strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.refund-root .refund-pagination button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Export modal (rendered inside .refund-root) ---------- */
+.refund-root .export-header h3 {
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+}
+
+.refund-root .export-section-title {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+}
+
+.refund-root .export-radio-label,
+.refund-root .export-checkbox-label,
+.refund-root .export-tab {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+  color: #475569;
+}
+
+.refund-root .export-tab.active {
+  font-weight: 650 !important;
+  color: #059669;
+}
+
+.refund-root .export-input-field label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.refund-root .export-text-input,
+.refund-root .export-column-rename-input,
+.refund-root .export-columns-search input {
+  min-height: 34px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  border-radius: 10px;
+}
+
+.refund-root .export-btn {
+  min-height: 34px !important;
+  padding: 0 12px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 999px;
+  box-shadow: none !important;
+}
+
+.refund-root .export-btn:hover {
+  transform: none;
+}
+
+.refund-root .gsheet-badge {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* Soften any remaining ultra-bold text under refund-root */
+.refund-root [style*='font-weight: 800'],
+.refund-root [style*='font-weight:800'],
+.refund-root [style*='font-weight: 900'],
+.refund-root [style*='font-weight:900'],
+.refund-root [style*='font-weight: 750'],
+.refund-root [style*='font-weight:750'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Portaled row action menu (body-level) ---------- */
+.refund-row-action-menu--portal,
+.refund-row-action-menu {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.refund-row-action-menu--portal button,
+.refund-row-action-menu button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+/* Portaled filter suggest (body-level; soft scale only) */
+.filter-suggest__panel--portal .filter-suggest__label {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.filter-suggest__panel--portal .filter-suggest__meta {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.filter-suggest__panel--portal .filter-suggest__status {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.filter-suggest__panel--portal .filter-suggest__item {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+@media (max-width: 720px) {
+  .refund-root .refund-table-title {
+    font-size: 14px !important;
+  }
+
+  .refund-root .refund-summary-main strong {
+    font-size: 12.5px !important;
+  }
+}

@@ -1,0 +1,419 @@
+/* ============================================================
+   In-out-stock soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .inout-stock-root only
+   (route /reports/inventory/in-out-stock).
+   Shell H1 + inventory report tabs live under the same root.
+   Modals render inside .inout-page (in-root).
+   Filter-suggest dropdown portals to body — separate rules below.
+   ============================================================ */
+
+.inout-stock-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.inout-stock-root h1,
+.inout-stock-root h2,
+.inout-stock-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.inout-stock-root h1 {
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.inout-stock-root h2 {
+  font-size: 15px;
+}
+
+.inout-stock-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.inout-stock-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.inout-stock-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.inout-stock-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Shell header ---------- */
+.inout-stock-root .inventory-report-shell__title-block h1 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.inout-stock-root .inventory-report-shell__title-block p {
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.inout-stock-root .inventory-report-shell__meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* ---------- Report nav tabs (this route only) ---------- */
+.inout-stock-root .inventory-report-nav__tab {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.inout-stock-root .inventory-report-nav__tab.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+/* ---------- Filters ---------- */
+.inout-stock-root .inout-filters__head h2 {
+  font-size: 13px;
+  font-weight: 650;
+  color: #334155;
+  letter-spacing: -.01em;
+}
+
+.inout-stock-root .inout-filters__toggle {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  color: #475569;
+}
+
+.inout-stock-root .inout-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.inout-stock-root .inout-field input,
+.inout-stock-root .inout-field select,
+.inout-stock-root .inout-field textarea,
+.inout-stock-root .inout-field .filter-suggest__input {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.inout-stock-root .inout-field input::placeholder,
+.inout-stock-root .inout-field .filter-suggest__input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.inout-stock-root .inout-field .filter-suggest {
+  min-height: 34px;
+}
+
+/* ---------- Buttons ---------- */
+.inout-stock-root .inout-btn,
+.inout-stock-root .btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.inout-stock-root .inout-btn:hover,
+.inout-stock-root .btn:hover {
+  transform: none;
+}
+
+.inout-stock-root .inout-btn--primary,
+.inout-stock-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+.inout-stock-root .inout-filter-actions .inout-btn,
+.inout-stock-root .inout-filters .inout-btn {
+  border-radius: 10px;
+}
+
+.inout-stock-root .inout-view-link,
+.inout-stock-root .inout-modal__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+/* ---------- Validation / error / empty ---------- */
+.inout-stock-root .inout-validation {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.inout-stock-root .inout-error {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.inout-stock-root .inout-error span {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.inout-stock-root .inout-empty {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.inout-stock-root .inout-refreshing-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #059669;
+}
+
+/* ---------- Reconciliation banner ---------- */
+.inout-stock-root .inout-reconciliation strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.inout-stock-root .inout-reconciliation span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.inout-stock-root .inout-reconciliation > span {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- KPI ---------- */
+.inout-stock-root .inout-kpi span {
+  font-size: 11px;
+  font-weight: 550;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.inout-stock-root .inout-kpi strong {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  color: #1e293b;
+  line-height: 1.25;
+}
+
+.inout-stock-root .inout-kpi strong.is-pos {
+  color: #047857;
+}
+
+.inout-stock-root .inout-kpi strong.is-neg {
+  color: #b91c1c;
+}
+
+/* ---------- Cards / sections ---------- */
+.inout-stock-root .inout-card h2 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  color: #1e293b;
+}
+
+.inout-stock-root .inout-card__meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Table ---------- */
+.inout-stock-root .inout-table {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.inout-stock-root .inout-table th {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.inout-stock-root .inout-table th button {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.inout-stock-root .inout-table th button:hover,
+.inout-stock-root .inout-table th[aria-sort='ascending'] button,
+.inout-stock-root .inout-table th[aria-sort='descending'] button {
+  color: #059669;
+  font-weight: 650;
+}
+
+.inout-stock-root .inout-table td {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.inout-stock-root .inout-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.inout-stock-root .inout-muted {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Pagination ---------- */
+.inout-stock-root .inout-pagination {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.inout-stock-root .inout-pagination__info {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* ---------- Modal (in-root) ---------- */
+.inout-stock-root .inout-modal__head h2 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  color: #1e293b;
+}
+
+.inout-stock-root .inout-modal__head p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.inout-stock-root .inout-bill-eyebrow {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .04em !important;
+  text-transform: uppercase;
+  color: #059669 !important;
+}
+
+.inout-stock-root .inout-bill-summary span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: .02em;
+}
+
+.inout-stock-root .inout-bill-summary strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ---------- Chart ticks (recharts) ---------- */
+.inout-stock-root .inout-chart .recharts-cartesian-axis-tick-value {
+  font-size: 11px;
+  font-weight: 500;
+  fill: #94a3b8;
+}
+
+.inout-stock-root .inout-chart .recharts-legend-item-text {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+/* Soften any remaining ultra-bold text under this page */
+.inout-stock-root [style*='font-weight: 800'],
+.inout-stock-root [style*='font-weight:800'],
+.inout-stock-root [style*='font-weight: 900'],
+.inout-stock-root [style*='font-weight:900'],
+.inout-stock-root [style*='font-weight: 750'],
+.inout-stock-root [style*='font-weight:750'] {
+  font-weight: 650 !important;
+}
+
+/* Portaled filter-suggest panel (body, not under .inout-stock-root) */
+.filter-suggest__panel--portal .filter-suggest__label {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #334155;
+}
+
+.filter-suggest__panel--portal .filter-suggest__meta {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.filter-suggest__panel--portal .filter-suggest__status {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.filter-suggest__panel--portal .filter-suggest__item {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+@media (max-width: 720px) {
+  .inout-stock-root .inventory-report-shell__title-block h1 {
+    font-size: 18px;
+  }
+
+  .inout-stock-root .inout-kpi strong {
+    font-size: 16px;
+  }
+
+  .inout-stock-root .inout-card h2,
+  .inout-stock-root .inout-modal__head h2 {
+    font-size: 14px;
+  }
+}

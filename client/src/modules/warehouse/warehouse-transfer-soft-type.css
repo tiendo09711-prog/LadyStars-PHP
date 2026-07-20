@@ -1,0 +1,309 @@
+/* ============================================================
+   Warehouse Transfer soft type — match staff-page / products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .warehouse-transfer-root only (list page).
+   Portal menus: .wt-row-action-menu--portal (body portal).
+   ============================================================ */
+
+.warehouse-transfer-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.warehouse-transfer-root h1,
+.warehouse-transfer-root h2,
+.warehouse-transfer-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.warehouse-transfer-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-transfer-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.warehouse-transfer-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn used in confirm modal */
+.warehouse-transfer-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.warehouse-transfer-root .btn:hover {
+  transform: none;
+}
+
+.warehouse-transfer-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+/* ---------- Tabs ---------- */
+.warehouse-transfer-root .wt-tab.is-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.warehouse-transfer-root .wt-tab.is-compact.is-active {
+  font-weight: 650;
+  color: #059669;
+}
+
+/* ---------- Summary / KPI strip ---------- */
+.warehouse-transfer-root .wt-summary-cluster {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #047857;
+}
+
+.warehouse-transfer-root .wt-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-transfer-root .wt-summary-main strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+  letter-spacing: -.01em;
+}
+
+.warehouse-transfer-root .wt-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+/* ---------- Filters / toolbar actions ---------- */
+.warehouse-transfer-root .wt-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.warehouse-transfer-root .wt-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.warehouse-transfer-root .wt-filter-select {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.warehouse-transfer-root .wt-btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.warehouse-transfer-root .wt-btn:hover {
+  transform: none;
+}
+
+.warehouse-transfer-root .wt-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .14);
+}
+
+.warehouse-transfer-root .wt-btn-inline {
+  min-height: 30px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+/* ---------- Table card header ---------- */
+.warehouse-transfer-root .wt-table-title,
+.warehouse-transfer-root h2.wt-table-title {
+  margin: 0 0 4px;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.warehouse-transfer-root .wt-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.warehouse-transfer-root .wt-selected-count {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+/* ---------- Table ---------- */
+.warehouse-transfer-root .wt-data-table th,
+.warehouse-transfer-root .data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+  padding: 10px 12px;
+}
+
+.warehouse-transfer-root .wt-data-table td,
+.warehouse-transfer-root .data-table td {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.warehouse-transfer-root .wt-data-table td strong,
+.warehouse-transfer-root .data-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.warehouse-transfer-root .wt-name-main {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.warehouse-transfer-root .wt-name-main.is-compact {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.warehouse-transfer-root .wt-name-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.warehouse-transfer-root .wt-direction-cell {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.warehouse-transfer-root .wt-link-button {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.warehouse-transfer-root .wt-number {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ---------- Badge / status ---------- */
+.warehouse-transfer-root .wt-status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Notices / empty ---------- */
+.warehouse-transfer-root .wt-notice,
+.warehouse-transfer-root .wt-error {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.warehouse-transfer-root .wt-error button {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.warehouse-transfer-root .wt-empty-state strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.warehouse-transfer-root .wt-empty-state span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Confirm modal (rendered inside root) ---------- */
+.warehouse-transfer-root .wr-confirm-modal h2 {
+  font-size: 15px;
+  font-weight: 650;
+  color: #1e293b;
+  letter-spacing: -.01em;
+}
+
+.warehouse-transfer-root .wr-confirm-modal p {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.warehouse-transfer-root .wr-confirm-modal p strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ---------- Pagination ---------- */
+.warehouse-transfer-root .pagination,
+.warehouse-transfer-root .pagination button,
+.warehouse-transfer-root .pagination span,
+.warehouse-transfer-root .page-size-select,
+.warehouse-transfer-root [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* Soften any remaining ultra-bold inline styles under root */
+.warehouse-transfer-root [style*='font-weight: 800'],
+.warehouse-transfer-root [style*='font-weight:800'],
+.warehouse-transfer-root [style*='font-weight: 900'],
+.warehouse-transfer-root [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Portaled row menu (body portal — not under root) ----------
+   Use transfer-only class so /warehouse/transactions portal is untouched. */
+.wt-transfer-row-menu {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.wt-transfer-row-menu button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}

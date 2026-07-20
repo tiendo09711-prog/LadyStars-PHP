@@ -1,0 +1,561 @@
+/* ============================================================
+   Revenue-by-store soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .rbs-page only (/reports/revenue/store).
+   Menus/modal render inside root (no body portal).
+   ============================================================ */
+
+.rbs-page {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.rbs-page h1,
+.rbs-page h2,
+.rbs-page h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.rbs-page h1 {
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.rbs-page h2 {
+  font-size: 15px;
+}
+
+.rbs-page h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.rbs-page p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbs-page strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbs-page small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Page hero ---------- */
+.rbs-page .rbs-hero h1 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  color: #1e293b;
+  line-height: 1.28;
+}
+
+.rbs-page .rbs-hero p {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.rbs-page .rbs-hero-meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Shared buttons ---------- */
+.rbs-page .btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.rbs-page .btn:hover {
+  transform: none;
+}
+
+.rbs-page .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+/* Compact filter toolbar actions */
+.rbs-page .rbs-filter-actions-primary .btn,
+.rbs-page .rbs-advanced-toggle {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+/* ---------- Revenue report nav (only when nested in this page) ---------- */
+.rbs-page .revenue-report-nav__intro strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.rbs-page .revenue-report-nav__intro span {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbs-page .revenue-report-nav__tab {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.rbs-page .revenue-report-nav__tab.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+.rbs-page .revenue-report-nav__tab:hover {
+  color: #0f766e;
+}
+
+/* ---------- Section / card headers ---------- */
+.rbs-page .rbs-filters-head h2,
+.rbs-page .rbs-surface-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  color: #1e293b;
+}
+
+.rbs-page .rbs-filters-head p,
+.rbs-page .rbs-surface-head p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Filters / form labels & controls ---------- */
+.rbs-page .rbs-field {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-field select,
+.rbs-page .rbs-field input,
+.rbs-page .rbs-inline-field select {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.rbs-page .rbs-field input::placeholder,
+.rbs-page .rbs-store-select-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.rbs-page .rbs-field-readonly strong {
+  height: 34px;
+  line-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbs-page .rbs-field-hint,
+.rbs-page .rbs-pending-filter {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-pending-filter {
+  color: #b45309;
+  font-weight: 550;
+}
+
+.rbs-page .rbs-filter-error {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rbs-page .rbs-options-error {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Sticky filter denser controls stay on soft scale */
+.rbs-page .rbs-filters-sticky .rbs-field {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-filters-sticky .rbs-field select,
+.rbs-page .rbs-filters-sticky .rbs-field input,
+.rbs-page .rbs-filters-sticky .rbs-store-select-trigger {
+  height: 34px;
+  min-height: 34px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* Store multi-select */
+.rbs-page .rbs-store-select-trigger {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.rbs-page .rbs-store-select-actions {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbs-page .rbs-store-select-actions button {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rbs-page .rbs-store-option {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.rbs-page .rbs-store-option strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbs-page .rbs-store-option small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-store-select-empty {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-store-select-search input {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+/* Export dropdown (in-tree, not portal) */
+.rbs-page .rbs-export-menu button {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #334155;
+}
+
+/* ---------- KPI ---------- */
+.rbs-page .rbs-kpi-label {
+  font-size: 11px;
+  font-weight: 550;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.rbs-page .rbs-kpi-value {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  color: #1e293b;
+}
+
+.rbs-page .rbs-kpi-change {
+  font-size: 11px;
+  font-weight: 600;
+  min-height: 22px;
+  padding: 2px 8px;
+}
+
+/* ---------- Surface tools / chips / series ---------- */
+.rbs-page .rbs-surface-tools,
+.rbs-page .rbs-inline-field {
+  font-size: 12px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+.rbs-page .rbs-chip {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.rbs-page .rbs-chip.is-on {
+  font-weight: 600;
+}
+
+.rbs-page .rbs-trend-note {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Chart axis ticks slightly softer */
+.rbs-page .rbs-trend-chart-wrap .recharts-cartesian-axis-tick-value {
+  font-weight: 550;
+}
+
+/* Tooltips (dark) — keep readable, soften weight only */
+.rbs-page .rbs-tooltip {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rbs-page .rbs-tooltip-title {
+  font-weight: 600;
+}
+
+.rbs-page .rbs-tooltip-row strong {
+  font-weight: 600;
+  color: #fff;
+}
+
+.rbs-page .rbs-tooltip-hint {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ---------- Breakdown / pie legend ---------- */
+.rbs-page .rbs-breakdown-card h3 {
+  font-size: 13px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.rbs-page .rbs-legend-list {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbs-page .rbs-legend-list strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ---------- Data table ---------- */
+.rbs-page .rbs-table {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.rbs-page .rbs-table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.rbs-page .rbs-th-btn {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  color: inherit;
+  text-transform: uppercase;
+  padding: 10px 12px;
+}
+
+.rbs-page .rbs-th-btn.is-active {
+  font-weight: 650;
+  color: #059669;
+}
+
+.rbs-page .rbs-table td {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.rbs-page .rbs-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbs-page .rbs-table tfoot td {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbs-page .rbs-table-empty {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Pagination ---------- */
+.rbs-page .rbs-pagination {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbs-page .rbs-pagination .btn,
+.rbs-page .rbs-pagination-btns .btn {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ---------- Empty / alert ---------- */
+.rbs-page .rbs-empty {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-empty p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-alert {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Modal (rendered inside .rbs-page) ---------- */
+.rbs-page .rbs-modal-header p {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-modal-header h3 {
+  font-size: 15px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.rbs-page .rbs-modal-kpi span {
+  font-size: 11px;
+  font-weight: 550;
+  color: #94a3b8;
+}
+
+.rbs-page .rbs-modal-kpi strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbs-page .rbs-modal-total {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rbs-page .rbs-period-table {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.rbs-page .rbs-period-table th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.rbs-page .rbs-period-table td {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.rbs-page .rbs-period-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ---------- Print summary (soft weights when visible) ---------- */
+.rbs-page .rbs-print-summary h2 {
+  font-size: 15px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.rbs-page .rbs-print-summary p,
+.rbs-page .rbs-print-summary dt {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbs-page .rbs-print-summary dd {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Soften any remaining ultra-bold under this page */
+.rbs-page [style*='font-weight: 800'],
+.rbs-page [style*='font-weight:800'],
+.rbs-page [style*='font-weight: 900'],
+.rbs-page [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+@media (max-width: 640px) {
+  .rbs-page .rbs-hero h1 {
+    font-size: 18px;
+  }
+
+  .rbs-page .rbs-kpi-value {
+    font-size: 16px;
+  }
+
+  .rbs-page .rbs-filters-head h2,
+  .rbs-page .rbs-surface-head h2 {
+    font-size: 14px;
+  }
+}

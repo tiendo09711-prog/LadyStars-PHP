@@ -28,6 +28,7 @@ import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput'
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import { buildRefundReceiptHtml, writeAndPrintPopup } from './invoicePrint';
 import './refund-invoice-page.css';
+import './refund-invoice-soft-type.css';
 
 type RefundInvoicePageProps = {
   channel: string;

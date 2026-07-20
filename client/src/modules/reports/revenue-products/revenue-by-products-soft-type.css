@@ -1,0 +1,457 @@
+/* ============================================================
+   Revenue by products soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .rbp-page only (/reports/revenue/products).
+   Export menu is in-tree (.rbp-export-menu); filter-suggest
+   panel portals to body (.filter-suggest__panel--portal).
+   ============================================================ */
+
+.rbp-page {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.rbp-page h1,
+.rbp-page h2,
+.rbp-page h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.rbp-page h1 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.rbp-page h2 {
+  font-size: 15px;
+}
+
+.rbp-page h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.rbp-page p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbp-page strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbp-page small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Hero ---------- */
+.rbp-page .rbp-hero h1 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.rbp-page .rbp-hero p {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.rbp-page .rbp-hero-meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Buttons ---------- */
+.rbp-page .btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.rbp-page .btn:hover {
+  transform: none;
+}
+
+.rbp-page .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.16);
+}
+
+.rbp-page .rbp-export-menu button {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #475569;
+}
+
+/* ---------- Revenue report nav (in-page only) ---------- */
+.rbp-page .revenue-report-nav__intro strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.rbp-page .revenue-report-nav__intro span {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbp-page .revenue-report-nav__tab {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.rbp-page .revenue-report-nav__tab.is-active {
+  font-weight: 650;
+  color: #059669;
+}
+
+/* ---------- Filters / form controls ---------- */
+.rbp-page .rbp-filters-head h2,
+.rbp-page .rbp-surface-head h2 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: #1e293b;
+}
+
+.rbp-page .rbp-filters-head p,
+.rbp-page .rbp-surface-head p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbp-page .rbp-field {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.rbp-page .rbp-field > label,
+.rbp-page .rbp-field > span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.rbp-page .rbp-field select,
+.rbp-page .rbp-field input,
+.rbp-page .rbp-inline-field select {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.rbp-page .rbp-field input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.rbp-page .rbp-field-readonly strong {
+  height: 34px;
+  line-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbp-page .rbp-filters-sticky .rbp-field select,
+.rbp-page .rbp-filters-sticky .rbp-field input {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.rbp-page .rbp-filters-sticky .rbp-filter-actions .btn {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.rbp-page .rbp-advanced-toggle {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rbp-page .filter-suggest__input {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.rbp-page .filter-suggest__input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.rbp-page .rbp-check {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.rbp-page .rbp-filter-error,
+.rbp-page .rbp-field-error {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.rbp-page .rbp-surface-tools,
+.rbp-page .rbp-inline-field {
+  font-size: 12px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+/* ---------- Chips / badges ---------- */
+.rbp-page .rbp-chip {
+  min-height: 24px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.rbp-page .rbp-chip.is-on {
+  font-weight: 600;
+}
+
+.rbp-page .rbp-chips .rbp-chip {
+  color: #047857;
+}
+
+/* ---------- KPI ---------- */
+.rbp-page .rbp-kpi-label {
+  font-size: 11px;
+  font-weight: 550;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.rbp-page .rbp-kpi-value {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.rbp-page .rbp-kpi-change {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---------- Breakdown / legend / chart labels ---------- */
+.rbp-page .rbp-breakdown-card h3 {
+  font-size: 13px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.rbp-page .rbp-legend-list {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbp-page .rbp-legend-list strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbp-page .rbp-tooltip {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rbp-page .rbp-tooltip-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rbp-page .rbp-tooltip-row strong {
+  font-weight: 600;
+}
+
+/* Recharts axis ticks rendered inside chart wrap */
+.rbp-page .rbp-chart-wrap .recharts-cartesian-axis-tick-value,
+.rbp-page .rbp-chart-wrap .recharts-legend-item-text,
+.rbp-page .rbp-chart-wrap .recharts-text {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  fill: #64748b;
+}
+
+/* ---------- Table ---------- */
+.rbp-page .rbp-table {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.rbp-page .rbp-table thead th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+  padding: 0;
+}
+
+.rbp-page .rbp-th-btn {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: inherit;
+  padding: 10px 8px;
+}
+
+.rbp-page .rbp-th-btn.is-active {
+  font-weight: 650;
+  color: #059669;
+}
+
+.rbp-page .rbp-table td {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.rbp-page .rbp-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbp-page .rbp-table tfoot td {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbp-page .rbp-table-empty {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Pagination ---------- */
+.rbp-page .rbp-pagination {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rbp-page .rbp-pagination .btn {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rbp-page .rbp-inline-field select {
+  min-height: 34px;
+  height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* ---------- Empty / alert ---------- */
+.rbp-page .rbp-empty {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rbp-page .rbp-empty strong,
+.rbp-page .rbp-empty h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.rbp-page .rbp-alert {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.rbp-page .rbp-alert strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Soften residual ultra-bold inline styles if any */
+.rbp-page [style*='font-weight: 750'],
+.rbp-page [style*='font-weight:750'],
+.rbp-page [style*='font-weight: 800'],
+.rbp-page [style*='font-weight:800'],
+.rbp-page [style*='font-weight: 900'],
+.rbp-page [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* Portaled filter-suggest panel (body, not under .rbp-page) — soft scale shared with other soft-type pages */
+.filter-suggest__panel--portal .filter-suggest__label {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: #334155;
+}
+
+.filter-suggest__panel--portal .filter-suggest__meta {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.filter-suggest__panel--portal .filter-suggest__status {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.filter-suggest__panel--portal .filter-suggest__item {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+@media (max-width: 640px) {
+  .rbp-page .rbp-kpi-value {
+    font-size: 16px;
+  }
+
+  .rbp-page .rbp-hero h1 {
+    font-size: 18px;
+  }
+}

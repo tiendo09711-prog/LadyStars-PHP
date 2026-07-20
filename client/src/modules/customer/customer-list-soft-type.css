@@ -1,0 +1,391 @@
+/* ============================================================
+   Customer list soft type — match staff / products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .customer-list-root only (/customers/list).
+   ============================================================ */
+
+.customer-list-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.customer-list-root h1,
+.customer-list-root h2,
+.customer-list-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.customer-list-root h1 {
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.customer-list-root h2 {
+  font-size: 15px;
+}
+
+.customer-list-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.customer-list-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.customer-list-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.customer-list-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn in modal footer */
+.customer-list-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.customer-list-root .btn:hover {
+  transform: none;
+}
+
+.customer-list-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+.customer-list-root .icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+/* ---------- Toolbar title / eyebrow ---------- */
+.customer-list-root .customer-list-toolbar-eyebrow {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .05em;
+  color: #059669;
+}
+
+.customer-list-root .customer-list-title-chip {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+/* ---------- Summary strip (KPI-like) ---------- */
+.customer-list-root .customer-list-summary-cluster {
+  font-size: 11px;
+  font-weight: 550;
+  color: #047857;
+}
+
+.customer-list-root .customer-list-summary-main {
+  font-size: 11px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+.customer-list-root .customer-list-summary-main strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+  letter-spacing: -.01em;
+}
+
+.customer-list-root .customer-list-summary-filter {
+  font-size: 11px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+.customer-list-root .customer-list-selected-count {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+/* ---------- Filter bar ---------- */
+.customer-list-root .customer-list-search input {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.customer-list-root .customer-list-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.customer-list-root .customer-list-filter-select {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.customer-list-root .customer-list-btn {
+  min-height: 34px;
+  height: 34px;
+  padding: 0 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.customer-list-root .customer-list-btn:hover {
+  transform: none;
+}
+
+.customer-list-root .customer-list-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .14);
+}
+
+.customer-list-root .customer-list-dropdown-item {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Chips ---------- */
+.customer-list-root .customer-chip {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---------- Table card header ---------- */
+.customer-list-root .customer-list-table-title,
+.customer-list-root h2.customer-list-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.customer-list-root .customer-list-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Table ---------- */
+.customer-list-root .customer-list-data-table th,
+.customer-list-root .customer-list-data-table td {
+  padding: 10px 12px !important;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.customer-list-root .customer-list-data-table thead th,
+.customer-list-root .customer-list-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.customer-list-root .customer-list-data-table td {
+  color: #475569;
+  font-weight: 500;
+}
+
+.customer-list-root .customer-list-data-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.customer-list-root .customer-list-data-table small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-list-root .customer-list-name-main {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.customer-list-root .customer-list-name-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-list-root .customer-list-number {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.customer-list-root .customer-list-status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.customer-list-root .customer-sort-button {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em;
+}
+
+/* ---------- Empty / feedback ---------- */
+.customer-list-root .customer-list-empty-cell {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8 !important;
+}
+
+.customer-list-root .customer-empty-state {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-list-root .customer-empty-state strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.customer-list-root .customer-feedback {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Advanced filter popover ---------- */
+.customer-list-root .customer-advanced-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.customer-list-root .customer-advanced-popover-title {
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.customer-list-root .customer-advanced-group h3 {
+  font-size: 13px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.customer-list-root .customer-advanced-grid label span,
+.customer-list-root .form-field > span,
+.customer-list-root .form-field span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.customer-list-root .customer-advanced-grid input,
+.customer-list-root .customer-advanced-grid select,
+.customer-list-root .form-field input,
+.customer-list-root .form-field select,
+.customer-list-root .form-field textarea {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.customer-list-root .customer-advanced-grid input::placeholder,
+.customer-list-root .form-field input::placeholder,
+.customer-list-root .form-field textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* ---------- Modal (rendered inside root) ---------- */
+.customer-list-root .customer-modal .modal-header h2 {
+  font-size: 16px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.customer-list-root .customer-modal .modal-header p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.customer-list-root .customer-modal-grid .form-field span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.customer-list-root .customer-modal-grid .form-field input,
+.customer-list-root .customer-modal-grid .form-field select,
+.customer-list-root .customer-modal-grid .form-field textarea,
+.customer-list-root .customer-select-wrap select {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+/* ---------- Pagination ---------- */
+.customer-list-root .pagination,
+.customer-list-root .pagination button,
+.customer-list-root .pagination span,
+.customer-list-root .page-size-select,
+.customer-list-root [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* Soften any remaining ultra-bold text under customer-list-root */
+.customer-list-root [style*='font-weight: 800'],
+.customer-list-root [style*='font-weight:800'],
+.customer-list-root [style*='font-weight: 900'],
+.customer-list-root [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Portaled row menu (document.body) ---------- */
+.customer-list-row-action-menu,
+.customer-list-row-action-menu--portal {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.customer-list-row-action-menu button,
+.customer-list-row-action-menu a,
+.customer-list-row-action-menu--portal button,
+.customer-list-row-action-menu--portal a {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+@media (max-width: 720px) {
+  .customer-list-root .customer-list-table-title {
+    font-size: 14px !important;
+  }
+
+  .customer-list-root .customer-list-summary-main strong {
+    font-size: 12.5px;
+  }
+}

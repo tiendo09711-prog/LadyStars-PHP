@@ -32,6 +32,7 @@ import { RevenueTimelineTable } from './components/RevenueTimelineTable';
 import { RevenueTrendChart } from './components/RevenueTrendChart';
 import { RevenueReportNav } from '../components/RevenueReportNav';
 import './revenue-by-time-page.css';
+import './revenue-time-soft-type.css';
 
 export function RevenueByTimePage() {
   const [options, setOptions] = useState<RevenueReportOptions | null>(null);

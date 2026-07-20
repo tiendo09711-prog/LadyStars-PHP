@@ -1,0 +1,476 @@
+/* ============================================================
+   Warehouse audit soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .audit-root only (list page /warehouse/audit).
+   Portal menus + shared modal classes styled outside root.
+   ============================================================ */
+
+.audit-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.audit-root h1,
+.audit-root h2,
+.audit-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.audit-root h1 {
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.audit-root h2 {
+  font-size: 15px;
+}
+
+.audit-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.audit-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.audit-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn inside modals / root (beat inventory-compact-theme !important) */
+.audit-root .btn,
+.warehouse-audit-admin.audit-root .btn {
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+.audit-root .btn:hover,
+.warehouse-audit-admin.audit-root .btn:hover {
+  transform: none !important;
+}
+
+.audit-root .btn-primary,
+.warehouse-audit-admin.audit-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16) !important;
+}
+
+/* ---------- Tabs ---------- */
+.audit-root .audit-tab.is-compact,
+.audit-root .audit-tabs-row .audit-tab.is-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.audit-root .audit-tab.is-compact.is-active,
+.audit-root .audit-tabs-row .audit-tab.is-compact.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+.audit-root .audit-tab.is-compact:hover {
+  color: #0f766e;
+}
+
+/* ---------- Summary strip / KPI-like chips ---------- */
+.audit-root .audit-summary-cluster {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #047857;
+}
+
+.audit-root .audit-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.audit-root .audit-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+  letter-spacing: -.01em;
+}
+
+.audit-root .audit-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+/* Variance chips in summary strip */
+.audit-root .audit-summary-cluster .audit-variance {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* ---------- Filters / toolbar controls ---------- */
+.audit-root .audit-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.audit-root .audit-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.audit-root .audit-filter-select {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.audit-root .audit-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.audit-root .audit-btn:hover {
+  transform: none;
+}
+
+.audit-root .audit-btn-sm {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 8px;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+}
+
+.audit-root .audit-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .14);
+}
+
+/* ---------- Suggestions strip ---------- */
+.audit-root .audit-suggestions-head strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #0f766e;
+}
+
+.audit-root .audit-suggestions-head span,
+.audit-root .audit-suggestions-empty {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.audit-root .audit-suggestion-list strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root .audit-suggestion-list small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Notices / alerts ---------- */
+.audit-root .audit-notice,
+.audit-root .audit-error {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.audit-root .audit-error button {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ---------- Table card header ---------- */
+.audit-root .audit-table-title,
+.audit-root h2.audit-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.audit-root .audit-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.audit-root .audit-selected-count {
+  min-height: 22px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---------- Table ---------- */
+.audit-root .audit-data-table th,
+.audit-root .data-table th,
+.audit-root .audit-data-table.audit-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.audit-root .audit-data-table td,
+.audit-root .data-table td,
+.audit-root .audit-data-table.audit-table td {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.audit-root .warehouse-audit-table .audit-data-table th,
+.audit-root .warehouse-audit-table .audit-data-table td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.audit-root .audit-data-table td strong,
+.audit-root .data-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root .audit-name-main {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root .audit-name-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.audit-root .audit-code,
+.audit-root .audit-link-button {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root .audit-number,
+.audit-root .audit-data-table th.audit-number,
+.audit-root .audit-data-table td.audit-number {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root .audit-note-cell,
+.audit-root .audit-data-table td.col-note,
+.audit-root .audit-data-table td.col-desc {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* Variance in table cells */
+.audit-root .audit-variance {
+  font-weight: 600;
+}
+
+/* ---------- Badges / chips ---------- */
+.audit-root .audit-status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.audit-root .audit-pill {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Empty state ---------- */
+.audit-root .audit-empty-cell {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8 !important;
+}
+
+.audit-root .audit-empty-state strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root .audit-empty-state span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Dropdown items (in-root floating menu) ---------- */
+.audit-root .audit-dropdown-item {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+/* ---------- Pagination ---------- */
+.audit-root .pagination,
+.audit-root .pagination button,
+.audit-root .pagination span,
+.audit-root .page-size-select,
+.audit-root [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Modals rendered inside root ---------- */
+.audit-root .wr-detail-header h2,
+.audit-root .wr-confirm-modal h2,
+.audit-root .audit-preview-modal h2,
+.audit-root .audit-voucher-modal h2,
+.audit-root .audit-small-modal h2 {
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+}
+
+.audit-root .wr-detail-eyebrow {
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: .06em;
+  color: #059669;
+}
+
+.audit-root .wr-detail-summary span,
+.audit-root .wr-detail-summary small {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.audit-root .wr-detail-summary strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.audit-root .audit-preview-copy,
+.audit-root .audit-loading-copy {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.audit-root .audit-textarea {
+  min-height: 96px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.audit-root .audit-textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.audit-root .audit-voucher-tabs button {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Soften any remaining ultra-bold text under audit-root */
+.audit-root [style*='font-weight: 800'],
+.audit-root [style*='font-weight:800'],
+.audit-root [style*='font-weight: 900'],
+.audit-root [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Portaled menus (render under body, not .audit-root) ---------- */
+.audit-bulk-action-menu--portal,
+.audit-row-action-menu--portal,
+.audit-floating-dropdown.audit-bulk-action-menu--portal {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.audit-bulk-action-menu--portal .audit-dropdown-item,
+.audit-bulk-action-menu--portal button,
+.audit-row-action-menu--portal button,
+.audit-row-action-menu--portal .audit-dropdown-item {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+/* Shared modal shells that may sit as siblings of content (still under root in TSX) */
+.audit-small-modal,
+.audit-preview-modal,
+.audit-voucher-modal {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.audit-small-modal h2,
+.audit-preview-modal h2,
+.audit-voucher-modal h2 {
+  font-size: 16px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.audit-preview-copy,
+.audit-loading-copy {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.audit-voucher-tabs button {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .audit-root .audit-table-title {
+    font-size: 14px !important;
+  }
+
+  .audit-root .audit-summary-main strong {
+    font-size: 12.5px !important;
+  }
+}

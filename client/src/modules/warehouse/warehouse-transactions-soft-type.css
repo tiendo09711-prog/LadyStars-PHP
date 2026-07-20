@@ -1,0 +1,473 @@
+/* ============================================================
+   Warehouse Transactions soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .wt-root only (route /warehouse/transactions).
+   Portal menus: .wt-row-action-menu--portal (render on body).
+   ============================================================ */
+
+.wt-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.wt-root h1,
+.wt-root h2,
+.wt-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.wt-root h1 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.wt-root h2 {
+  font-size: 15px;
+}
+
+.wt-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.wt-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.wt-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.wt-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn inside page modals */
+.wt-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.wt-root .btn:hover {
+  transform: none;
+}
+
+.wt-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.16);
+}
+
+/* ---------- Tabs ---------- */
+.wt-root .wt-tab.is-compact,
+.wt-root .wt-tabs-row .wt-tab.is-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.wt-root .wt-tab.is-compact:hover {
+  color: #0f766e;
+}
+
+.wt-root .wt-tab.is-compact.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+/* ---------- Summary / KPI strip ---------- */
+.wt-root .wt-summary-cluster {
+  font-size: 11px;
+  font-weight: 550;
+  color: #047857;
+}
+
+.wt-root .wt-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.wt-root .wt-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #065f46 !important;
+  letter-spacing: -0.01em;
+}
+
+.wt-root .wt-summary-loading,
+.wt-root .wt-summary-error {
+  font-size: 12px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+.wt-root .wt-summary-error {
+  color: #b91c1c;
+}
+
+.wt-root .wt-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+/* ---------- Filters / controls ---------- */
+.wt-root .wt-search {
+  min-height: 34px;
+}
+
+.wt-root .wt-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.wt-root .wt-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.wt-root .wt-filter-select,
+.wt-root input.wt-filter-select[type='date'] {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.wt-root .wt-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.wt-root .wt-btn:hover {
+  transform: none;
+}
+
+.wt-root .wt-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.14);
+}
+
+/* ---------- Notices / alerts ---------- */
+.wt-root .wt-notice,
+.wt-root .wt-error {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.wt-root .wt-error button {
+  font-size: 12px;
+  font-weight: 600 !important;
+}
+
+/* ---------- Table header / subtitle ---------- */
+.wt-root .wt-table-title,
+.wt-root h2.wt-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.wt-root .wt-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Data table ---------- */
+.wt-root .wt-data-table th,
+.wt-root .warehouse-transaction-table th,
+.wt-root .warehouse-transaction-table thead .wt-col,
+.wt-root .warehouse-transaction-table .ant-table-thead .ant-table-cell,
+.wt-root .data-table.wt-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.wt-root .wt-data-table td,
+.wt-root .warehouse-transaction-table td,
+.wt-root .warehouse-transaction-table .ant-table-cell,
+.wt-root .data-table.wt-data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.wt-root .wt-data-table td strong,
+.wt-root .warehouse-transaction-table td strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.wt-root .wt-data-table td small,
+.wt-root .warehouse-transaction-table td small,
+.wt-root .wt-kind {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* Cell content emphasis */
+.wt-root .id-date-cell__id,
+.wt-root .wt-link-button {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.wt-root .wt-link-button:hover {
+  color: #059669 !important;
+}
+
+.wt-root .id-date-cell__date,
+.wt-root .id-date-cell .date {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.wt-root .wt-name-main {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.wt-root .wt-name-sub {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.wt-root .wt-price,
+.wt-root .wt-number {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.wt-root .wt-note-cell,
+.wt-root .wt-note-wrap {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.wt-root .wr-warehouse-transfer,
+.wt-root .wt-warehouse-cell {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.wt-root .wr-warehouse-transfer {
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ---------- Badge / chip / status ---------- */
+.wt-root .wt-status-badge,
+.wt-root .wr-direction,
+.wt-root .status-badge,
+.wt-root .record-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal;
+}
+
+/* ---------- Empty state ---------- */
+.wt-root .wt-empty-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.wt-root .wt-empty-state {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.wt-root .wt-empty-state strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+}
+
+.wt-root .wt-empty-state span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Dropdowns inside root ---------- */
+.wt-root .wt-dropdown-item,
+.wt-root .wt-floating-dropdown button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+/* ---------- Pagination ---------- */
+.wt-root .pagination,
+.wt-root .pagination button,
+.wt-root .pagination span,
+.wt-root .page-size-select,
+.wt-root [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Modals (inside .wt-root) ---------- */
+.wt-root .wr-detail-header h2,
+.wt-root .wr-confirm-modal h2,
+.wt-root .wr-column-modal h2 {
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.wt-root .wr-detail-eyebrow {
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.06em;
+  color: #059669 !important;
+}
+
+.wt-root .wr-detail-summary span {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.wt-root .wr-detail-summary strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.wt-root .wr-detail-loading {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.wt-root .wr-confirm-modal p {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.wt-root .wr-column-list label {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+}
+
+.wt-root .wr-column-list label.fixed {
+  font-weight: 600 !important;
+}
+
+.wt-root .wr-detail-table th,
+.wt-root .wr-table.wr-detail-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.wt-root .wr-detail-table td,
+.wt-root .wr-table.wr-detail-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+}
+
+.wt-root .wr-detail-table .wr-product strong,
+.wt-root .wr-table .wr-product strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.wt-root .wr-detail-table .wr-product small,
+.wt-root .wr-table .wr-product small {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.wt-root .wr-empty {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* Soften residual ultra-bold from shared warehouseRecords under this page */
+.wt-root .wr-direction,
+.wt-root .warehouse-records .wr-direction {
+  font-weight: 600 !important;
+}
+
+.wt-root [style*='font-weight: 800'],
+.wt-root [style*='font-weight:800'],
+.wt-root [style*='font-weight: 900'],
+.wt-root [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Portaled row menus (document.body) ---------- */
+.wt-row-action-menu,
+.wt-row-action-menu--portal {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.wt-row-action-menu button,
+.wt-row-action-menu--portal button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+@media (max-width: 640px) {
+  .wt-root .wt-tab.is-compact {
+    font-size: 12px;
+  }
+
+  .wt-root .wt-table-title {
+    font-size: 14px !important;
+  }
+}

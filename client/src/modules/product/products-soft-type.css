@@ -1,0 +1,500 @@
+/* ============================================================
+   Products soft type — match staff-page tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .products-root only (list + history + barcode).
+   ============================================================ */
+
+.products-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.products-root h1,
+.products-root h2,
+.products-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.products-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.products-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.products-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Buttons inside products shell */
+.products-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.products-root .btn:hover {
+  transform: none;
+}
+
+.products-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+.products-root .icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.products-root .record-badge,
+.products-root .status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.products-root .data-card-header {
+  padding: 12px 14px;
+}
+
+.products-root .data-card-header h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.products-root .data-table th,
+.products-root .data-table td {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.products-root .data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.products-root .data-table td {
+  color: #475569;
+}
+
+.products-root .data-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.products-root .data-table small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.products-root .form-field span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.products-root .form-field input,
+.products-root .form-field select,
+.products-root .form-field textarea {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.products-root .modal-header h2 {
+  font-size: 16px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.products-root .modal-header p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Tabs ---------- */
+.products-root .products-tab.is-compact,
+.products-root .products-tabs-row .products-tab.is-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.products-root .products-tabs-row .products-tab.is-compact.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+.products-root .products-tab,
+.products-root .products-tab span,
+.products-root .products-tab small {
+  font-weight: 600;
+}
+
+.products-root .products-tab small {
+  font-size: 11px;
+  font-weight: 550;
+}
+
+/* ---------- KPI / summary ---------- */
+.products-root .inv-kpi-card {
+  min-height: 70px;
+  padding: 11px 12px;
+}
+
+.products-root .inv-kpi-label {
+  font-size: 11px !important;
+  font-weight: 550 !important;
+  letter-spacing: .02em;
+  text-transform: none;
+  color: #94a3b8;
+}
+
+.products-root .inv-kpi-value {
+  margin-top: 3px;
+  font-size: 18px !important;
+  font-weight: 650 !important;
+  letter-spacing: -.02em;
+  color: #1e293b;
+}
+
+.products-root .inv-kpi-card--value .inv-kpi-value {
+  font-size: 17px !important;
+  color: #059669;
+}
+
+.products-root .inv-kpi-value.is-compact {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.35;
+}
+
+.products-root .inv-kpi-sub {
+  font-size: 11px;
+  font-weight: 450;
+  color: #94a3b8;
+}
+
+.products-root .products-summary-chip,
+.products-root .products-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.products-root .products-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+  letter-spacing: -.01em;
+}
+
+.products-root .products-selected-count,
+.products-root .products-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+/* ---------- Filters / toolbar actions ---------- */
+.products-root .inv-search {
+  min-height: 34px;
+}
+
+.products-root .inv-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.products-root .inv-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.products-root .inv-filter-select {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.products-root .inv-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+}
+
+.products-root .inv-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .14);
+}
+
+.products-root .products-table-title,
+.products-root .products-table-heading h2,
+.products-root h2.products-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.products-root .inventory-table-subtitle,
+.products-root .products-table-heading p {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Table product cells ---------- */
+.products-root .products-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+}
+
+.products-root .products-data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+}
+
+.products-root .products-data-table td strong,
+.products-root .products-name,
+.products-root .product-name,
+.products-root .products-product-name {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.products-root .products-code,
+.products-root .product-code,
+.products-root .products-product-code {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+.products-root .products-price,
+.products-root .product-price {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+}
+
+.products-root .products-muted,
+.products-root .products-meta,
+.products-root .products-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Dropdown menus ---------- */
+.products-root .dropdown-item,
+.products-root .products-floating-dropdown .dropdown-item,
+.products-root .storage-action-dropdown button,
+.products-root .storage-action-dropdown a {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.products-root .dropdown-section-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: .06em;
+  color: #94a3b8;
+}
+
+.products-root .products-dropdown-button {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  min-height: 34px;
+}
+
+/* ---------- Sticky toolbar bits ---------- */
+.products-root .products-sticky-toolbar,
+.products-root .inventory-toolbar-card {
+  font-size: 13px;
+}
+
+.products-root .products-toolbar-header-slot {
+  font-size: 13px;
+}
+
+/* ---------- Pagination ---------- */
+.products-root .pagination,
+.products-root .pagination button,
+.products-root .pagination span,
+.products-root .page-size-select,
+.products-root [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- History table ---------- */
+.products-root .products-history-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.products-root .products-history-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+}
+
+/* ---------- Warehouse panel (product form) ---------- */
+.products-root .products-warehouse-head,
+.products-root .products-warehouse-head h3,
+.products-root .products-warehouse-head strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.products-root .products-warehouse-empty,
+.products-root .products-warehouse-head p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.products-root .field-error-text,
+.products-root .form-error {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+/* ---------- Barcode workspace ---------- */
+.products-root .barcode-eyebrow {
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: .08em;
+  color: #059669;
+}
+
+.products-root .barcode-page-header h2 {
+  font-size: 18px !important;
+  font-weight: 650 !important;
+  color: #1e293b;
+  letter-spacing: -.02em;
+}
+
+.products-root .barcode-page-header p {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #64748b;
+}
+
+.products-root .barcode-card-title {
+  font-size: 13px;
+  font-weight: 650;
+  color: #334155;
+}
+
+.products-root .barcode-card-count {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.products-root .barcode-back-button {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Catch common heavy labels/chips in products CSS */
+.products-root .inv-section-label,
+.products-root .products-section-label,
+.products-root .products-chip,
+.products-root .inv-chip {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.products-root .mini-action {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Empty states */
+.products-root .empty-cell {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Soften any remaining ultra-bold text under products-root */
+.products-root [style*='font-weight: 800'],
+.products-root [style*='font-weight:800'],
+.products-root [style*='font-weight: 900'],
+.products-root [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* Portaled row menus render under body, not .products-root */
+.products-row-action-menu,
+.products-row-action-menu--portal,
+.products-floating-dropdown {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.products-row-action-menu .dropdown-item,
+.products-row-action-menu--portal .dropdown-item,
+.products-row-action-menu button,
+.products-row-action-menu--portal button,
+.products-floating-dropdown .dropdown-item,
+.products-floating-dropdown button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+@media (max-width: 720px) {
+  .products-root .inv-kpi-value {
+    font-size: 16px !important;
+  }
+
+  .products-root .barcode-page-header h2 {
+    font-size: 16px !important;
+  }
+
+  .products-root .products-table-title {
+    font-size: 14px !important;
+  }
+}

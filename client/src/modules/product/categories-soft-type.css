@@ -1,0 +1,633 @@
+/* ============================================================
+   Categories soft type — match staff-page / products-root tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .categories-root only (/products/categories).
+   Loaded last so it can override categories-page.css !important.
+   ============================================================ */
+
+.categories-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.categories-root h1,
+.categories-root h2,
+.categories-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.categories-root h1 {
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.categories-root h2 {
+  font-size: 15px;
+}
+
+.categories-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.categories-root p {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.categories-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.categories-root small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Soften ultra-bold inline styles if any */
+.categories-root [style*='font-weight: 800'],
+.categories-root [style*='font-weight:800'],
+.categories-root [style*='font-weight: 900'],
+.categories-root [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Buttons (shared .btn + categories controls) ---------- */
+.categories-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.categories-root .btn:hover {
+  transform: none;
+}
+
+.categories-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+.categories-root .icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.categories-root .categories-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.categories-root .categories-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .14) !important;
+}
+
+.categories-root .categories-primary-button,
+.categories-root .categories-dropdown-button,
+.categories-root .categories-filter-button,
+.categories-root .categories-ghost-button,
+.categories-root .categories-export-button,
+.categories-root .categories-inline-view-button,
+.categories-root .categories-action-trigger,
+.categories-root .product-compact-btn {
+  min-height: 34px !important;
+  height: auto !important;
+  padding: 0 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.categories-root .categories-primary-button:hover,
+.categories-root .categories-dropdown-button:hover,
+.categories-root .categories-filter-button:hover,
+.categories-root .categories-ghost-button:hover,
+.categories-root .categories-export-button:hover,
+.categories-root .categories-inline-view-button:hover,
+.categories-root .categories-action-trigger:hover,
+.categories-root .categories-link-button:hover,
+.categories-root .categories-count-button:hover {
+  transform: none !important;
+}
+
+.categories-root .categories-split-toggle {
+  min-width: 34px !important;
+  width: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+}
+
+/* Row ⋯ trigger stays compact square */
+.categories-root .categories-row-menu-button,
+.categories-root .categories-action-trigger.categories-row-menu-button,
+.categories-root .btn.categories-action-trigger {
+  width: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ---------- Labels / inputs ---------- */
+.categories-root .categories-field-label,
+.categories-root .categories-form-field > span,
+.categories-root .form-field span,
+.categories-root label > span:first-child {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+.categories-root .categories-form-field small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.categories-root input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.categories-root select,
+.categories-root textarea,
+.categories-root .form-control,
+.categories-root .categories-form-field .form-control {
+  min-height: 34px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  border-radius: 10px !important;
+}
+
+.categories-root textarea {
+  min-height: 80px !important;
+}
+
+.categories-root input::placeholder,
+.categories-root textarea::placeholder,
+.categories-root .filter-suggest__input::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 400;
+}
+
+/* Search shell keeps nested input flat */
+.categories-root .categories-search {
+  min-height: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.categories-root .categories-search input,
+.categories-root .categories-search .filter-suggest__input {
+  min-height: 0 !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.categories-root .categories-search-box {
+  min-height: 34px !important;
+  border-radius: 10px !important;
+}
+
+.categories-root .categories-search-box:hover {
+  transform: none;
+}
+
+/* ---------- Toolbar eyebrow / tabs / summary ---------- */
+.categories-root .categories-toolbar-eyebrow,
+.categories-root .categories-hero-kicker,
+.categories-root .categories-section-kicker,
+.categories-root .categories-editor-kicker,
+.categories-root .categories-import-kicker,
+.categories-root .categories-modal-kicker {
+  min-height: 24px;
+  padding: 0 9px;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #059669;
+}
+
+.categories-root .categories-tab.is-compact {
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #64748b;
+  border-radius: 10px;
+}
+
+.categories-root .categories-tab.is-compact:hover {
+  color: #334155;
+}
+
+.categories-root .categories-tab.is-compact.is-active {
+  font-weight: 650 !important;
+  color: #059669 !important;
+  box-shadow: none;
+}
+
+.categories-root .categories-summary-cluster,
+.categories-root .categories-summary-main,
+.categories-root .categories-summary-filter {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b;
+}
+
+.categories-root .categories-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+  letter-spacing: -.01em;
+}
+
+.categories-root .categories-summary-filter {
+  font-weight: 550 !important;
+  color: #b45309;
+}
+
+.categories-root .categories-selected-count {
+  min-height: 22px;
+  font-size: 11.5px !important;
+  font-weight: 550 !important;
+  color: #64748b !important;
+}
+
+/* ---------- KPI / stat cards ---------- */
+.categories-root .categories-stat-card strong,
+.categories-root .inv-kpi-value {
+  font-size: 18px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.02em;
+}
+
+.categories-root .categories-stat-card span,
+.categories-root .inv-kpi-label {
+  margin-top: 3px;
+  font-size: 11px !important;
+  font-weight: 550 !important;
+  color: #94a3b8 !important;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.categories-root .categories-stat-card:hover {
+  transform: none;
+}
+
+.categories-root .categories-summary-pill span {
+  font-size: 11px !important;
+  font-weight: 550 !important;
+  color: #94a3b8 !important;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+.categories-root .categories-summary-pill strong {
+  font-size: 18px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+}
+
+.categories-root .categories-toolbar-foot-note strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.categories-root .categories-toolbar-foot-note span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Table header / cells ---------- */
+.categories-root .categories-table-header,
+.categories-root .data-card-header {
+  padding: 12px 14px;
+}
+
+.categories-root .categories-table-title,
+.categories-root .categories-table-header h2,
+.categories-root h2.categories-table-title {
+  margin: 0 0 4px;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.categories-root .categories-table-subtitle,
+.categories-root .categories-table-header p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.categories-root .categories-table-meta {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.categories-root .data-table th,
+.categories-root .categories-data-table th,
+.categories-root .product-compact-table th {
+  padding: 10px 12px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.categories-root .data-table td,
+.categories-root .categories-data-table td,
+.categories-root .product-compact-table td {
+  padding: 10px 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+}
+
+.categories-root .data-table td strong,
+.categories-root .categories-data-table td strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.categories-root .data-table small,
+.categories-root .categories-data-table small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.categories-root .categories-code-badge {
+  min-height: 22px !important;
+  padding: 0 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.categories-root .categories-name-title {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.categories-root .categories-name-meta {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.categories-root .categories-count-button strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.categories-root .categories-count-button span {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Badge / chip / status ---------- */
+.categories-root .status-badge,
+.categories-root .record-badge,
+.categories-root .categories-status-badge {
+  min-height: 22px !important;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Dropdowns (in-root) ---------- */
+.categories-root .categories-dropdown-item,
+.categories-root .categories-action-item {
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+  transform: none !important;
+}
+
+.categories-root .categories-dropdown-item:hover,
+.categories-root .categories-action-item:hover {
+  transform: none !important;
+}
+
+/* ---------- Empty / error ---------- */
+.categories-root .empty-cell,
+.categories-root .categories-empty-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.categories-root .categories-empty-state {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.categories-root .categories-empty-state strong,
+.categories-root .categories-empty-cell--error {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------- Pagination ---------- */
+.categories-root .pagination,
+.categories-root .pagination button,
+.categories-root .pagination span,
+.categories-root .page-size-select,
+.categories-root [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Editor panel ---------- */
+.categories-root .categories-editor-header h2,
+.categories-root .categories-editor-card-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.categories-root .categories-editor-header p {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.categories-root .categories-editor-help-list {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+/* ---------- Import modal ---------- */
+.categories-root .categories-import-header h2,
+.categories-root .categories-modal-header h2,
+.categories-root .modal-header h2 {
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+}
+
+.categories-root .categories-import-header p,
+.categories-root .categories-modal-header p,
+.categories-root .modal-header p {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.categories-root .categories-import-dropzone strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.categories-root .categories-import-dropzone span,
+.categories-root .categories-import-helper span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.categories-root .categories-import-helper strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+.categories-root .categories-template-link {
+  min-height: 34px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+}
+
+.categories-root .categories-import-mode label {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 550;
+  border-radius: 10px;
+}
+
+.categories-root .categories-import-file-field {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+/* ---------- Products-in-category modal ---------- */
+.categories-root .categories-modal-meta span {
+  min-height: 22px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+}
+
+.categories-root .categories-modal-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.categories-root .categories-modal-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+}
+
+.categories-root .categories-modal-name,
+.categories-root .categories-modal-code {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.categories-root .categories-modal-price,
+.categories-root .categories-modal-cost,
+.categories-root .categories-modal-stock,
+.categories-root .categories-modal-total,
+.categories-root .categories-modal-hanoi,
+.categories-root .categories-modal-hcm {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Soften remaining 700–750 in compact list ---------- */
+.categories-root .categories-tab.is-compact,
+.categories-root .categories-summary-cluster,
+.categories-root .categories-btn {
+  font-weight: 600 !important;
+}
+
+/* Portaled row action menus render under body, not .categories-root */
+.categories-row-action-menu,
+.categories-row-action-menu--portal {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.categories-row-action-menu .categories-action-item,
+.categories-row-action-menu--portal .categories-action-item,
+.categories-row-action-menu button,
+.categories-row-action-menu--portal button {
+  min-height: 34px !important;
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+  transform: none !important;
+}
+
+@media (max-width: 720px) {
+  .categories-root .categories-stat-card strong {
+    font-size: 16px !important;
+  }
+
+  .categories-root .categories-table-title {
+    font-size: 14px !important;
+  }
+}

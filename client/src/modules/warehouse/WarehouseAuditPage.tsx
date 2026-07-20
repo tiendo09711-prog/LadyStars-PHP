@@ -30,6 +30,7 @@ import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput'
 import { useProductScanTarget } from '../../core/hooks/productScanner';
 import './warehouseRecords.css';
 import './warehouseAudit.css';
+import './warehouse-audit-soft-type.css';
 
 type TabKey = 'audits' | 'items';
 

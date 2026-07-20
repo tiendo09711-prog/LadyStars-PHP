@@ -6,6 +6,7 @@ import { ProductHistory } from './components/ProductHistory';
 import './inventory-page.css';
 import './products-list-ui.css';
 import './products-page.css';
+import './products-soft-type.css';
 
 type ProductTab = 'products' | 'history';
 

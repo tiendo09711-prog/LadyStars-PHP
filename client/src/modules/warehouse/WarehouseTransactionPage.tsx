@@ -31,6 +31,7 @@ import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import './warehouseRecords.css';
 import './warehouse-transactions-page.css';
+import './warehouse-transactions-soft-type.css';
 
 type TabKey = 'bills' | 'items';
 

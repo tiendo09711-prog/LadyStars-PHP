@@ -1,0 +1,531 @@
+/* ============================================================
+   Wholesale invoice soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .ws-invoice-page only (route sales-channels channel wholesale).
+   Portal menus: .ws-row-action-menu--portal (render on body).
+   ============================================================ */
+
+.ws-invoice-page {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.ws-invoice-page h1,
+.ws-invoice-page h2,
+.ws-invoice-page h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.ws-invoice-page h1 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.ws-invoice-page h2 {
+  font-size: 15px;
+}
+
+.ws-invoice-page h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.ws-invoice-page p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.ws-invoice-page strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.ws-invoice-page small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn if any slip into this page shell */
+.ws-invoice-page .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.ws-invoice-page .btn:hover {
+  transform: none;
+}
+
+.ws-invoice-page .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.16);
+}
+
+/* ---------- Tabs ---------- */
+.ws-invoice-page .ws-tab.is-compact,
+.ws-invoice-page .ws-tabs-row .ws-tab.is-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.ws-invoice-page .ws-tab.is-compact:hover {
+  color: #0f766e;
+}
+
+.ws-invoice-page .ws-tab.is-compact.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+/* ---------- Summary / KPI strip ---------- */
+.ws-invoice-page .ws-summary-cluster {
+  font-size: 11px;
+  font-weight: 550;
+  color: #047857;
+}
+
+.ws-invoice-page .ws-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.ws-invoice-page .ws-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #065f46 !important;
+  letter-spacing: -0.01em;
+}
+
+.ws-invoice-page .ws-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+.ws-invoice-page .ws-selected-count {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---------- Filters / controls ---------- */
+.ws-invoice-page .ws-search {
+  min-height: 34px;
+}
+
+.ws-invoice-page .ws-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.ws-invoice-page .ws-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.ws-invoice-page .ws-filter-select,
+.ws-invoice-page input.ws-filter-select[type='date'],
+.ws-invoice-page .ws-filter-input {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.ws-invoice-page .ws-filter-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.ws-invoice-page .ws-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.ws-invoice-page .ws-btn:hover {
+  transform: none;
+}
+
+.ws-invoice-page .ws-btn-primary,
+.ws-invoice-page .ws-btn-success,
+.ws-invoice-page .ws-btn.primary,
+.ws-invoice-page .ws-btn.success {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.14);
+}
+
+/* ---------- Notices / alerts ---------- */
+.ws-invoice-page .ws-alert {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.ws-invoice-page .ws-alert span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ws-invoice-page .ws-alert button {
+  font-size: 12px;
+  font-weight: 600 !important;
+}
+
+/* ---------- Table header / subtitle ---------- */
+.ws-invoice-page .ws-table-title,
+.ws-invoice-page h2.ws-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.ws-invoice-page .ws-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Data table ---------- */
+.ws-invoice-page .ws-data-table th,
+.ws-invoice-page .data-table.ws-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+  padding: 10px 12px;
+}
+
+.ws-invoice-page .ws-data-table td,
+.ws-invoice-page .data-table.ws-data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.ws-invoice-page .ws-data-table td strong,
+.ws-invoice-page .ws-data-table .number {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-data-table td.total {
+  font-weight: 650 !important;
+  color: #16a34a !important;
+}
+
+.ws-invoice-page .ws-data-table td.discount {
+  font-weight: 600 !important;
+}
+
+.ws-invoice-page .ws-data-table td small {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* Cell content emphasis */
+.ws-invoice-page .ws-name-main {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-name-sub {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.ws-invoice-page .ws-code,
+.ws-invoice-page .ws-link-button,
+.ws-invoice-page .ws-invoice-link {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-code:hover,
+.ws-invoice-page .ws-link-button:hover,
+.ws-invoice-page .ws-invoice-link:hover {
+  color: #059669 !important;
+}
+
+.ws-invoice-page .ws-product-cell strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-product-cell span {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.ws-invoice-page .ws-product-cell em {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.ws-invoice-page .ws-discount-rate {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ws-invoice-page .ws-payment-amount {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-payment-method {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Badge / chip / status ---------- */
+.ws-invoice-page .ws-status,
+.ws-invoice-page .ws-status-badge,
+.ws-invoice-page .status-badge,
+.ws-invoice-page .record-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal;
+}
+
+/* ---------- Empty state ---------- */
+.ws-invoice-page .ws-empty-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.ws-invoice-page .ws-empty-state {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.ws-invoice-page .ws-empty-state strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+}
+
+.ws-invoice-page .ws-empty-state span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Dropdowns inside root ---------- */
+.ws-invoice-page .ws-dropdown-item,
+.ws-invoice-page .ws-floating-dropdown button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+/* ---------- Pagination ---------- */
+.ws-invoice-page .ws-pagination,
+.ws-invoice-page .ws-pagination button,
+.ws-invoice-page .ws-pagination span {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Modals (inside .ws-invoice-page) ---------- */
+.ws-invoice-page .ws-modal h2,
+.ws-invoice-page .ws-modal header h2 {
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.ws-invoice-page .ws-modal-state,
+.ws-invoice-page .ws-modal-error {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.ws-invoice-page .ws-modal-error button {
+  font-size: 12px;
+  font-weight: 600 !important;
+}
+
+.ws-invoice-page .ws-branch-info strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-branch-info small {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.ws-invoice-page .ws-detail-card h3 {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-info-grid small,
+.ws-invoice-page .ws-detail-info small {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.ws-invoice-page .ws-info-grid strong,
+.ws-invoice-page .ws-detail-info strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-detail-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.ws-invoice-page .ws-detail-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+}
+
+.ws-invoice-page .ws-detail-table .number {
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-detail-empty,
+.ws-invoice-page .ws-note {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.ws-invoice-page .ws-stack strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.ws-invoice-page .ws-stack span {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.ws-invoice-page .ws-money-summary dt {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.ws-invoice-page .ws-money-summary dd {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ws-invoice-page .ws-money-summary .grand {
+  font-size: 14px;
+}
+
+.ws-invoice-page .ws-money-summary .grand dd {
+  font-weight: 650;
+  color: #16a34a;
+}
+
+.ws-invoice-page .ws-payment-breakdown span {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.ws-invoice-page .ws-payment-breakdown small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.ws-invoice-page .ws-payment-breakdown strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Soften residual ultra-bold under this page */
+.ws-invoice-page [style*='font-weight: 800'],
+.ws-invoice-page [style*='font-weight:800'],
+.ws-invoice-page [style*='font-weight: 900'],
+.ws-invoice-page [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Portaled row menus (document.body) ---------- */
+.ws-row-action-menu,
+.ws-row-action-menu--portal {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.ws-row-action-menu button,
+.ws-row-action-menu--portal button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+/* Detail modal elements that may share global .ws-modal rules when
+   rendered under page root — keep soft scale without leaking. */
+.ws-invoice-page .ws-status.success,
+.ws-invoice-page .ws-status-badge.success,
+.ws-invoice-page .ws-status.warning,
+.ws-invoice-page .ws-status-badge.warning,
+.ws-invoice-page .ws-status.danger,
+.ws-invoice-page .ws-status-badge.danger,
+.ws-invoice-page .ws-status.neutral,
+.ws-invoice-page .ws-status-badge.neutral {
+  font-weight: 600 !important;
+}
+
+@media (max-width: 640px) {
+  .ws-invoice-page .ws-tab.is-compact {
+    font-size: 12px;
+  }
+
+  .ws-invoice-page .ws-table-title {
+    font-size: 14px !important;
+  }
+}

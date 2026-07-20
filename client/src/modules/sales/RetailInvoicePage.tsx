@@ -55,6 +55,7 @@ import {
   deleteActionState,
 } from './invoiceHelpers';
 import './retail-invoice-page.css';
+import './retail-invoice-soft-type.css';
 
 type RetailInvoicePageProps = {
   channel: string;

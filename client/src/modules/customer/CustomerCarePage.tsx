@@ -25,6 +25,7 @@ import { CareActionType, CareActionIcons, CustomerCareActionModal } from './comp
 import * as XLSX from 'xlsx';
 import './customer-list-page.css';
 import './customer-care-page.css';
+import './customer-care-soft-type.css';
 
 const fields: any[] = [
   { key: 'code', label: 'ID Phiếu' },

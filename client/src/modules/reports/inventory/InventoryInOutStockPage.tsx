@@ -44,6 +44,7 @@ import {
   validateDateRange,
 } from './in-out/inOutStock.utils';
 import './in-out/in-out-stock-page.css';
+import './in-out/in-out-stock-soft-type.css';
 
 function billDetailTitle(detail: InOutBillDetail): string {
   const code = detail.code || detail.billCode || detail.sourceId || '—';
@@ -376,7 +377,7 @@ export function InventoryInOutStockPage() {
   };
 
   return (
-    <InventoryReportShell lastUpdatedLabel={lastUpdatedLabel}>
+    <InventoryReportShell className="inout-stock-root" lastUpdatedLabel={lastUpdatedLabel}>
       <div className="inout-page" data-testid="inout-stock-page" aria-busy={busy || undefined}>
         {busy ? <div className="inout-progress" aria-hidden /> : null}
 

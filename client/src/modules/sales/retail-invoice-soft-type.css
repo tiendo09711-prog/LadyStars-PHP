@@ -1,0 +1,497 @@
+/* ============================================================
+   Retail invoice soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .retail-root only (route sales-channels channel retail).
+   Portal menus: .retail-row-action-menu--portal (render on body).
+   ============================================================ */
+
+.retail-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.retail-root h1,
+.retail-root h2,
+.retail-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.retail-root h1 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.retail-root h2 {
+  font-size: 15px;
+}
+
+.retail-root h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.retail-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.retail-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.retail-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Shared .btn if used inside root */
+.retail-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.retail-root .btn:hover {
+  transform: none;
+}
+
+/* ---------- Toolbar title / eyebrow ---------- */
+.retail-root .retail-toolbar-eyebrow {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  color: #047857;
+}
+
+.retail-root .retail-toolbar-title-chip {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #047857;
+  min-height: 30px;
+}
+
+/* ---------- KPI ---------- */
+.retail-root .retail-kpi-label {
+  font-size: 11px !important;
+  font-weight: 550 !important;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-kpi-value {
+  font-size: 18px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em;
+  color: #1e293b !important;
+}
+
+.retail-root .retail-kpi-card--money .retail-kpi-value {
+  font-size: 17px !important;
+  font-weight: 650 !important;
+  color: #065f46 !important;
+}
+
+.retail-root .retail-kpi-card--selected .retail-kpi-value {
+  font-size: 18px !important;
+  font-weight: 650 !important;
+  color: #1d4ed8 !important;
+}
+
+.retail-root .retail-kpi-card--filter .retail-kpi-value {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #b45309 !important;
+}
+
+/* ---------- Filters / controls ---------- */
+.retail-root .retail-date-field {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-date-field span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.retail-root .retail-search input,
+.retail-root .retail-filter-select,
+.retail-root input.retail-filter-select[type='date'],
+.retail-root .retail-date-field input[type='date'] {
+  min-height: 34px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  border-radius: 10px;
+}
+
+.retail-root .retail-search input {
+  min-height: 32px;
+  height: 32px;
+}
+
+.retail-root .retail-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* FilterSuggestInput inside search fields */
+.retail-root .retail-search input,
+.retail-root .filter-suggest-input,
+.retail-root .filter-suggest input {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+/* ---------- Buttons ---------- */
+.retail-root .retail-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 12px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+
+.retail-root .retail-btn:hover {
+  transform: none;
+}
+
+.retail-root .retail-btn-primary,
+.retail-root .retail-btn.primary,
+.retail-root .retail-btn.success {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.14) !important;
+}
+
+/* ---------- Alert ---------- */
+.retail-root .retail-alert {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.retail-root .retail-alert span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: inherit;
+}
+
+.retail-root .retail-alert button {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Table header / subtitle ---------- */
+.retail-root .retail-table-title,
+.retail-root h2.retail-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.retail-root .retail-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-selected-count {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Data table ---------- */
+.retail-root .retail-data-table th,
+.retail-root .retail-sales-table .retail-data-table th,
+.retail-root .data-table.retail-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.retail-root .retail-data-table td,
+.retail-root .retail-sales-table .retail-data-table td,
+.retail-root .data-table.retail-data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.retail-root .retail-data-table td strong,
+.retail-root .retail-stack strong,
+.retail-root .retail-product-cell strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.retail-root .retail-data-table td small,
+.retail-root .retail-stack span,
+.retail-root .retail-product-cell span,
+.retail-root .retail-payment-method {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-invoice-link {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.retail-root .retail-invoice-link:hover {
+  color: #059669 !important;
+}
+
+.retail-root .retail-product-cell em {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.retail-root .retail-payment-amount,
+.retail-root .retail-discount-money {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.retail-root .retail-discount-rate {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.retail-root .retail-data-table td.total,
+.retail-root .retail-data-table td.col-total {
+  font-weight: 600 !important;
+}
+
+/* ---------- Badge / status ---------- */
+.retail-root .retail-status,
+.retail-root .retail-status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: normal;
+}
+
+/* ---------- Summary foot ---------- */
+.retail-root .retail-summary-foot td {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155;
+}
+
+.retail-root .retail-summary-foot td.retail-summary-label {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+  color: #64748b !important;
+}
+
+.retail-root .retail-summary-foot td.total {
+  font-weight: 650 !important;
+  color: #16a34a !important;
+}
+
+/* ---------- Empty state ---------- */
+.retail-root .retail-empty-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-empty-state,
+.retail-root .retail-empty {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.retail-root .retail-empty-state strong,
+.retail-root .retail-empty strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+}
+
+.retail-root .retail-empty-state span,
+.retail-root .retail-empty span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Pagination ---------- */
+.retail-root .retail-pagination,
+.retail-root .retail-pagination > div,
+.retail-root .retail-pagination button,
+.retail-root .retail-pagination span {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.retail-root .retail-pagination button {
+  font-weight: 600;
+}
+
+/* ---------- Modals (inside .retail-root) ---------- */
+.retail-root .retail-modal h2 {
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+}
+
+.retail-root .retail-modal-state {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.retail-root .retail-modal-error {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.retail-root .retail-modal-error button {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.retail-root .retail-branch-list > button {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.retail-root .retail-branch-list strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.retail-root .retail-branch-list small {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* Detail modal content */
+.retail-root .retail-detail-card h3 {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+}
+
+.retail-root .retail-info-grid small,
+.retail-root .retail-detail-info small {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-info-grid strong,
+.retail-root .retail-detail-info strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.retail-root .retail-detail-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.retail-root .retail-detail-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.retail-root .retail-detail-table td.total {
+  font-weight: 600 !important;
+  color: #16a34a !important;
+}
+
+.retail-root .retail-detail-empty {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-note {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.retail-root .retail-money-summary dt {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.retail-root .retail-money-summary dd {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155;
+}
+
+.retail-root .retail-money-summary .grand {
+  font-size: 13px !important;
+}
+
+.retail-root .retail-money-summary .grand dd {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #16a34a !important;
+}
+
+.retail-root .retail-payment-breakdown span {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.retail-root .retail-payment-breakdown small {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.retail-root .retail-payment-breakdown strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+/* ============================================================
+   Portaled row action menu (document.body — not under .retail-root)
+   ============================================================ */
+.retail-row-action-menu--portal button,
+.retail-row-action-menu.retail-row-action-menu--portal button {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}

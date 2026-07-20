@@ -1,0 +1,396 @@
+/* ============================================================
+   Storage duration soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .storage-duration-page only.
+   Route: /products/storage-duration
+   ============================================================ */
+
+.storage-duration-page {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Shared chrome ---------- */
+.storage-duration-page h1,
+.storage-duration-page h2,
+.storage-duration-page h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.storage-duration-page h1 {
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.storage-duration-page h2 {
+  font-size: 15px;
+}
+
+.storage-duration-page h3 {
+  font-size: 13px;
+  color: #334155;
+}
+
+.storage-duration-page p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.storage-duration-page strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.storage-duration-page small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Buttons (shared .btn + storage toolbar buttons) */
+.storage-duration-page .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.storage-duration-page .btn:hover {
+  transform: none;
+}
+
+.storage-duration-page .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .16);
+}
+
+.storage-duration-page .icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.storage-duration-page .storage-btn {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.storage-duration-page .storage-btn:hover {
+  transform: none;
+}
+
+.storage-duration-page .storage-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, .14);
+}
+
+/* ---------- Eyebrow / tabs / summary strip ---------- */
+.storage-duration-page .storage-toolbar-eyebrow {
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: .06em;
+  color: #059669;
+}
+
+.storage-duration-page .storage-tab.is-compact,
+.storage-duration-page .storage-tabs-row .storage-tab.is-compact {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #64748b;
+}
+
+.storage-duration-page .storage-tab.is-compact.is-active,
+.storage-duration-page .storage-tabs-row .storage-tab.is-compact.is-active {
+  font-weight: 650 !important;
+  color: #059669 !important;
+  box-shadow: none;
+}
+
+.storage-duration-page .storage-summary-cluster {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b;
+}
+
+.storage-duration-page .storage-summary-main {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.storage-duration-page .storage-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+  letter-spacing: -.01em;
+}
+
+.storage-duration-page .storage-summary-filter,
+.storage-duration-page .storage-summary-value,
+.storage-duration-page .storage-selected-count {
+  font-size: 11.5px !important;
+  font-weight: 550 !important;
+}
+
+.storage-duration-page .storage-selected-count {
+  color: #64748b;
+}
+
+/* ---------- Filters / inputs ---------- */
+.storage-duration-page .storage-search {
+  min-height: 34px;
+}
+
+.storage-duration-page .storage-search input {
+  min-height: 32px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.storage-duration-page .storage-search input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.storage-duration-page .storage-filter-select,
+.storage-duration-page .storage-filter-input {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+.storage-duration-page .storage-advanced-filters label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.storage-duration-page .storage-info-note {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.storage-duration-page .storage-info-note strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.storage-duration-page .form-field > span,
+.storage-duration-page label > span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.storage-duration-page .form-field input,
+.storage-duration-page .form-field select,
+.storage-duration-page .form-field textarea,
+.storage-duration-page input,
+.storage-duration-page select,
+.storage-duration-page textarea {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+/* ---------- Chart / section headings ---------- */
+.storage-duration-page .inventory-table-title,
+.storage-duration-page .storage-table-title,
+.storage-duration-page .data-card-header h2,
+.storage-duration-page h2.storage-table-title,
+.storage-duration-page h2.inventory-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -.01em;
+}
+
+.storage-duration-page .inventory-table-subtitle,
+.storage-duration-page .storage-table-subtitle,
+.storage-duration-page .data-card-header p {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.storage-duration-page .storage-age-chart-empty {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.storage-duration-page .storage-age-chart-tooltip {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__label {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row span {
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.storage-duration-page .storage-age-chart-tooltip__row strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Table ---------- */
+.storage-duration-page .data-table th,
+.storage-duration-page .data-table td,
+.storage-duration-page .storage-data-table th,
+.storage-duration-page .storage-data-table td {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.storage-duration-page .data-table th,
+.storage-duration-page .storage-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.storage-duration-page .data-table td,
+.storage-duration-page .storage-data-table td {
+  color: #475569;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+}
+
+.storage-duration-page .data-table td strong,
+.storage-duration-page .storage-data-table td strong,
+.storage-duration-page .storage-code,
+.storage-duration-page .storage-name-main {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.storage-duration-page .storage-name-sub,
+.storage-duration-page .storage-group-main,
+.storage-duration-page .data-table small,
+.storage-duration-page .storage-data-table small {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.storage-duration-page .number {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.storage-duration-page .storage-empty-cell,
+.storage-duration-page .empty-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Badge / chip ---------- */
+.storage-duration-page .status-badge,
+.storage-duration-page .record-badge,
+.storage-duration-page .storage-risk-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- Modal (in-root) ---------- */
+.storage-duration-page .modal-header h2 {
+  font-size: 16px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.storage-duration-page .modal-header p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.storage-duration-page .modal-card .btn {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ---------- Pagination ---------- */
+.storage-duration-page .pagination,
+.storage-duration-page .pagination button,
+.storage-duration-page .pagination span,
+.storage-duration-page .page-size-select,
+.storage-duration-page [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* Soften ultra-bold inline styles if any */
+.storage-duration-page [style*='font-weight: 800'],
+.storage-duration-page [style*='font-weight:800'],
+.storage-duration-page [style*='font-weight: 900'],
+.storage-duration-page [style*='font-weight:900'] {
+  font-weight: 650 !important;
+}
+
+/* ---------- Portaled row menu (renders under body) ---------- */
+.storage-row-action-menu,
+.storage-row-action-menu--portal {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.storage-row-action-menu button,
+.storage-row-action-menu--portal button,
+.storage-row-action-menu .storage-action-option-primary,
+.storage-row-action-menu--portal .storage-action-option-primary {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+}
+
+@media (max-width: 720px) {
+  .storage-duration-page .storage-table-title,
+  .storage-duration-page .inventory-table-title {
+    font-size: 14px !important;
+  }
+
+  .storage-duration-page .storage-tab.is-compact {
+    min-height: 32px;
+    font-size: 12px !important;
+  }
+}

@@ -1,0 +1,594 @@
+/* ============================================================
+   Inventory soft type — match staff/products tone:
+   smaller, lighter weight, softer color, consistent scale.
+   Scoped under .inventory-root (+ .inventory-soft-page for shell
+   chrome only on /products/inventory).
+   ============================================================ */
+
+.inventory-soft-page,
+.inventory-root {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* ---------- Report shell (shared shell, only when this page wraps) ---------- */
+.inventory-soft-page .inventory-report-shell__title-block h1 {
+  font-size: 20px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.inventory-soft-page .inventory-report-shell__title-block p {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+  line-height: 1.45;
+}
+
+.inventory-soft-page .inventory-report-shell__meta {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+.inventory-soft-page .inventory-report-nav__tab {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.inventory-soft-page .inventory-report-nav__tab:hover {
+  color: #334155;
+}
+
+.inventory-soft-page .inventory-report-nav__tab.is-active {
+  font-weight: 650;
+  color: #059669;
+  box-shadow: none;
+}
+
+/* ---------- Base text under inventory-root ---------- */
+.inventory-root h1,
+.inventory-root h2,
+.inventory-root h3 {
+  color: #1e293b;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.inventory-root p {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.inventory-root strong {
+  font-weight: 600;
+  color: #334155;
+}
+
+.inventory-root small {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* ---------- Shared chrome ---------- */
+.inventory-root .btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.inventory-root .btn:hover {
+  transform: none;
+}
+
+.inventory-root .btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.16);
+}
+
+.inventory-root .icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
+.inventory-root .record-badge,
+.inventory-root .status-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.inventory-root .data-card-header {
+  padding: 12px 14px;
+}
+
+.inventory-root .data-card-header h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.inventory-root .data-table th,
+.inventory-root .data-table td {
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.inventory-root .data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+}
+
+.inventory-root .data-table td {
+  color: #475569;
+}
+
+.inventory-root .data-table td strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.inventory-root .data-table small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.inventory-root .form-field span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.inventory-root .form-field input,
+.inventory-root .form-field select,
+.inventory-root .form-field textarea {
+  min-height: 34px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  border-radius: 10px;
+}
+
+/* ---------- Toolbar chips / summary KPI strip ---------- */
+.inventory-root .inventory-toolbar-eyebrow,
+.inventory-root .inventory-title-chip {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+}
+
+.inventory-root .inventory-toolbar-eyebrow {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #047857;
+}
+
+.inventory-root .inventory-title-chip {
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: #334155;
+  font-weight: 600 !important;
+}
+
+.inventory-root .inventory-summary-cluster {
+  font-size: 11.5px !important;
+  font-weight: 550 !important;
+  color: #047857;
+}
+
+.inventory-root .inventory-summary-main {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.inventory-root .inventory-summary-main strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #065f46 !important;
+  letter-spacing: -0.01em;
+}
+
+.inventory-root .inventory-summary-value {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #065f46 !important;
+  letter-spacing: -0.01em;
+}
+
+.inventory-root .inventory-summary-filter {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: #b45309;
+}
+
+/* ---------- Filters / buttons ---------- */
+.inventory-root .inv-search {
+  min-height: 34px;
+}
+
+.inventory-root .inv-search input,
+.inventory-root .inventory-sticky-toolbar .inv-search input,
+.inventory-root .filter-suggest__input {
+  min-height: 32px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+}
+
+.inventory-root .inv-search input::placeholder,
+.inventory-root .filter-suggest__input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.inventory-root .inv-filter-select,
+.inventory-root .inventory-sticky-toolbar .inv-filter-select {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+  border-radius: 10px;
+}
+
+.inventory-root .inv-btn,
+.inventory-root .inventory-table-link-button {
+  min-height: 34px !important;
+  height: 34px !important;
+  padding: 0 11px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+
+.inventory-root .inv-btn:hover,
+.inventory-root .inventory-table-link-button:hover {
+  transform: none;
+}
+
+.inventory-root .inv-btn-primary {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.14) !important;
+}
+
+.inventory-root .inv-quick-pills button,
+.inventory-root .inventory-sticky-toolbar .inv-quick-pills button {
+  min-height: 26px;
+  padding: 0 9px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #475569;
+}
+
+.inventory-root .inventory-sticky-toolbar .inv-quick-pills button.active,
+.inventory-root .inventory-sticky-toolbar .inv-quick-pills button:hover {
+  font-weight: 600 !important;
+  color: #047857;
+}
+
+/* ---------- Alerts / notes ---------- */
+.inventory-root .inventory-error-bar {
+  font-size: 12px !important;
+  font-weight: 550 !important;
+  color: #92400e;
+}
+
+.inventory-root .inventory-transfer-alert strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.inventory-root .inventory-transfer-alert span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #a16207;
+}
+
+.inventory-root .inventory-transfer-note {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b;
+}
+
+.inventory-root .inventory-transfer-note button {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.inventory-root .inventory-refreshing-badge {
+  font-size: 11px;
+  font-weight: 550;
+  color: #64748b;
+}
+
+/* ---------- Section titles (chart + table) ---------- */
+.inventory-root .inventory-table-title,
+.inventory-root h2.inventory-table-title {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em;
+}
+
+.inventory-root .inventory-table-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Chart summary chips ---------- */
+.inventory-root .inventory-chart-summary__item small {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: #94a3b8 !important;
+}
+
+.inventory-root .inventory-chart-summary__item strong {
+  font-size: 12.5px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+}
+
+.inventory-root .inventory-chart-empty {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.inventory-root .inventory-chart-tooltip {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.inventory-root .inventory-chart-tooltip__head small {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  color: #94a3b8 !important;
+}
+
+.inventory-root .inventory-chart-tooltip__head strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+.inventory-root .inventory-chart-tooltip__row {
+  font-size: 11.5px !important;
+  font-weight: 500;
+}
+
+.inventory-root .inventory-chart-tooltip__row strong {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.inventory-root .inventory-chart .recharts-legend-item-text,
+.inventory-root .inventory-chart .recharts-cartesian-axis-tick-value {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  fill: #64748b !important;
+}
+
+/* ---------- Data table ---------- */
+.inventory-root .inventory-data-table th,
+.inventory-root .data-table.inventory-data-table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase;
+  padding: 10px 12px;
+}
+
+.inventory-root .inventory-data-table td,
+.inventory-root .data-table.inventory-data-table td {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569;
+  padding: 10px 12px;
+}
+
+.inventory-root .inventory-sort-button {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: inherit;
+}
+
+.inventory-root .inventory-code-cell strong,
+.inventory-root .inventory-link-button {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.inventory-root .inventory-product-name {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.inventory-root .inventory-product-cell small {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.inventory-root .inventory-money-cell,
+.inventory-root .inventory-number-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+}
+
+.inventory-root .inventory-number-cell span,
+.inventory-root .inventory-number-cell strong {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+.inventory-root .inventory-number-total strong {
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+/* ---------- Empty state ---------- */
+.inventory-root .inventory-empty-cell,
+.inventory-root .empty-cell {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.inventory-root .inventory-empty-state strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+}
+
+.inventory-root .inventory-empty-state span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+/* ---------- Pagination ---------- */
+.inventory-root .pagination,
+.inventory-root .pagination button,
+.inventory-root .pagination span,
+.inventory-root .page-size-select,
+.inventory-root [class*='pagination'] button {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+/* ---------- Export modal (rendered inside inventory-root) ---------- */
+.inventory-root .export-header h3 {
+  font-size: 16px !important;
+  font-weight: 650 !important;
+  color: #1e293b !important;
+}
+
+.inventory-root .export-section-title {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  color: #334155 !important;
+}
+
+.inventory-root .export-radio-label,
+.inventory-root .export-checkbox-label,
+.inventory-root .export-tab {
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+  color: #475569;
+}
+
+.inventory-root .export-tab.active {
+  font-weight: 650 !important;
+  color: #059669;
+}
+
+.inventory-root .export-input-field label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+}
+
+.inventory-root .export-text-input,
+.inventory-root .export-column-rename-input,
+.inventory-root .export-columns-search input {
+  min-height: 34px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  border-radius: 10px;
+}
+
+.inventory-root .export-btn {
+  min-height: 34px !important;
+  padding: 0 12px;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 999px;
+  box-shadow: none !important;
+}
+
+.inventory-root .export-btn:hover {
+  transform: none;
+}
+
+.inventory-root .gsheet-badge {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* Soften any remaining ultra-bold text under inventory-root */
+.inventory-root [style*='font-weight: 800'],
+.inventory-root [style*='font-weight:800'],
+.inventory-root [style*='font-weight: 900'],
+.inventory-root [style*='font-weight:900'],
+.inventory-root [style*='font-weight: 750'],
+.inventory-root [style*='font-weight:750'] {
+  font-weight: 650 !important;
+}
+
+/* Portaled filter suggest (body-level; soft scale only) */
+.filter-suggest__panel--portal .filter-suggest__label {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+.filter-suggest__panel--portal .filter-suggest__meta {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.filter-suggest__panel--portal .filter-suggest__status {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+
+.filter-suggest__panel--portal .filter-suggest__item {
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+@media (max-width: 720px) {
+  .inventory-soft-page .inventory-report-shell__title-block h1 {
+    font-size: 18px !important;
+  }
+
+  .inventory-root .inventory-table-title {
+    font-size: 14px !important;
+  }
+
+  .inventory-root .inventory-summary-main strong,
+  .inventory-root .inventory-summary-value {
+    font-size: 12.5px !important;
+  }
+}

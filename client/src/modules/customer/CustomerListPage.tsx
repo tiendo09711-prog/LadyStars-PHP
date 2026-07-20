@@ -24,6 +24,7 @@ import { suggestCustomers } from '../../core/api/filterSuggestions';
 import { Pagination } from '../../core/components/Pagination';
 import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import './customer-list-page.css';
+import './customer-list-soft-type.css';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 

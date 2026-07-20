@@ -78,6 +78,7 @@ import {
   validateDateRange,
 } from './revenueByStore.utils';
 import './revenue-by-store.css';
+import './revenue-store-soft-type.css';
 
 const CHART_COLORS = [
   '#10b981',
@@ -1207,7 +1208,7 @@ export function RevenueByStorePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [chartView, setChartView] = useState<ChartView>('line');
