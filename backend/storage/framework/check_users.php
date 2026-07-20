@@ -1,1 +1,0 @@
-<?php $pdo=new PDO("sqlite:database/database.sqlite"); echo "===USERS===\n"; $stmt=$pdo->query("SELECT * FROM users ORDER BY id LIMIT 20"); print_r($stmt->fetchAll(PDO::FETCH_ASSOC)); echo "\n===COLUMNS===\n"; $c=$pdo->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_ASSOC); print_r($c);

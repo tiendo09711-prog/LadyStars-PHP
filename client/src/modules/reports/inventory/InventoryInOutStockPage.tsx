@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { ChevronDown, Download, Eye, RefreshCw, X } from 'lucide-react';
+import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { InventoryReportShell } from './components/InventoryReportShell';
 import { fetchAllInOutStockRows, fetchInOutStockOptions, fetchInOutStockReport, fetchInventoryReconciliation } from './in-out/inOutStock.api';
 import type { InventoryReconciliationResponse } from './in-out/inOutStock.api';
@@ -58,6 +59,7 @@ export function InventoryInOutStockPage() {
   const periodRequestSeq = useRef(0);
   const periodCloseRef = useRef<HTMLButtonElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const productSearchRef = useRef<HTMLInputElement>(null);
 
   const loadReport = useCallback(async (filters: InOutStockFilters, mode: 'load' | 'refresh' = 'load') => {
     const maxDays = options?.maxRangeDays ?? 366;
@@ -159,6 +161,19 @@ export function InventoryInOutStockPage() {
     setDraft(next);
     void loadReport(next, 'load');
   };
+
+  useProductScanTarget(productSearchRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setDraft((prev) => {
+      const next = { ...prev, q: query, page: 1 };
+      window.setTimeout(() => {
+        void loadReport(next, 'load');
+        productSearchRef.current?.focus();
+      }, 0);
+      return next;
+    });
+  });
 
   const handleRefresh = () => {
     if (loading || refreshing) return;
@@ -343,8 +358,11 @@ export function InventoryInOutStockPage() {
                   <label htmlFor="inout-q">Từ khóa</label>
                   <input
                     id="inout-q"
+                    ref={productSearchRef}
                     type="search"
-                    placeholder="Mã phiếu, mã SP, tên SP..."
+                    data-product-search-scan="true"
+                    data-product-search-primary="true"
+                    placeholder="Mã phiếu, mã SP, quét barcode..."
                     value={draft.q}
                     onChange={(e) => patchDraft({ q: e.target.value })}
                   />

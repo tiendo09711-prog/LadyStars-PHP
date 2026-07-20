@@ -12,7 +12,7 @@ if errorlevel 1 exit /b 1
 echo ===== LARAVEL TESTS =====
 cd backend
 REM Run core API, Settings and Staff regression tests on isolated SQLite.
-call php artisan test --filter="CategoryCrudApi|Example|LocalWriteApi|ReadOnlyApi|SettingsApi|StaffManagement|WriteFlowApi|WarehouseTransferFlow"
+call php artisan test --filter="CategoryCrudApi|Example|LocalWriteApi|ReadOnlyApi|SettingsApi|StaffManagement|WriteFlowApi|WarehouseTransferFlow|DashboardOverview"
 if errorlevel 1 exit /b 1
 cd ..
 

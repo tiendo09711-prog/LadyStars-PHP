@@ -562,6 +562,22 @@ class ReadOnlyApiTest extends TestCase
             'payload' => ['code' => 'HD-INT'],
         ]);
 
+        // Also covered: payload-only items (no column items) — regression for Excel import.
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'salepayloadonly000000001',
+            'code' => 'HD-PAYLOAD-ONLY',
+            'status' => 'completed',
+            'completed_at' => $lastSoldDate->copy()->subDay(),
+            'business_date' => $lastSoldDate->copy()->subDay(),
+            'items' => null,
+            'payload' => [
+                'code' => 'HD-PAYLOAD-ONLY',
+                'items' => [
+                    ['productId' => $this->product->id, 'productCode' => $this->product->code, 'name' => $this->product->name],
+                ],
+            ],
+        ]);
+
         // Live inventory_products.product_mongo_id often holds local PK string, not hex mongo_id.
         (new MirrorRecord())->forTable('inventory_products')->newQuery()->create([
             'mongo_id' => 'invlegacy00000000000001',

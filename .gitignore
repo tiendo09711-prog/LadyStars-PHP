@@ -59,6 +59,7 @@ backend/.phpunit.result.cache
 # Local scratch (do not commit)
 scratch/
 artifacts/
+deploy-upload/
 e2e-artifacts/
 playwright-report/
 test-results/

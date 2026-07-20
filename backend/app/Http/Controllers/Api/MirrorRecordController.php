@@ -521,11 +521,13 @@ class MirrorRecordController extends Controller
 
         // Monetary normalization: legacy import uses totalAmount / valuePayment; column value may be null.
         $value = $serialized['value'] ?? null;
+        $valueFromItems = false;
         if ($value === null || $value === '' || !is_numeric($value)) {
             $value = $serialized['totalAmount'] ?? $serialized['total_amount'] ?? null;
         }
         if (($value === null || $value === '' || !is_numeric($value)) && is_array($serialized['items'] ?? null)) {
             $value = 0;
+            $valueFromItems = true;
             foreach ($serialized['items'] as $item) {
                 if (!is_array($item)) {
                     continue;
@@ -539,6 +541,28 @@ class MirrorRecordController extends Controller
                 $value += (float) $lineTotal;
             }
         }
+
+        $discount = $serialized['discountValue'] ?? $serialized['discount_value'] ?? $serialized['discount'] ?? 0;
+        $serialized['discountValue'] = is_numeric($discount) ? (float) $discount : 0;
+        $discountType = $serialized['discountType']
+            ?? $serialized['discount_type']
+            ?? (isset($serialized['discount']) && is_numeric($serialized['discount']) ? 'number' : 'number');
+        $serialized['discountType'] = $discountType;
+
+        // When net total was reconstructed from line items only (legacy retail create
+        // omitted `value`), apply order-level discount so totals match payments.
+        $grossFromItems = (float) ($value ?? 0);
+        if ($valueFromItems && $serialized['discountValue'] > 0 && $grossFromItems > 0) {
+            $typeNorm = strtolower(trim((string) $discountType));
+            $isPercent = in_array($typeNorm, ['percent', 'percentage', '%'], true);
+            if ($isPercent) {
+                $rate = min(100.0, max(0.0, $serialized['discountValue']));
+                $value = max(0.0, round($grossFromItems * (1 - ($rate / 100)), 2));
+            } else {
+                $value = max(0.0, round($grossFromItems - $serialized['discountValue'], 2));
+            }
+        }
+
         $serialized['value'] = (float) ($value ?? 0);
 
         $paid = $serialized['valuePayment'] ?? $serialized['value_payment'] ?? null;
@@ -547,12 +571,6 @@ class MirrorRecordController extends Controller
         }
         $serialized['valuePayment'] = (float) $paid;
         $serialized['value_payment'] = $serialized['valuePayment'];
-
-        $discount = $serialized['discountValue'] ?? $serialized['discount_value'] ?? $serialized['discount'] ?? 0;
-        $serialized['discountValue'] = is_numeric($discount) ? (float) $discount : 0;
-        $serialized['discountType'] = $serialized['discountType']
-            ?? $serialized['discount_type']
-            ?? (isset($serialized['discount']) && is_numeric($serialized['discount']) ? 'number' : 'number');
 
         // Normalize payment lines for FE paymentRows (expects typePayment[].methodId.name + amount).
         if (empty($serialized['typePayment']) && !empty($serialized['payment_lines']) && is_array($serialized['payment_lines'])) {

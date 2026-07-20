@@ -64,6 +64,7 @@ type DashboardData = {
   chartData: { date: string; fullDate: string; revenue: number; prevRevenue: number }[];
   recentSales: any[];
   availableStores?: string[];
+  stores?: { id: number; name: string }[];
 };
 
 function formatSaleTime(value: string) {
@@ -267,7 +268,13 @@ export function DashboardPage() {
     let active = true;
     setStorageLoading(true);
     setStorageError('');
-    productApi.getStorageDuration({ page: 1, limit: 5 })
+    const params: Record<string, string | number> = { page: 1, limit: 5 };
+    // Align storage alerts with single-store filter when one store is selected.
+    if (selectedStores.length === 1 && data?.stores?.length) {
+      const match = data.stores.find((store) => store.name === selectedStores[0]);
+      if (match?.id != null) params.branchId = match.id;
+    }
+    productApi.getStorageDuration(params)
       .then((response) => {
         if (!active) return;
         setStorageSummary(response.kpis || null);
@@ -281,7 +288,7 @@ export function DashboardPage() {
         if (active) setStorageLoading(false);
       });
     return () => { active = false; };
-  }, [refreshKey]);
+  }, [refreshKey, selectedStores, data?.stores]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -544,7 +551,7 @@ export function DashboardPage() {
                 <div className="dv-stack-metrics dv-inventory-row">
                   <Link className="dv-storage-metric" to="/products/storage-duration?tab=unsold_long"><small>Hàng chưa bán &gt; {storageSummary.thresholdDays || 30} ngày</small><strong>{fmt(storageSummary.unsoldLong)}</strong></Link>
                   <Link className="dv-storage-metric" to="/products/storage-duration?tab=slow_selling"><small>Hàng bán chậm &gt; {storageSummary.thresholdDays || 30} ngày</small><strong>{fmt(storageSummary.slowSelling)}</strong></Link>
-                  <Link className="dv-storage-metric" to="/products/storage-duration"><small>Giá vốn hàng tồn lâu</small><strong>{fmt(storageSummary.totalValue)}</strong></Link>
+                  <Link className="dv-storage-metric" to="/products/storage-duration"><small>Giá vốn hàng tồn lâu</small><strong>{fmt(storageSummary.oldStockValue ?? storageSummary.unsoldLongValue ?? storageSummary.totalValue)}</strong></Link>
                 </div>
                 <div className="dv-storage-toplist">
                   {[...(storageSummary.topUnsoldLong || []), ...(storageSummary.topSlowSelling || [])].slice(0, 5).map((item) => (

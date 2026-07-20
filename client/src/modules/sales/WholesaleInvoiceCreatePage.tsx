@@ -1153,7 +1153,7 @@ export function WholesaleInvoiceCreatePage() {
                     type="text"
                     id="product-search-input"
                     ref={productSearchRef}
-                    data-product-search-scan="true" data-product-search-primary="true" placeholder="(F3) Tìm sản phẩm..."
+                    data-product-search-scan="true" data-product-search-primary="true" placeholder="(F3) Tìm / quét barcode sản phẩm..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);

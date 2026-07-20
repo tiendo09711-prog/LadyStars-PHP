@@ -1082,7 +1082,7 @@ export function RefundInvoiceCreatePage() {
                     type="text"
                     id="product-search-input"
                     ref={productSearchRef}
-                    data-product-search-scan="true" data-product-search-primary="true" placeholder="(F3) Tìm sản phẩm trả..."
+                    data-product-search-scan="true" data-product-search-primary="true" placeholder="(F3) Tìm / quét barcode sản phẩm trả..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -1327,7 +1327,7 @@ export function RefundInvoiceCreatePage() {
                     type="text"
                     id="new-product-search-input"
                     ref={newProductSearchRef}
-                    data-product-search-scan="true" placeholder="Tìm sản phẩm mua mới..."
+                    data-product-search-scan="true" placeholder="Tìm / quét barcode sản phẩm mua mới..."
                     value={newSearchQuery}
                     onChange={(e) => {
                       setNewSearchQuery(e.target.value);

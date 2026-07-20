@@ -34,6 +34,7 @@ import {
 import { http } from '../../core/api/http';
 import { isAdminRole } from '../../core/auth/access';
 import { buildInvoiceProfile, getBranch, getStoreSetting } from '../../core/api/branch.api';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { buildReceiptHtml } from './invoicePrint';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
@@ -44,6 +45,8 @@ import {
   totalQuantity,
   grossValue,
   discountMoneyAmount,
+  isPercentDiscount,
+  netValue,
   statusMeta,
   hasGiftItems,
   refundActionState,
@@ -155,7 +158,7 @@ function matchesTab(invoice: Invoice, tab: WholesaleTab): boolean {
   if (tab === 'debt') {
     const status = String(invoice.status || '').toLowerCase();
     if (status === 'cancelled') return false;
-    return Number(invoice.value || 0) - Number(invoice.valuePayment || 0) > 0;
+    return netValue(invoice) - Number(invoice.valuePayment || 0) > 0;
   }
   return true;
 }
@@ -183,6 +186,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   const toolsMenuRef = useRef<HTMLDivElement | null>(null);
   const createInvoiceBtnRef = useRef<HTMLButtonElement | null>(null);
   const pendingPrintWindowRef = useRef<Window | null>(null);
+  const productKeywordRef = useRef<HTMLInputElement>(null);
   const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -359,6 +363,18 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     setAppliedFilters({ ...draftFilters });
   };
 
+  useProductScanTarget(productKeywordRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setDraftFilters((current) => {
+      const next = { ...current, productKeyword: query };
+      setPage(1);
+      setAppliedFilters(next);
+      return next;
+    });
+    window.setTimeout(() => productKeywordRef.current?.focus(), 0);
+  });
+
   const resetFilters = () => {
     setDraftFilters(EMPTY_FILTERS);
     setPage(1);
@@ -496,7 +512,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       };
     });
     const paid = Number(invoice.valuePayment || 0);
-    const totalAmount = Number(invoice.value || 0);
+    const totalAmount = netValue(invoice);
     const tendered = Number(invoice.tenderedValue ?? paid);
     const hasDistinctTendered = Number.isFinite(tendered) && tendered > 0 && Math.abs(tendered - paid) > 1;
     const change = hasDistinctTendered ? Math.max(tendered - totalAmount, 0) : 0;
@@ -511,11 +527,11 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       sections: [{ lines: receiptLines }],
       summary: hideTotals ? [] : [
         { label: 'Tổng cộng', value: safeMoney(grossValue(invoice)) },
-        { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—' },
+        { label: 'Giảm giá', value: Number(invoice.discountValue) > 0 ? `-${safeMoney(discountMoneyAmount(invoice))}${isPercentDiscount(invoice.discountType) ? ` (${Number(invoice.discountValue)}%)` : ''}` : '—' },
         ...(invoice.hasVat && Number(invoice.vatAmount) > 0
           ? [{ label: `VAT${Number(invoice.vatPercent) > 0 ? ` (${Number(invoice.vatPercent)}%)` : ''}`, value: safeMoney(invoice.vatAmount) }]
           : []),
-        { label: 'Thành tiền', value: safeMoney(invoice.value), strong: true },
+        { label: 'Thành tiền', value: safeMoney(netValue(invoice)), strong: true },
         { label: 'Đã thanh toán', value: safeMoney(invoice.valuePayment) },
         ...(hasDistinctTendered ? [{ label: 'Tiền khách trả', value: safeMoney(tendered) }] : []),
         ...(change > 0 ? [{ label: 'Tiền trả lại', value: safeMoney(change) }] : []),
@@ -632,7 +648,7 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     const confirmation = window.confirm(
       [
         `Mã hóa đơn: ${invoice.code || invoice._id}`,
-        `Tổng tiền: ${safeMoney(invoice.value)}`,
+        `Tổng tiền: ${safeMoney(netValue(invoice))}`,
         `Số dòng hàng: ${lineCount}`,
         `Ảnh hưởng tồn kho: ${status === 'completed' ? 'Hệ thống sẽ hoàn tồn kho cho hóa đơn này.' : 'Không phát sinh hoàn tồn kho.'}`,
         'Thao tác này không thể khôi phục trực tiếp từ giao diện.',
@@ -672,8 +688,8 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       { label: 'Số lượng SP', get: (invoice) => String(totalQuantity(invoice)) },
       { label: 'Giá trị hàng hóa', get: (invoice) => String(grossValue(invoice)) },
       { label: 'Giảm giá', get: (invoice) => String(discountMoneyAmount(invoice)) },
-      { label: '% chiết khấu', get: (invoice) => String(invoice.discountType === 'percent' ? Number(invoice.discountValue) || 0 : 0) },
-      { label: 'Tổng tiền', get: (invoice) => String(Number(invoice.value) || 0) },
+      { label: '% chiết khấu', get: (invoice) => String(isPercentDiscount(invoice.discountType) ? Number(invoice.discountValue) || 0 : 0) },
+      { label: 'Tổng tiền', get: (invoice) => String(netValue(invoice)) },
       { label: 'Đã thanh toán', get: (invoice) => String(Number(invoice.valuePayment) || 0) },
       { label: 'Trạng thái', get: (invoice) => statusMeta(invoice.status, invoice.refundStatus).label },
     ];
@@ -715,8 +731,8 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
       { label: 'Giá trị hàng hóa', key: 'gross', getValue: (invoice: Invoice) => grossValue(invoice) },
       { label: 'Tổng SL', key: 'qty', getValue: (invoice: Invoice) => totalQuantity(invoice) },
       { label: 'Giảm giá', key: 'discount', getValue: (invoice: Invoice) => discountMoneyAmount(invoice) },
-      { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => invoice.discountType === 'percent' ? Number(invoice.discountValue) || 0 : 0 },
-      { label: 'Tổng tiền', key: 'value', getValue: (invoice: Invoice) => Number(invoice.value) || 0 },
+      { label: '% chiết khấu', key: 'discountRate', getValue: (invoice: Invoice) => isPercentDiscount(invoice.discountType) ? Number(invoice.discountValue) || 0 : 0 },
+      { label: 'Tổng tiền', key: 'value', getValue: (invoice: Invoice) => netValue(invoice) },
       { label: 'Phương thức thanh toán', key: 'paymentMethods', getValue: (invoice: Invoice) => paymentRows(invoice).map((p) => p.label).join(', ') || '—' },
       { label: 'Đã thanh toán', key: 'paid', getValue: (invoice: Invoice) => Number(invoice.valuePayment) || 0 },
       { label: 'Trạng thái', key: 'status', getValue: (invoice: Invoice) => statusMeta(invoice.status, invoice.refundStatus).label },
@@ -899,10 +915,13 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
           />
 
           <input
+            ref={productKeywordRef}
             className="ws-filter-input"
             value={draftFilters.productKeyword}
             onChange={(event) => setDraftFilters((current) => ({ ...current, productKeyword: event.target.value }))}
-            placeholder="Sản phẩm..."
+            data-product-search-scan="true"
+            data-product-search-primary="true"
+            placeholder="Sản phẩm / quét barcode..."
             aria-label="Sản phẩm"
           />
 
@@ -1101,14 +1120,14 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                           className="number discount"
                           title={
                             Number(invoice.discountValue) > 0
-                              ? `-${safeMoney(discountMoneyAmount(invoice))}${invoice.discountType === 'percent' ? ` (${Number(invoice.discountValue)}%)` : ''}`
+                              ? `-${safeMoney(discountMoneyAmount(invoice))}${isPercentDiscount(invoice.discountType) ? ` (${Number(invoice.discountValue)}%)` : ''}`
                               : '—'
                           }
                         >
                           {Number(invoice.discountValue) > 0 ? (
                             <span className="ws-discount-cell">
                               <span className="ws-discount-money">-{safeMoney(discountMoneyAmount(invoice))}</span>
-                              {invoice.discountType === 'percent' ? (
+                              {isPercentDiscount(invoice.discountType) ? (
                                 <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span>
                               ) : null}
                             </span>
@@ -1116,8 +1135,8 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
                             '—'
                           )}
                         </td>
-                        <td className="number total" title={safeMoney(invoice.value)}>
-                          {safeMoney(invoice.value)}
+                        <td className="number total" title={safeMoney(netValue(invoice))}>
+                          {safeMoney(netValue(invoice))}
                         </td>
                         <td className="ws-payment-column">
                           {payments.length > 0 ? (
@@ -1399,7 +1418,7 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
             <div><dt>Giảm giá</dt><dd className="discount">{Number(invoice.discountValue) > 0 ? (
               <span className="ws-discount-detail">
                 <span>-{safeMoney(discountMoneyAmount(invoice))}</span>
-                {invoice.discountType === 'percent' ? <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span> : null}
+                {isPercentDiscount(invoice.discountType) ? <span className="ws-discount-rate">{Number(invoice.discountValue)}%</span> : null}
               </span>
             ) : '—'}</dd></div>
             {invoice.hasVat && Number(invoice.vatAmount) > 0 ? (
@@ -1416,7 +1435,7 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
                 </div>
               </>
             ) : null}
-            <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(invoice.value)}</dd></div>
+            <div className="grand"><dt>Tổng tiền</dt><dd>{safeMoney(netValue(invoice))}</dd></div>
             <div><dt>Đã thanh toán</dt><dd>{safeMoney(invoice.valuePayment)}</dd></div>
             {Number(invoice.prepaidFromOrder) > 0 ? (
               <div><dt>Đã TT từ đơn hàng</dt><dd>{safeMoney(invoice.prepaidFromOrder)}</dd></div>

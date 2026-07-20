@@ -25,6 +25,7 @@ import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { http } from '../../core/api/http';
 import { Pagination } from '../../core/components/Pagination';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import './warehouseRecords.css';
 import './warehouse-transactions-page.css';
@@ -228,6 +229,7 @@ export function WarehouseTransactionPage() {
   const menuRootRef = useRef<HTMLDivElement>(null);
   const listRequestSeq = useRef(0);
   const fromDateInputRef = useRef<HTMLInputElement>(null);
+  const productKeywordRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('bills');
   const [meta, setMeta] = useState<TransactionMeta>({ warehouses: [], types: [], kinds: [] });
   const [rows, setRows] = useState<TransactionRow[]>([]);
@@ -411,6 +413,24 @@ export function WarehouseTransactionPage() {
     setPage(1);
     setAppliedFilters((current) => ({ ...current, [activeTab]: { ...draft } }));
   };
+
+  useProductScanTarget(productKeywordRef, (rawBarcode) => {
+    if (activeTab !== 'items') return;
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setFilterError('');
+    setDraftFilters((current) => {
+      const nextDraft = { ...current.items, productKeyword: query };
+      if (isInvertedDateRange(nextDraft.fromDate, nextDraft.toDate)) {
+        setFilterError('Từ ngày không được lớn hơn Đến ngày.');
+        return { ...current, items: nextDraft };
+      }
+      setPage(1);
+      setAppliedFilters((applied) => ({ ...applied, items: nextDraft }));
+      return { ...current, items: nextDraft };
+    });
+    window.setTimeout(() => productKeywordRef.current?.focus(), 0);
+  });
 
   const resetFilters = () => {
     closeMenus();
@@ -730,9 +750,12 @@ export function WarehouseTransactionPage() {
             <div className="wt-search wt-search--product">
               <Search size={15} aria-hidden="true" />
               <input
+                ref={productKeywordRef}
                 value={currentFilters.productKeyword}
                 onChange={(event) => updateFilter('productKeyword', event.target.value)}
-                placeholder="Tên, mã, mã vạch sản phẩm"
+                data-product-search-scan="true"
+                data-product-search-primary="true"
+                placeholder="Tên, mã, mã vạch — quét barcode"
                 aria-label="Tìm sản phẩm"
               />
             </div>

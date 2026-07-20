@@ -27,8 +27,63 @@ export function grossValue(invoice: Invoice) {
   );
 }
 
+/** True when invoice-level discount is stored as a percentage (10 = 10%). */
+export function isPercentDiscount(type: unknown): boolean {
+  const t = String(type ?? '').toLowerCase().trim();
+  return t === 'percent' || t === 'percentage' || t === '%';
+}
+
+/**
+ * Order-level discount converted to money (đ).
+ * - percent: discountValue is rate (e.g. 10 → 10% of gross)
+ * - number/fixed: discountValue is already money
+ * - fallback: gross − stored net value (covers line discounts reflected only in value)
+ */
 export function discountMoneyAmount(invoice: Invoice) {
-  return Math.max(0, grossValue(invoice) - (Number(invoice.value) || 0));
+  const gross = grossValue(invoice);
+  const raw = Number(invoice.discountValue ?? invoice.discount_value ?? invoice.discount ?? 0);
+  const entered = Number.isFinite(raw) ? Math.max(0, raw) : 0;
+  const type = invoice.discountType ?? invoice.discount_type;
+
+  if (entered > 0) {
+    if (isPercentDiscount(type)) {
+      if (gross > 0) {
+        return Math.min(gross, Math.round((gross * Math.min(entered, 100)) / 100));
+      }
+      // Cannot convert % without a base; leave fallback below.
+    } else {
+      return gross > 0 ? Math.min(gross, entered) : entered;
+    }
+  }
+
+  const net = Number(invoice.value ?? invoice.totalAmount ?? invoice.total_amount);
+  if (gross > 0 && Number.isFinite(net) && net >= 0 && gross > net + 0.0001) {
+    return Math.max(0, Math.round(gross - net));
+  }
+  return 0;
+}
+
+/**
+ * Net invoice total after order-level discount.
+ * Corrects legacy retail rows where `value` was left null and later reconstructed as gross
+ * (equal to line sum) even though a percent/fixed discount was stored.
+ */
+export function netValue(invoice: Invoice) {
+  const gross = productLines(invoice).length > 0 ? grossValue(invoice) : 0;
+  const disc = discountMoneyAmount(invoice);
+  const direct = Number(invoice.value ?? invoice.totalAmount ?? invoice.total_amount);
+
+  if (productLines(invoice).length > 0) {
+    const computed = Math.max(0, Math.round(gross - disc));
+    if (Number.isFinite(direct) && direct > 0) {
+      // Stored value still equals pre-discount gross → use recomputed net.
+      if (disc > 0 && Math.abs(direct - gross) < 0.5) return computed;
+      return direct;
+    }
+    return computed;
+  }
+
+  return Number.isFinite(direct) && direct > 0 ? direct : 0;
 }
 
 export function statusMeta(status: unknown, refundStatus?: unknown) {

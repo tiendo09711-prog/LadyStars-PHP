@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Business dates (invoices, stock, dashboard periods) are Vietnam local time.
+    // Override with APP_TIMEZONE in .env only when you intentionally need another zone.
+    'timezone' => env('APP_TIMEZONE', 'Asia/Ho_Chi_Minh'),
 
     /*
     |--------------------------------------------------------------------------

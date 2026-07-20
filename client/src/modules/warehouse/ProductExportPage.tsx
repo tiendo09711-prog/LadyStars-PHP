@@ -487,7 +487,7 @@ export function ProductExportPage() {
                   <input
                     id="product-f3-search" ref={productSearchRef} data-product-search-scan="true" data-product-search-primary="true"
                     value={searchQuery}
-                    placeholder="Gõ mã/tên hàng và nhấn Enter (F3)"
+                    placeholder="Gõ / quét mã, tên hàng rồi Enter (F3)"
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={handleSearchKeyPress}
                   />

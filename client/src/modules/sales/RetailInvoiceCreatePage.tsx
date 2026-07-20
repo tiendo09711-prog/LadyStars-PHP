@@ -600,8 +600,11 @@ export function RetailInvoiceCreatePage() {
         orderSource: form.orderSource,
         channel, // ensure sales created via /sales-channels/{channel}/retail carry the channel for filtering
         type: 'retail', // ensure correct separation retail vs wholesale in lists/reports
+        // Keep entered rate/amount + type so list/detail can show "3.000 đ" and "10%".
         discountValue: Math.max(0, Number(form.discount) || 0),
         discountType: form.discountType === 'percentage' ? 'percent' : 'number',
+        // Net total after discount (must not fall back to pre-discount line sum).
+        value: totalAmount,
         valuePayment: paidAmount,
         tenderedValue: Math.max(tenderedValue, paidAmount),
         typePayment: paymentLines.map((line) => ({ methodId: line.methodId, amount: line.amount })),
@@ -752,7 +755,7 @@ export function RetailInvoiceCreatePage() {
                 id="retail-product-search"
                 ref={productSearchRef}
                 value={productSearch}
-                data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm theo mã, barcode hoặc tên sản phẩm..."
+                data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm / quét mã, barcode hoặc tên sản phẩm..."
                 onFocus={() => setShowProductDropdown(true)}
                 onBlur={() => window.setTimeout(() => setShowProductDropdown(false), 150)}
                 onChange={(event) => {

@@ -32,6 +32,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useProductScanTarget } from '../../../core/hooks/productScanner';
 import { fetchRevenueByProductsOptions, fetchRevenueByProductsReport } from './revenueByProducts.api';
 import type {
   ChartView,
@@ -780,6 +781,7 @@ export function RevenueByProductsPage() {
   const initialLoadDone = useRef(false);
   const skipUrlWrite = useRef(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const productSearchRef = useRef<HTMLInputElement>(null);
 
   const loadReport = useCallback(async (filters: ProductReportFilters, mode: 'load' | 'refresh' = 'load') => {
     const rangeErr = validateDateRange(filters.from, filters.to);
@@ -901,6 +903,15 @@ export function RevenueByProductsPage() {
       void loadReport({ ...applied, search: value, page: 1 }, 'load');
     }, 400);
   };
+
+  useProductScanTarget(productSearchRef, (rawBarcode) => {
+    const query = rawBarcode.trim();
+    if (!query) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    setDraft((d) => ({ ...d, search: query, page: 1 }));
+    void loadReport({ ...applied, search: query, page: 1 }, 'load');
+    window.setTimeout(() => productSearchRef.current?.focus(), 0);
+  });
 
   const handleApply = () => {
     const next = { ...draft, page: 1 };
@@ -1273,9 +1284,12 @@ export function RevenueByProductsPage() {
               <label htmlFor="rbp-search">Tìm SP / mã / SKU</label>
               <input
                 id="rbp-search"
+                ref={productSearchRef}
                 type="search"
                 value={draft.search}
-                placeholder="Tên, mã, SKU…"
+                data-product-search-scan="true"
+                data-product-search-primary="true"
+                placeholder="Tên, mã, SKU hoặc quét barcode…"
                 onChange={(e) => handleSearchChange(e.target.value)}
               />
             </div>

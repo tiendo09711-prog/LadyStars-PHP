@@ -9,7 +9,8 @@
     "dev": "concurrently -n laravel,client -c blue,green \"cd backend && php artisan serve --host=0.0.0.0 --port=8000\" \"npm run dev:laravel-local -w client\"",
     "build": "npm run build -w client",
     "test:backend": "cd backend && php artisan test",
-    "verify:static": "scripts\\verify-static.cmd"
+    "verify:static": "scripts\\verify-static.cmd",
+    "deploy:prepare": "scripts\\prepare-deploy.cmd"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

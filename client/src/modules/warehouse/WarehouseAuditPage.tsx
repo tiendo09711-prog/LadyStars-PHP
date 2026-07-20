@@ -22,6 +22,7 @@ import { http } from '../../core/api/http';
 import * as XLSX from 'xlsx';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import { Pagination } from '../../core/components/Pagination';
+import { useProductScanTarget } from '../../core/hooks/productScanner';
 import './warehouseRecords.css';
 import './warehouseAudit.css';
 
@@ -323,6 +324,7 @@ function pageRange(page: number, total: number, limit: number) {
 export function WarehouseAuditPage() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
+  const productKeywordRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('audits');
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
   const [suggestions, setSuggestions] = useState<SuggestionRow[]>([]);
@@ -616,6 +618,19 @@ export function WarehouseAuditPage() {
     event.preventDefault();
     applyCurrentFilters();
   };
+
+  useProductScanTarget(productKeywordRef, (rawBarcode) => {
+    if (activeTab !== 'items') return;
+    const query = rawBarcode.trim();
+    if (!query) return;
+    setItemFilters((current) => {
+      const next = { ...current, productKeyword: query };
+      setPage(1);
+      setAppliedItemFilters(next);
+      return next;
+    });
+    window.setTimeout(() => productKeywordRef.current?.focus(), 0);
+  });
 
   const resetCurrentFilters = () => {
     setPage(1);
@@ -1299,9 +1314,12 @@ export function WarehouseAuditPage() {
               <div className="audit-search">
                 <Search size={15} />
                 <input
+                  ref={productKeywordRef}
                   value={itemFilters.productKeyword}
                   onChange={(event) => setItemFilters({ ...itemFilters, productKeyword: event.target.value })}
-                  placeholder="Sản phẩm"
+                  data-product-search-scan="true"
+                  data-product-search-primary="true"
+                  placeholder="Sản phẩm / quét barcode"
                 />
               </div>
               <select

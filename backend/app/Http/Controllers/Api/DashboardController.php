@@ -82,7 +82,8 @@ class DashboardController extends Controller
                     }
 
                     if ($useCustomChart && $chartEndForSeries) {
-                        $chartRangeDays = $chartStart->diffInDays($chartEndForSeries) + 1;
+                        // Carbon 3 diffInDays is signed + can be fractional with endOfDay — count calendar days only.
+                        $chartRangeDays = max(1, $this->calendarDayOffset($chartStart, $chartEndForSeries) + 1);
                         $chartPrevStart = (clone $chartStart)->subDays($chartRangeDays)->startOfDay();
                     }
                 }
@@ -99,13 +100,15 @@ class DashboardController extends Controller
         }
         $chartDates = [];
         $cur = clone $chartStart;
-        while ($cur->lte($chartEndForSeries)) {
+        $chartEndDay = (clone $chartEndForSeries)->startOfDay();
+        while ($cur->lte($chartEndDay)) {
             $chartDates[] = clone $cur;
             $cur = $cur->copy()->addDay();
         }
 
         $chartData = collect($chartDates)->map(function (Carbon $date) use ($chartStart, $chartPrevStart, $completedSales): array {
-            $offset = $date->diffInDays($chartStart);
+            // Carbon 3: $later->diffInDays($earlier) is negative — always offset from chartStart → date (≥ 0).
+            $offset = $this->calendarDayOffset($chartStart, $date);
             $previousDate = (clone $chartPrevStart)->addDays($offset);
 
             return [
@@ -128,6 +131,8 @@ class DashboardController extends Controller
 
         $recentSales = $this->recentSales($salesQuery, 20);
 
+        $activeStores = Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+
         return response()->json([
             'totals' => [
                 'todayRevenue' => (float) (clone $completedSales)->whereDate('business_date', $today)->sum('value_payment'),
@@ -145,8 +150,25 @@ class DashboardController extends Controller
             'wallets' => ['zaloOA' => 0, 'shopeeWallet' => 0, 'zaloWallet' => 0, 'adsWallet' => 0],
             'walletItems' => [],
             'recentSales' => $recentSales,
-            'availableStores' => Branch::query()->where('is_active', true)->orderBy('name')->pluck('name')->values()->all(),
+            'availableStores' => $activeStores->pluck('name')->values()->all(),
+            // id+name for storage-duration branch filter (FE may select by name).
+            'stores' => $activeStores->map(fn (Branch $b): array => [
+                'id' => (int) $b->id,
+                'name' => (string) $b->name,
+            ])->values()->all(),
         ]);
+    }
+
+    /**
+     * Non-negative whole calendar-day distance from $from → $to (Carbon 3 signed-safe).
+     */
+    private function calendarDayOffset(Carbon $from, Carbon $to): int
+    {
+        $start = $from->copy()->startOfDay();
+        $end = $to->copy()->startOfDay();
+        $signed = (int) $start->diffInDays($end, false);
+
+        return max(0, $signed);
     }
 
     public function dailyProducts(Request $request): JsonResponse
@@ -165,18 +187,16 @@ class DashboardController extends Controller
 
         $rows = [];
         foreach ($completedSales->get(['items', 'payload']) as $record) {
-            $items = is_array($record->items) ? $record->items : (is_array($record->payload) ? ($record->payload['items'] ?? []) : []);
-            foreach ($items as $item) {
-                $pidRaw = $item['productId'] ?? $item['product_id'] ?? null;
-                if ($pidRaw === null || $pidRaw === '') {
+            foreach ($this->saleLineItems($record) as $item) {
+                $lineKey = $this->lineProductKey($item);
+                if ($lineKey === null) {
                     continue;
                 }
-                $productId = (string) $pidRaw;
                 $amount = (float) ($item['amount'] ?? 0);
                 $revenue = (float) ($item['total'] ?? $item['value'] ?? 0);
-                if (!isset($rows[$productId])) {
-                    $rows[$productId] = [
-                        'code' => $item['code'] ?? null,
+                if (!isset($rows[$lineKey])) {
+                    $rows[$lineKey] = [
+                        'code' => $item['productCode'] ?? $item['code'] ?? null,
                         'name' => $item['name'] ?? null,
                         'qty' => 0.0,
                         'revenue' => 0.0,
@@ -184,24 +204,18 @@ class DashboardController extends Controller
                         'priceCount' => 0,
                     ];
                 }
-                $rows[$productId]['qty'] += $amount;
-                $rows[$productId]['revenue'] += $revenue;
+                $rows[$lineKey]['qty'] += $amount;
+                $rows[$lineKey]['revenue'] += $revenue;
                 $unitPrice = $amount > 0 ? $revenue / $amount : 0.0;
-                $rows[$productId]['priceSum'] += $unitPrice;
-                $rows[$productId]['priceCount'] += 1;
+                $rows[$lineKey]['priceSum'] += $unitPrice;
+                $rows[$lineKey]['priceCount'] += 1;
             }
         }
 
-        // Support productId stored as local PK (int/string from legacy import or frontend _id) or mongo_id string.
-        // Previously only accepted string mongo_id => caused empty daily products even when chart had revenue.
-        $pids = array_keys($rows);
-        $mongoPids = array_values(array_filter($pids, fn ($p) => !ctype_digit((string) $p)));
-        $localPids = array_values(array_filter($pids, fn ($p) => ctype_digit((string) $p)));
-        $byMongo = Product::query()->whereIn('mongo_id', $mongoPids)->get(['mongo_id', 'code', 'name'])->keyBy('mongo_id');
-        $byLocal = Product::query()->whereIn('id', array_map('intval', $localPids))->get(['id', 'code', 'name'])->keyBy('id');
+        $resolved = $this->resolveProductsByLineKeys(array_keys($rows));
 
-        $products = collect($rows)->map(function (array $row, string $pid) use ($byMongo, $byLocal): array {
-            $product = ctype_digit($pid) ? $byLocal->get((int) $pid) : $byMongo->get($pid);
+        $products = collect($rows)->map(function (array $row, string $pid) use ($resolved): array {
+            $product = $resolved[$pid] ?? null;
 
             return [
                 'code' => $product?->code ?? $row['code'] ?? $pid,
@@ -287,22 +301,20 @@ class DashboardController extends Controller
         $qtyByProduct = [];
         $productPids = [];
         foreach ($sales as $record) {
-            $items = is_array($record->items) ? $record->items : (is_array($record->payload) ? ($record->payload['items'] ?? []) : []);
-            foreach ($items as $item) {
-                $pidRaw = $item['productId'] ?? $item['product_id'] ?? null;
-                if ($pidRaw === null || $pidRaw === '') {
+            foreach ($this->saleLineItems($record) as $item) {
+                $lineKey = $this->lineProductKey($item);
+                if ($lineKey === null) {
                     continue;
                 }
-                $productId = (string) $pidRaw;
-                $productPids[$productId] = true;
+                $productPids[$lineKey] = true;
                 $amount = (float) ($item['amount'] ?? 0);
                 $revenue = (float) ($item['total'] ?? $item['value'] ?? 0);
-                if (!isset($revenueByProduct[$productId])) {
-                    $revenueByProduct[$productId] = 0.0;
-                    $qtyByProduct[$productId] = 0.0;
+                if (!isset($revenueByProduct[$lineKey])) {
+                    $revenueByProduct[$lineKey] = 0.0;
+                    $qtyByProduct[$lineKey] = 0.0;
                 }
-                $revenueByProduct[$productId] += $revenue;
-                $qtyByProduct[$productId] += $amount;
+                $revenueByProduct[$lineKey] += $revenue;
+                $qtyByProduct[$lineKey] += $amount;
             }
         }
 
@@ -343,31 +355,27 @@ class DashboardController extends Controller
         $refunds = $refunds->get(['items', 'payload']);
         $returnedByProduct = [];
         foreach ($refunds as $record) {
-            $items = is_array($record->items) ? $record->items : (is_array($record->payload) ? ($record->payload['items'] ?? []) : []);
-            foreach ($items as $item) {
-                $pidRaw = $item['productId'] ?? $item['product_id'] ?? null;
-                if ($pidRaw === null || $pidRaw === '') {
+            foreach ($this->saleLineItems($record) as $item) {
+                $lineKey = $this->lineProductKey($item);
+                if ($lineKey === null) {
                     continue;
                 }
-                $productId = (string) $pidRaw;
-                $productPids[$productId] = true;
+                $productPids[$lineKey] = true;
                 $amount = (float) ($item['amount'] ?? 0);
-                $returnedByProduct[$productId] = ($returnedByProduct[$productId] ?? 0.0) + $amount;
+                $returnedByProduct[$lineKey] = ($returnedByProduct[$lineKey] ?? 0.0) + $amount;
             }
         }
 
         $pids = array_keys($productPids);
-        $mongoPids = array_values(array_filter($pids, fn ($p) => !ctype_digit((string) $p)));
-        $localPids = array_values(array_filter($pids, fn ($p) => ctype_digit((string) $p)));
-        $byMongo = Product::query()->whereIn('mongo_id', $mongoPids)->get(['id', 'mongo_id', 'code', 'name'])->keyBy('mongo_id');
-        $byLocal = Product::query()->whereIn('id', array_map('intval', $localPids))->get(['id', 'code', 'name'])->keyBy('id');
+        $resolved = $this->resolveProductsByLineKeys($pids);
 
-        $rows = collect($pids)->map(function (string $pid) use ($byMongo, $byLocal, $revenueByProduct, $qtyByProduct, $returnedByProduct): array {
-            $product = ctype_digit($pid) ? $byLocal->get((int) $pid) : $byMongo->get($pid);
+        $rows = collect($pids)->map(function (string $pid) use ($resolved, $revenueByProduct, $qtyByProduct, $returnedByProduct): array {
+            $product = $resolved[$pid] ?? null;
+            $fallbackCode = str_starts_with($pid, 'code:') ? substr($pid, 5) : $pid;
 
             return [
                 '_id' => $product?->id !== null ? (string) $product->id : $pid,
-                'code' => $product?->code ?? $pid,
+                'code' => $product?->code ?? $fallbackCode,
                 'name' => $product?->name ?? 'Không rõ',
                 'qtySold' => $qtyByProduct[$pid] ?? 0.0,
                 'qtyReturned' => $returnedByProduct[$pid] ?? 0,
@@ -385,6 +393,86 @@ class DashboardController extends Controller
 
             return $row;
         })->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function saleLineItems(object $record): array
+    {
+        if (is_array($record->items ?? null) && $record->items !== []) {
+            return array_values(array_filter($record->items, 'is_array'));
+        }
+        $payload = is_array($record->payload ?? null) ? $record->payload : [];
+        $items = $payload['items'] ?? [];
+
+        return is_array($items) ? array_values(array_filter($items, 'is_array')) : [];
+    }
+
+    /**
+     * Stable line key: productId / product_id, else code:productCode.
+     */
+    private function lineProductKey(array $item): ?string
+    {
+        $pidRaw = $item['productId'] ?? $item['product_id'] ?? null;
+        if (is_array($pidRaw)) {
+            $pidRaw = $pidRaw['id'] ?? $pidRaw['_id'] ?? $pidRaw['mongo_id'] ?? null;
+        }
+        if ($pidRaw !== null && $pidRaw !== '') {
+            return (string) $pidRaw;
+        }
+        $code = $item['productCode'] ?? $item['code'] ?? null;
+        if ($code !== null && trim((string) $code) !== '') {
+            return 'code:'.trim((string) $code);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return array<string, Product>
+     */
+    private function resolveProductsByLineKeys(array $keys): array
+    {
+        $mongoPids = [];
+        $localPids = [];
+        $codes = [];
+        foreach ($keys as $key) {
+            if (str_starts_with($key, 'code:')) {
+                $codes[] = substr($key, 5);
+            } elseif (ctype_digit((string) $key)) {
+                $localPids[] = (int) $key;
+            } else {
+                $mongoPids[] = $key;
+            }
+        }
+
+        $byMongo = !empty($mongoPids)
+            ? Product::query()->whereIn('mongo_id', $mongoPids)->get(['id', 'mongo_id', 'code', 'name'])->keyBy('mongo_id')
+            : collect();
+        $byLocal = !empty($localPids)
+            ? Product::query()->whereIn('id', $localPids)->get(['id', 'mongo_id', 'code', 'name'])->keyBy('id')
+            : collect();
+        $byCode = !empty($codes)
+            ? Product::query()->whereIn('code', $codes)->get(['id', 'mongo_id', 'code', 'name'])->keyBy('code')
+            : collect();
+
+        $out = [];
+        foreach ($keys as $key) {
+            if (str_starts_with($key, 'code:')) {
+                $product = $byCode->get(substr($key, 5));
+            } elseif (ctype_digit((string) $key)) {
+                $product = $byLocal->get((int) $key);
+            } else {
+                $product = $byMongo->get($key);
+            }
+            if ($product) {
+                $out[$key] = $product;
+            }
+        }
+
+        return $out;
     }
 
     private function recentSales($salesQuery, int $limit): array

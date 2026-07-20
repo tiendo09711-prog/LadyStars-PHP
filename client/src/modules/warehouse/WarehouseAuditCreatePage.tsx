@@ -889,7 +889,7 @@ export function WarehouseAuditCreatePage() {
                     ref={productSearchRef}
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm theo mã sản phẩm hoặc mã vạch"
+                    data-product-search-scan="true" data-product-search-primary="true" placeholder="Tìm / quét mã sản phẩm hoặc mã vạch"
                   />
                 </label>
                 {searchQuery.trim() ? (

@@ -958,17 +958,35 @@ class ProductController extends Controller
         }
 
         $cancelledSaleIds = $this->cancelledSalePaymentIdsByProductMongoId($products);
+        // Also index by product code for legacy import lines that only have productCode.
+        $canonicalByCode = [];
+        foreach ($products as $product) {
+            if (filled($product->code)) {
+                $canonical = filled($product->mongo_id) ? (string) $product->mongo_id : (string) $product->id;
+                $canonicalByCode[(string) $product->code] = $canonical;
+            }
+        }
+
         $map = [];
         $rows = \App\Models\MirrorRecord::query()
             ->from('sale_payments')
             ->where('status', 'completed')
             ->whereNotNull('completed_at')
             ->when($branchIdFilter, fn ($q) => $q->where('branch_id', $branchIdFilter))
-            ->get(['mongo_id', 'items', 'completed_at']);
+            ->get(['mongo_id', 'items', 'payload', 'completed_at']);
 
         foreach ($rows as $row) {
-            $items = is_array($row->items) ? $row->items : json_decode((string) $row->items, true);
-            if (!is_array($items)) {
+            // Prefer column items; fallback payload.items (Excel import only filled payload).
+            $items = is_array($row->items) ? $row->items : null;
+            if (!is_array($items) || $items === []) {
+                $payload = is_array($row->payload) ? $row->payload : json_decode((string) $row->payload, true);
+                $items = is_array($payload) ? ($payload['items'] ?? null) : null;
+            }
+            if (!is_array($items) || $items === []) {
+                $decoded = json_decode((string) $row->items, true);
+                $items = is_array($decoded) ? $decoded : [];
+            }
+            if (!is_array($items) || $items === []) {
                 continue;
             }
             $completedAt = \Illuminate\Support\Carbon::parse($row->completed_at);
@@ -980,11 +998,16 @@ class ProductController extends Controller
                 if (is_array($pidRaw)) {
                     $pidRaw = $pidRaw['id'] ?? $pidRaw['_id'] ?? $pidRaw['mongo_id'] ?? null;
                 }
-                if ($pidRaw === null || $pidRaw === '') {
-                    continue;
+                $canonical = null;
+                if ($pidRaw !== null && $pidRaw !== '') {
+                    $canonical = $canonicalByLineKey[(string) $pidRaw] ?? null;
                 }
-                $lineKey = (string) $pidRaw;
-                $canonical = $canonicalByLineKey[$lineKey] ?? null;
+                if ($canonical === null) {
+                    $code = $line['productCode'] ?? $line['code'] ?? null;
+                    if ($code !== null && $code !== '') {
+                        $canonical = $canonicalByCode[(string) $code] ?? null;
+                    }
+                }
                 if ($canonical === null) {
                     continue;
                 }
