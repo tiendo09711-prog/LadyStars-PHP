@@ -40,25 +40,25 @@ temp/
 # Coverage
 coverage/
 
-# E2E cleanup backups (contain DB snapshots, must stay outside repo)
-_e2e_cleanup_backups/
-
 # Cache
 .cache/
 .parcel-cache/
 .vite/
 
-# E2E / Playwright artifacts & scratch
+# Laravel / PHP
+backend/storage/logs/*
+!backend/storage/logs/.gitignore
+backend/storage/framework/cache/data/*
+!backend/storage/framework/cache/data/.gitignore
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitignore
+backend/storage/framework/views/*
+!backend/storage/framework/views/.gitignore
+backend/.phpunit.result.cache
+
+# Local scratch (do not commit)
+scratch/
+artifacts/
+e2e-artifacts/
 playwright-report/
 test-results/
-e2e/playwright-report/
-e2e/test-results/
-e2e/playwright/.auth/
-scratch/
-
-# Live-guarded test mode (backups, reports, local secrets)
-artifacts/live-db-backups/
-artifacts/live-test-reports/
-.env.live-test.local
-.env.e2e.local
-e2e-artifacts/

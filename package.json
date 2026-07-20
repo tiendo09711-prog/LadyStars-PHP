@@ -8,22 +8,10 @@
   "scripts": {
     "dev": "concurrently -n laravel,client -c blue,green \"cd backend && php artisan serve --host=0.0.0.0 --port=8000\" \"npm run dev:laravel-local -w client\"",
     "build": "npm run build -w client",
-    "e2e": "playwright test",
-    "e2e:headed": "playwright test --headed --workers=1",
-    "e2e:report": "playwright show-report",
-    "e2e:install": "playwright install chromium",
     "test:backend": "cd backend && php artisan test",
-    "verify:static": "scripts\\verify-static.cmd",
-    "migrate:mongo-mysql": "node backend/scripts/migrate-mongo-to-mysql.cjs",
-    "audit:mongo-mysql": "node backend/scripts/audit-mongo-mysql-sync.cjs"
-  },
-  "dependencies": {
-    "dotenv": "^16.6.1",
-    "mongodb": "^6.21.0",
-    "mysql2": "^3.22.5"
+    "verify:static": "scripts\\verify-static.cmd"
   },
   "devDependencies": {
-    "@playwright/test": "1.61.1",
     "concurrently": "^9.1.2"
   }
 }
