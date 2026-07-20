@@ -1,51 +1,54 @@
-# Dependencies
+# =============================================================================
+# LadyStars-PHP — chỉ commit source cần thiết (client/ + backend/ app code)
+# Deploy zip / secrets / deps / build cache: KHÔNG đưa lên Git
+# =============================================================================
+
+# ----- Dependencies (cài lại bằng npm / composer) -----
 node_modules/
-*/node_modules/
+**/node_modules/
+backend/vendor/
+vendor/
 
-# Environment files
+# ----- Environment & secrets (không bao giờ commit) -----
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!**/.env.example
+!**/*.env.example
+!**/.env.laravel-local.example
+backend/.env
+client/.env
+client/.env.local
+client/.env.laravel-local
+*.pem
+*.key
+*.p12
+*credentials*
+*secret*
+!.env.example
 
-# Build outputs
-dist/
-build/
-.next/
-out/
+# ----- Deploy packages / archives (GitHub limit 100MB) -----
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+ladystars-*.zip
+ladystars-production.zip
+artifacts/
+deploy-upload/
+deploy/
+public_html/
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-logs/
-*.log
-
-# OS / Editor
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Database / uploads / temp
+# ----- Database & local data -----
 *.sqlite
 *.sqlite3
-uploads/
-tmp/
-temp/
+*.db
+backend/database/*.sqlite
+backend/database/*.sqlite3
 
-# TypeScript
-*.tsbuildinfo
-
-# Coverage
-coverage/
-
-# Cache
-.cache/
-.parcel-cache/
-.vite/
-
-# Laravel / PHP
+# ----- Laravel storage (logs, cache, uploads, private xlsx) -----
 backend/storage/logs/*
 !backend/storage/logs/.gitignore
 backend/storage/framework/cache/data/*
@@ -54,12 +57,78 @@ backend/storage/framework/sessions/*
 !backend/storage/framework/sessions/.gitignore
 backend/storage/framework/views/*
 !backend/storage/framework/views/.gitignore
+backend/storage/framework/testing/*
+!backend/storage/framework/testing/.gitignore
+backend/storage/app/private/*
+!backend/storage/app/private/.gitignore
+backend/storage/app/public/*
+!backend/storage/app/public/.gitignore
+backend/storage/app/legacy-import/*
 backend/.phpunit.result.cache
+.phpunit.result.cache
 
-# Local scratch (do not commit)
-scratch/
-artifacts/
-deploy-upload/
+# ----- Build outputs (client dist; SPA đã copy vào backend/public khi deploy) -----
+dist/
+build/
+.next/
+out/
+client/dist/
+
+# ----- Logs -----
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# ----- Test / e2e artifacts (trace zip nặng, có thể chứa data test) -----
+e2e/
 e2e-artifacts/
+e2e-results/
 playwright-report/
 test-results/
+test-results-live/
+coverage/
+.nyc_output/
+*.trace
+blob-report/
+
+# ----- OS / Editor -----
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# ----- Cache / temp -----
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+tmp/
+temp/
+uploads/
+scratch/
+
+# ----- TypeScript -----
+*.tsbuildinfo
+
+# ----- Live test / local-only -----
+.env.live-test.local
+.live-test/
+backup/
+backups/
+*.bak
+*.bak-*
+*.sql.gz
+*.dump
+
+# ----- SQL dumps lớn (giữ script nhỏ trong artifacts nếu cần thì un-ignore có chọn lọc) -----
+# artifacts/ đã ignore toàn bộ; dump import không commit
+*.sql
+!backend/database/migrations/**
