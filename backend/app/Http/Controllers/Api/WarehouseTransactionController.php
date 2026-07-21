@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\MirrorRecord;
-use App\Support\LocalToken;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
+use App\Models\User;
+use App\Support\LocalToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -84,14 +85,24 @@ class WarehouseTransactionController extends Controller
         return $this->resolveBranch($key)?->name;
     }
 
-    public function meta(): JsonResponse
+    public function meta(Request $request): JsonResponse
     {
+        $scope = $this->resolveWarehouseScope($request);
         $warehouses = collect($this->warehouseMap())
             ->map(fn ($branch): array => [
-                'value' => (string) $branch->mongo_id,
+                'value' => (string) ($branch->mongo_id ?: $branch->id),
                 'label' => $branch->name,
                 'code' => $branch->code,
+                'localId' => (int) $branch->id,
             ])
+            ->when($scope['localIds'] !== null, function ($collection) use ($scope) {
+                if ($scope['localIds'] === []) {
+                    return collect();
+                }
+                $allowed = array_flip($scope['localIds']);
+
+                return $collection->filter(fn (array $row): bool => isset($allowed[(int) ($row['localId'] ?? 0)]))->values();
+            })
             ->values();
 
         $voucherTypes = $this->distinctSorted('inventory_vouchers', 'type');
@@ -124,6 +135,8 @@ class WarehouseTransactionController extends Controller
             'warehouses' => $warehouses,
             'types' => $types,
             'kinds' => $kinds,
+            'userWarehouseIds' => $scope['mongoIds'] ?? [],
+            'isAdmin' => $scope['localIds'] === null,
         ]);
     }
 
@@ -141,6 +154,20 @@ class WarehouseTransactionController extends Controller
         $page = max((int) $request->query('page', 1), 1);
         $warehouses = $this->warehouseMap();
         $filters = $this->filters($request);
+
+        // EMPLOYEE with no assignment: empty result set.
+        if ($filters['forceEmpty'] ?? false) {
+            return response()->json([
+                'items' => [],
+                'data' => [],
+                'total' => 0,
+                'page' => $page,
+                'limit' => $limit,
+                'per_page' => $limit,
+                'current_page' => $page,
+                'last_page' => 1,
+            ]);
+        }
 
         if ($tab === 'bills') {
             ['items' => $items, 'total' => $total] = $this->paginateBillRows($filters, $warehouses, $page, $limit);
@@ -337,15 +364,83 @@ class WarehouseTransactionController extends Controller
 
     private function filters(Request $request): array
     {
+        $scope = $this->resolveWarehouseScope($request);
+        $warehouseId = trim((string) $request->query('warehouseId', ''));
+        $forceEmpty = false;
+        $scopeKeys = null;
+
+        if ($scope['localIds'] !== null) {
+            if ($scope['localIds'] === []) {
+                $forceEmpty = true;
+            } elseif ($warehouseId !== '') {
+                $branch = $this->resolveBranch($warehouseId);
+                if (! $branch || ! in_array((int) $branch->id, $scope['localIds'], true)) {
+                    $forceEmpty = true;
+                }
+            } else {
+                // No explicit warehouse filter: restrict to all assigned warehouses.
+                $scopeKeys = $this->scopeKeysFromLocalIds($scope['localIds']);
+            }
+        }
+
         return [
-            'warehouseId' => trim((string) $request->query('warehouseId', '')),
+            'warehouseId' => $warehouseId,
             'billId' => trim((string) $request->query('billId', $request->query('code', ''))),
             'type' => trim((string) $request->query('type', '')),
             'kind' => trim((string) $request->query('kind', '')),
             'fromDate' => trim((string) $request->query('fromDate', '')),
             'toDate' => trim((string) $request->query('toDate', '')),
             'productKeyword' => trim((string) $request->query('productKeyword', '')),
+            'forceEmpty' => $forceEmpty,
+            'scopeKeys' => $scopeKeys,
+            'scopeNames' => $scope['localIds'] !== null
+                ? Branch::query()->whereIn('id', $scope['localIds'] ?? [])->pluck('name')->filter()->values()->all()
+                : null,
         ];
+    }
+
+    /**
+     * @return array{localIds: array<int, int>|null, mongoIds: array<int, string>|null}
+     *   localIds null = unrestricted (admin / guest without employee token)
+     */
+    private function resolveWarehouseScope(Request $request): array
+    {
+        $user = LocalToken::resolve($request);
+        if (! $user instanceof User || $user->isAdminOrRoot()) {
+            return ['localIds' => null, 'mongoIds' => null];
+        }
+
+        $localIds = $user->allowedLocalBranchIds();
+        if ($localIds === []) {
+            return ['localIds' => [], 'mongoIds' => []];
+        }
+
+        $mongoIds = Branch::query()
+            ->whereIn('id', $localIds)
+            ->pluck('mongo_id')
+            ->filter()
+            ->map(fn ($id): string => (string) $id)
+            ->values()
+            ->all();
+
+        return ['localIds' => $localIds, 'mongoIds' => $mongoIds];
+    }
+
+    /**
+     * @param  array<int, int>  $localIds
+     * @return array<int, string>
+     */
+    private function scopeKeysFromLocalIds(array $localIds): array
+    {
+        $keys = array_map('strval', $localIds);
+        $mongo = Branch::query()
+            ->whereIn('id', $localIds)
+            ->pluck('mongo_id')
+            ->filter()
+            ->map(fn ($id): string => (string) $id)
+            ->all();
+
+        return array_values(array_unique(array_filter(array_merge($keys, $mongo))));
     }
 
     private function applyDateFilter($query, array $filters, string $column = 'business_date'): void
@@ -381,29 +476,43 @@ class WarehouseTransactionController extends Controller
      * - inventory_vouchers: warehouse_mongo_id often NULL, warehouse_name filled
      * - inventory_products: branch_mongo_id often stores numeric branches.id
      * - warehouse_transfers: from/to_branch_mongo_id stores Branch.mongo_id
+     * Also supports multi-key scope for EMPLOYEE assigned warehouses (filters['scopeKeys']).
+     *
+     * @param  array<string, mixed>  $filters
      */
-    private function applyWarehouseFilter($query, string $warehouseId, string $mode): void
+    private function applyWarehouseFilter($query, array $filters, string $mode): void
     {
-        $warehouseId = trim($warehouseId);
-        if ($warehouseId === '') {
+        $warehouseId = trim((string) ($filters['warehouseId'] ?? ''));
+        $scopeKeys = is_array($filters['scopeKeys'] ?? null) ? $filters['scopeKeys'] : null;
+        $scopeNames = is_array($filters['scopeNames'] ?? null) ? $filters['scopeNames'] : [];
+
+        if ($warehouseId === '' && ($scopeKeys === null || $scopeKeys === [])) {
             return;
         }
 
-        $branch = $this->resolveBranch($warehouseId);
-        $keys = array_values(array_unique(array_filter([
-            $warehouseId,
-            $branch?->mongo_id ? (string) $branch->mongo_id : null,
-            $branch?->id !== null ? (string) $branch->id : null,
-        ], fn ($v) => $v !== null && $v !== '')));
-        $name = $branch?->name ? trim((string) $branch->name) : '';
+        if ($warehouseId !== '') {
+            $branch = $this->resolveBranch($warehouseId);
+            $keys = array_values(array_unique(array_filter([
+                $warehouseId,
+                $branch?->mongo_id ? (string) $branch->mongo_id : null,
+                $branch?->id !== null ? (string) $branch->id : null,
+            ], fn ($v) => $v !== null && $v !== '')));
+            $names = $branch?->name ? [trim((string) $branch->name)] : [];
+        } else {
+            $keys = array_values(array_unique(array_filter($scopeKeys ?? [], fn ($v) => $v !== null && $v !== '')));
+            $names = array_values(array_filter(array_map(static fn ($n) => trim((string) $n), $scopeNames)));
+        }
 
         if ($mode === 'voucher') {
-            $query->where(function ($builder) use ($keys, $name): void {
+            $query->where(function ($builder) use ($keys, $names): void {
                 if ($keys !== []) {
                     $builder->whereIn('warehouse_mongo_id', $keys)
                         ->orWhereIn('branch_mongo_id', $keys);
                 }
-                if ($name !== '') {
+                foreach ($names as $name) {
+                    if ($name === '') {
+                        continue;
+                    }
                     $builder->orWhere('warehouse_name', $name)
                         ->orWhere('warehouse_name', 'like', $name.' →%')
                         ->orWhere('warehouse_name', 'like', '%→ '.$name);
@@ -414,12 +523,15 @@ class WarehouseTransactionController extends Controller
         }
 
         if ($mode === 'product') {
-            $query->where(function ($builder) use ($keys, $name): void {
+            $query->where(function ($builder) use ($keys, $names): void {
                 if ($keys !== []) {
                     $builder->whereIn('branch_mongo_id', $keys);
                 }
-                // JSON payload may store warehouse label from legacy import
-                if ($name !== '') {
+                foreach ($names as $name) {
+                    if ($name === '') {
+                        continue;
+                    }
+                    // JSON payload may store warehouse label from legacy import
                     $builder->orWhere('payload->source_row->values->C', $name)
                         ->orWhere('payload', 'like', '%"C":"'.$name.'"%');
                 }
@@ -500,7 +612,7 @@ class WarehouseTransactionController extends Controller
 
         $query = (new MirrorRecord())->forTable('inventory_vouchers')->newQuery();
         $this->applyDateFilter($query, $filters);
-        $this->applyWarehouseFilter($query, $filters['warehouseId'], 'voucher');
+        $this->applyWarehouseFilter($query, $filters, 'voucher');
 
         if ($filters['billId'] !== '') {
             $keyword = $filters['billId'];
@@ -547,7 +659,7 @@ class WarehouseTransactionController extends Controller
     {
         $query = (new MirrorRecord())->forTable('warehouse_transfers')->newQuery();
         $this->applyDateFilter($query, $filters);
-        $this->applyWarehouseFilter($query, $filters['warehouseId'], 'transfer');
+        $this->applyWarehouseFilter($query, $filters, 'transfer');
 
         if ($filters['billId'] !== '') {
             $keyword = $filters['billId'];
@@ -600,7 +712,7 @@ class WarehouseTransactionController extends Controller
 
         $query = (new MirrorRecord())->forTable('inventory_products')->newQuery();
         $this->applyDateFilter($query, $filters);
-        $this->applyWarehouseFilter($query, $filters['warehouseId'], 'product');
+        $this->applyWarehouseFilter($query, $filters, 'product');
 
         // inventory_products in this DB: name/code/type on columns; prodCode/prodName/price/qty in payload JSON.
         if ($filters['productKeyword'] !== '') {

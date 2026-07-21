@@ -50,6 +50,7 @@ type TransactionMeta = {
   warehouses: SelectOption[];
   types: SelectOption[];
   kinds: SelectOption[];
+  isAdmin?: boolean;
 };
 
 type TransactionRow = {
@@ -362,7 +363,31 @@ export function WarehouseTransactionPage() {
   useEffect(() => {
     const controller = new AbortController();
     http.get('/warehouse/transactions/meta', { signal: controller.signal })
-      .then((response) => setMeta(response.data))
+      .then((response) => {
+        const data = response.data || {};
+        setMeta({
+          warehouses: data.warehouses || [],
+          types: data.types || [],
+          kinds: data.kinds || [],
+          isAdmin: data.isAdmin,
+        });
+        // EMPLOYEE: default warehouse filter = first assigned (meta already scoped).
+        const isAdmin = data.isAdmin === true;
+        const warehouses: SelectOption[] = data.warehouses || [];
+        if (!isAdmin && warehouses.length > 0) {
+          const allowed = new Set(warehouses.map((w) => String(w.value)));
+          const pick = (current: string) =>
+            (current && allowed.has(String(current)) ? current : String(warehouses[0].value));
+          setDraftFilters((current) => ({
+            bills: { ...current.bills, warehouseId: pick(current.bills.warehouseId) },
+            items: { ...current.items, warehouseId: pick(current.items.warehouseId) },
+          }));
+          setAppliedFilters((current) => ({
+            bills: { ...current.bills, warehouseId: pick(current.bills.warehouseId) },
+            items: { ...current.items, warehouseId: pick(current.items.warehouseId) },
+          }));
+        }
+      })
       .catch((err) => {
         if (err.code !== 'ERR_CANCELED') setError(err.response?.data?.message || 'Không tải được bộ lọc kho hàng.');
       });
@@ -440,6 +465,10 @@ export function WarehouseTransactionPage() {
     setFilterError('');
     setPage(1);
     const nextFilters = defaultTransactionFilters();
+    // EMPLOYEE: keep warehouse on first assigned after reset (not "all stores").
+    if (meta.isAdmin !== true && meta.warehouses.length > 0) {
+      nextFilters.warehouseId = String(meta.warehouses[0].value);
+    }
     setDraftFilters((current) => ({ ...current, [activeTab]: nextFilters }));
     setAppliedFilters((current) => ({ ...current, [activeTab]: nextFilters }));
   };
@@ -707,7 +736,9 @@ export function WarehouseTransactionPage() {
             title="Kho hàng"
             aria-label="Kho hàng"
           >
-            <option value="">Kho hàng</option>
+            <option value="">
+              {meta.isAdmin === true ? 'Tất cả kho' : 'Tất cả kho được gán'}
+            </option>
             {meta.warehouses.map((warehouse) => (
               <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>
             ))}

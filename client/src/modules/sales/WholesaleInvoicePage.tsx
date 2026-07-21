@@ -242,14 +242,20 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     setSearchParams(tab === 'all' ? {} : { tab }, { replace: true });
   };
 
+  const [authReady, setAuthReady] = useState(false);
+
   useEffect(() => {
     let mounted = true;
+    setAuthReady(false);
     http.get('/auth/me')
       .then((response) => {
         if (mounted) setCurrentUser(response.data?.user || response.data || null);
       })
       .catch(() => {
         if (mounted) setCurrentUser(null);
+      })
+      .finally(() => {
+        if (mounted) setAuthReady(true);
       });
 
     return () => {
@@ -261,14 +267,15 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
     setBranchLoading(true);
     setBranchError('');
     try {
+      // Backend scopes EMPLOYEE to assigned warehouses only; ADMIN/root still get all.
       const response = await http.get('/system/branches', { params: { limit: 5000 } });
       const items: Branch[] = Array.isArray(response.data) ? response.data : response.data.items ?? [];
       setBranches(items);
       if (items.length === 0) {
-        setBranchError('Chưa có cửa hàng/kho hàng để tạo hóa đơn.');
+        setBranchError('Chưa có cửa hàng/kho hàng được gán để tạo hóa đơn. Liên hệ quản trị viên để gán kho.');
       } else {
         setSelectedBranchId((current) => {
-          if (current) return current;
+          if (current && items.some((branch) => branch._id === current)) return current;
           const def = items.find((branch) => branch.isDefault);
           return (def || items[0])._id;
         });
@@ -283,6 +290,25 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
   useEffect(() => {
     void loadBranches();
   }, []);
+
+  // EMPLOYEE: default + clamp store filter to assigned warehouses.
+  useEffect(() => {
+    if (!authReady || branchLoading || branches.length === 0) return;
+    if (isAdminRole(currentUser?.role)) return;
+    const allowed = new Set(branches.map((b) => String(b._id)));
+    const pickDefault = () => {
+      const def = branches.find((b) => b.isDefault) || branches[0];
+      return String(def._id);
+    };
+    setDraftFilters((current) => {
+      if (current.storeId && allowed.has(String(current.storeId))) return current;
+      return { ...current, storeId: pickDefault() };
+    });
+    setAppliedFilters((current) => {
+      if (current.storeId && allowed.has(String(current.storeId))) return current;
+      return { ...current, storeId: pickDefault() };
+    });
+  }, [authReady, branchLoading, branches, currentUser?.role]);
 
   const loadInvoices = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -914,7 +940,9 @@ export function WholesaleInvoicePage({ channel }: WholesaleInvoicePageProps) {
             aria-label="Cửa hàng"
             title="Cửa hàng"
           >
-            <option value="">Tất cả cửa hàng</option>
+            <option value="">
+              {isAdminRole(currentUser?.role) ? 'Tất cả cửa hàng' : 'Tất cả kho được gán'}
+            </option>
             {branches.map((branch) => (
               <option key={branch._id} value={branch._id}>{branch.name || branch.code || branch._id}</option>
             ))}

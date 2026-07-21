@@ -24,7 +24,19 @@ class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         $perPage = min(max((int) $request->query('limit', $request->query('perPage', 20)), 1), 5000);
-        $query = Product::query()->with('category');
+        $scoped = $this->resolveScopedBranchFilter($request, $request->query('branchId'));
+        $branchIds = $scoped['branchIds'];
+
+        if ($branchIds !== null && $branchIds === []) {
+            return response()->json($this->emptyProductListPayload($perPage));
+        }
+
+        $stockRelation = ['stocks' => function ($builder) use ($branchIds): void {
+            if ($branchIds !== null) {
+                $builder->whereIn('branch_id', $branchIds);
+            }
+        }];
+        $query = Product::query()->with(array_merge(['category'], $stockRelation));
 
         if ($search = trim((string) $request->query('q', $request->query('search', '')))) {
             $query->where(function ($builder) use ($search): void {
@@ -38,8 +50,12 @@ class ProductController extends Controller
         if ($categoryId = $request->query('categoryId')) $query->where('category_id', $categoryId);
         if ($request->has('allowsSale')) $query->where('allows_sale', filter_var($request->query('allowsSale'), FILTER_VALIDATE_BOOLEAN));
         if ($status = trim((string) $request->query('status', ''))) $query->where('status', $status);
-        if ($branchId = $request->query('branchId')) {
-            $query->whereHas('stocks', fn ($builder) => $builder->where('branch_id', $branchId)->where('qty', '>', 0));
+        // Warehouse filter or EMPLOYEE assignment scope: only products with stock at those warehouses.
+        // Require qty > 0 so zero-stock rows at an assigned warehouse do not expose the full catalog.
+        if ($branchIds !== null) {
+            $query->whereHas('stocks', function ($builder) use ($branchIds): void {
+                $builder->whereIn('branch_id', $branchIds)->where('qty', '>', 0);
+            });
         }
 
         $sortMap = [
@@ -59,14 +75,25 @@ class ProductController extends Controller
         $query->orderBy($sortColumn, $sortOrder)->orderBy('id', $sortOrder);
 
         $payload = ApiPagination::nodeCompatible($query->paginate($perPage));
-        $items = collect($payload['items'])->map(fn (Product $product): array => NodeShape::product($product))->all();
+        $items = collect($payload['items'])->map(function (Product $product) use ($branchIds): array {
+            $shape = NodeShape::product($product);
+            // EMPLOYEE: expose qty as sum of assigned warehouses only (not global catalog total).
+            if ($branchIds !== null && $product->relationLoaded('stocks')) {
+                $shape['qty'] = (float) $product->stocks->sum('qty');
+                $shape['globalQty'] = (float) $product->qty;
+            }
+
+            return $shape;
+        })->all();
         $payload['items'] = $items;
         $payload['data'] = $items;
 
         // Trả meta.statuses để frontend không hardcode, lấy distinct từ DB (kèm default)
-        $statuses = Product::query()
-            ->select('status')
-            ->distinct()
+        $statusQuery = Product::query()->select('status')->distinct();
+        if ($branchIds !== null) {
+            $statusQuery->whereHas('stocks', fn ($builder) => $builder->whereIn('branch_id', $branchIds)->where('qty', '>', 0));
+        }
+        $statuses = $statusQuery
             ->pluck('status')
             ->map(fn ($s) => trim((string) $s))
             ->filter(fn ($s) => $s !== '')
@@ -86,6 +113,19 @@ class ProductController extends Controller
         unset($payload['initialStocks']);
         $payload['code'] = $payload['code'] ?: $this->nextCode();
         $payload['barcode'] = $payload['barcode'] ?: $this->nextBarcode();
+
+        if (is_array($stocks)) {
+            foreach ($stocks as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+                $warehouseId = $line['warehouseId'] ?? $line['branchId'] ?? $line['branch_id'] ?? null;
+                $localBranchId = $this->resolveBranchLocalId($warehouseId);
+                if ($localBranchId !== null) {
+                    $this->assertBranchWriteAllowed($request, $localBranchId);
+                }
+            }
+        }
 
         try {
             $product = DB::transaction(function () use ($payload, $stocks): Product {
@@ -116,6 +156,7 @@ class ProductController extends Controller
         }
 
         $branchId = (int) $request->integer('branchId');
+        $this->assertBranchWriteAllowed($request, $branchId);
         $importMode = trim((string) $request->post('importMode', ''));
         $normalizedImportMode = strtolower(trim(\Illuminate\Support\Str::ascii($importMode)));
         $updateExisting = in_array($normalizedImportMode, ['cap nhat thong tin', 'update', 'update existing', 'update_existing', 'true', '1'], true)
@@ -343,7 +384,15 @@ class ProductController extends Controller
 
     public function stocks(Product $product): JsonResponse
     {
-        $stocks = $product->stocks()->with(['branch', 'product.category'])->orderBy('branch_id')->get();
+        $restricted = $this->restrictedBranchIdsForUser(request());
+        $query = $product->stocks()->with(['branch', 'product.category'])->orderBy('branch_id');
+        if ($restricted !== null) {
+            if ($restricted === []) {
+                return response()->json(['data' => [], 'items' => [], 'totalQuantity' => 0.0]);
+            }
+            $query->whereIn('branch_id', $restricted);
+        }
+        $stocks = $query->get();
         $items = $stocks->map(fn (ProductBranchStock $stock): array => NodeShape::stock($stock))->values();
 
         return response()->json([
@@ -357,41 +406,42 @@ class ProductController extends Controller
     {
         $perPage = min(max((int) $request->query('limit', $request->query('perPage', 50)), 1), 5000);
         $search = trim((string) $request->query('q', $request->query('search', '')));
-        // Resolve mongo_id / code / local id → branches.id so transfer create (meta uses mongo_id) works.
-        $branchId = $this->resolveBranchLocalId($request->query('branchId'));
+        // Resolve branch filter + EMPLOYEE assignment scope.
+        $scoped = $this->resolveScopedBranchFilter($request, $request->query('branchId'));
+        $branchIds = $scoped['branchIds']; // product-row filter (null = unrestricted)
+        $branchId = $scoped['singleBranchId'];
+        // stockByBranch columns: ADMIN always sees all warehouses; EMPLOYEE only assigned.
+        $stockVisibilityIds = $this->restrictedBranchIdsForUser($request);
         $categoryId = $request->query('categoryId');
         $stockStatus = (string) $request->query('stockStatus', '');
         $sort = (string) $request->query('sort', 'createdAt');
         $isAsc = strtolower((string) $request->query('order', 'desc')) === 'asc';
         $order = $isAsc ? 'asc' : 'desc';
 
-        $totalStockQuantity = 0;
-        $totalInventoryValue = 0;
+        if ($branchIds !== null && $branchIds === []) {
+            return response()->json($this->emptyInventoryPayload($perPage));
+        }
 
-        // === SEMANTICS (rõ ràng, thống nhất FE/BE) ===
-        // - branchId filter: lọc ROW (chỉ lấy sản phẩm có record stock ở kho đó). Dùng để "tập trung" vào kho.
-        // - totalStock + stockByBranch*: LUÔN là tổng TOÀN BỘ các kho (không bị ảnh hưởng bởi branch filter).
-        //   Lý do: UI luôn hiển thị cột tất cả kho + cột Tổng tồn.
-        // - stockStatus + branchId: aggregate TÍNH TRONG KHO được filter (in_stock: qty>0 tại kho; sellable: qty-locked >0 tại kho).
-        // - stockStatus không branch: aggregate TOÀN HỆ THỐNG.
+        // === SEMANTICS ===
+        // - Admin, no branch: totals across all warehouses; stockByBranch full.
+        // - Admin + branch filter: filter rows to that warehouse but stockByBranch/totalStock still full (legacy FE contract).
+        // - EMPLOYEE: products + stockByBranch + totals only for assigned warehouses.
 
         $fullTotalStockSub = ProductBranchStock::query()
             ->whereColumn('product_id', 'products.id')
+            ->when($stockVisibilityIds !== null, fn ($b) => $b->whereIn('branch_id', $stockVisibilityIds))
             ->selectRaw('COALESCE(SUM(qty), 0)');
-
-        // Các sub cho status filter (đã dùng whereExists an toàn)
-        $statusStockSub = ProductBranchStock::query()
-            ->whereColumn('product_id', 'products.id')
-            ->when($branchId, fn ($b) => $b->where('branch_id', $branchId))
-            ->selectRaw('COALESCE(SUM(qty), 0)');
-
-        $statusLockedSub = ProductBranchStock::query()
-            ->whereColumn('product_id', 'products.id')
-            ->when($branchId, fn ($b) => $b->where('branch_id', $branchId))
-            ->selectRaw('COALESCE(SUM(locked_quantity), 0)');
 
         $query = Product::query()
-            ->with(['category', 'stocks.branch']);
+            ->with([
+                'category',
+                'stocks' => function ($builder) use ($stockVisibilityIds): void {
+                    $builder->with('branch');
+                    if ($stockVisibilityIds !== null) {
+                        $builder->whereIn('branch_id', $stockVisibilityIds);
+                    }
+                },
+            ]);
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
@@ -401,24 +451,33 @@ class ProductController extends Controller
             });
         }
         if ($categoryId) $query->where('category_id', $categoryId);
-        if ($branchId) $query->whereHas('stocks', fn ($builder) => $builder->where('branch_id', $branchId));
+        // EMPLOYEE / warehouse filter: only products with stock at scoped warehouses.
+        // Default (no stockStatus) and in_stock require qty > 0 so zero-rows do not list full catalog.
+        if ($branchIds !== null) {
+            $query->whereHas('stocks', function ($builder) use ($branchIds, $stockStatus): void {
+                $builder->whereIn('branch_id', $branchIds);
+                if ($stockStatus === '' || $stockStatus === 'in_stock') {
+                    $builder->where('qty', '>', 0);
+                }
+            });
+        }
 
         // Sử dụng whereExists + group having để filter aggregate stock an toàn (không toSql lỗi 1064)
         if ($stockStatus === 'in_stock') {
-            $query->whereExists(function ($exists) use ($branchId) {
+            $query->whereExists(function ($exists) use ($branchIds): void {
                 $exists->select(DB::raw('1'))
                     ->from('product_branch_stocks as s')
                     ->whereColumn('s.product_id', 'products.id')
-                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->when($branchIds !== null, fn ($w) => $w->whereIn('s.branch_id', $branchIds))
                     ->groupBy('s.product_id')
                     ->havingRaw('SUM(s.qty) > 0');
             });
         } elseif ($stockStatus === 'sellable') {
-            $query->whereExists(function ($exists) use ($branchId) {
+            $query->whereExists(function ($exists) use ($branchIds): void {
                 $exists->select(DB::raw('1'))
                     ->from('product_branch_stocks as s')
                     ->whereColumn('s.product_id', 'products.id')
-                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->when($branchIds !== null, fn ($w) => $w->whereIn('s.branch_id', $branchIds))
                     ->groupBy('s.product_id')
                     ->havingRaw('SUM(s.qty) - SUM(s.locked_quantity) > 0');
             });
@@ -438,58 +497,62 @@ class ProductController extends Controller
             });
         }
         if ($categoryId) $productIdSub->where('category_id', $categoryId);
-        if ($branchId) {
-            $productIdSub->whereHas('stocks', fn ($builder) => $builder->where('branch_id', $branchId));
+        if ($branchIds !== null) {
+            $productIdSub->whereHas('stocks', function ($builder) use ($branchIds, $stockStatus): void {
+                $builder->whereIn('branch_id', $branchIds);
+                if ($stockStatus === '' || $stockStatus === 'in_stock') {
+                    $builder->where('qty', '>', 0);
+                }
+            });
         }
         if ($stockStatus === 'in_stock') {
-            $productIdSub->whereExists(function ($exists) use ($branchId) {
+            $productIdSub->whereExists(function ($exists) use ($branchIds): void {
                 $exists->select(DB::raw('1'))
                     ->from('product_branch_stocks as s')
                     ->whereColumn('s.product_id', 'products.id')
-                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->when($branchIds !== null, fn ($w) => $w->whereIn('s.branch_id', $branchIds))
                     ->groupBy('s.product_id')
                     ->havingRaw('SUM(s.qty) > 0');
             });
         } elseif ($stockStatus === 'sellable') {
-            $productIdSub->whereExists(function ($exists) use ($branchId) {
+            $productIdSub->whereExists(function ($exists) use ($branchIds): void {
                 $exists->select(DB::raw('1'))
                     ->from('product_branch_stocks as s')
                     ->whereColumn('s.product_id', 'products.id')
-                    ->when($branchId, fn ($w) => $w->where('s.branch_id', $branchId))
+                    ->when($branchIds !== null, fn ($w) => $w->whereIn('s.branch_id', $branchIds))
                     ->groupBy('s.product_id')
                     ->havingRaw('SUM(s.qty) - SUM(s.locked_quantity) > 0');
             });
         }
 
         $aggStockQ = ProductBranchStock::query()->whereIn('product_id', $productIdSub);
-        if ($branchId) {
-            $aggStockQ->where('branch_id', $branchId);
+        if ($branchIds !== null) {
+            $aggStockQ->whereIn('branch_id', $branchIds);
         }
         $totalStockQuantity = (float) ($aggStockQ->selectRaw('COALESCE(SUM(qty), 0) as sum_qty')->value('sum_qty') ?? 0);
 
-        // === Aggregate "TỔNG GIÁ TRỊ" (full filtered, not page) ===
-        // - qty scoped by branchId (or full total if no branch)
-        // - uses product.cost as unit value (giá vốn/nhập)
-        // - respects same filters as totalStockQuantity and list (search, stockStatus, branch presence)
         $aggValueQ = ProductBranchStock::query()
             ->join('products as p', 'p.id', '=', 'product_branch_stocks.product_id')
             ->whereIn('product_branch_stocks.product_id', $productIdSub);
-        if ($branchId) {
-            $aggValueQ->where('product_branch_stocks.branch_id', $branchId);
+        if ($branchIds !== null) {
+            $aggValueQ->whereIn('product_branch_stocks.branch_id', $branchIds);
         }
         $totalInventoryValue = (float) ($aggValueQ->selectRaw('COALESCE(SUM(product_branch_stocks.qty * p.cost), 0) as sum_value')->value('sum_value') ?? 0);
 
         $sortKey = strtolower($sort);
         if (preg_match('/^stock_(\d+)$/', $sortKey, $matches) === 1) {
             $sortBranchId = (int) $matches[1];
-            $sortStockSub = ProductBranchStock::query()
-                ->whereColumn('product_id', 'products.id')
-                ->where('branch_id', $sortBranchId)
-                ->selectRaw('COALESCE(SUM(qty), 0)');
-            $query->orderByRaw('(' . $sortStockSub->toSql() . ') ' . $order, $sortStockSub->getBindings())
-                ->orderBy('id', $order);
+            if ($branchIds !== null && ! in_array($sortBranchId, $branchIds, true)) {
+                $query->orderBy('created_at', $order)->orderBy('id', $order);
+            } else {
+                $sortStockSub = ProductBranchStock::query()
+                    ->whereColumn('product_id', 'products.id')
+                    ->where('branch_id', $sortBranchId)
+                    ->selectRaw('COALESCE(SUM(qty), 0)');
+                $query->orderByRaw('(' . $sortStockSub->toSql() . ') ' . $order, $sortStockSub->getBindings())
+                    ->orderBy('id', $order);
+            }
         } elseif ($sortKey === 'totalstock') {
-            // totalStock sort LUÔN dùng full total (không bị ảnh hưởng branch filter)
             $query->orderByRaw('(' . $fullTotalStockSub->toSql() . ') ' . $order, $fullTotalStockSub->getBindings())
                 ->orderBy('id', $order);
         } elseif ($sortKey === 'createdat') {
@@ -502,22 +565,26 @@ class ProductController extends Controller
 
         $payload = ApiPagination::nodeCompatible($query->paginate($perPage));
         $items = collect($payload['items'])
-            ->map(function (Product $product) use ($branchId): array {
+            ->map(function (Product $product) use ($branchId, $stockVisibilityIds): array {
                 $shape = NodeShape::inventory($product);
-                // When a warehouse is selected (retail/wholesale create, inventory filter),
-                // expose branch-scoped stock so sellers cannot use totalStock across warehouses.
+                // Admin keeps full totalStock even when filtering rows by warehouse.
+                // EMPLOYEE totalStock is already assigned-only via stocks relation filter.
                 if ($branchId) {
                     $key = (string) $branchId;
                     $shape['selectedStock'] = (float) ($shape['stockByBranchId'][$key] ?? 0);
                     $shape['qty'] = $shape['selectedStock'];
                     $shape['quantity'] = $shape['selectedStock'];
-                    // Branch-scoped lock is required for transfer "có thể chuyển" = qty - locked.
                     $branchStock = $product->relationLoaded('stocks')
                         ? $product->stocks->first(fn ($s) => (string) $s->branch_id === $key)
                         : null;
                     $locked = (float) ($branchStock?->locked_quantity ?? ($shape['lockedByBranchId'][$key] ?? 0));
                     $shape['lockedQuantity'] = $locked;
                     $shape['availableStock'] = max(0.0, $shape['selectedStock'] - $locked);
+                    if ($stockVisibilityIds !== null) {
+                        $shape['totalStock'] = (float) array_sum($shape['stockByBranchId'] ?? []);
+                    }
+                } elseif ($stockVisibilityIds !== null) {
+                    $shape['totalStock'] = (float) array_sum($shape['stockByBranchId'] ?? []);
                 }
 
                 return $shape;
@@ -528,14 +595,14 @@ class ProductController extends Controller
         $payload['totalStockQuantity'] = $totalStockQuantity;
         $payload['totalInventoryValue'] = $totalInventoryValue;
 
-        // Full-set breakdown for inventory report chart (backward-compatible additive field).
-        // Scoped to the same filtered product set as totalStockQuantity / totalInventoryValue.
+        // Chart breakdown: EMPLOYEE only assigned warehouses; admin uses branch filter when set.
+        $breakdownBranchIds = $stockVisibilityIds ?? $branchIds;
         $byWarehouseQ = ProductBranchStock::query()
             ->join('branches as b', 'b.id', '=', 'product_branch_stocks.branch_id')
             ->join('products as p', 'p.id', '=', 'product_branch_stocks.product_id')
             ->whereIn('product_branch_stocks.product_id', $productIdSub);
-        if ($branchId) {
-            $byWarehouseQ->where('product_branch_stocks.branch_id', $branchId);
+        if ($breakdownBranchIds !== null) {
+            $byWarehouseQ->whereIn('product_branch_stocks.branch_id', $breakdownBranchIds);
         }
         $byWarehouse = $byWarehouseQ
             ->groupBy('b.id', 'b.name', 'b.mongo_id')
@@ -573,6 +640,8 @@ class ProductController extends Controller
 
     public function updateInventory(Request $request, ProductBranchStock $stock): JsonResponse
     {
+        $this->assertBranchWriteAllowed($request, (int) $stock->branch_id);
+
         $data = $request->validate([
             'qty' => ['nullable', 'numeric', 'min:0'],
             'quantity' => ['nullable', 'numeric', 'min:0'],
@@ -786,14 +855,71 @@ class ProductController extends Controller
         $tab = (string) $request->query('tab', 'all');
         $minStartDays = $request->filled('minStartDays') ? max((int) $request->query('minStartDays'), 0) : null;
         $minSoldDays = $request->filled('minSoldDays') ? max((int) $request->query('minSoldDays'), 0) : null;
-        $branchIdFilter = $request->query('branchId');
+        $scoped = $this->resolveScopedBranchFilter($request, $request->query('branchId'));
+        $branchIds = $scoped['branchIds'];
+        $branchIdFilter = $scoped['singleBranchId'];
         $minStock = $request->filled('minStock') ? max((float) $request->query('minStock'), 0) : null;
 
+        if ($branchIds !== null && $branchIds === []) {
+            return response()->json([
+                'items' => [],
+                'data' => [],
+                'total' => 0,
+                'page' => 1,
+                'limit' => $perPage,
+                'per_page' => $perPage,
+                'current_page' => 1,
+                'last_page' => 1,
+                'from' => null,
+                'to' => null,
+                'kpis' => [
+                    'totalProducts' => 0,
+                    'unsoldLong' => 0,
+                    'slowSelling' => 0,
+                    'totalValue' => 0.0,
+                    'oldStockValue' => 0.0,
+                    'unsoldLongValue' => 0.0,
+                    'slowSellingValue' => 0.0,
+                    'thresholdDays' => $thresholdDays,
+                    'lastRefreshedAt' => now()->toISOString(),
+                    'topUnsoldLong' => [],
+                    'topSlowSelling' => [],
+                    'ageBuckets' => [],
+                ],
+                'breakdowns' => ['ageBuckets' => []],
+                'meta' => ['generatedAt' => now()->toIso8601String(), 'capabilities' => ['ageBuckets' => true]],
+            ]);
+        }
+
         $query = Product::query()
-            ->with(['category', 'stocks.branch'])
-            ->where('qty', '>', 0)
+            ->with([
+                'category',
+                'stocks' => function ($builder) use ($branchIds): void {
+                    $builder->with('branch');
+                    if ($branchIds !== null) {
+                        $builder->whereIn('branch_id', $branchIds);
+                    }
+                },
+            ])
             ->orderByDesc('qty')
             ->orderBy('name');
+
+        // Scope product set by assigned / selected warehouses before global qty>0 filter.
+        if ($branchIds !== null) {
+            $query->whereHas('stocks', function ($builder) use ($branchIds, $minStock): void {
+                $builder->whereIn('branch_id', $branchIds);
+                if ($minStock !== null) {
+                    $builder->where('qty', '>=', $minStock);
+                } else {
+                    $builder->where('qty', '>', 0);
+                }
+            });
+        } else {
+            $query->where('qty', '>', 0);
+            if ($minStock !== null) {
+                $query->where('qty', '>=', $minStock);
+            }
+        }
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search): void {
@@ -806,29 +932,16 @@ class ProductController extends Controller
         if ($categoryId = $request->query('categoryId')) {
             $query->where('category_id', $categoryId);
         }
-        if ($branchIdFilter !== null && $branchIdFilter !== '') {
-            // Branch scope: only products with stock at that branch.
-            // When minStock is set, compare against branch qty (not global Product.qty).
-            $query->whereHas('stocks', function ($builder) use ($branchIdFilter, $minStock): void {
-                $builder->where('branch_id', $branchIdFilter);
-                if ($minStock !== null) {
-                    $builder->where('qty', '>=', $minStock);
-                } else {
-                    $builder->where('qty', '>', 0);
-                }
-            });
-        } elseif ($minStock !== null) {
-            $query->where('qty', '>=', $minStock);
-        }
 
         $products = $query->get();
 
         // Build enriched maps once for the current scope to avoid N+1 queries.
-        $lastSoldMap = $this->lastSoldDatesByMongoId($products, $branchIdFilter);
-        $txnMap = $this->inventoryTransactionDatesByProductId($products, $branchIdFilter);
+        $saleBranchFilter = $branchIdFilter ?? $branchIds;
+        $lastSoldMap = $this->lastSoldDatesByMongoId($products, $saleBranchFilter);
+        $txnMap = $this->inventoryTransactionDatesByProductId($products, $saleBranchFilter);
 
-        $shape = function (Product $product) use ($thresholdDays, $lastSoldMap, $txnMap, $branchIdFilter): array {
-            return $this->storageDurationShape($product, $thresholdDays, $lastSoldMap, $txnMap, $branchIdFilter);
+        $shape = function (Product $product) use ($thresholdDays, $lastSoldMap, $txnMap, $branchIdFilter, $branchIds): array {
+            return $this->storageDurationShape($product, $thresholdDays, $lastSoldMap, $txnMap, $branchIdFilter ?? $branchIds);
         };
 
         $shaped = $products->map($shape)->values();
@@ -972,7 +1085,13 @@ class ProductController extends Controller
             ->from('sale_payments')
             ->where('status', 'completed')
             ->whereNotNull('completed_at')
-            ->when($branchIdFilter, fn ($q) => $q->where('branch_id', $branchIdFilter))
+            ->when($branchIdFilter, function ($q) use ($branchIdFilter): void {
+                if (is_array($branchIdFilter)) {
+                    $q->whereIn('branch_id', $branchIdFilter);
+                } else {
+                    $q->where('branch_id', $branchIdFilter);
+                }
+            })
             ->get(['mongo_id', 'items', 'payload', 'completed_at']);
 
         foreach ($rows as $row) {
@@ -1115,10 +1234,20 @@ class ProductController extends Controller
             ->mapWithKeys(fn (Product $product): array => [(string) $product->code => (int) $product->id])
             ->all();
         $branchMongoIdFilter = null;
-        if ($branchIdFilter && !$hasBranchId && $hasBranchMongoId) {
-            $branchMongoIdFilter = \App\Models\Branch::query()
-                ->whereKey($branchIdFilter)
-                ->value('mongo_id');
+        $branchMongoIdFilters = null;
+        if ($branchIdFilter && ! $hasBranchId && $hasBranchMongoId) {
+            if (is_array($branchIdFilter)) {
+                $branchMongoIdFilters = \App\Models\Branch::query()
+                    ->whereIn('id', $branchIdFilter)
+                    ->pluck('mongo_id')
+                    ->filter()
+                    ->values()
+                    ->all();
+            } else {
+                $branchMongoIdFilter = \App\Models\Branch::query()
+                    ->whereKey($branchIdFilter)
+                    ->value('mongo_id');
+            }
         }
 
         $rows = \App\Models\MirrorRecord::query()
@@ -1146,8 +1275,15 @@ class ProductController extends Controller
                 }
             })
             ->whereNotNull('business_date')
-            ->when($branchIdFilter && $hasBranchId, fn ($q) => $q->where('branch_id', $branchIdFilter))
-            ->when($branchIdFilter && !$hasBranchId && $branchMongoIdFilter, fn ($q) => $q->where('branch_mongo_id', $branchMongoIdFilter))
+            ->when($branchIdFilter && $hasBranchId, function ($q) use ($branchIdFilter): void {
+                if (is_array($branchIdFilter)) {
+                    $q->whereIn('branch_id', $branchIdFilter);
+                } else {
+                    $q->where('branch_id', $branchIdFilter);
+                }
+            })
+            ->when($branchIdFilter && ! $hasBranchId && $branchMongoIdFilter, fn ($q) => $q->where('branch_mongo_id', $branchMongoIdFilter))
+            ->when($branchIdFilter && ! $hasBranchId && is_array($branchMongoIdFilters) && $branchMongoIdFilters !== [], fn ($q) => $q->whereIn('branch_mongo_id', $branchMongoIdFilters))
             ->get(array_values(array_filter([
                 $hasProductId ? 'product_id' : null,
                 $hasProductMongoId ? 'product_mongo_id' : null,
@@ -1230,7 +1366,14 @@ class ProductController extends Controller
         $branchQty = null;
         if ($product->relationLoaded('stocks')) {
             $stocks = $product->stocks;
-            if ($branchIdFilter !== null && $branchIdFilter !== '') {
+            if (is_array($branchIdFilter) && $branchIdFilter !== []) {
+                $scopedStocks = $stocks->whereIn('branch_id', array_map('intval', $branchIdFilter));
+                $branchQty = (float) $scopedStocks->sum('qty');
+                $displayQty = $branchQty;
+                $branchName = $scopedStocks->count() === 1
+                    ? $scopedStocks->first()?->branch?->name
+                    : ($scopedStocks->pluck('branch.name')->filter()->unique()->implode(', ') ?: null);
+            } elseif ($branchIdFilter !== null && $branchIdFilter !== '') {
                 $matched = $stocks->firstWhere('branch_id', (int) $branchIdFilter);
                 $branchName = $matched?->branch?->name;
                 if ($matched) {
@@ -1653,6 +1796,117 @@ class ProductController extends Controller
             ->first();
 
         return $branch?->id;
+    }
+
+    /**
+     * EMPLOYEE: assigned warehouse local IDs. ADMIN/root/unauthenticated: null (unrestricted).
+     *
+     * @return array<int, int>|null
+     */
+    private function restrictedBranchIdsForUser(Request $request): ?array
+    {
+        $user = $this->resolveAuthUser($request);
+        if (! $user || $this->isAdminUser($user)) {
+            return null;
+        }
+
+        return $user->allowedLocalBranchIds();
+    }
+
+    /**
+     * Normalize requested branch under employee warehouse restrictions.
+     *
+     * @return array{branchIds: array<int, int>|null, singleBranchId: ?int}
+     *   branchIds null = unrestricted (admin, no filter).
+     *   branchIds [] = employee with no assignment.
+     *   branchIds [ids] = restrict products/stock to those warehouses.
+     *   singleBranchId = explicit UI warehouse filter when set.
+     */
+    private function resolveScopedBranchFilter(Request $request, mixed $branchQuery): array
+    {
+        $restricted = $this->restrictedBranchIdsForUser($request);
+        $requested = $this->resolveBranchLocalId($branchQuery);
+
+        if ($restricted === null) {
+            return [
+                'branchIds' => $requested !== null ? [$requested] : null,
+                'singleBranchId' => $requested,
+            ];
+        }
+
+        if ($restricted === []) {
+            return ['branchIds' => [], 'singleBranchId' => null];
+        }
+
+        if ($requested !== null) {
+            if (! in_array($requested, $restricted, true)) {
+                abort(403, 'Bạn không có quyền xem/thao tác dữ liệu của kho này. Chỉ được thao tác trên kho đã được gán.');
+            }
+
+            return ['branchIds' => [$requested], 'singleBranchId' => $requested];
+        }
+
+        return ['branchIds' => $restricted, 'singleBranchId' => null];
+    }
+
+    private function assertBranchWriteAllowed(Request $request, int $branchId): void
+    {
+        $restricted = $this->restrictedBranchIdsForUser($request);
+        if ($restricted === null) {
+            return;
+        }
+        if ($restricted === [] || ! in_array($branchId, $restricted, true)) {
+            abort(403, 'Bạn không có quyền thao tác tồn kho của kho này. Chỉ được thao tác trên kho đã được gán.');
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyProductListPayload(int $perPage): array
+    {
+        return [
+            'items' => [],
+            'data' => [],
+            'total' => 0,
+            'page' => 1,
+            'limit' => $perPage,
+            'per_page' => $perPage,
+            'current_page' => 1,
+            'last_page' => 1,
+            'from' => null,
+            'to' => null,
+            'meta' => ['statuses' => []],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyInventoryPayload(int $perPage): array
+    {
+        return [
+            'items' => [],
+            'data' => [],
+            'total' => 0,
+            'page' => 1,
+            'limit' => $perPage,
+            'per_page' => $perPage,
+            'current_page' => 1,
+            'last_page' => 1,
+            'from' => null,
+            'to' => null,
+            'totalStockQuantity' => 0.0,
+            'totalInventoryValue' => 0.0,
+            'breakdowns' => ['byWarehouse' => []],
+            'meta' => [
+                'generatedAt' => now()->toIso8601String(),
+                'capabilities' => [
+                    'warehouseBreakdown' => true,
+                    'valueMetrics' => true,
+                ],
+            ],
+        ];
     }
 
     private function refreshProductQty(Product $product): void

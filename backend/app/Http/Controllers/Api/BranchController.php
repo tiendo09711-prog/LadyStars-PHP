@@ -39,6 +39,18 @@ class BranchController extends Controller
             });
         }
 
+        // EMPLOYEE (non-admin): only warehouses assigned to them. Prevents sales/import
+        // pickers from listing every branch when staff is scoped to one store.
+        $user = LocalToken::resolve($request);
+        if ($user && ! $user->isAdminOrRoot()) {
+            $allowedIds = $user->allowedLocalBranchIds();
+            if ($allowedIds === []) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->whereIn('id', $allowedIds);
+            }
+        }
+
         $payload = ApiPagination::nodeCompatible($query->paginate($perPage));
         $items = collect($payload['items'])->map(fn (Branch $branch): array => NodeShape::branch($branch))->all();
         $payload['items'] = $items;

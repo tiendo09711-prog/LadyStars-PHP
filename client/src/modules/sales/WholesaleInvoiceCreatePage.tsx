@@ -387,7 +387,21 @@ export function WholesaleInvoiceCreatePage() {
       setForm(prev => ({ ...prev, salesperson: meRes.data?.name || meRes.data?.user?.name || prev.salesperson }));
       setDbStaffs(staffRes?.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
-      setBranchOptions((branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false));
+      // Backend scopes EMPLOYEE to assigned warehouses only.
+      const allowedBranches = (branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false);
+      setBranchOptions(allowedBranches);
+      if (activeBranchId && allowedBranches.length > 0) {
+        const allowed = allowedBranches.some(
+          (item: any) => String(item._id) === String(activeBranchId) || String(item.id) === String(activeBranchId),
+        );
+        if (!allowed) {
+          setActiveBranchId('');
+          setBranch(null);
+          setErrorMessage('Bạn không có quyền bán hàng tại kho này. Chỉ được chọn kho đã được gán.');
+        }
+      } else if (!activeBranchId && allowedBranches.length === 1) {
+        setActiveBranchId(String(allowedBranches[0]._id || allowedBranches[0].id || ''));
+      }
 
       if (methodRes?.__error) {
         setPaymentMethods([]);

@@ -2,6 +2,26 @@
   gap: 22px;
 }
 
+.inventory-page-header {
+  margin: 0 0 14px;
+  padding: 4px 2px 0;
+}
+
+.inventory-page-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.inventory-page-header p {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
 .inventory-toolbar-card {
   position: relative;
   overflow: hidden;

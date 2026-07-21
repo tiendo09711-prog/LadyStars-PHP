@@ -40,6 +40,13 @@ class WriteFlowApiTest extends TestCase
             'is_active' => true,
         ]);
 
+        $this->branch = Branch::create([
+            'mongo_id' => 'branch000000000000000001',
+            'name' => 'Kho HN',
+            'code' => 'HN',
+            'is_active' => true,
+        ]);
+
         $this->employee = User::create([
             'name' => 'Employee Product Test',
             'email' => 'employee.product@example.test',
@@ -48,13 +55,13 @@ class WriteFlowApiTest extends TestCase
             'status' => 'ACTIVE',
             'is_root_owner' => false,
             'is_active' => true,
+            'default_warehouse_id' => $this->branch->id,
         ]);
-
-        $this->branch = Branch::create([
-            'mongo_id' => 'branch000000000000000001',
-            'name' => 'Kho HN',
-            'code' => 'HN',
-            'is_active' => true,
+        \Illuminate\Support\Facades\DB::table('user_warehouse_assignments')->insert([
+            'user_id' => $this->employee->id,
+            'branch_id' => $this->branch->id,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->category = Category::create([

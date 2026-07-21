@@ -16,6 +16,8 @@ class LocalContextController extends Controller
         $user = LocalToken::resolve(request());
         if ($user) {
             if (($user->is_active === null || (bool) $user->is_active) && strtoupper((string) ($user->status ?? 'ACTIVE')) !== 'INACTIVE') {
+                $assignedIds = $user->allowedLocalBranchIds();
+
                 return response()->json([
                     '_id' => (string) $user->id,
                     'id' => $user->id,
@@ -27,6 +29,7 @@ class LocalContextController extends Controller
                     'status' => $user->status,
                     'branchId' => $user->branch_id ? (string) $user->branch_id : null,
                     'defaultWarehouseId' => $user->default_warehouse_id ? (string) $user->default_warehouse_id : null,
+                    'assignedWarehouseIds' => array_map(static fn (int $id): string => (string) $id, $assignedIds),
                     'isRootOwner' => (bool) $user->is_root_owner,
                     'isActive' => (bool) $user->is_active,
                 ]);

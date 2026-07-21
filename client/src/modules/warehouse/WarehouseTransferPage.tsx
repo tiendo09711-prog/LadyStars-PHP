@@ -151,10 +151,12 @@ export function WarehouseTransferPage() {
   const [meta, setMeta] = useState<{
     role: string;
     warehouses: Option[];
+    destinationWarehouses?: Option[];
     statuses: Option[];
     userWarehouseIds?: string[];
     isRootOwner?: boolean;
-  }>({ role: 'EMPLOYEE', warehouses: [], statuses: [], userWarehouseIds: [], isRootOwner: false });
+    isAdmin?: boolean;
+  }>({ role: 'EMPLOYEE', warehouses: [], destinationWarehouses: [], statuses: [], userWarehouseIds: [], isRootOwner: false });
   const [rows, setRows] = useState<TransferRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -192,7 +194,18 @@ export function WarehouseTransferPage() {
 
   const loadMeta = async () => {
     const response = await http.get('/warehouse/transfers/meta');
-    setMeta(response.data);
+    const data = response.data || {};
+    setMeta(data);
+    // EMPLOYEE: default source warehouse filter = first assigned (meta.warehouses already scoped).
+    const isAdmin = Boolean(data.isAdmin || data.isRootOwner) || String(data.role || '').toUpperCase() === 'ADMIN';
+    const warehouses: Option[] = data.warehouses || [];
+    if (!isAdmin && warehouses.length > 0) {
+      const allowed = new Set(warehouses.map((w) => String(w.value)));
+      const pick = (current: string) =>
+        (current && allowed.has(String(current)) ? current : String(warehouses[0].value));
+      setFilters((current) => ({ ...current, sourceWarehouseId: pick(current.sourceWarehouseId) }));
+      setAppliedFilters((current) => ({ ...current, sourceWarehouseId: pick(current.sourceWarehouseId) }));
+    }
   };
 
   const load = async (signal?: AbortSignal) => {
@@ -264,6 +277,10 @@ export function WarehouseTransferPage() {
 
   const resetFilters = () => {
     const nextFilters = defaultTransferFilters();
+    const isAdmin = Boolean(meta.isAdmin || meta.isRootOwner) || String(meta.role || '').toUpperCase() === 'ADMIN';
+    if (!isAdmin && meta.warehouses.length > 0) {
+      nextFilters.sourceWarehouseId = String(meta.warehouses[0].value);
+    }
     setPage(1);
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
@@ -534,7 +551,12 @@ export function WarehouseTransferPage() {
             title="Kho nguồn"
             aria-label="Kho nguồn"
           >
-            <option value="">Kho nguồn</option>
+            <option value="">
+              {(meta.isAdmin || meta.isRootOwner || String(meta.role || '').toUpperCase() === 'ADMIN')
+                ? 'Kho nguồn'
+                : 'Tất cả kho nguồn được gán'}
+            </option>
+            {/* EMPLOYEE: source list is already assignment-scoped from meta.warehouses */}
             {meta.warehouses.map((w) => (
               <option key={w.value} value={w.value}>{w.label}</option>
             ))}
@@ -547,7 +569,12 @@ export function WarehouseTransferPage() {
             title="Kho đích"
             aria-label="Kho đích"
           >
-            <option value="">Kho đích</option>
+            <option value="">
+              {(meta.isAdmin || meta.isRootOwner || String(meta.role || '').toUpperCase() === 'ADMIN')
+                ? 'Kho đích'
+                : 'Tất cả kho đích được gán'}
+            </option>
+            {/* List filter: only assigned warehouses (same as source) so staff cannot browse others' dest filters */}
             {meta.warehouses.map((w) => (
               <option key={w.value} value={w.value}>{w.label}</option>
             ))}

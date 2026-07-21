@@ -30,7 +30,6 @@ import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput'
 import { suggestProducts } from '../../core/api/filterSuggestions';
 import { http } from '../../core/api/http';
 import * as XLSX from 'xlsx';
-import { InventoryReportShell } from '../reports/inventory/components/InventoryReportShell';
 import { ExportExcelModal, type ColumnOption } from './components/ExportExcelModal';
 import './product-compact.css';
 import './products-page.css';
@@ -210,8 +209,23 @@ export function StorageDurationPage() {
     const loadBranches = async () => {
       setLoadingBranches(true);
       try {
-        const res = await http.get('/system/branches');
-        setBranches(res.data?.items || []);
+        // EMPLOYEE: backend returns only assigned warehouses.
+        const [res, meRes] = await Promise.all([
+          http.get('/system/branches'),
+          http.get('/auth/me').catch(() => ({ data: null })),
+        ]);
+        const items = (res.data?.items || []).filter((b: any) => b.isActive !== false);
+        setBranches(items);
+        const role = String(meRes.data?.role || meRes.data?.user?.role || '').toUpperCase();
+        const isAdmin = role === 'ADMIN' || Boolean(meRes.data?.isRootOwner || meRes.data?.user?.isRootOwner);
+        const pickDefault = () => String((items.find((b: any) => b.isDefault) || items[0])?._id || items[0]?.id || '');
+        setSelectedBranch((current) => {
+          const ok = current && items.some((b: any) => String(b._id) === String(current) || String(b.id) === String(current));
+          if (ok) return current;
+          // EMPLOYEE: default branch filter so list is scoped (BE also scopes without filter).
+          if (!isAdmin && items.length > 0) return pickDefault();
+          return current || '';
+        });
       } catch (err) {
         console.error('Failed to load branches', err);
       } finally {
@@ -672,8 +686,9 @@ export function StorageDurationPage() {
   };
   const openActionItem = openActionMenu ? items.find((item) => item._id === openActionMenu) ?? null : null;
 
+  // Standalone product page (no InventoryReportShell) so staff cannot jump into report tabs.
+  // Admin report entry: /reports/inventory/age wraps this component in the shell.
   return (
-    <InventoryReportShell>
     <div className="product-compact-shell storage-duration-page">
       {/* Toast Notification Banner */}
       {toast && (
@@ -788,9 +803,9 @@ export function StorageDurationPage() {
             title="Chi nhánh"
             disabled={loadingBranches}
           >
-            <option value="">Tất cả chi nhánh</option>
+            <option value="">{branches.length <= 3 ? 'Tất cả kho được gán' : 'Tất cả chi nhánh'}</option>
             {branches.map((b) => (
-              <option key={b._id} value={b._id}>{b.name} ({b.code})</option>
+              <option key={b._id} value={b._id}>{b.name}{b.code ? ` (${b.code})` : ''}</option>
             ))}
           </select>
 
@@ -1279,6 +1294,5 @@ export function StorageDurationPage() {
       ) : null}
 
     </div>
-    </InventoryReportShell>
   );
 }

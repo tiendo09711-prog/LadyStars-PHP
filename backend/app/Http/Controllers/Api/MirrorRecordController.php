@@ -917,7 +917,11 @@ class MirrorRecordController extends Controller
             }
         }
 
-        if ($request->filled('branchId') || $request->filled('storeId')) {
+        // Sales / refunds: resolve storeId/branchId + EMPLOYEE warehouse assignment scope.
+        // Employees always see only assigned warehouses (even when store filter is empty).
+        if (in_array($resource, ['sale-payments', 'product-refunds'], true)) {
+            $this->applySaleWarehouseAccess($request, $query, $columns);
+        } elseif ($request->filled('branchId') || $request->filled('storeId')) {
             $branchValue = $request->query('branchId', $request->query('storeId'));
             if ($columns->has('branch_id')) {
                 $query->where('branch_id', $branchValue);
@@ -1113,6 +1117,110 @@ class MirrorRecordController extends Controller
         }
 
         return response()->json($response);
+    }
+
+    /**
+     * Constrain sale-payments / product-refunds by store filter and EMPLOYEE warehouse assignment.
+     * - ADMIN/root/guest: optional storeId filter only.
+     * - EMPLOYEE: always limited to assigned warehouses; unauthorized storeId → empty set.
+     */
+    private function applySaleWarehouseAccess(Request $request, \Illuminate\Database\Eloquent\Builder $query, \Illuminate\Support\Collection $columns): void
+    {
+        $user = LocalToken::resolve($request);
+        $isAdmin = ! $user instanceof User || $user->isAdminOrRoot();
+        $allowedLocal = null;
+        if (! $isAdmin) {
+            $allowedLocal = $user->allowedLocalBranchIds();
+            if ($allowedLocal === []) {
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+        }
+
+        $requested = trim((string) $request->query('branchId', $request->query('storeId', '')));
+        if ($requested === '') {
+            if ($allowedLocal === null) {
+                return;
+            }
+            $this->constrainQueryToLocalBranches($query, $columns, $allowedLocal);
+
+            return;
+        }
+
+        $branch = Branch::query()
+            ->where('id', $requested)
+            ->orWhere('mongo_id', $requested)
+            ->orWhere('code', $requested)
+            ->first();
+        if (! $branch) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+        if ($allowedLocal !== null && ! in_array((int) $branch->id, $allowedLocal, true)) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $this->constrainQueryToLocalBranches($query, $columns, [(int) $branch->id]);
+    }
+
+    /**
+     * @param  array<int, int>  $localIds
+     */
+    private function constrainQueryToLocalBranches(\Illuminate\Database\Eloquent\Builder $query, \Illuminate\Support\Collection $columns, array $localIds): void
+    {
+        $localIds = array_values(array_unique(array_filter(array_map('intval', $localIds))));
+        if ($localIds === []) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $branches = Branch::query()->whereIn('id', $localIds)->get(['id', 'mongo_id']);
+        $keys = $branches
+            ->flatMap(fn (Branch $b) => array_filter([(string) $b->id, $b->mongo_id ? (string) $b->mongo_id : null]))
+            ->unique()
+            ->values()
+            ->all();
+
+        $query->where(function ($builder) use ($columns, $keys, $localIds): void {
+            $matched = false;
+            if ($columns->has('branch_id')) {
+                $builder->whereIn('branch_id', $localIds);
+                $matched = true;
+            }
+            if ($columns->has('branch_mongo_id') && $keys !== []) {
+                if ($matched) {
+                    $builder->orWhereIn('branch_mongo_id', $keys);
+                } else {
+                    $builder->whereIn('branch_mongo_id', $keys);
+                    $matched = true;
+                }
+            }
+            foreach ($keys as $key) {
+                if ($key === '') {
+                    continue;
+                }
+                if ($matched) {
+                    $builder->orWhere('payload->branchId', $key)
+                        ->orWhere('payload->warehouseId', $key)
+                        ->orWhere('payload->storeId', $key);
+                } else {
+                    $builder->where(function ($inner) use ($key): void {
+                        $inner->where('payload->branchId', $key)
+                            ->orWhere('payload->warehouseId', $key)
+                            ->orWhere('payload->storeId', $key);
+                    });
+                    $matched = true;
+                }
+            }
+            if (! $matched) {
+                $builder->whereRaw('1 = 0');
+            }
+        });
     }
 
     private function applySalePaymentExtraFilters(Request $request, \Illuminate\Database\Eloquent\Builder $query, \Illuminate\Support\Collection $columns): void
@@ -1349,16 +1457,14 @@ class MirrorRecordController extends Controller
     public function warehouseTransferMeta(Request $request): JsonResponse
     {
         // Extract current user from Authorization header (same pattern as LocalContextController::me)
-        // Token format: "Bearer local-laravel-token-{userId}"
         $user = LocalToken::resolve($request);
 
-        // Always return all active branches for dropdown options (warehouses list is global)
         $activeBranches = Branch::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'mongo_id', 'name', 'code']);
 
-        $warehouses = $activeBranches
+        $allWarehouses = $activeBranches
             ->map(fn (Branch $branch): array => [
                 'value' => $branch->mongo_id,
                 'label' => $branch->name,
@@ -1373,39 +1479,25 @@ class MirrorRecordController extends Controller
             ])
             ->values();
 
-        // Compute userWarehouseIds using SAME ID system as warehouses.value (mongo_id)
+        // userWarehouseIds / source list use SAME ID system as warehouses.value (mongo_id)
         $userWarehouseIds = [];
         $role = 'GUEST';
         $isRootOwner = false;
+        $isAdminOrRoot = false;
 
         if ($user) {
             $role = $user->role ?: 'EMPLOYEE';
             $isRootOwner = (bool) $user->is_root_owner;
-            $isAdminOrRoot = ($role === 'ADMIN' || $isRootOwner);
-
-            // Collect local branch ids from user + assignments
-            $localIds = [];
-            if ($user->default_warehouse_id) {
-                $localIds[] = (int) $user->default_warehouse_id;
-            }
-            if ($user->branch_id) {
-                $localIds[] = (int) $user->branch_id;
-            }
-            $assignRows = DB::table('user_warehouse_assignments')
-                ->where('user_id', $user->id)
-                ->pluck('branch_id')
-                ->map(fn ($v) => (int) $v)
-                ->all();
-            $localIds = array_unique(array_merge($localIds, $assignRows));
+            $isAdminOrRoot = $user->isAdminOrRoot();
+            $localIds = $user->allowedLocalBranchIds();
 
             if ($isAdminOrRoot) {
-                // Admin / root owner sees all active warehouses
                 $userWarehouseIds = $activeBranches
                     ->pluck('mongo_id')
                     ->filter()
                     ->values()
                     ->all();
-            } elseif (!empty($localIds)) {
+            } elseif ($localIds !== []) {
                 $branchMap = $activeBranches->keyBy('id');
                 foreach ($localIds as $lid) {
                     if ($b = $branchMap->get($lid)) {
@@ -1416,17 +1508,21 @@ class MirrorRecordController extends Controller
                 }
                 $userWarehouseIds = array_values(array_unique($userWarehouseIds));
             }
-            // else: regular user with no assignments -> empty list
         }
-        // If no identifiable user from token: do not pretend ADMIN, use GUEST + empty ids
-        // (warehouses list still provided so UI dropdowns continue to work)
+
+        // Source warehouse picker: EMPLOYEE only assigned; ADMIN/all guests get full list for legacy UI.
+        // Destination picker: always full active list (employee may ship TO any store).
+        $sourceWarehouses = $isAdminOrRoot || ! $user
+            ? $allWarehouses
+            : $allWarehouses->filter(fn (array $w): bool => in_array($w['value'], $userWarehouseIds, true))->values();
 
         return response()->json([
             'role' => $role,
             'isRootOwner' => $isRootOwner,
+            'isAdmin' => $isAdminOrRoot,
             'userWarehouseIds' => $userWarehouseIds,
-            'warehouses' => $warehouses,
-            'destinationWarehouses' => $warehouses,
+            'warehouses' => $sourceWarehouses,
+            'destinationWarehouses' => $allWarehouses,
             'statuses' => $statuses,
         ]);
     }

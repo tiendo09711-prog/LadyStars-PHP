@@ -24,11 +24,14 @@ import {
 import * as XLSX from 'xlsx';
 import { http } from '../../core/api/http';
 import { suggestRefunds } from '../../core/api/filterSuggestions';
+import { isAdminRole } from '../../core/auth/access';
 import { FilterSuggestInput } from '../../core/components/ui/FilterSuggestInput';
 import { ExportExcelModal, type ColumnOption } from '../product/components/ExportExcelModal';
 import { buildRefundReceiptHtml, writeAndPrintPopup } from './invoicePrint';
 import './refund-invoice-page.css';
 import './refund-invoice-soft-type.css';
+
+type BranchOption = { _id: string; name?: string; code?: string; isDefault?: boolean };
 
 type RefundInvoicePageProps = {
   channel: string;
@@ -133,6 +136,11 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [storeId, setStoreId] = useState('');
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [currentUser, setCurrentUser] = useState<{ role?: string } | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [branchLoading, setBranchLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [rowActionOpen, setRowActionOpen] = useState<string | null>(null);
@@ -143,7 +151,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(page * PAGE_SIZE, total);
-  const hasActiveFilters = Boolean(appliedSearch || statusFilter);
+  const hasActiveFilters = Boolean(appliedSearch || statusFilter || storeId);
   const selectedAll = items.length > 0 && items.every((item) => selectedIds.has(item._id));
 
   const openRowItem = rowActionOpen
@@ -162,9 +170,51 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
 
   useEffect(() => {
     setPage(1);
-  }, [channel, statusFilter]);
+  }, [channel, statusFilter, storeId]);
 
   useEffect(() => {
+    let mounted = true;
+    setAuthReady(false);
+    setBranchLoading(true);
+    Promise.all([
+      http.get('/auth/me').catch(() => ({ data: null })),
+      http.get('/system/branches', { params: { limit: 5000 } }).catch(() => ({ data: { items: [] } })),
+    ])
+      .then(([meRes, branchRes]) => {
+        if (!mounted) return;
+        setCurrentUser(meRes.data?.user || meRes.data || null);
+        const items: BranchOption[] = Array.isArray(branchRes.data)
+          ? branchRes.data
+          : branchRes.data?.items ?? [];
+        setBranches(items.filter((b) => b && b._id));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setAuthReady(true);
+        setBranchLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // EMPLOYEE: default store filter to first assigned warehouse.
+  useEffect(() => {
+    if (!authReady || branchLoading || branches.length === 0) return;
+    if (isAdminRole(currentUser?.role)) return;
+    const allowed = new Set(branches.map((b) => String(b._id)));
+    setStoreId((current) => {
+      if (current && allowed.has(String(current))) return current;
+      const def = branches.find((b) => b.isDefault) || branches[0];
+      return String(def._id);
+    });
+  }, [authReady, branchLoading, branches, currentUser?.role]);
+
+  useEffect(() => {
+    // Wait for employee default store before first list fetch.
+    if (!authReady) return;
+    if (!isAdminRole(currentUser?.role) && branchLoading) return;
+
     const controller = new AbortController();
     let active = true;
     setLoading(true);
@@ -176,6 +226,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
     params.set('limit', String(PAGE_SIZE));
     if (appliedSearch) params.set('q', appliedSearch);
     if (statusFilter) params.set('status', statusFilter);
+    if (storeId) params.set('storeId', storeId);
 
     http
       .get(`/products/refunds?${params.toString()}`, { signal: controller.signal })
@@ -204,7 +255,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
       active = false;
       controller.abort();
     };
-  }, [channel, page, appliedSearch, statusFilter, refreshKey]);
+  }, [channel, page, appliedSearch, statusFilter, storeId, refreshKey, authReady, branchLoading, currentUser?.role]);
 
   useEffect(() => {
     if (!rowActionOpen) return;
@@ -273,6 +324,14 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
     setSearch('');
     setAppliedSearch('');
     setStatusFilter('');
+    if (isAdminRole(currentUser?.role)) {
+      setStoreId('');
+    } else if (branches.length > 0) {
+      const def = branches.find((b) => b.isDefault) || branches[0];
+      setStoreId(String(def._id));
+    } else {
+      setStoreId('');
+    }
     setPage(1);
     setRefreshKey((value) => value + 1);
   };
@@ -345,6 +404,7 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
           params.set('limit', String(nextLimit));
           if (appliedSearch) params.set('q', appliedSearch);
           if (statusFilter) params.set('status', statusFilter);
+          if (storeId) params.set('storeId', storeId);
           return params;
         };
         const pageSize = 100;
@@ -447,6 +507,26 @@ export function RefundInvoicePage({ channel }: RefundInvoicePageProps) {
               aria-label="Tìm kiếm trả hàng"
             />
           </div>
+
+          <select
+            className="refund-filter-select"
+            value={storeId}
+            onChange={(event) => {
+              setStoreId(event.target.value);
+              setPage(1);
+            }}
+            aria-label="Cửa hàng / kho"
+            disabled={branchLoading}
+          >
+            <option value="">
+              {isAdminRole(currentUser?.role) ? 'Tất cả cửa hàng' : 'Tất cả kho được gán'}
+            </option>
+            {branches.map((branch) => (
+              <option key={branch._id} value={branch._id}>
+                {branch.name || branch.code || branch._id}
+              </option>
+            ))}
+          </select>
 
           <select
             className="refund-filter-select"

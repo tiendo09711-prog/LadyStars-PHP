@@ -65,8 +65,19 @@ export function WarehouseTransferCreatePage() {
   useEffect(() => {
     http.get('/warehouse/transfers/meta')
       .then((response) => {
-        setWarehouses(response.data?.warehouses || []);
-        setDestinationWarehouses(response.data?.destinationWarehouses || response.data?.warehouses || []);
+        // Source: backend already scopes EMPLOYEE to assigned warehouses.
+        // Destination: full active list so staff can ship TO any store.
+        const sourceList: Warehouse[] = response.data?.warehouses || [];
+        const destList: Warehouse[] = response.data?.destinationWarehouses || sourceList;
+        const userIds: string[] = (response.data?.userWarehouseIds || []).map(String);
+        const isAdmin = Boolean(response.data?.isAdmin || response.data?.isRootOwner)
+          || String(response.data?.role || '').toUpperCase() === 'ADMIN';
+        if (!isAdmin && userIds.length > 0) {
+          setWarehouses(sourceList.filter((w) => userIds.includes(String(w.value))));
+        } else {
+          setWarehouses(sourceList);
+        }
+        setDestinationWarehouses(destList);
       })
       .catch(() => setError('Không tải được danh sách kho.'));
   }, []);

@@ -2330,10 +2330,27 @@ export function ProductList({
   useEffect(() => {
     let mounted = true;
     setLoadingWarehouses(true);
-    listBranches({ page: 1, limit: 1000 })
-      .then((response) => {
+    // EMPLOYEE: backend returns only assigned warehouses for filter + display.
+    Promise.all([
+      listBranches({ page: 1, limit: 1000 }),
+      http.get('/auth/me').catch(() => ({ data: null })),
+    ])
+      .then(([response, meRes]) => {
         if (!mounted) return;
-        setWarehouseOptions((response.items || []).filter((branch) => branch.isActive !== false));
+        const items = (response.items || []).filter((branch) => branch.isActive !== false);
+        setWarehouseOptions(items);
+        const role = String((meRes as any)?.data?.role || (meRes as any)?.data?.user?.role || '').toUpperCase();
+        const isAdmin = role === 'ADMIN' || Boolean((meRes as any)?.data?.isRootOwner || (meRes as any)?.data?.user?.isRootOwner);
+        const isAllowed = (id: string) => items.some((b) => String(b._id) === String(id));
+        const pickDefault = () => String((items.find((b) => (b as any).isDefault) || items[0])?._id || '');
+        // EMPLOYEE (or single-warehouse): default filter to assigned warehouse so list is not "all catalog".
+        if (!isAdmin && items.length > 0) {
+          setAppliedWarehouseId((current) => (current && isAllowed(current) ? current : pickDefault()));
+          setDraftWarehouseId((current) => (current && isAllowed(current) ? current : pickDefault()));
+        } else {
+          setAppliedWarehouseId((current) => (current && !isAllowed(current) ? '' : current));
+          setDraftWarehouseId((current) => (current && !isAllowed(current) ? '' : current));
+        }
       })
       .catch((error) => {
         console.error('Lỗi tải kho hàng:', error);
@@ -2831,14 +2848,17 @@ export function ProductList({
           <select
             className="inv-filter-select"
             value={draftWarehouseId}
+            aria-label="Kho hàng"
             onChange={(event) => setDraftWarehouseId(event.target.value)}
             disabled={loadingWarehouses}
             title="Kho hàng"
           >
-            <option value="">Tất cả kho</option>
+            <option value="">
+              {warehouseOptions.length <= 3 ? 'Tất cả kho được gán' : 'Tất cả kho'}
+            </option>
             {warehouseOptions.map((warehouse) => (
               <option key={warehouse._id} value={warehouse._id}>
-                {warehouse.name}{warehouse.code ? ` (${warehouse.code})` : ''}
+                {warehouse.name || warehouse.code || warehouse._id}
               </option>
             ))}
           </select>

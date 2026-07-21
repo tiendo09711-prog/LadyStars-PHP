@@ -186,10 +186,26 @@ export function RefundInvoiceCreatePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Fetch branch details
+  // Fetch branch options (EMPLOYEE: backend returns only assigned warehouses).
   useEffect(() => {
     http.get('/system/branches')
-      .then((res) => setBranchOptions((res.data?.items || []).filter((item: any) => item.isActive !== false)))
+      .then((res) => {
+        const items = (res.data?.items || []).filter((item: any) => item.isActive !== false);
+        setBranchOptions(items);
+        setResolvedBranchId((current) => {
+          if (current && items.some((item: any) => String(item._id) === String(current) || String(item.id) === String(current))) {
+            return current;
+          }
+          if (!current && items.length === 1) {
+            return String(items[0]._id || items[0].id || '');
+          }
+          if (current && items.length > 0) {
+            // URL/source branch outside assignment — clear so staff must pick an allowed store.
+            return '';
+          }
+          return current;
+        });
+      })
       .catch(() => setBranchOptions([]));
   }, []);
 

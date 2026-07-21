@@ -118,9 +118,24 @@ export function InventoryList() {
     setBranchesLoading(true);
     setBranchesError(null);
     try {
-      const data = await listBranches({ page: 1, limit: 200 });
+      // EMPLOYEE: backend scopes to assigned warehouses only (admin still gets full list).
+      const [data, meRes] = await Promise.all([
+        listBranches({ page: 1, limit: 200 }),
+        http.get('/auth/me').catch(() => ({ data: null })),
+      ]);
       if (!mountedRef.current || requestId !== branchRequestIdRef.current) return;
-      setBranches((data.items || []).filter((b) => b.isActive !== false));
+      const items = (data.items || []).filter((b) => b.isActive !== false);
+      setBranches(items);
+      const role = String((meRes as any)?.data?.role || (meRes as any)?.data?.user?.role || '').toUpperCase();
+      const isAdmin = role === 'ADMIN' || Boolean((meRes as any)?.data?.isRootOwner || (meRes as any)?.data?.user?.isRootOwner);
+      const pickDefault = () => String((items.find((b) => (b as any).isDefault) || items[0])?._id || '');
+      setFilterWarehouse((current) => {
+        const ok = current && items.some((b) => String(b._id) === String(current));
+        if (ok) return current;
+        // EMPLOYEE: default to first assigned warehouse so table is not full catalog.
+        if (!isAdmin && items.length > 0) return pickDefault();
+        return current || '';
+      });
     } catch (e) {
       console.error('Branch load error', e);
       if (!mountedRef.current || requestId !== branchRequestIdRef.current) return;
@@ -135,6 +150,19 @@ export function InventoryList() {
   useEffect(() => {
     void loadBranches();
   }, [loadBranches]);
+
+  // After branch list arrives (EMPLOYEE scoped), drop any chart rows outside allowed warehouses.
+  useEffect(() => {
+    if (branches.length === 0) return;
+    const allowed = new Set(branches.map((b) => String(b._id)));
+    setWarehouseBreakdown((current) => {
+      const next = current.filter((row) => {
+        const local = row.localBranchId != null ? String(row.localBranchId) : '';
+        return allowed.has(local) || allowed.has(row.branchId);
+      });
+      return next.length === current.length ? current : next;
+    });
+  }, [branches]);
 
   const loadPendingTransfers = useCallback(async () => {
     setPendingTransfersError(false);
@@ -224,14 +252,24 @@ export function InventoryList() {
       setTotalStockQuantity(typeof res.totalStockQuantity === 'number' ? res.totalStockQuantity : 0);
       setTotalInventoryValue(typeof res.totalInventoryValue === 'number' ? res.totalInventoryValue : 0);
       const breakdown = Array.isArray(res?.breakdowns?.byWarehouse) ? res.breakdowns!.byWarehouse! : [];
+      // FE defense: if branch list is already loaded (scoped for EMPLOYEE), hide other warehouses in chart.
+      const allowedLocal = new Set(
+        branches.map((b) => String(b._id)).filter(Boolean),
+      );
+      const mapped = breakdown.map((row) => ({
+        branchId: String(row.branchId ?? ''),
+        localBranchId: row.localBranchId,
+        name: String(row.name ?? '—'),
+        qty: Number(row.qty) || 0,
+        value: Number(row.value) || 0,
+      }));
       setWarehouseBreakdown(
-        breakdown.map((row) => ({
-          branchId: String(row.branchId ?? ''),
-          localBranchId: row.localBranchId,
-          name: String(row.name ?? '—'),
-          qty: Number(row.qty) || 0,
-          value: Number(row.value) || 0,
-        })),
+        allowedLocal.size > 0
+          ? mapped.filter((row) => {
+              const local = row.localBranchId != null ? String(row.localBranchId) : '';
+              return allowedLocal.has(local) || allowedLocal.has(row.branchId);
+            })
+          : mapped,
       );
     } catch (err) {
       console.error('Inventory load error', err);
@@ -506,7 +544,7 @@ export function InventoryList() {
             }}
             title="Lọc theo kho"
           >
-            <option value="">Tất cả kho</option>
+            <option value="">{branches.length <= 3 ? 'Tất cả kho được gán' : 'Tất cả kho'}</option>
             {branches.map(b => (
               <option key={b._id} value={b._id}>{b.name}</option>
             ))}

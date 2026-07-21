@@ -31,6 +31,8 @@ import { VoucherExportPage } from './modules/warehouse/VoucherExportPage';
 import { VoucherExcelImportPage } from './modules/warehouse/VoucherExcelImportPage';
 import {
   InventoryInOutStockReportPage,
+  ReportInventoryAgePage,
+  ReportInventoryStockPage,
   RevenueByProductsPage,
   RevenueByStorePage,
   RevenueByTimePage,
@@ -114,6 +116,8 @@ const router = createBrowserRouter([
       { path: 'reports/revenue/products', element: <RevenueByProductsPage /> },
       { path: 'reports/inventory', element: <Navigate replace to="/reports/inventory/in-out-stock" /> },
       { path: 'reports/inventory/in-out-stock', element: <InventoryInOutStockReportPage /> },
+      { path: 'reports/inventory/stock', element: <ReportInventoryStockPage /> },
+      { path: 'reports/inventory/age', element: <ReportInventoryAgePage /> },
       { path: 'reports/inventory/pending-transfers', element: <Navigate replace to="/warehouse/transfers" /> },
       { path: 'reports/products/performance', element: <Navigate replace to="/reports/revenue/products" /> },
     ],

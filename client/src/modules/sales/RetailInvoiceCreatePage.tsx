@@ -159,12 +159,36 @@ export function RetailInvoiceCreatePage() {
 
         if (cancelled) return;
 
-        setCurrentUser(meRes.data?.user || meRes.data || null);
+        const me = meRes.data?.user || meRes.data || null;
+        setCurrentUser(me);
         const sale = editRes?.data;
         setLoadedSale(sale || null);
-        setBranchOptions((branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false));
+        const allowedBranches = (branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false);
+        setBranchOptions(allowedBranches);
         const saleBranchId = sale?.branchId?._id || sale?.branchId || '';
-        const targetBranchId = requestedBranchId || saleBranchId;
+        let targetBranchId = String(requestedBranchId || saleBranchId || '');
+        // EMPLOYEE: branch list is already scoped by API; reject URL/edit branch outside that set.
+        if (targetBranchId && allowedBranches.length > 0) {
+          const allowed = allowedBranches.some(
+            (item: any) => String(item._id) === targetBranchId || String(item.id) === targetBranchId,
+          );
+          if (!allowed) {
+            const methods = normalizePaymentMethods(methodRes.data?.items || []);
+            setActiveBranchId('');
+            setBranch(null);
+            setDbProducts([]);
+            setDbStaffs(staffRes?.data?.items || []);
+            setPaymentMethods(methods);
+            setPaymentLines([createPaymentLine(resolveDefaultPaymentMethodId(methods), 0)]);
+            setTenderedValue(0);
+            setForm((current) => ({ ...current, salesperson: me?.name || '' }));
+            setErrorMessage('Bạn không có quyền bán hàng tại kho này. Chỉ được chọn kho đã được gán.');
+            return;
+          }
+        }
+        if (!targetBranchId && allowedBranches.length === 1) {
+          targetBranchId = String(allowedBranches[0]._id || allowedBranches[0].id || '');
+        }
         if (!targetBranchId) {
           const methods = normalizePaymentMethods(methodRes.data?.items || []);
           setActiveBranchId('');
@@ -174,7 +198,7 @@ export function RetailInvoiceCreatePage() {
           setPaymentMethods(methods);
           setPaymentLines([createPaymentLine(resolveDefaultPaymentMethodId(methods), 0)]);
           setTenderedValue(0);
-          setForm((current) => ({ ...current, salesperson: meRes.data?.name || '' }));
+          setForm((current) => ({ ...current, salesperson: me?.name || '' }));
           return;
         }
 

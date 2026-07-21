@@ -64,6 +64,7 @@ class LocalWriteController extends Controller
                 return response()->json(['message' => 'Email hoặc mật khẩu không đúng.'], 401);
             }
 
+            $assignedIds = $user->allowedLocalBranchIds();
             $shape = [
                 '_id' => (string) $user->id,
                 'id' => $user->id,
@@ -73,6 +74,7 @@ class LocalWriteController extends Controller
                 'status' => $user->status,
                 'phone' => $user->phone,
                 'defaultWarehouseId' => $user->default_warehouse_id ? (string) $user->default_warehouse_id : null,
+                'assignedWarehouseIds' => array_map(static fn (int $id): string => (string) $id, $assignedIds),
                 'isActive' => (bool) $user->is_active,
                 'isRootOwner' => (bool) $user->is_root_owner,
             ];
@@ -138,7 +140,28 @@ class LocalWriteController extends Controller
                 return response()->json(['message' => 'Kho hàng không hợp lệ.'], 422);
             }
             // Employee may only create audits for assigned warehouses (AUTH-02/03).
-            if ($deny = $this->denyInventoryAuditWarehouseIfUnauthorized($request, $branch)) {
+            if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $branch, 'tạo/sửa phiếu kiểm kho')) {
+                return $deny;
+            }
+        }
+
+        // Sales / refunds / inventory vouchers: employee may only write to assigned warehouses.
+        // Without this, staff can pick any branch in UI (or craft API body) and change other stores' stock.
+        if (in_array($resource, ['sale-payments', 'product-refunds', 'inventory-vouchers'], true)) {
+            $warehouseId = trim((string) ($payload['branchId'] ?? $payload['warehouseId'] ?? $payload['warehouse'] ?? $payload['branch_id'] ?? ''));
+            if ($warehouseId === '') {
+                return response()->json(['message' => 'Vui lòng chọn kho hàng.'], 422);
+            }
+            $branch = $this->branch($warehouseId);
+            if (!$branch) {
+                return response()->json(['message' => 'Kho hàng không hợp lệ.'], 422);
+            }
+            $actionLabel = match ($resource) {
+                'sale-payments' => 'tạo hóa đơn bán hàng',
+                'product-refunds' => 'tạo phiếu trả hàng',
+                default => 'tạo phiếu xuất/nhập kho',
+            };
+            if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $branch, $actionLabel)) {
                 return $deny;
             }
         }
@@ -151,6 +174,10 @@ class LocalWriteController extends Controller
             }
             if ((int) $fromBranch->id === (int) $toBranch->id) {
                 return response()->json(['message' => 'Kho nguồn và kho đích không được trùng nhau.'], 422);
+            }
+            // EMPLOYEE: source must be an assigned warehouse; destination may be any store.
+            if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $fromBranch, 'tạo đơn chuyển kho từ kho nguồn')) {
+                return $deny;
             }
             $lines = $payload['lines'] ?? $payload['items'] ?? [];
             if (!is_array($lines) || $lines === []) {
@@ -277,8 +304,12 @@ class LocalWriteController extends Controller
             if ($warehouseId === '') {
                 return response()->json(['message' => 'Vui lòng chọn kho hàng.'], 422);
             }
-            if (!$this->branch($warehouseId)) {
+            $auditBranch = $this->branch($warehouseId);
+            if (!$auditBranch) {
                 return response()->json(['message' => 'Kho hàng không hợp lệ.'], 422);
+            }
+            if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $auditBranch, 'tạo/sửa phiếu kiểm kho')) {
+                return $deny;
             }
         }
 
@@ -294,6 +325,9 @@ class LocalWriteController extends Controller
             $toBranch = $this->branch($payload['destinationWarehouseId'] ?? null);
             if ($fromBranch && $toBranch && (int) $fromBranch->id === (int) $toBranch->id) {
                 return response()->json(['message' => 'Kho nguồn và kho đích không được trùng nhau.'], 422);
+            }
+            if ($fromBranch && ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $fromBranch, 'sửa đơn chuyển kho từ kho nguồn'))) {
+                return $deny;
             }
         }
 
@@ -314,6 +348,23 @@ class LocalWriteController extends Controller
                 return response()->json([
                     'message' => 'Hóa đơn đã phát sinh đổi trả nên không thể sửa.',
                 ], 422);
+            }
+            $saleBranchId = trim((string) ($payload['branchId'] ?? $payload['warehouseId'] ?? $oldPayload['branchId'] ?? $oldPayload['warehouseId'] ?? ''));
+            $saleBranch = $this->branch($saleBranchId !== '' ? $saleBranchId : null);
+            if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $saleBranch, 'sửa hóa đơn bán hàng')) {
+                return $deny;
+            }
+        }
+
+        if (in_array($resource, ['product-refunds', 'inventory-vouchers'], true)) {
+            $writeBranchId = trim((string) ($payload['branchId'] ?? $payload['warehouseId'] ?? $payload['warehouse'] ?? $oldPayload['branchId'] ?? $oldPayload['warehouseId'] ?? ''));
+            $writeBranch = $this->branch($writeBranchId !== '' ? $writeBranchId : null);
+            if ($deny = $this->denyWarehouseWriteIfUnauthorized(
+                $request,
+                $writeBranch,
+                $resource === 'product-refunds' ? 'sửa phiếu trả hàng' : 'sửa phiếu xuất/nhập kho'
+            )) {
+                return $deny;
             }
         }
 
@@ -745,6 +796,10 @@ class LocalWriteController extends Controller
         }
 
         $branchId = $body['branchId'] ?? $payload['branchId'] ?? $payload['warehouseId'] ?? null;
+        $returnBranch = $this->branch($branchId);
+        if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $returnBranch, 'trả/đổi hàng')) {
+            return $deny;
+        }
         $channel = trim((string) ($body['channel'] ?? $payload['channel'] ?? $payload['orderSource'] ?? $payload['saleChannel'] ?? ''));
         if ($channel === '') {
             $channel = null;
@@ -2097,26 +2152,39 @@ class LocalWriteController extends Controller
     }
 
     /**
-     * Employee may only write inventory audits for assigned warehouses.
+     * Employee may only write stock-affecting documents for assigned warehouses.
+     * Admin/root: unrestricted. Missing branch treated as unauthorized for non-admin.
      */
-    private function denyInventoryAuditWarehouseIfUnauthorized(Request $request, Branch $branch): ?JsonResponse
+    private function denyWarehouseWriteIfUnauthorized(Request $request, ?Branch $branch, string $actionLabel = 'thao tác'): ?JsonResponse
     {
         if ($this->isLocalAdmin($request)) {
             return null;
         }
         /** @var User|null $user */
         $user = $request->attributes->get('localUser');
-        if (!$user) {
+        if (! $user instanceof User) {
+            $user = LocalToken::resolve($request);
+        }
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated. Vui lòng đăng nhập lại.'], 401);
         }
-        $allowed = $this->localBranchIdsForUser($user);
-        if ($allowed === [] || !in_array((int) $branch->id, $allowed, true)) {
+        if (! $branch) {
+            return response()->json(['message' => 'Vui lòng chọn kho hàng hợp lệ.'], 422);
+        }
+        $allowed = $user->allowedLocalBranchIds();
+        if ($allowed === [] || ! in_array((int) $branch->id, $allowed, true)) {
             return response()->json([
-                'message' => 'Bạn không có quyền tạo/sửa phiếu kiểm kho cho kho này.',
+                'message' => 'Bạn không có quyền '.$actionLabel.' cho kho này. Chỉ được thao tác trên kho đã được gán.',
             ], 403);
         }
 
         return null;
+    }
+
+    /** @deprecated Use denyWarehouseWriteIfUnauthorized */
+    private function denyInventoryAuditWarehouseIfUnauthorized(Request $request, Branch $branch): ?JsonResponse
+    {
+        return $this->denyWarehouseWriteIfUnauthorized($request, $branch, 'tạo/sửa phiếu kiểm kho');
     }
 
     /**
@@ -2124,23 +2192,7 @@ class LocalWriteController extends Controller
      */
     private function localBranchIdsForUser(User $user): array
     {
-        $ids = [];
-        if ($user->default_warehouse_id) {
-            $ids[] = (int) $user->default_warehouse_id;
-        }
-        if ($user->branch_id) {
-            $ids[] = (int) $user->branch_id;
-        }
-        if (Schema::hasTable('user_warehouse_assignments')) {
-            $assigned = DB::table('user_warehouse_assignments')
-                ->where('user_id', $user->id)
-                ->pluck('branch_id')
-                ->map(fn ($v) => (int) $v)
-                ->all();
-            $ids = array_merge($ids, $assigned);
-        }
-
-        return array_values(array_unique(array_filter($ids)));
+        return $user->allowedLocalBranchIds();
     }
 
     /**

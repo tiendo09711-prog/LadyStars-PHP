@@ -490,7 +490,20 @@ export function WarehouseAuditPage() {
 
   const loadMeta = async () => {
     const response = await http.get('/inventory-audits/meta');
-    setMeta(response.data);
+    const data = response.data || {};
+    setMeta(data);
+    // EMPLOYEE: default warehouse filter = first assigned (meta.warehouses already scoped).
+    const isAdmin = Boolean(data.isAdmin || data.isRootOwner) || String(data.role || '').toUpperCase() === 'ADMIN';
+    const warehouses: Option[] = data.warehouses || [];
+    if (!isAdmin && warehouses.length > 0) {
+      const allowed = new Set(warehouses.map((w) => String(w.value)));
+      const pick = (current: string) =>
+        (current && allowed.has(String(current)) ? current : String(warehouses[0].value));
+      setAuditFilters((current) => ({ ...current, warehouseId: pick(current.warehouseId) }));
+      setAppliedAuditFilters((current) => ({ ...current, warehouseId: pick(current.warehouseId) }));
+      setItemFilters((current) => ({ ...current, warehouseId: pick(current.warehouseId) }));
+      setAppliedItemFilters((current) => ({ ...current, warehouseId: pick(current.warehouseId) }));
+    }
   };
 
   const loadDashboard = async () => {
@@ -641,12 +654,14 @@ export function WarehouseAuditPage() {
   const resetCurrentFilters = () => {
     setPage(1);
     closeMenus();
+    const isAdmin = Boolean(meta.isAdmin || meta.isRootOwner) || String(meta.role || '').toUpperCase() === 'ADMIN';
+    const defaultWh = !isAdmin && meta.warehouses.length > 0 ? String(meta.warehouses[0].value) : '';
     if (activeTab === 'audits') {
-      const nextFilters = defaultAuditFilters();
+      const nextFilters = { ...defaultAuditFilters(), warehouseId: defaultWh };
       setAuditFilters(nextFilters);
       setAppliedAuditFilters(nextFilters);
     } else {
-      const nextFilters = defaultItemFilters();
+      const nextFilters = { ...defaultItemFilters(), warehouseId: defaultWh };
       setItemFilters(nextFilters);
       setAppliedItemFilters(nextFilters);
     }
@@ -1270,7 +1285,11 @@ export function WarehouseAuditPage() {
                 value={auditFilters.warehouseId}
                 onChange={(event) => setAuditFilters({ ...auditFilters, warehouseId: event.target.value })}
               >
-                <option value="">Kho hàng</option>
+                <option value="">
+                  {(meta.isAdmin || meta.isRootOwner || String(meta.role || '').toUpperCase() === 'ADMIN')
+                    ? 'Tất cả kho'
+                    : 'Tất cả kho được gán'}
+                </option>
                 {meta.warehouses.map((warehouse) => (
                   <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>
                 ))}
@@ -1339,7 +1358,11 @@ export function WarehouseAuditPage() {
                 value={itemFilters.warehouseId}
                 onChange={(event) => setItemFilters({ ...itemFilters, warehouseId: event.target.value })}
               >
-                <option value="">Kho hàng</option>
+                <option value="">
+                  {(meta.isAdmin || meta.isRootOwner || String(meta.role || '').toUpperCase() === 'ADMIN')
+                    ? 'Tất cả kho'
+                    : 'Tất cả kho được gán'}
+                </option>
                 {meta.warehouses.map((warehouse) => (
                   <option key={warehouse.value} value={warehouse.value}>{warehouse.label}</option>
                 ))}

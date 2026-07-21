@@ -261,10 +261,19 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
     setBranchLoading(true);
     setBranchError('');
     try {
+      // Backend scopes EMPLOYEE to assigned warehouses only; ADMIN/root still get all.
       const response = await http.get('/system/branches', { params: { limit: 5000 } });
-      const items = Array.isArray(response.data) ? response.data : response.data.items ?? [];
+      const items: Branch[] = Array.isArray(response.data) ? response.data : response.data.items ?? [];
       setBranches(items);
-      if (items.length === 0) setBranchError('Chưa có cửa hàng/kho hàng để tạo hóa đơn.');
+      if (items.length === 0) {
+        setBranchError('Chưa có cửa hàng/kho hàng được gán để tạo hóa đơn. Liên hệ quản trị viên để gán kho.');
+      } else {
+        setSelectedBranchId((current) => {
+          if (current && items.some((b: Branch) => b._id === current)) return current;
+          const def = items.find((branch: Branch) => (branch as Branch & { isDefault?: boolean }).isDefault);
+          return (def || items[0])._id;
+        });
+      }
     } catch (err: any) {
       setBranchError(err.response?.data?.message || 'Không tải được danh sách cửa hàng/kho hàng.');
     } finally {
@@ -275,6 +284,25 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   useEffect(() => {
     void loadBranches();
   }, []);
+
+  // EMPLOYEE: force list filter onto an assigned warehouse (default first). Empty = still BE-scoped to all assigned.
+  useEffect(() => {
+    if (!authReady || branchLoading || branches.length === 0) return;
+    if (isAdminRole(currentUser?.role)) return;
+    const allowed = new Set(branches.map((b) => String(b._id)));
+    const pickDefault = () => {
+      const def = branches.find((b) => (b as Branch & { isDefault?: boolean }).isDefault) || branches[0];
+      return String(def._id);
+    };
+    setDraftFilters((current) => {
+      if (current.storeId && allowed.has(String(current.storeId))) return current;
+      return { ...current, storeId: pickDefault() };
+    });
+    setAppliedFilters((current) => {
+      if (current.storeId && allowed.has(String(current.storeId))) return current;
+      return { ...current, storeId: pickDefault() };
+    });
+  }, [authReady, branchLoading, branches, currentUser?.role]);
 
   const loadInvoices = async (signal?: AbortSignal) => {
     const loadId = ++invoiceLoadSeqRef.current;
@@ -819,7 +847,9 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
             onChange={(event) => setDraftFilters((current) => ({ ...current, storeId: event.target.value }))}
             aria-label="Cửa hàng"
           >
-            <option value="">Tất cả cửa hàng</option>
+            <option value="">
+              {isAdminRole(currentUser?.role) ? 'Tất cả cửa hàng' : 'Tất cả kho được gán'}
+            </option>
             {branches.map((branch) => (
               <option key={branch._id} value={branch._id}>{branch.name || branch.code || branch._id}</option>
             ))}
