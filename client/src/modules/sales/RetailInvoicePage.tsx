@@ -53,6 +53,7 @@ import {
   refundActionState,
   editActionState,
   deleteActionState,
+  getCustomerDisplay,
 } from './invoiceHelpers';
 import './retail-invoice-page.css';
 import './retail-invoice-soft-type.css';
@@ -511,7 +512,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   };
 
   const buildPrintDocument = (invoice: Invoice, branch: Branch | null, shop: any, items: any[], title: string, hideTotals = false) => {
-    const customer = invoice.customerId || {};
+    const customer = getCustomerDisplay(invoice);
     const profile = buildInvoiceProfile(
       branch
         ? {
@@ -702,8 +703,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       { label: 'Ngày tạo', key: 'createdAt', getValue: (invoice: Invoice) => safeDate(invoice.createdAt) },
       { label: 'Mã hóa đơn', key: 'code', getValue: (invoice: Invoice) => invoice.code || invoice._id },
       { label: 'Người tạo', key: 'creator', getValue: (invoice: Invoice) => invoice.authorId?.name || invoice.userId?.name || '—' },
-      { label: 'Khách hàng', key: 'customer', getValue: (invoice: Invoice) => invoice.customerId?.name || 'Khách lẻ' },
-      { label: 'SĐT khách', key: 'customerPhone', getValue: (invoice: Invoice) => invoice.customerId?.phone || '—' },
+      { label: 'Khách hàng', key: 'customer', getValue: (invoice: Invoice) => getCustomerDisplay(invoice).name },
+      { label: 'SĐT khách', key: 'customerPhone', getValue: (invoice: Invoice) => getCustomerDisplay(invoice).phone },
       { label: 'Sản phẩm', key: 'product', getValue: (invoice: Invoice) => { const items = productLines(invoice); const first = items[0]; return first ? productName(first) : '—'; } },
       { label: 'Số SP', key: 'lineCount', getValue: (invoice: Invoice) => productLines(invoice).length },
       { label: 'Giá trị hàng hóa', key: 'gross', getValue: (invoice: Invoice) => grossValue(invoice) },
@@ -1003,10 +1004,10 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               {!loading && !error && invoices.map((invoice) => {
                 const items = productLines(invoice);
                 const firstItem = items[0];
-                const customer = invoice.customerId;
                 const creator = invoice.authorId?.name || invoice.userId?.name;
                 const payments = paymentRows(invoice);
                 const status = statusMeta(invoice.status, invoice.refundStatus);
+                const { name: customerName, phone: customerPhone, code: customerCode } = getCustomerDisplay(invoice);
                 return (
                   <tr key={invoice._id}>
                     <td className="check col-check">
@@ -1030,8 +1031,8 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
                     </td>
                     <td className="col-customer">
                       <div className="retail-stack">
-                        <strong title={customer?.name || 'Khách lẻ'}>{customer?.name || 'Khách lẻ'}</strong>
-                        <span title={customer?.phone || '—'}>{customer?.phone || '—'}</span>
+                        <strong title={customerName || 'Khách lẻ'}>{customerName || 'Khách lẻ'}</strong>
+                        <span title={customerPhone || '—'}>{customerPhone || '— (Khách lẻ)'}</span>
                       </div>
                     </td>
                     <td className="col-product">
@@ -1268,7 +1269,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
 function InvoiceDetail({ invoice }: { invoice: Invoice }) {
   const items = productLines(invoice);
   const payments = paymentRows(invoice);
-  const customer = invoice.customerId;
+  const { name: customerName, phone: customerPhone, code: customerCode } = getCustomerDisplay(invoice);
   const branch = invoice.branchId;
   const status = statusMeta(invoice.status, invoice.refundStatus);
 
@@ -1278,9 +1279,9 @@ function InvoiceDetail({ invoice }: { invoice: Invoice }) {
         <section className="retail-detail-card">
           <h3>Khách hàng</h3>
           <div className="retail-info-grid">
-            <span><small>Tên khách hàng</small><strong>{customer?.name || 'Khách lẻ'}</strong></span>
-            <span><small>Số điện thoại</small><strong>{customer?.phone || '—'}</strong></span>
-            <span><small>Mã khách hàng</small><strong>{customer?.code || '—'}</strong></span>
+            <span><small>Tên khách hàng</small><strong>{customerName || 'Khách lẻ'}</strong></span>
+            <span><small>Số điện thoại</small><strong>{customerPhone || '— (Khách lẻ)'}</strong></span>
+            <span><small>Mã khách hàng</small><strong>{customerCode || '—'}</strong></span>
             <span><small>Trạng thái</small><strong><em className={`retail-status ${status.tone}`}>{status.label}</em></strong></span>
           </div>
         </section>

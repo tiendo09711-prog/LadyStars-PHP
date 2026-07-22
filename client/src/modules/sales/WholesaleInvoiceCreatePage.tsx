@@ -388,13 +388,15 @@ export function WholesaleInvoiceCreatePage() {
       setDbStaffs(staffRes?.data?.items || []);
       setDbProducts(prodRes.data?.items || []);
       // Backend scopes EMPLOYEE to assigned warehouses only.
+      // ADMIN/owner/root bypasses warehouse restriction (full access).
       const allowedBranches = (branchListRes?.data?.items || []).filter((item: any) => item.isActive !== false);
       setBranchOptions(allowedBranches);
+      const isAdmin = ['admin', 'owner', 'root'].includes(String(meRes.data?.role || String(meRes.data?.user?.role) || '').toLowerCase());
       if (activeBranchId && allowedBranches.length > 0) {
         const allowed = allowedBranches.some(
           (item: any) => String(item._id) === String(activeBranchId) || String(item.id) === String(activeBranchId),
         );
-        if (!allowed) {
+        if (!allowed && !isAdmin) {
           setActiveBranchId('');
           setBranch(null);
           setErrorMessage('Bạn không có quyền bán hàng tại kho này. Chỉ được chọn kho đã được gán.');
@@ -893,10 +895,14 @@ export function WholesaleInvoiceCreatePage() {
         return;
       }
 
+      const customerName = form.customerName.trim();
+      const customerPhone = form.customerPhone.trim() || undefined;
       const salePayload = {
         code: form.id,
         branchId: activeBranchId,
         customerId: customerId,
+        customerName,
+        customerPhone,
         note: form.description,
         salesperson: form.salesperson,
         orderSource: form.orderSource,

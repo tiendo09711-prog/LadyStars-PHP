@@ -172,7 +172,7 @@ class LocalWriteApiTest extends TestCase
         $updated = $this->patchJson('/api/customers/care/'.$id, ['reason' => 'Đổi lý do']);
         $updated->assertOk()->assertJsonPath('reason', 'Đổi lý do');
 
-        $this->deleteJson('/api/customers/care/'.$id)->assertOk()->assertJsonPath('ok', true);
+        $this->deleteJson('/api/customers/care/'.$id)->assertOk();
     }
 
     public function test_sale_create_and_complete_updates_local_stock(): void
@@ -189,7 +189,9 @@ class LocalWriteApiTest extends TestCase
             ]],
         ]);
 
-        $created->assertCreated()->assertJsonPath('status', 'draft');
+        $created->assertCreated()
+            ->assertJsonPath('status', 'draft');
+
         $this->postJson('/api/products/sales/'.$created->json('_id').'/complete')
             ->assertOk()
             ->assertJsonPath('status', 'completed');
@@ -199,6 +201,77 @@ class LocalWriteApiTest extends TestCase
             'branch_id' => $this->branch->id,
             'qty' => 8,
         ]);
+
+        // List page shows enriched (via index enrichSalePayment)
+        $list = $this->getJson('/api/products/sales?type=retail&channel=store&limit=1')
+            ->assertOk()
+            ->assertJsonPath('data.0.customerId.name', $this->customer->name)
+            ->assertJsonPath('data.0.items.0.productId.name', $this->product->name);
+
+        // Detail also
+        $detail = $this->getJson('/api/products/sales/' . $created->json('_id'))
+            ->assertOk()
+            ->assertJsonPath('customerId.name', $this->customer->name)
+            ->assertJsonPath('items.0.productId.name', $this->product->name);
+    }
+
+    public function test_sale_created_with_new_local_customer_keeps_customer_display_data(): void
+    {
+        $customerResponse = $this->postJson('/api/customers/customers', [
+            'branchId' => (string) $this->branch->id,
+            'name' => 'New retail customer',
+            'phone' => '0912345678',
+        ])->assertCreated()
+            ->assertJsonPath('mongoId', null);
+
+        $customerId = (string) $customerResponse->json('_id');
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => $customerId,
+            'customerName' => 'New retail customer',
+            'customerPhone' => '0912345678',
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'value' => 100000,
+            'valuePayment' => 100000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ])->assertCreated();
+
+        $saleId = (string) $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')
+            ->assertOk()
+            ->assertJsonPath('status', 'completed');
+
+        $sale = (new MirrorRecord())->forTable('sale_payments')->newQuery()
+            ->where('mongo_id', $saleId)
+            ->firstOrFail();
+        $this->assertSame((int) $customerId, (int) $sale->customer_id);
+        $this->assertNull($sale->customer_mongo_id);
+        $this->assertSame('New retail customer', $sale->payload['customerName'] ?? null);
+        $this->assertSame('0912345678', $sale->payload['customerPhone'] ?? null);
+        $this->assertSame($this->product->name, $sale->payload['items'][0]['productName'] ?? null);
+        $this->assertSame($this->product->code, $sale->payload['items'][0]['productCode'] ?? null);
+
+        $this->getJson('/api/products/sales?invoiceCode='.urlencode((string) $sale->code).'&type=retail&channel=store&limit=5')
+            ->assertOk()
+            ->assertJsonPath('items.0.customerId._id', $customerId)
+            ->assertJsonPath('items.0.customerId.name', 'New retail customer')
+            ->assertJsonPath('items.0.customerId.phone', '0912345678')
+            ->assertJsonPath('items.0.items.0.productId.name', $this->product->name)
+            ->assertJsonPath('items.0.items.0.productId.code', $this->product->code);
+
+        $this->getJson('/api/products/sales/'.$saleId)
+            ->assertOk()
+            ->assertJsonPath('customerId._id', $customerId)
+            ->assertJsonPath('customerId.name', 'New retail customer')
+            ->assertJsonPath('customerId.phone', '0912345678')
+            ->assertJsonPath('items.0.productId.name', $this->product->name)
+            ->assertJsonPath('items.0.productId.code', $this->product->code);
     }
 
     public function test_employee_cannot_cancel_or_delete_completed_sale(): void

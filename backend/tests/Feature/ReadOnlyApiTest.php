@@ -909,4 +909,190 @@ class ReadOnlyApiTest extends TestCase
         $this->assertNotEmpty($item['typePayment'] ?? null);
         $this->assertSame('Khách KPI', $item['customerId']['name'] ?? null);
     }
+
+    public function test_customer_detail_returns_correct_product_names_for_local_id(): void
+    {
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale000000000000000010',
+            'code' => 'HD001',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'customer_mongo_id' => $this->customer->mongo_id,
+            'customer_id' => $this->customer->id,
+            'value' => 100000,
+            'items' => [[
+                'productId' => $this->product->id,
+                'amount' => 2,
+                'value' => 100000,
+            ]],
+        ]);
+
+        $response = $this->getJson('/api/customers/customers/'.$this->customer->id.'/detail');
+        $response->assertOk();
+        $purchases = $response->json('purchases');
+        $this->assertCount(1, $purchases);
+        $items = $purchases[0]['items'] ?? [];
+        $this->assertCount(1, $items);
+        $this->assertSame($this->product->name, $items[0]['name']);
+        $this->assertSame(2, $items[0]['quantity']);
+    }
+
+    public function test_customer_detail_returns_correct_product_names_for_mongo_id(): void
+    {
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale000000000000000011',
+            'code' => 'HD002',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'customer_mongo_id' => $this->customer->mongo_id,
+            'customer_id' => $this->customer->id,
+            'value' => 100000,
+            'items' => [[
+                'productId' => $this->product->mongo_id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+
+        $response = $this->getJson('/api/customers/customers/'.$this->customer->id.'/detail');
+        $response->assertOk();
+        $purchases = $response->json('purchases');
+        $this->assertCount(1, $purchases);
+        $items = $purchases[0]['items'] ?? [];
+        $this->assertCount(1, $items);
+        $this->assertSame($this->product->name, $items[0]['name']);
+    }
+
+    public function test_customer_detail_supports_payload_items_fallback(): void
+    {
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale000000000000000012',
+            'code' => 'HD003',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'customer_mongo_id' => $this->customer->mongo_id,
+            'customer_id' => $this->customer->id,
+            'value' => 100000,
+            'payload' => [
+                'items' => [[
+                    'productId' => $this->product->id,
+                    'amount' => 1,
+                    'value' => 100000,
+                ]],
+            ],
+        ]);
+
+        $response = $this->getJson('/api/customers/customers/'.$this->customer->id.'/detail');
+        $response->assertOk();
+        $purchases = $response->json('purchases');
+        $this->assertCount(1, $purchases);
+        $items = $purchases[0]['items'] ?? [];
+        $this->assertCount(1, $items);
+        $this->assertSame($this->product->name, $items[0]['name']);
+    }
+
+    public function test_customer_detail_supports_nested_product_id(): void
+    {
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale000000000000000013',
+            'code' => 'HD004',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'customer_mongo_id' => $this->customer->mongo_id,
+            'customer_id' => $this->customer->id,
+            'value' => 100000,
+            'items' => [[
+                'productId' => ['id' => $this->product->id, 'mongo_id' => $this->product->mongo_id],
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+
+        $response = $this->getJson('/api/customers/customers/'.$this->customer->id.'/detail');
+        $response->assertOk();
+        $purchases = $response->json('purchases');
+        $this->assertCount(1, $purchases);
+        $items = $purchases[0]['items'] ?? [];
+        $this->assertCount(1, $items);
+        $this->assertSame($this->product->name, $items[0]['name']);
+    }
+
+    public function test_customer_detail_keeps_snapshot_name_when_product_deleted(): void
+    {
+        // Create a sale with snapshot name
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale000000000000000014',
+            'code' => 'HD005',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'customer_mongo_id' => $this->customer->mongo_id,
+            'customer_id' => $this->customer->id,
+            'value' => 100000,
+            'items' => [[
+                'productName' => 'Sản phẩm x1 (snapshot)',
+                'productId' => $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+
+        $response = $this->getJson('/api/customers/customers/'.$this->customer->id.'/detail');
+        $response->assertOk();
+        $purchases = $response->json('purchases');
+        $items = $purchases[0]['items'] ?? [];
+        $this->assertSame('Sản phẩm x1 (snapshot)', $items[0]['name']); // snapshot kept, product exists but we don't overwrite
+    }
+
+    public function test_customer_detail_returns_multiple_items_without_regression(): void
+    {
+        (new MirrorRecord())->forTable('sale_payments')->newQuery()->create([
+            'mongo_id' => 'sale000000000000000015',
+            'code' => 'HD006',
+            'status' => 'completed',
+            'type' => 'retail',
+            'branch_mongo_id' => $this->branch->mongo_id,
+            'branch_id' => $this->branch->id,
+            'customer_mongo_id' => $this->customer->mongo_id,
+            'customer_id' => $this->customer->id,
+            'value' => 200000,
+            'items' => [
+                [
+                    'productId' => $this->product->id,
+                    'amount' => 1,
+                    'value' => 100000,
+                ],
+                [
+                    'productId' => $this->product->id + 999999, // non existing, fallback
+                    'amount' => 1,
+                    'value' => 100000,
+                ],
+            ],
+        ]);
+
+        $response = $this->getJson('/api/customers/customers/'.$this->customer->id.'/detail');
+        $response->assertOk();
+        $purchases = $response->json('purchases');
+        $this->assertCount(1, $purchases);
+        $items = $purchases[0]['items'] ?? [];
+        $this->assertCount(2, $items);
+        $this->assertSame($this->product->name, $items[0]['name']);
+        $this->assertSame('Sản phẩm', $items[1]['name']);
+    }
+
+    public function test_customer_list_endpoint_no_parse_error(): void
+    {
+        $response = $this->getJson('/api/customers?limit=20');
+        $response->assertOk();
+        $response->assertJsonStructure(['data', 'total', 'current_page', 'per_page']);
+    }
 }

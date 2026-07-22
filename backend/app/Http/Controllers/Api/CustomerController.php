@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\MirrorRecord;
+use App\Models\Product;
 use App\Support\ApiPagination;
 use App\Support\NodeShape;
 use Illuminate\Database\QueryException;
@@ -103,16 +104,16 @@ class CustomerController extends Controller
 
         if ($bf = trim((string) $request->query('birthdayFrom', ''))) {
             // Birthday range filters exclude customers without recorded birthday (NULL). Intended for "sinh nhật trong kỳ".
-            $birthdayExpr = DB::connection()->getDriverName() === 'sqlite'
+            $expr = DB::connection()->getDriverName() === 'sqlite'
                 ? "strftime('%m-%d', birthday)"
                 : "DATE_FORMAT(birthday, '%m-%d')";
-            $query->whereNotNull('birthday')->whereRaw("{$birthdayExpr} >= ?", [$bf]);
+            $query->whereNotNull('birthday')->whereRaw("{$expr} >= ?", [$bf]);
         }
         if ($bt = trim((string) $request->query('birthdayTo', ''))) {
-            $birthdayExpr = DB::connection()->getDriverName() === 'sqlite'
+            $expr = DB::connection()->getDriverName() === 'sqlite'
                 ? "strftime('%m-%d', birthday)"
                 : "DATE_FORMAT(birthday, '%m-%d')";
-            $query->whereNotNull('birthday')->whereRaw("{$birthdayExpr} <= ?", [$bt]);
+            $query->whereNotNull('birthday')->whereRaw("{$expr} <= ?", [$bt]);
         }
 
         // Special handling for "Số ngày chưa mua" (daysSinceLastPurchase):
@@ -427,14 +428,51 @@ class CustomerController extends Controller
             'value' => (float) ($record->value ?? $record->total ?? $record->value_payment ?? $payload['value'] ?? $payload['totalAmount'] ?? $payload['valuePayment'] ?? 0),
             'quantity' => collect($items)->sum(fn ($item): float => (float) ($item['amount'] ?? $item['quantity'] ?? $item['qty'] ?? 0)),
             'note' => $record->note ?? ($payload['note'] ?? ''),
-            'items' => collect($items)->map(fn ($item): array => [
-                'productId' => (string) ($item['productId'] ?? $item['product_id'] ?? $item['productMongoId'] ?? ''),
-                'code' => $item['productCode'] ?? $item['code'] ?? $item['sku'] ?? '',
-                'name' => $item['productName'] ?? $item['name'] ?? ($item['product']['name'] ?? ''),
-                'quantity' => (float) ($item['amount'] ?? $item['quantity'] ?? $item['qty'] ?? 0),
-                'price' => (float) ($item['value'] ?? $item['price'] ?? $item['unitPrice'] ?? 0),
-                'total' => (float) ($item['total'] ?? $item['value'] ?? 0),
-            ])->values(),
+            'items' => collect($items)->map(function ($item): array {
+                $embeddedProduct = $item['product'] ?? null;
+                $embeddedProductName = is_array($embeddedProduct)
+                    ? ($embeddedProduct['name'] ?? '')
+                    : (is_object($embeddedProduct) ? ($embeddedProduct->name ?? '') : '');
+
+                $name = $item['productName']
+                    ?? $item['name']
+                    ?? $item['product_name']
+                    ?? $embeddedProductName;
+
+                $productId = $item['productId']
+                    ?? $item['product_id']
+                    ?? $item['productMongoId']
+                    ?? $item['id']
+                    ?? '';
+
+                // Support nested productId (object/array with id, _id, mongo_id)
+                if (is_array($productId) || is_object($productId)) {
+                    $productId = $productId['id'] ?? $productId['_id'] ?? $productId['mongo_id'] ?? $productId['id'] ?? '';
+                }
+
+                if ($name === '' && $productId !== '') {
+                    $product = null;
+                    if (ctype_digit((string) $productId)) {
+                        $product = Product::find((int) $productId);
+                    } elseif (str_contains((string) $productId, 'product')) { // rough mongo id check
+                        $product = Product::where('mongo_id', (string) $productId)->first();
+                    } else {
+                        $product = Product::where('code', (string) $productId)->first();
+                    }
+                    if ($product) {
+                        $name = $product->name;
+                    }
+                }
+
+                return [
+                    'productId' => (string) $productId,
+                    'code' => $item['productCode'] ?? $item['code'] ?? $item['sku'] ?? '',
+                    'name' => $name ?: 'Sản phẩm',
+                    'quantity' => (float) ($item['amount'] ?? $item['quantity'] ?? $item['qty'] ?? 0),
+                    'price' => (float) ($item['value'] ?? $item['price'] ?? $item['unitPrice'] ?? 0),
+                    'total' => (float) ($item['total'] ?? $item['value'] ?? 0),
+                ];
+            })->values(),
         ];
     }
 

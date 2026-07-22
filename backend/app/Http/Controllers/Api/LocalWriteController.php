@@ -454,7 +454,7 @@ class LocalWriteController extends Controller
 
         $record->delete();
 
-        return response()->json(['ok' => true, 'message' => 'Deleted locally.']);
+        return response()->json($this->serialize($record));
     }
 
     public function action(Request $request): JsonResponse
@@ -969,7 +969,7 @@ class LocalWriteController extends Controller
         $record->refresh();
         $base = $this->serialize($record);
         if ($createdRefund) {
-            $base['refund'] = $this->serialize($createdRefund);
+            $base['refund'] = $this->serialize($createdRefund);  // refunds may not need full enrich or do if needed
         }
         if ($replacementSale) {
             $base['replacementSale'] = $replacementSale;
@@ -1386,6 +1386,33 @@ class LocalWriteController extends Controller
         $customer = $this->customer($payload['customerId'] ?? null);
         $product = $this->product($payload['productId'] ?? null);
         $items = $payload['items'] ?? $payload['lines'] ?? null;
+
+        if ($resource === 'sale-payments') {
+            if ($customer) {
+                $payload['customerName'] = $customer->name;
+                $payload['customerPhone'] = $customer->phone;
+                $payload['customerCode'] = $customer->code;
+            }
+
+            $items = collect(is_array($items) ? $items : [])->map(function ($line): array {
+                if (!is_array($line)) {
+                    return [];
+                }
+
+                $rawProductId = $line['productId'] ?? $line['product_id'] ?? null;
+                $productId = is_array($rawProductId)
+                    ? ($rawProductId['id'] ?? $rawProductId['_id'] ?? $rawProductId['mongoId'] ?? null)
+                    : $rawProductId;
+                $lineProduct = $this->product($productId);
+
+                return array_merge($line, [
+                    'productId' => $lineProduct?->id ?? $productId,
+                    'productName' => $lineProduct?->name ?? ($line['productName'] ?? $line['name'] ?? null),
+                    'productCode' => $lineProduct?->code ?? ($line['productCode'] ?? $line['code'] ?? null),
+                ]);
+            })->all();
+            $payload['items'] = $items;
+        }
 
         // Warehouse transfers: persist display fields in payload (table may lack name/qty/lines columns).
         if ($resource === 'warehouse-transfers') {

@@ -9,6 +9,7 @@ use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\LocalToken;
+use App\Support\NodeShape;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -452,16 +453,49 @@ class MirrorRecordController extends Controller
             }
         }
 
-        // Legacy import rows often only have denormalized customerName/phone in payload.
-        if (empty($serialized['customerId']) || (!is_array($serialized['customerId']) && !$serialized['customerId'])) {
+        // Resolve customer from scalar local numeric ID / string (e.g. primary key sent from FE) OR customer_id column OR snapshot in payload
+        if (!is_array($serialized['customerId'] ?? null)) {
+            $customerIdRaw = $serialized['customerId'] ?? $serialized['customer_id'] ?? $serialized['customer_mongo_id'] ?? null;
             $customerName = $serialized['customerName'] ?? $serialized['customer_name'] ?? null;
             $customerPhone = $serialized['customerPhone'] ?? $serialized['customer_phone'] ?? null;
-            if ($customerName || $customerPhone) {
+            $customerCode = $serialized['customerCode'] ?? $serialized['customer_code'] ?? null;
+
+            if ($customerIdRaw) {
+                $idStr = (string) $customerIdRaw;
+                $cust = null;
+
+                // Priority 1: local numeric/string ID from FE or column
+                if (ctype_digit($idStr) || (is_string($idStr) && preg_match('/^\d+$/', $idStr))) {
+                    $cust = Customer::find((int) $idStr);
+                    if (!$cust && (int) $idStr) {
+                        $cust = Customer::where('code', $idStr)->first();
+                    }
+                } elseif (preg_match('/^[0-9a-fA-F]{24}$/', $idStr)) {
+                    // mongo ID
+                    $cust = Customer::query()->where('mongo_id', $idStr)->first();
+                }
+
+                if ($cust) {
+                    $serialized['customerId'] = NodeShape::customer($cust);
+                } else if ($customerName || $customerPhone) {
+                    $serialized['customerId'] = [
+                        'name' => $customerName ?: 'Khách lẻ',
+                        'phone' => $customerPhone,
+                        'code' => $customerCode ?: '—',
+                    ];
+                }
+            } else if ($customerName || $customerPhone) {
                 $serialized['customerId'] = [
                     'name' => $customerName ?: 'Khách lẻ',
                     'phone' => $customerPhone,
+                    'code' => $customerCode ?: '—',
                 ];
             }
+        }
+
+        // Only show “Khách lẻ” when truly no customer data at all (no ID, no name/phone, no snapshot)
+        if (!is_array($serialized['customerId'] ?? null)) {
+            $serialized['customerId'] = ['name' => 'Khách lẻ', 'phone' => '—', 'code' => '—'];
         }
 
         // Enrich creator/author name from users table (MySQL) so retail list/detail/export shows real staff name instead of '—'
@@ -496,16 +530,51 @@ class MirrorRecordController extends Controller
                 if (!is_array($item)) {
                     continue;
                 }
-                $productId = $item['productId'] ?? null;
-                if (is_string($productId) && strlen($productId) === 24) {
-                    $product = $this->lookupProduct($productId);
-                    if ($product) {
-                        $item['productId'] = [
-                            '_id' => $product['_id'] ?? $productId,
-                            'code' => $product['code'] ?? null,
-                            'name' => $product['name'] ?? null,
+                // Normalize productId to always be object with _id/id/mongoId/name/code (or minimal from snapshot)
+                $productId = $item['productId'] ?? $item['product_id'] ?? $item['productMongoId'] ?? '';
+                $productName = $item['productName'] ?? $item['name'] ?? '';
+                $productCode = $item['productCode'] ?? $item['code'] ?? '';
+
+                if ($productId) {
+                    $product = null;
+                    $idStr = (string) $productId;
+                    if (is_array($productId)) {
+                        $product = $productId;
+                    } elseif (ctype_digit($idStr) || (is_string($idStr) && preg_match('/^\d+$/', $idStr))) {
+                        // local numeric ID
+                        $prod = Product::find((int) $productId);
+                        if ($prod) {
+                            $product = NodeShape::product($prod);
+                        } else {
+                            $prod = Product::where('code', $idStr)->first();
+                            if ($prod) {
+                                $product = NodeShape::product($prod);
+                            }
+                        }
+                    } elseif (preg_match('/^[0-9a-fA-F]{24}$/', $idStr)) {
+                        // mongo ID
+                        $product = $this->lookupProduct($idStr);
+                    }
+                    if (!$product && ($productName || $productCode)) {
+                        $product = [
+                            '_id' => '',
+                            'id' => null,
+                            'mongoId' => null,
+                            'name' => $productName ?: 'Sản phẩm chưa có tên',
+                            'code' => $productCode,
                         ];
                     }
+                    if ($product) {
+                        $item['productId'] = $product;
+                    }
+                } else if ($productName || $productCode) {
+                    $item['productId'] = [
+                        '_id' => '',
+                        'id' => null,
+                        'mongoId' => null,
+                        'name' => $productName ?: 'Sản phẩm chưa có tên',
+                        'code' => $productCode,
+                    ];
                 }
                 // Normalize line totals for list gross / print.
                 if (!isset($item['value']) && isset($item['price'])) {

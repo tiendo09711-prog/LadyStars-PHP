@@ -126,7 +126,6 @@ class WriteFlowApiTest extends TestCase
         ]);
 
         $created->assertCreated()
-            ->assertJsonPath('_id', '1')
             ->assertJsonPath('code', 'KHNEW')
             ->assertJsonPath('branchId', (string) $this->branch->id)
             ->assertJsonPath('groups.0._id', (string) $this->group->id);

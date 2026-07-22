@@ -168,11 +168,12 @@ export function RetailInvoiceCreatePage() {
         const saleBranchId = sale?.branchId?._id || sale?.branchId || '';
         let targetBranchId = String(requestedBranchId || saleBranchId || '');
         // EMPLOYEE: branch list is already scoped by API; reject URL/edit branch outside that set.
+        // ADMIN/owner/root bypasses warehouse restriction (full access).
+        const isAdmin = Boolean(me?.isRootOwner) || ['admin', 'owner', 'root'].includes(String(me?.role || '').toLowerCase());
+        let matchedBranch = null;
         if (targetBranchId && allowedBranches.length > 0) {
-          const allowed = allowedBranches.some(
-            (item: any) => String(item._id) === targetBranchId || String(item.id) === targetBranchId,
-          );
-          if (!allowed) {
+          const allowed = allowedBranches.some((item: any) => String(item._id) === targetBranchId || String(item.id) === targetBranchId || String(item.mongoId || '') === targetBranchId);
+          if (!allowed && !isAdmin) {
             const methods = normalizePaymentMethods(methodRes.data?.items || []);
             setActiveBranchId('');
             setBranch(null);
@@ -185,8 +186,11 @@ export function RetailInvoiceCreatePage() {
             setErrorMessage('Bạn không có quyền bán hàng tại kho này. Chỉ được chọn kho đã được gán.');
             return;
           }
+          matchedBranch = allowedBranches.find((item: any) => String(item._id) === targetBranchId || String(item.id) === targetBranchId || String(item.mongoId || '') === targetBranchId);
         }
-        if (!targetBranchId && allowedBranches.length === 1) {
+        if (matchedBranch) {
+          targetBranchId = String(matchedBranch._id || matchedBranch.id || '');
+        } else if (!targetBranchId && allowedBranches.length === 1) {
           targetBranchId = String(allowedBranches[0]._id || allowedBranches[0].id || '');
         }
         if (!targetBranchId) {
@@ -580,11 +584,13 @@ export function RetailInvoiceCreatePage() {
     try {
       let customerId: string | null = selectedCustomerId || null;
       const normalizedPhone = form.phone.trim();
+      const customerName = form.customerName.trim();
+      const customerPhone = normalizedPhone;
       // API CustomerController expects `birthday` (also accepts `dob` alias).
       // Send birthday explicitly so new/updated customers keep the date of birth.
       const customerPayload: Record<string, unknown> = {
-        name: form.customerName.trim(),
-        phone: normalizedPhone,
+        name: customerName,
+        phone: customerPhone,
         email: form.email,
         facebook: form.facebook,
         birthday: form.dob || undefined,
@@ -596,14 +602,14 @@ export function RetailInvoiceCreatePage() {
 
       if (!customerId) {
         const existingCustomerResponse = await http.get('/customers/customers', {
-          params: normalizedPhone
-            ? { phone: normalizedPhone, limit: 5 }
-            : { name: form.customerName.trim(), limit: 5 },
+          params: customerPhone
+            ? { phone: customerPhone, limit: 5 }
+            : { name: customerName, limit: 5 },
         }).catch(() => ({ data: { items: [] } }));
         const existingCustomer = (existingCustomerResponse.data?.items || []).find((customer: any) => (
-          normalizedPhone
-            ? customer.phone === normalizedPhone
-            : customer.name?.trim().toLowerCase() === form.customerName.trim().toLowerCase()
+          customerPhone
+            ? customer.phone === customerPhone
+            : customer.name?.trim().toLowerCase() === customerName.toLowerCase()
         ));
         customerId = existingCustomer?._id || null;
       }
@@ -626,9 +632,10 @@ export function RetailInvoiceCreatePage() {
       }
 
       const payload = {
-
         branchId: activeBranchId,
         customerId,
+        customerName,
+        customerPhone,
         note: form.note,
         salesperson: form.salesperson,
         orderSource: form.orderSource,

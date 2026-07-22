@@ -204,3 +204,20 @@ export function deleteActionState(invoice: Invoice) {
   if (status === 'completed') return { enabled: true, title: 'Hủy hóa đơn và hoàn tồn kho.' };
   return { enabled: false, title: 'Hóa đơn không ở trạng thái cho phép xóa.' };
 }
+
+export function getCustomerDisplay(invoice: Invoice) {
+  const customerId = typeof invoice.customerId === 'object' && invoice.customerId !== null ? invoice.customerId : {};
+  const invoiceCustomer = typeof invoice.customer === 'object' && invoice.customer !== null ? invoice.customer : {};
+  const customer = {
+    ...invoiceCustomer,
+    ...customerId,
+    name: customerId.name || invoiceCustomer.name || invoice.customerName || invoice.customer_name,
+    phone: customerId.phone || invoiceCustomer.phone || invoice.customerPhone || invoice.customer_phone,
+    code: customerId.code || invoiceCustomer.code || invoice.customerCode || invoice.customer_code,
+  };
+  return {
+    name: customer?.name || customer?.customer_name || 'Khách lẻ',
+    phone: customer?.phone || customer?.customer_phone || '—',
+    code: customer?.code || customer?.customer_code || '—',
+  };
+}
