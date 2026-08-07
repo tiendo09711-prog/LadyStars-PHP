@@ -168,6 +168,10 @@ export function editActionState(invoice: Invoice) {
   const refundStatus = String(invoice?.refundStatus || 'none').toLowerCase();
   const activeRefundCount = Number(invoice?.activeRefundCount || 0);
 
+  if (status === 'draft') {
+    return { enabled: true, title: 'Edit the draft invoice before completing it.' };
+  }
+
   if (status === 'cancelled') {
     return { enabled: false, title: 'Hóa đơn đã hủy nên không thể sửa.' };
   }

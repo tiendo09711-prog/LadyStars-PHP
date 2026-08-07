@@ -947,10 +947,8 @@ export function WholesaleInvoiceCreatePage() {
         await http.post(`/products/sales/${editId}/cancel`);
       }
 
-      const createRes = await http.post('/products/sales', salePayload);
+      const createRes = await http.post('/products/sales', { ...salePayload, completeImmediately: true });
       const saleId = createRes.data._id;
-
-      await http.post(`/products/sales/${saleId}/complete`);
 
       allowNavigationRef.current = true;
       setIsDirty(false);

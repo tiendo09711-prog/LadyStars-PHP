@@ -215,6 +215,79 @@ class LocalWriteApiTest extends TestCase
             ->assertJsonPath('items.0.productId.name', $this->product->name);
     }
 
+    public function test_sale_complete_immediately_is_atomic_and_does_not_leave_draft_on_oversell(): void
+    {
+        $response = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'status' => 'draft',
+            'completeImmediately' => true,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 99,
+                'value' => 100000,
+            ]],
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 10,
+        ]);
+        $this->assertDatabaseMissing('sale_payments', ['status' => 'completed']);
+        $this->assertDatabaseMissing('sale_payments', ['status' => 'draft']);
+    }
+
+    public function test_sale_create_rejects_completed_status_without_atomic_completion_flag(): void
+    {
+        $response = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'status' => 'completed',
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 10,
+        ]);
+    }
+
+    public function test_draft_sale_can_be_completed_and_retry_does_not_double_decrement_stock(): void
+    {
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'status' => 'draft',
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 2,
+                'value' => 100000,
+            ]],
+        ])->assertCreated();
+
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')
+            ->assertOk()
+            ->assertJsonPath('status', 'completed');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')
+            ->assertOk()
+            ->assertJsonPath('status', 'completed');
+
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 8,
+        ]);
+    }
+
     public function test_sale_created_with_new_local_customer_keeps_customer_display_data(): void
     {
         $customerResponse = $this->postJson('/api/customers/customers', [

@@ -664,10 +664,13 @@ export function RetailInvoiceCreatePage() {
       if (editId) {
         saleResponse = await http.patch(`/products/sales/${editId}`, payload);
         createResponse = saleResponse;
+        if (String(loadedSale?.status || '').toLowerCase() === 'draft') {
+          saleResponse = await http.post(`/products/sales/${editId}/complete`);
+          createResponse = saleResponse;
+        }
       } else {
-        saleResponse = await http.post('/products/sales', payload);
+        saleResponse = await http.post('/products/sales', { ...payload, completeImmediately: true });
         createResponse = saleResponse;
-        await http.post(`/products/sales/${saleResponse.data._id}/complete`);
       }
       setSuccessMessage(`Hóa đơn ${createResponse.data.code} đã được lưu và trừ tồn kho thành công.`);
       window.setTimeout(() => navigate(`/sales-channels/${channel}/retail`), 1200);

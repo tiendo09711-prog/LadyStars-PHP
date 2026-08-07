@@ -217,6 +217,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   /** Prevents admin actions from flashing hidden/visible before /auth/me settles. */
   const [authReady, setAuthReady] = useState(false);
   const canManageSales = authReady && isAdminRole(currentUser?.role);
+  const canEditInvoice = (invoice: Invoice) => canManageSales || String(invoice?.status || '').toLowerCase() === 'draft';
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -680,6 +681,21 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
       await loadInvoices();
     } catch (err: any) {
       window.alert(err.response?.data?.message || 'Không thể xóa hoặc hủy hóa đơn.');
+    } finally {
+      setActionBusyId((current) => (current === invoice._id ? '' : current));
+    }
+  };
+
+  const handleCompleteInvoice = async (invoice: Invoice) => {
+    if (String(invoice?.status || '').toLowerCase() !== 'draft') return;
+    if (!window.confirm(`Complete invoice ${invoice.code || invoice._id} and deduct stock?`)) return;
+    try {
+      setActionBusyId(invoice._id);
+      await http.post(`/products/sales/${invoice._id}/complete`);
+      closeRowMenu();
+      await loadInvoices();
+    } catch (err: any) {
+      window.alert(err.response?.data?.message || 'Unable to complete invoice.');
     } finally {
       setActionBusyId((current) => (current === invoice._id ? '' : current));
     }
@@ -1159,7 +1175,12 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               >
                 <RotateCcw size={15} aria-hidden="true" /> Đổi trả hàng
               </button>
-              {canManageSales ? (
+              {String(openRowInvoice.status || '').toLowerCase() === 'draft' ? (
+                <button type="button" role="menuitem" disabled={actionBusyId === openRowInvoice._id} onClick={() => void handleCompleteInvoice(openRowInvoice)}>
+                  <Check size={15} aria-hidden="true" /> Complete invoice
+                </button>
+              ) : null}
+              {canEditInvoice(openRowInvoice) ? (
                 <button
                   type="button"
                   role="menuitem"
@@ -1246,7 +1267,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
               <button className="retail-btn primary" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail)}><Printer size={15} /> In hóa đơn</button>
               {hasGiftItems(detail) && <button className="retail-btn ghost" type="button" onPointerDown={primePrintWindow} onClick={() => void handlePrintInvoice(detail, true)}><Gift size={15} /> In hóa đơn quà tặng</button>}
               <button className="retail-btn primary" type="button" disabled={!refundActionState(detail).enabled} title={refundActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/refund/create?saleId=${detail._id}`)}><RotateCcw size={15} /> Đổi trả hàng</button>
-              {canManageSales ? (<button className="retail-btn ghost" type="button" disabled={!editActionState(detail).enabled} title={editActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${detail._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>) : null}
+              {canEditInvoice(detail) ? (<button className="retail-btn ghost" type="button" disabled={!editActionState(detail).enabled} title={editActionState(detail).title} onClick={() => navigate(`/sales-channels/${channel}/retail/create?editId=${detail._id}`)}><FilePenLine size={15} /> Sửa đơn hàng</button>) : null}
             </footer>
           </div>
         </div>

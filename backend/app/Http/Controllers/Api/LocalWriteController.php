@@ -120,6 +120,15 @@ class LocalWriteController extends Controller
         }
         $table = $this->table($resource);
         $payload = $request->all();
+        $completeImmediately = $resource === 'sale-payments'
+            && filter_var($payload['completeImmediately'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        unset($payload['completeImmediately']);
+
+        if ($resource === 'sale-payments' && strtolower((string) ($payload['status'] ?? 'draft')) === 'completed' && ! $completeImmediately) {
+            return response()->json([
+                'message' => 'Cannot create a completed sale directly. Use completeImmediately or complete the draft sale.',
+            ], 422);
+        }
 
         // POST /inventory-audits/merge — gộp nhiều phiếu nguồn thành phiếu mới.
         if ($resource === 'inventory-checks') {
@@ -220,8 +229,8 @@ class LocalWriteController extends Controller
         }
 
         $idempotentReplay = false;
-        $runCreate = function () use ($table, $payload, $resource, $idempotencyKey, &$idempotentReplay) {
-            return DB::transaction(function () use ($table, $payload, $resource, $idempotencyKey, &$idempotentReplay) {
+        $runCreate = function () use ($table, $payload, $resource, $idempotencyKey, $completeImmediately, &$idempotentReplay) {
+            return DB::transaction(function () use ($table, $payload, $resource, $idempotencyKey, $completeImmediately, &$idempotentReplay) {
                 if ($resource === 'inventory-vouchers' && $idempotencyKey !== '') {
                     $existing = (new MirrorRecord())->forTable($table)->newQuery()
                         ->where(function ($q) use ($idempotencyKey): void {
@@ -237,7 +246,16 @@ class LocalWriteController extends Controller
                     }
                 }
 
+                if ($completeImmediately) {
+                    $payload['status'] = 'completed';
+                    $payload['completedAt'] = now()->toISOString();
+                    $this->applySaleStock($payload, -1);
+                }
+
                 $created = $this->createRecord($table, $payload, $resource);
+                if ($completeImmediately && Schema::hasColumn($table, 'completed_at')) {
+                    $created->forceFill(['completed_at' => now()])->save();
+                }
                 if ($resource === 'inventory-checks') {
                     $this->syncInventoryCheckProducts($created, $payload['items'] ?? $payload['lines'] ?? []);
                 }
@@ -471,6 +489,10 @@ class LocalWriteController extends Controller
         $payload = is_array($record->payload) ? $record->payload : [];
         $originalStatus = $record->status;
 
+        if ($resource === 'sale-payments' && $action === 'complete') {
+            return $this->completeSale($request, $record, $table);
+        }
+
         // Warehouse transfers: dedicated state machine + stock effects (isolated from other resources).
         if ($resource === 'warehouse-transfers') {
             return $this->actionWarehouseTransfer($request, $record, $action);
@@ -597,9 +619,6 @@ class LocalWriteController extends Controller
         }
 
         try {
-            if ($action === 'complete' && $resource === 'sale-payments' && $record->status !== 'completed') {
-                $this->applySaleStock($payload, -1);
-            }
             if ($action === 'cancel' && $resource === 'sale-payments' && $record->status === 'completed') {
                 $this->applySaleStock($payload, 1);
             }
@@ -657,6 +676,53 @@ class LocalWriteController extends Controller
         $record->forceFill($updates)->save();
 
         return response()->json($this->serialize($record));
+    }
+
+    private function completeSale(Request $request, MirrorRecord $record, string $table): JsonResponse
+    {
+        $payload = is_array($record->payload) ? $record->payload : [];
+        $branchId = $payload['branchId'] ?? $payload['warehouseId'] ?? $record->branch_id ?? $record->branch_mongo_id ?? null;
+        $branch = $this->branch($branchId);
+        if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $branch, 'complete sales invoice')) {
+            return $deny;
+        }
+
+        try {
+            $completed = DB::transaction(function () use ($record, $table): MirrorRecord {
+                $locked = (new MirrorRecord())->forTable($table)->newQuery()
+                    ->where('id', $record->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $currentStatus = strtolower((string) $locked->status);
+                if ($currentStatus === 'completed') {
+                    return $locked;
+                }
+                if ($currentStatus !== 'draft') {
+                    throw new \InvalidArgumentException('Only draft sales can be completed.');
+                }
+
+                $lockedPayload = is_array($locked->payload) ? $locked->payload : [];
+                $this->applySaleStock($lockedPayload, -1);
+                $completedAt = now();
+                $lockedPayload['status'] = 'completed';
+                $lockedPayload['completeAt'] = $completedAt->toISOString();
+                $lockedPayload['completedAt'] = $completedAt->toISOString();
+                $updates = [
+                    'status' => 'completed',
+                    'payload' => $lockedPayload,
+                ];
+                if (Schema::hasColumn($table, 'completed_at')) {
+                    $updates['completed_at'] = $completedAt;
+                }
+                $locked->forceFill($updates)->save();
+
+                return $locked->fresh();
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json($this->serialize($completed));
     }
 
     /**
@@ -1812,17 +1878,33 @@ class LocalWriteController extends Controller
             }
             $rawPid = $line['productId'] ?? $line['product_id'] ?? null;
             $pid = is_array($rawPid) ? ($rawPid['_id'] ?? $rawPid['id'] ?? null) : $rawPid;
+            if ($pid === null || $pid === '') {
+                throw new \InvalidArgumentException('Sales invoice contains a line without a product.');
+            }
             $product = $this->product($pid);
-            if (!$product || $product->type === 'service') continue;
+            if (!$product) {
+                throw new \InvalidArgumentException('Sales invoice contains a product that no longer exists.');
+            }
+            if ($product->type === 'service') continue;
             $lineQty = (float) ($line['amount'] ?? $line['quantity'] ?? $line['qty'] ?? 0);
             if ($lineQty <= 0) {
                 continue;
             }
             $qty = $lineQty * $direction;
-            $stock = ProductBranchStock::query()->firstOrCreate(
-                ['product_id' => $product->id, 'branch_id' => $branch->id],
-                ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
-            );
+            $stock = ProductBranchStock::query()
+                ->where('product_id', $product->id)
+                ->where('branch_id', $branch->id)
+                ->lockForUpdate()
+                ->first();
+            if (!$stock) {
+                $stock = ProductBranchStock::query()->create([
+                    'product_id' => $product->id,
+                    'branch_id' => $branch->id,
+                    'qty' => 0,
+                    'locked_quantity' => 0,
+                    'mongo_id' => $this->localMongoId(),
+                ]);
+            }
             $current = (float) $stock->qty;
             // Selling (direction < 0) must not go below zero — reject oversell.
             if ($qty < 0 && $current + 1e-9 < abs($qty)) {
@@ -1890,10 +1972,20 @@ class LocalWriteController extends Controller
             if (!$product || $product->type === 'service') {
                 continue;
             }
-            $stock = ProductBranchStock::query()->firstOrCreate(
-                ['product_id' => $product->id, 'branch_id' => $branch->id],
-                ['qty' => 0, 'locked_quantity' => 0, 'mongo_id' => $this->localMongoId()]
-            );
+            $stock = ProductBranchStock::query()
+                ->where('product_id', $product->id)
+                ->where('branch_id', $branch->id)
+                ->lockForUpdate()
+                ->first();
+            if (!$stock) {
+                $stock = ProductBranchStock::query()->create([
+                    'product_id' => $product->id,
+                    'branch_id' => $branch->id,
+                    'qty' => 0,
+                    'locked_quantity' => 0,
+                    'mongo_id' => $this->localMongoId(),
+                ]);
+            }
             $current = (float) $stock->qty;
             if ($deltaSold > 0 && $current + 1e-9 < $deltaSold) {
                 throw new \InvalidArgumentException(
