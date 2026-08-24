@@ -442,14 +442,9 @@ class MirrorRecordController extends Controller
 
         $customerMongoId = $serialized['customer_mongo_id'] ?? null;
         if ($customerMongoId) {
-            $customer = $this->mirrorRecord('customers', $customerMongoId);
+            $customer = Customer::query()->where('mongo_id', $customerMongoId)->first();
             if ($customer) {
-                $serialized['customerId'] = [
-                    '_id' => $customer['_id'] ?? $customerMongoId,
-                    'name' => $customer['name'] ?? null,
-                    'phone' => $customer['phone'] ?? $customer['customer_phone'] ?? null,
-                    'code' => $customer['code'] ?? $customer['customer_code'] ?? null,
-                ];
+                $serialized['customerId'] = NodeShape::customer($customer);
             }
         }
 

@@ -874,6 +874,256 @@ class LocalWriteApiTest extends TestCase
         $this->assertSame(3149100.0, (float) $response->json('refund.amountDelta'));
     }
 
+    public function test_equal_exchange_preserves_percent_discount_net_revenue_and_local_customer_id(): void
+    {
+        $gross = 3_499_000;
+        $net = 3_149_100;
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'discountValue' => 10,
+            'discountType' => 'percent',
+            'value' => $net,
+            'valuePayment' => $net,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => $gross,
+            ]],
+        ])->assertCreated();
+
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+
+        $exchange = $this->postJson('/api/products/sales/'.$saleId.'/return-exchange', [
+            'code' => 'TH-PERCENT-EQUAL',
+            'branchId' => (string) $this->branch->id,
+            'channel' => 'store',
+            'discountValue' => 10,
+            'discountType' => 'percent',
+            'totalAmount' => 0,
+            'amountDelta' => 0,
+            'returnedItems' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => $gross,
+                'discountValue' => 0,
+                'discountType' => 'number',
+            ]],
+            'replacementItems' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => $gross,
+                'discountValue' => 0,
+                'discountType' => 'number',
+            ]],
+            'refundPayments' => [],
+            'salePayments' => [],
+        ]);
+
+        $exchange->assertOk()
+            ->assertJsonPath('replacementSale.discountType', 'percent');
+
+        $replacementId = $exchange->json('replacementSale._id');
+        $this->assertSame(10.0, (float) $exchange->json('replacementSale.discountValue'));
+        $this->assertSame($net, (int) round((float) $exchange->json('replacementSale.value')));
+        $this->assertSame($net, (int) round((float) $exchange->json('replacementSale.total')));
+        $this->assertSame(0.0, (float) $exchange->json('replacementSale.valuePayment'));
+        $this->assertSame($net, (int) round((float) $exchange->json('refund.value')));
+        $this->assertSame(349_900, (int) round((float) $exchange->json('refund.discountValue')));
+
+        $detail = $this->getJson('/api/products/sales/'.$replacementId)
+            ->assertOk()
+            ->assertJsonPath('customerId._id', (string) $this->customer->id)
+            ->assertJsonPath('customerId.id', $this->customer->id)
+            ->assertJsonPath('customerId.mongoId', $this->customer->mongo_id);
+
+        $saleList = $this->getJson('/api/products/sales?channel=store&page=1&limit=20')->assertOk();
+        $listedReplacement = collect($saleList->json('items'))->firstWhere('_id', $replacementId);
+        $this->assertNotNull($listedReplacement);
+        $this->assertSame('percent', $listedReplacement['discountType']);
+        $this->assertSame(10.0, (float) $listedReplacement['discountValue']);
+        $this->assertSame($net, (int) round((float) $listedReplacement['value']));
+        $this->assertSame(0.0, (float) $listedReplacement['valuePayment']);
+
+        $customerId = $detail->json('customerId._id');
+        $this->patchJson('/api/customers/customers/'.$customerId, [
+            'name' => $this->customer->name,
+            'phone' => $this->customer->phone,
+        ])->assertOk();
+
+        $this->patchJson('/api/products/sales/'.$replacementId, [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => $customerId,
+            'status' => 'completed',
+            'discountValue' => 10,
+            'discountType' => 'percent',
+            'value' => $net,
+            'valuePayment' => 0,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => $gross,
+            ]],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 9,
+        ]);
+
+        $dashboard = $this->getJson('/api/dashboard')->assertOk();
+        $this->assertSame($net, (int) round((float) $dashboard->json('totals.todayRevenue')));
+        $recentReplacement = collect($dashboard->json('recentSales'))->firstWhere('_id', $replacementId);
+        $this->assertNotNull($recentReplacement);
+        $this->assertSame($net, (int) round((float) $recentReplacement['value']));
+
+        $date = now()->toDateString();
+        $timeReport = $this->getJson('/api/reports/revenue/time?from='.$date.'&to='.$date.'&compare=none')->assertOk();
+        $this->assertSame(699_800, (int) round((float) $timeReport->json('summary.discountAmount')));
+        $this->assertSame($net, (int) round((float) $timeReport->json('summary.refundAmount')));
+        $this->assertSame($net, (int) round((float) $timeReport->json('summary.netRevenue')));
+
+        $storeReport = $this->getJson('/api/reports/revenue/store?from='.$date.'&to='.$date.'&compare=none')->assertOk();
+        $this->assertSame(699_800, (int) round((float) $storeReport->json('summary.discountAmount')));
+        $this->assertSame($net, (int) round((float) $storeReport->json('summary.refundAmount')));
+        $this->assertSame($net, (int) round((float) $storeReport->json('summary.netRevenue')));
+    }
+
+    public function test_exchange_replacement_keeps_invoice_value_separate_from_pay_more_and_refund_settlement(): void
+    {
+        $returnedNet = 3_149_100;
+        $scenarios = [
+            [
+                'replacementValue' => 4_000_000,
+                'amountDelta' => -850_900,
+                'expectedPayment' => 850_900,
+                'expectedRefund' => 0,
+            ],
+            [
+                'replacementValue' => 2_500_000,
+                'amountDelta' => 649_100,
+                'expectedPayment' => 0,
+                'expectedRefund' => 649_100,
+            ],
+        ];
+
+        foreach ($scenarios as $index => $scenario) {
+            $created = $this->postJson('/api/products/sales', [
+                'branchId' => (string) $this->branch->id,
+                'customerId' => (string) $this->customer->id,
+                'channel' => 'store',
+                'type' => 'retail',
+                'status' => 'draft',
+                'value' => $returnedNet,
+                'valuePayment' => $returnedNet,
+                'items' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 1,
+                    'value' => $returnedNet,
+                ]],
+            ])->assertCreated();
+
+            $saleId = $created->json('_id');
+            $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+
+            $exchange = $this->postJson('/api/products/sales/'.$saleId.'/return-exchange', [
+                'code' => 'TH-DELTA-'.$index,
+                'branchId' => (string) $this->branch->id,
+                'channel' => 'store',
+                'discountValue' => 0,
+                'discountType' => 'number',
+                'totalAmount' => $scenario['amountDelta'],
+                'amountDelta' => $scenario['amountDelta'],
+                'refundAmount' => $scenario['expectedRefund'],
+                'returnedItems' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 1,
+                    'value' => $returnedNet,
+                ]],
+                'replacementItems' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 1,
+                    'value' => $scenario['replacementValue'],
+                ]],
+                'refundPayments' => [],
+                'salePayments' => [],
+            ])->assertOk();
+
+            $this->assertSame(
+                $scenario['replacementValue'],
+                (int) round((float) $exchange->json('replacementSale.value')),
+            );
+            $this->assertSame(
+                $scenario['expectedPayment'],
+                (int) round((float) $exchange->json('replacementSale.valuePayment')),
+            );
+            $this->assertSame($returnedNet, (int) round((float) $exchange->json('refund.value')));
+            $this->assertSame(
+                abs($scenario['amountDelta']),
+                (int) round((float) $exchange->json('refund.totalPayableAmount')),
+            );
+            $this->assertSame(
+                $scenario['expectedRefund'],
+                (int) round((float) $exchange->json('refund.refundAmount')),
+            );
+        }
+    }
+
+    public function test_equal_exchange_preserves_fixed_amount_discount(): void
+    {
+        $gross = 3_499_000;
+        $discount = 300_000;
+        $net = 3_199_000;
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'discountValue' => $discount,
+            'discountType' => 'number',
+            'value' => $net,
+            'valuePayment' => $net,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => $gross,
+            ]],
+        ])->assertCreated();
+
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+
+        $exchange = $this->postJson('/api/products/sales/'.$saleId.'/return-exchange', [
+            'branchId' => (string) $this->branch->id,
+            'channel' => 'store',
+            'discountValue' => $discount,
+            'discountType' => 'number',
+            'totalAmount' => 0,
+            'amountDelta' => 0,
+            'returnedItems' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => $gross,
+            ]],
+            'replacementItems' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => $gross,
+            ]],
+        ])->assertOk();
+
+        $this->assertSame('number', $exchange->json('replacementSale.discountType'));
+        $this->assertSame($discount, (int) round((float) $exchange->json('replacementSale.discountValue')));
+        $this->assertSame($net, (int) round((float) $exchange->json('replacementSale.value')));
+        $this->assertSame($net, (int) round((float) $exchange->json('refund.value')));
+    }
+
     public function test_return_exchange_rejects_non_completed_sale(): void
     {
         $created = $this->postJson('/api/products/sales', [

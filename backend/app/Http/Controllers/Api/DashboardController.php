@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
+use App\Support\InvoiceFinancials;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,10 +20,15 @@ class DashboardController extends Controller
     {
         $salesQuery = (new MirrorRecord())->forTable('sale_payments')->newQuery();
         $completedSales = (clone $salesQuery)->whereIn('status', ['completed', 'COMPLETED']);
+        $completedRefunds = (new MirrorRecord())->forTable('product_refunds')->newQuery()
+            ->whereIn('status', ['completed', 'COMPLETED']);
         $selectedStores = $this->selectedStoreIds($request);
         if ($selectedStores !== null) {
             $salesQuery->whereIn('branch_id', $selectedStores);
             $completedSales->whereIn('branch_id', $selectedStores);
+            if (Schema::hasColumn('product_refunds', 'branch_id')) {
+                $completedRefunds->whereIn('branch_id', $selectedStores);
+            }
         }
 
         $today = Carbon::today();
@@ -106,7 +112,7 @@ class DashboardController extends Controller
             $cur = $cur->copy()->addDay();
         }
 
-        $chartData = collect($chartDates)->map(function (Carbon $date) use ($chartStart, $chartPrevStart, $completedSales): array {
+        $chartData = collect($chartDates)->map(function (Carbon $date) use ($chartStart, $chartPrevStart, $completedSales, $completedRefunds): array {
             // Carbon 3: $later->diffInDays($earlier) is negative — always offset from chartStart → date (≥ 0).
             $offset = $this->calendarDayOffset($chartStart, $date);
             $previousDate = (clone $chartPrevStart)->addDays($offset);
@@ -114,8 +120,8 @@ class DashboardController extends Controller
             return [
                 'date' => $date->format('d/m'),
                 'fullDate' => $date->toDateString(),
-                'revenue' => (float) (clone $completedSales)->whereDate('business_date', $date)->sum('value_payment'),
-                'prevRevenue' => (float) (clone $completedSales)->whereDate('business_date', $previousDate)->sum('value_payment'),
+                'revenue' => $this->netRevenueForDate($completedSales, $completedRefunds, $date),
+                'prevRevenue' => $this->netRevenueForDate($completedSales, $completedRefunds, $previousDate),
             ];
         })->all();
 
@@ -135,9 +141,9 @@ class DashboardController extends Controller
 
         return response()->json([
             'totals' => [
-                'todayRevenue' => (float) (clone $completedSales)->whereDate('business_date', $today)->sum('value_payment'),
-                'periodRevenue' => (float) (clone $completedSales)->whereBetween('business_date', [$start, now()])->sum('value_payment'),
-                'previousPeriodRevenue' => (float) (clone $completedSales)->whereBetween('business_date', [$previousStart, $previousEnd])->sum('value_payment'),
+                'todayRevenue' => $this->netRevenueBetween($completedSales, $completedRefunds, $today->copy()->startOfDay(), $today->copy()->endOfDay()),
+                'periodRevenue' => $this->netRevenueBetween($completedSales, $completedRefunds, $start, now()),
+                'previousPeriodRevenue' => $this->netRevenueBetween($completedSales, $completedRefunds, $previousStart, $previousEnd),
                 'totalSales' => (int) $salesQuery->count(),
                 'completedSales' => (int) (clone $salesQuery)->whereIn('status', ['completed', 'COMPLETED'])->count(),
                 'customers' => Schema::hasTable('customers') ? (int) Customer::query()->count() : 0,
@@ -507,11 +513,41 @@ class DashboardController extends Controller
                 'customerName' => $customer?->name ?? (is_array($record->payload) ? ($record->payload['customerName'] ?? '') : '') ?? '',
                 'type' => $record->type ?? (is_array($record->payload) ? ($record->payload['type'] ?? 'Bán hàng') : 'Bán hàng'),
                 'branchName' => $branch?->name ?? '',
-                'value' => (float) ($record->value_payment ?? $record->total ?? $record->value ?? 0),
+                'value' => InvoiceFinancials::saleRevenue($record),
                 'status' => $record->status,
                 'createdAt' => optional($record->business_date ?? $record->created_at)->toISOString(),
                 'businessDate' => optional($record->business_date)->toISOString(),
             ];
         })->values()->all();
+    }
+
+    private function netRevenueForDate($salesQuery, $refundsQuery, Carbon $date): float
+    {
+        $sales = (clone $salesQuery)->whereDate('business_date', $date);
+        $refunds = (clone $refundsQuery)->whereDate('business_date', $date);
+
+        return round($this->sumSaleRevenue($sales) - $this->sumRefundRevenue($refunds), 2);
+    }
+
+    private function netRevenueBetween($salesQuery, $refundsQuery, Carbon $from, Carbon $to): float
+    {
+        $sales = (clone $salesQuery)->whereBetween('business_date', [$from, $to]);
+        $refunds = (clone $refundsQuery)->whereBetween('business_date', [$from, $to]);
+
+        return round($this->sumSaleRevenue($sales) - $this->sumRefundRevenue($refunds), 2);
+    }
+
+    private function sumSaleRevenue($query): float
+    {
+        return (float) $query
+            ->get(['value', 'total', 'value_payment', 'payload'])
+            ->sum(fn (MirrorRecord $record): float => InvoiceFinancials::saleRevenue($record));
+    }
+
+    private function sumRefundRevenue($query): float
+    {
+        return (float) $query
+            ->get(['value', 'total', 'total_payable_amount', 'payload'])
+            ->sum(fn (MirrorRecord $record): float => InvoiceFinancials::refundAmount($record));
     }
 }

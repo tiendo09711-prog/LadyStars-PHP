@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Branch;
 use App\Models\MirrorRecord;
 use App\Models\User;
+use App\Support\InvoiceFinancials;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -15,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  *
  * Business formulas aligned with RevenueByTimeReportService (do not invent):
  * - grossRevenue = revenue + discount
- * - revenue = COALESCE(value, value_payment, 0)
+ * - revenue = invoice net value (value/total; value_payment is legacy fallback only)
  * - refundAmount from product_refunds only (no double-count with sale refunded_value)
  * - netRevenue = revenue - refundAmount
  * - averageOrderValue = revenue / invoiceCount (0 if no invoices)
@@ -153,9 +154,9 @@ class RevenueByStoreReportService
             'timezone' => self::TIMEZONE,
             'currency' => 'VND',
             'formulas' => [
-                'grossRevenue' => 'COALESCE(value, value_payment, 0) + COALESCE(discount_value, 0)',
-                'discountAmount' => 'SUM(COALESCE(discount_value, 0)) trên sale_payments',
-                'revenue' => 'COALESCE(value, value_payment, 0) — sau giảm giá',
+                'grossRevenue' => 'revenue + discountAmount — doanh thu hóa đơn trước giảm giá',
+                'discountAmount' => 'discount_value quy đổi sang tiền theo discount_type và tổng gross của items',
+                'revenue' => 'Ưu tiên value/total — tổng tiền hóa đơn sau giảm giá; value_payment chỉ là fallback legacy',
                 'refundAmount' => 'COALESCE(value, total, total_payable_amount, 0) trên product_refunds (không cộng refunded_value của sale)',
                 'netRevenue' => 'revenue - refundAmount',
                 'averageOrderValue' => 'revenue / invoiceCount (0 nếu invoiceCount = 0)',
@@ -1338,27 +1339,12 @@ class RevenueByStoreReportService
 
     private function saleRevenue(object $row): float
     {
-        $value = $row->value;
-        if ($value === null || $value === '' || !is_numeric($value)) {
-            $value = $row->value_payment;
-        }
-        if ($value === null || $value === '' || !is_numeric($value)) {
-            $payload = is_array($row->payload) ? $row->payload : [];
-            $value = $payload['total'] ?? $payload['totalAmount'] ?? $payload['value'] ?? 0;
-        }
-
-        return max(0.0, (float) $value);
+        return InvoiceFinancials::saleRevenue($row);
     }
 
     private function saleDiscount(object $row): float
     {
-        if ($row->discount_value !== null && is_numeric($row->discount_value)) {
-            return max(0.0, (float) $row->discount_value);
-        }
-        $payload = is_array($row->payload) ? $row->payload : [];
-        $d = $payload['discountValue'] ?? $payload['discount_value'] ?? $payload['discount'] ?? 0;
-
-        return max(0.0, is_numeric($d) ? (float) $d : 0.0);
+        return InvoiceFinancials::saleDiscount($row);
     }
 
     private function saleGross(object $row): float
@@ -1402,24 +1388,7 @@ class RevenueByStoreReportService
 
     private function refundAmount(object $row): float
     {
-        $candidates = [
-            $row->value ?? null,
-            $row->total ?? null,
-            $row->total_payable_amount ?? null,
-        ];
-        $payload = is_array($row->payload) ? $row->payload : [];
-        $candidates[] = $payload['value'] ?? null;
-        $candidates[] = $payload['total'] ?? null;
-        $candidates[] = $payload['totalPayableAmount'] ?? null;
-        $candidates[] = $payload['refundAmount'] ?? null;
-
-        foreach ($candidates as $c) {
-            if ($c !== null && $c !== '' && is_numeric($c)) {
-                return abs((float) $c);
-            }
-        }
-
-        return 0.0;
+        return InvoiceFinancials::refundAmount($row);
     }
 
     private function eventTime(object $row): Carbon

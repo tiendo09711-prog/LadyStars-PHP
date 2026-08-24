@@ -9,6 +9,7 @@ use App\Models\MirrorRecord;
 use App\Models\Product;
 use App\Models\ProductBranchStock;
 use App\Models\User;
+use App\Support\InvoiceFinancials;
 use App\Support\LocalToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -881,39 +882,61 @@ class LocalWriteController extends Controller
 
         // Compute settlement from line items (source of truth). FE may send totalAmount/amountDelta
         // for prorated discounts, but must never exceed line-based bounds (anti over-refund / over-charge).
-        $returnedValue = collect($retItems)->sum(function ($i) {
-            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
+        $returnedValue = InvoiceFinancials::grossFromItems($retItems);
+        $replacementValue = InvoiceFinancials::grossFromItems($repItems);
+        $replacementDiscountValue = max(0.0, (float) ($body['discountValue'] ?? 0));
+        $replacementDiscountType = ($body['discountType'] ?? null) === 'percent' ? 'percent' : 'number';
+        $replacementDiscountAmount = InvoiceFinancials::discountAmount(
+            $replacementValue,
+            $replacementDiscountValue,
+            $replacementDiscountType,
+        );
+        $replacementNetValue = max(0.0, round($replacementValue - $replacementDiscountAmount, 2));
+
+        $sourceGrossValue = InvoiceFinancials::grossFromItems(is_array($payload['items'] ?? null) ? $payload['items'] : []);
+        $sourceDiscountAmount = InvoiceFinancials::discountAmount(
+            $sourceGrossValue,
+            $record->discount_value ?? $payload['discountValue'] ?? null,
+            $record->discount_type ?? $payload['discountType'] ?? null,
+            $record->value ?? $payload['value'] ?? null,
+        );
+        $proratedSourceDiscount = $sourceGrossValue > 0
+            ? $sourceDiscountAmount * min($returnedValue / $sourceGrossValue, 1)
+            : 0.0;
+        $returnFees = collect($retItems)->sum(function ($item): float {
+            if (! is_array($item)) {
+                return 0.0;
+            }
+
+            $type = strtolower((string) ($item['discountType'] ?? $item['discount_type'] ?? 'number'));
+            if (in_array($type, ['percent', 'percentage', '%'], true)) {
+                return 0.0;
+            }
+
+            return max(0.0, (float) ($item['discountValue'] ?? $item['discount_value'] ?? 0));
         });
-        $replacementValue = collect($repItems)->sum(function ($i) {
-            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
-        });
-        $computedDelta = $returnedValue - $replacementValue;
+        $computedReturnedNetValue = max(0.0, round($returnedValue - $proratedSourceDiscount - $returnFees, 2));
+        $computedDelta = round($computedReturnedNetValue - $replacementNetValue, 2);
         $hasExplicitTotal = array_key_exists('totalAmount', $body)
             || array_key_exists('amountDelta', $body)
             || array_key_exists('refundAmount', $body);
         if ($hasExplicitTotal) {
             $amountDelta = (float) ($body['totalAmount'] ?? $body['amountDelta'] ?? $body['refundAmount'] ?? 0);
-            // Shop pays customer: cannot exceed returned goods value.
-            if ($amountDelta > $returnedValue + 0.01) {
+            $returnedNetValue = round($replacementNetValue + $amountDelta, 2);
+            if ($returnedNetValue > $returnedValue + 0.01) {
                 return response()->json([
                     'message' => 'Số tiền trả khách vượt quá giá trị hàng trả (tối đa '. $returnedValue .').',
                 ], 422);
             }
-            // Customer pays shop: magnitude cannot exceed replacement goods value.
-            if ($amountDelta < 0 && abs($amountDelta) > $replacementValue + 0.01) {
+            if ($returnedNetValue < -0.01) {
                 return response()->json([
-                    'message' => 'Số tiền thu khách vượt quá giá trị hàng mua mới (tối đa '. $replacementValue .').',
+                    'message' => 'Số tiền thu khách không hợp lệ so với giá trị hàng trả và hàng mua mới.',
                 ], 422);
             }
-            // Positive delta larger than computed means FE inflated beyond lines even with zero discount.
-            if ($amountDelta > $computedDelta + 0.01 && $amountDelta > 0) {
-                // Allow only lower-or-equal than computed (discount proration), never higher.
-                return response()->json([
-                    'message' => 'Số tiền hoàn không hợp lệ so với giá trị hàng trả và hàng mua mới.',
-                ], 422);
-            }
+            $returnedNetValue = max(0.0, $returnedNetValue);
         } else {
             $amountDelta = $computedDelta;
+            $returnedNetValue = $computedReturnedNetValue;
         }
 
         $branchId = $body['branchId'] ?? $payload['branchId'] ?? $payload['warehouseId'] ?? null;
@@ -947,10 +970,6 @@ class LocalWriteController extends Controller
         }
 
         $returnedAmount = collect($retItems)->sum(fn ($i) => (float) ($i['amount'] ?? $i['quantity'] ?? 0));
-        $returnedValue = collect($retItems)->sum(function ($i) {
-            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
-        });
-
         $createdRefund = null;
         $replacementSale = null;
 
@@ -975,6 +994,11 @@ class LocalWriteController extends Controller
                 $customerPhone,
                 $returnedAmount,
                 $returnedValue,
+                $returnedNetValue,
+                $replacementValue,
+                $replacementNetValue,
+                $replacementDiscountValue,
+                $replacementDiscountType,
                 $action,
                 $originalStatus,
                 $reason,
@@ -1000,7 +1024,10 @@ class LocalWriteController extends Controller
                     'customerId' => $customerId,
                     'customerName' => $customerName,
                     'customerPhone' => $customerPhone,
-                    'value' => $returnedValue,
+                    'value' => $returnedNetValue,
+                    'discountValue' => max(0.0, round($returnedValue - $returnedNetValue, 2)),
+                    'discountType' => 'number',
+                    'originalTotalAmount' => $returnedValue,
                     'status' => 'completed',
                     'amount' => $returnedAmount,
                     'totalPayableAmount' => abs($amountDelta),
@@ -1027,9 +1054,11 @@ class LocalWriteController extends Controller
                         'items' => $repItems,
                         'note' => 'Phần mua mới từ đổi trả (exchange) của HĐ '.$saleCode,
                         'status' => 'completed',
-                        'value' => collect($repItems)->sum(function ($i) {
-                            return (float) ($i['amount'] ?? $i['quantity'] ?? 0) * (float) ($i['value'] ?? $i['price'] ?? 0);
-                        }),
+                        'value' => $replacementNetValue,
+                        'total' => $replacementNetValue,
+                        'discountValue' => $replacementDiscountValue,
+                        'discountType' => $replacementDiscountType,
+                        'grossValue' => $replacementValue,
                         'amountProducts' => collect($repItems)->sum(function ($i) {
                             return (float) ($i['amount'] ?? $i['quantity'] ?? 0);
                         }),
@@ -1635,6 +1664,8 @@ class LocalWriteController extends Controller
                 'refund_fee' => $payload['refundFee'] ?? 0,
                 'discount_value' => $payload['discountValue'] ?? 0,
                 'discount_type' => $payload['discountType'] ?? null,
+                'original_total_amount' => $payload['originalTotalAmount'] ?? null,
+                'total_payable_amount' => $payload['totalPayableAmount'] ?? null,
                 'settlement_value' => $payload['settlementValue'] ?? null,
                 'note' => $payload['note'] ?? null,
                 'items' => $items ?? [],
