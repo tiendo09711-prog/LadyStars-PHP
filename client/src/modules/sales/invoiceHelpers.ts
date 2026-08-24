@@ -92,6 +92,19 @@ export function discountMoneyAmount(invoice: Invoice) {
   return 0;
 }
 
+export function proratedDiscountMoneyAmount(
+  sourceDiscountMoney: unknown,
+  returnedSubtotal: unknown,
+  originalOrderSubtotal: unknown,
+) {
+  const discountMoney = Math.max(0, Number(sourceDiscountMoney) || 0);
+  const returned = Math.max(0, Number(returnedSubtotal) || 0);
+  const original = Math.max(0, Number(originalOrderSubtotal) || 0);
+  if (discountMoney <= 0 || returned <= 0 || original <= 0) return 0;
+
+  return discountMoney * Math.min(returned / original, 1);
+}
+
 /**
  * Percent rate to show under the money amount.
  * Only when the invoice was actually discounted by % (type=percent and rate 0–100).

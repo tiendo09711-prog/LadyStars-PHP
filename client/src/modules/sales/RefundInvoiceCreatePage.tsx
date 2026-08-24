@@ -30,6 +30,7 @@ import {
 import { http } from '../../core/api/http';
 import { buildInvoiceProfile, getBranch } from '../../core/api/branch.api';
 import { buildReceiptHtml, receiptMoney, writeAndPrintPopup } from './invoicePrint';
+import { discountMoneyAmount, proratedDiscountMoneyAmount } from './invoiceHelpers';
 
 const PRINT_WINDOW_FEATURES = 'popup=yes,width=420,height=720';
 
@@ -164,7 +165,7 @@ export function RefundInvoiceCreatePage() {
   const [paymentAmounts, setPaymentAmounts] = useState<Record<string, number>>({});
 
   // Source order financial data (loaded once from original sale) - used for fair proration of discounts
-  const [sourceDiscount, setSourceDiscount] = useState(0);
+  const [sourceDiscountMoney, setSourceDiscountMoney] = useState(0);
   const [originalOrderSubtotal, setOriginalOrderSubtotal] = useState(0);
   
   // Search state for refund products
@@ -298,8 +299,14 @@ export function RefundInvoiceCreatePage() {
             return sum + (Number(item.value) || 0) * (Number(item.amount || item.qty) || 0);
           }, 0);
           setOriginalOrderSubtotal(subtotal);
-          const disc = Number(sale.discountValue ?? sale.discount ?? 0);
-          setSourceDiscount(disc);
+          const normalizedSale = {
+            ...sale,
+            items: (sale.items || []).map((item: any) => ({
+              ...item,
+              amount: Number(item.amount ?? item.qty ?? item.quantity) || 0,
+            })),
+          };
+          setSourceDiscountMoney(discountMoneyAmount(normalizedSale));
           
           if (sale.items && Array.isArray(sale.items)) {
             const sourceItems = sale.items.map((item: any) => {
@@ -469,12 +476,12 @@ export function RefundInvoiceCreatePage() {
   //   - If customer returns only expensive or only cheap items, using full original discount
   //     would let customer "keep" the discount benefit unfairly (or shop loses).
   //   - Solution: prorate the original discount by (returned goods value / original goods subtotal).
-  //   - Credit for returns = returnedSubtotal - prorated portion of sourceDiscount.
+  //   - Credit for returns = returnedSubtotal - prorated portion of sourceDiscountMoney.
   //   - This is applied on goods price only (the part discount was calculated on).
   //   - VAT, extended warranty, refund fee on return lines are applied in full on top (not prorated).
   //   - New purchase discount (form.discount) remains independent and only affects purchases side.
   // All cases (no-discount, full return, partial, pure refund, exchange, edit price/qty, multiple refunds) handled.
-  // Edge: originalOrderSubtotal <=0 or sourceDiscount=0 => no prorate effect.
+  // Edge: originalOrderSubtotal <=0 or sourceDiscountMoney=0 => no prorate effect.
   // Numbers are always derived from current `products` state (supports live edit of price/qty on return table).
   useEffect(() => {
     let tempReturnsSubtotal = 0;
@@ -517,14 +524,15 @@ export function RefundInvoiceCreatePage() {
 
     // === Core fair credit calculation with proration ===
     const returnedSubtotal = tempReturnsSubtotal; // only goods price * qty (realtime from editable table)
-    const returnRatio = originalOrderSubtotal > 0
-      ? Math.min(returnedSubtotal / originalOrderSubtotal, 1)
-      : 0;
-    const proratedDiscount = sourceDiscount * returnRatio;
+    const proratedDiscount = proratedDiscountMoneyAmount(
+      sourceDiscountMoney,
+      returnedSubtotal,
+      originalOrderSubtotal,
+    );
     const effectiveReturnCredit = Math.max(0, returnedSubtotal - proratedDiscount);
 
     // full credit for net = adjusted goods credit + return extras (vat/warranty) - return fees
-    // this ensures when sourceDiscount===0 we get identical net as before (preserve behavior)
+    // this ensures when sourceDiscountMoney===0 we get identical net as before (preserve behavior)
     const totalReturnsAdjusted = effectiveReturnCredit + tempReturnsVat + tempReturnsWarranty - tempReturnsRefundFee;
 
     const totalPurchases = tempPurchasesSubtotal + tempPurchasesVat + tempPurchasesWarranty;
@@ -558,7 +566,7 @@ export function RefundInvoiceCreatePage() {
     newProducts,
     form.discount,
     form.discountType,
-    sourceDiscount,
+    sourceDiscountMoney,
     originalOrderSubtotal
   ]);
 
@@ -1946,9 +1954,9 @@ export function RefundInvoiceCreatePage() {
               {(() => {
                 const returnedSubtotal = products.reduce((acc, p) => acc + ((p.price || 0) * (p.qty || 0)), 0);
                 const origSubtotal = originalOrderSubtotal || 0;
-                const srcDisc = sourceDiscount || 0;
+                const srcDisc = sourceDiscountMoney || 0;
                 const returnRatio = origSubtotal > 0 ? Math.min(returnedSubtotal / origSubtotal, 1) : 0;
-                const proratedDiscount = srcDisc * returnRatio;
+                const proratedDiscount = proratedDiscountMoneyAmount(srcDisc, returnedSubtotal, origSubtotal);
                 const effectiveReturnCredit = Math.max(0, returnedSubtotal - proratedDiscount);
                 const showProrated = proratedDiscount > 0.0001; // avoid float noise
                 return (

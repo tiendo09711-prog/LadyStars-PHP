@@ -347,7 +347,7 @@ class LocalWriteApiTest extends TestCase
             ->assertJsonPath('items.0.productId.code', $this->product->code);
     }
 
-    public function test_employee_cannot_cancel_or_delete_completed_sale(): void
+    public function test_employee_can_edit_assigned_retail_completed_sale_but_cannot_cancel_or_delete(): void
     {
         $admin = User::query()->where('email', 'admin.local@example.test')->firstOrFail();
         $employee = User::create([
@@ -390,14 +390,21 @@ class LocalWriteApiTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer '.$empToken)
             ->patchJson('/api/products/sales/'.$saleId, [
-                'note' => 'employee try edit',
+                'branchId' => (string) $this->branch->id,
+                'status' => 'completed',
+                'note' => 'employee completed edit',
                 'items' => [[
                     'productId' => (string) $this->product->id,
                     'amount' => 1,
                     'value' => 100000,
                 ]],
             ])
-            ->assertStatus(403);
+            ->assertOk()
+            ->assertJsonPath('note', 'employee completed edit');
+
+        $this->withHeader('Authorization', 'Bearer '.$empToken)
+            ->patchJson('/api/products/sales/'.$saleId, ['status' => 'draft'])
+            ->assertStatus(422);
 
         // Admin can cancel.
         $this->withHeader('Authorization', 'Bearer local-laravel-token-'.$admin->id)
@@ -412,10 +419,20 @@ class LocalWriteApiTest extends TestCase
         ]);
     }
 
-    public function test_edit_completed_sale_applies_stock_delta_only(): void
+    public function test_employee_completed_retail_edit_applies_stock_delta_only(): void
     {
-        $admin = User::query()->where('email', 'admin.local@example.test')->firstOrFail();
-        $adminToken = 'local-laravel-token-'.$admin->id;
+        $employee = User::create([
+            'mongo_id' => 'userlocalstockemployee01',
+            'name' => 'Stock Employee',
+            'email' => 'stock.employee@example.test',
+            'password' => 'secret',
+            'role' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+            'branch_id' => $this->branch->id,
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
+        $employeeToken = 'local-laravel-token-'.$employee->id;
 
         $created = $this->postJson('/api/products/sales', [
             'branchId' => (string) $this->branch->id,
@@ -439,7 +456,7 @@ class LocalWriteApiTest extends TestCase
         ]);
 
         // Increase qty 2 → 3: stock decreases by 1 only.
-        $this->withHeader('Authorization', 'Bearer '.$adminToken)
+        $this->withHeader('Authorization', 'Bearer '.$employeeToken)
             ->patchJson('/api/products/sales/'.$saleId, [
                 'branchId' => (string) $this->branch->id,
                 'customerId' => (string) $this->customer->id,
@@ -459,8 +476,32 @@ class LocalWriteApiTest extends TestCase
             'qty' => 7,
         ]);
 
+        $this->withHeader('Authorization', 'Bearer '.$employeeToken)
+            ->patchJson('/api/products/sales/'.$saleId, [
+                'branchId' => (string) $this->branch->id,
+                'customerId' => (string) $this->customer->id,
+                'status' => 'completed',
+                'note' => 'financial only',
+                'discountValue' => 10,
+                'discountType' => 'percent',
+                'valuePayment' => 270000,
+                'items' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 3,
+                    'value' => 100000,
+                ]],
+            ])
+            ->assertOk()
+            ->assertJsonPath('note', 'financial only');
+
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 7,
+        ]);
+
         // Decrease qty 3 → 1: stock restores by 2.
-        $this->withHeader('Authorization', 'Bearer '.$adminToken)
+        $this->withHeader('Authorization', 'Bearer '.$employeeToken)
             ->patchJson('/api/products/sales/'.$saleId, [
                 'branchId' => (string) $this->branch->id,
                 'customerId' => (string) $this->customer->id,
@@ -479,6 +520,203 @@ class LocalWriteApiTest extends TestCase
             'branch_id' => $this->branch->id,
             'qty' => 9,
         ]);
+    }
+
+    public function test_completed_retail_edit_uses_original_branch_for_authorization_and_stock(): void
+    {
+        $otherBranch = Branch::create([
+            'mongo_id' => 'branchlocal000000000002',
+            'name' => 'Kho Khác',
+            'code' => 'OTHER',
+            'is_active' => true,
+        ]);
+        ProductBranchStock::create([
+            'mongo_id' => 'stocklocal000000000002',
+            'product_id' => $this->product->id,
+            'branch_id' => $otherBranch->id,
+            'qty' => 20,
+            'locked_quantity' => 0,
+            'min_quantity' => 0,
+            'max_quantity' => 999999999,
+        ]);
+        $employee = User::create([
+            'mongo_id' => 'userlocalotheremployee1',
+            'name' => 'Other Branch Employee',
+            'email' => 'other.employee@example.test',
+            'password' => 'secret',
+            'role' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+            'branch_id' => $otherBranch->id,
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
+
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'valuePayment' => 100000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+
+        $employeeToken = 'local-laravel-token-'.$employee->id;
+        $this->withHeader('Authorization', 'Bearer '.$employeeToken)
+            ->patchJson('/api/products/sales/'.$saleId, ['note' => 'unassigned original branch'])
+            ->assertStatus(403);
+
+        $this->withHeader('Authorization', 'Bearer '.$employeeToken)
+            ->patchJson('/api/products/sales/'.$saleId, [
+                'branchId' => (string) $otherBranch->id,
+                'status' => 'completed',
+                'items' => [[
+                    'productId' => (string) $this->product->id,
+                    'amount' => 2,
+                    'value' => 100000,
+                ]],
+            ])
+            ->assertStatus(422);
+
+        $admin = User::query()->where('email', 'admin.local@example.test')->firstOrFail();
+        $this->withHeader('Authorization', 'Bearer local-laravel-token-'.$admin->id)
+            ->patchJson('/api/products/sales/'.$saleId, [
+                'branchId' => (string) $otherBranch->id,
+                'status' => 'completed',
+            ])
+            ->assertStatus(422);
+
+        $sale = (new MirrorRecord())->forTable('sale_payments')->newQuery()->where('mongo_id', $saleId)->firstOrFail();
+        $this->assertSame((string) $this->branch->id, (string) ($sale->payload['branchId'] ?? ''));
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $this->branch->id,
+            'qty' => 9,
+        ]);
+        $this->assertDatabaseHas('product_branch_stocks', [
+            'product_id' => $this->product->id,
+            'branch_id' => $otherBranch->id,
+            'qty' => 20,
+        ]);
+    }
+
+    public function test_employee_and_admin_cannot_edit_completed_sale_after_refund_linkage(): void
+    {
+        $employee = User::create([
+            'mongo_id' => 'userlocalrefundemployee1',
+            'name' => 'Refund Employee',
+            'email' => 'refund.employee@example.test',
+            'password' => 'secret',
+            'role' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+            'branch_id' => $this->branch->id,
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'valuePayment' => 100000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+
+        $sale = (new MirrorRecord())->forTable('sale_payments')->newQuery()->where('mongo_id', $saleId)->firstOrFail();
+        $payload = $sale->payload;
+        $payload['refundStatus'] = 'partial';
+        $sale->forceFill(['payload' => $payload, 'refund_status' => 'partial'])->save();
+
+        $employeeToken = 'local-laravel-token-'.$employee->id;
+        $admin = User::query()->where('email', 'admin.local@example.test')->firstOrFail();
+        foreach ([$employeeToken, 'local-laravel-token-'.$admin->id] as $token) {
+            $this->withHeader('Authorization', 'Bearer '.$token)
+                ->patchJson('/api/products/sales/'.$saleId, ['note' => 'blocked after partial refund'])
+                ->assertStatus(422);
+        }
+
+        $payload['refundStatus'] = 'none';
+        $payload['activeRefundCount'] = 1;
+        $sale->forceFill(['payload' => $payload, 'refund_status' => 'none'])->save();
+        foreach ([$employeeToken, 'local-laravel-token-'.$admin->id] as $token) {
+            $this->withHeader('Authorization', 'Bearer '.$token)
+                ->patchJson('/api/products/sales/'.$saleId, ['note' => 'blocked by active refund'])
+                ->assertStatus(422);
+        }
+    }
+
+    public function test_employee_completed_edit_remains_retail_only_and_draft_edit_still_works(): void
+    {
+        $employee = User::create([
+            'mongo_id' => 'userlocaldraftemployee01',
+            'name' => 'Draft Employee',
+            'email' => 'draft.employee@example.test',
+            'password' => 'secret',
+            'role' => 'EMPLOYEE',
+            'status' => 'ACTIVE',
+            'branch_id' => $this->branch->id,
+            'is_root_owner' => false,
+            'is_active' => true,
+        ]);
+        $employeeToken = 'local-laravel-token-'.$employee->id;
+
+        $draft = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'valuePayment' => 100000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+        $draftId = $draft->json('_id');
+        $this->withHeader('Authorization', 'Bearer '.$employeeToken)
+            ->patchJson('/api/products/sales/'.$draftId, [
+                'branchId' => (string) $this->branch->id,
+                'note' => 'employee draft edit',
+            ])
+            ->assertOk()
+            ->assertJsonPath('note', 'employee draft edit');
+
+        $wholesale = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'wholesale',
+            'status' => 'draft',
+            'valuePayment' => 100000,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 100000,
+            ]],
+        ]);
+        $wholesaleId = $wholesale->json('_id');
+        $this->postJson('/api/products/sales/'.$wholesaleId.'/complete')->assertOk();
+        $this->withHeader('Authorization', 'Bearer '.$employeeToken)
+            ->patchJson('/api/products/sales/'.$wholesaleId, [
+                'branchId' => (string) $this->branch->id,
+                'status' => 'completed',
+                'note' => 'must stay admin only',
+            ])
+            ->assertStatus(403);
     }
 
     public function test_complete_sale_rejects_oversell(): void
@@ -592,6 +830,48 @@ class LocalWriteApiTest extends TestCase
             ->filter()
             ->all();
         $this->assertNotEmpty($list->json('items') ?? $list->json('total'));
+    }
+
+    public function test_return_exchange_accepts_prorated_discount_settlement_from_frontend(): void
+    {
+        $created = $this->postJson('/api/products/sales', [
+            'branchId' => (string) $this->branch->id,
+            'customerId' => (string) $this->customer->id,
+            'channel' => 'store',
+            'type' => 'retail',
+            'status' => 'draft',
+            'discountValue' => 10,
+            'discountType' => 'percent',
+            'value' => 3149100,
+            'valuePayment' => 3149100,
+            'items' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 3499000,
+            ]],
+        ]);
+        $saleId = $created->json('_id');
+        $this->postJson('/api/products/sales/'.$saleId.'/complete')->assertOk();
+
+        $response = $this->postJson('/api/products/sales/'.$saleId.'/return-exchange', [
+            'branchId' => (string) $this->branch->id,
+            'channel' => 'store',
+            'totalAmount' => 3149100,
+            'amountDelta' => 3149100,
+            'refundAmount' => 3149100,
+            'returnedItems' => [[
+                'productId' => (string) $this->product->id,
+                'amount' => 1,
+                'value' => 3499000,
+            ]],
+            'replacementItems' => [],
+            'refundPayments' => [],
+            'salePayments' => [],
+        ]);
+
+        $response->assertOk();
+        $this->assertSame(3149100.0, (float) $response->json('refund.totalPayableAmount'));
+        $this->assertSame(3149100.0, (float) $response->json('refund.amountDelta'));
     }
 
     public function test_return_exchange_rejects_non_completed_sale(): void

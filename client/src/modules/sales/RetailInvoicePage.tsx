@@ -217,7 +217,7 @@ export function RetailInvoicePage({ channel }: RetailInvoicePageProps) {
   /** Prevents admin actions from flashing hidden/visible before /auth/me settles. */
   const [authReady, setAuthReady] = useState(false);
   const canManageSales = authReady && isAdminRole(currentUser?.role);
-  const canEditInvoice = (invoice: Invoice) => canManageSales || String(invoice?.status || '').toLowerCase() === 'draft';
+  const canEditInvoice = (invoice: Invoice) => authReady && editActionState(invoice).enabled;
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;

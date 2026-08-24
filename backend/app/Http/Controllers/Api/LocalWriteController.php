@@ -309,6 +309,7 @@ class LocalWriteController extends Controller
         $record = $this->findRecord($table, $id);
         $oldPayload = is_array($record->payload) ? $record->payload : [];
         $payload = array_merge($oldPayload, $request->all());
+        $saleStockBranch = null;
 
         if ($resource === 'inventory-checks') {
             $currentStatus = strtoupper((string) ($record->status ?? (is_array($record->payload) ? ($record->payload['status'] ?? 'DRAFT') : 'DRAFT')));
@@ -349,28 +350,82 @@ class LocalWriteController extends Controller
             }
         }
 
-        // Sale edit: only ADMIN may patch completed invoices; cancelled invoices are locked.
+        // Sale edit: completed retail invoices may be patched by assigned employees; cancelled invoices are locked.
         if ($resource === 'sale-payments') {
             $saleStatus = strtolower((string) ($record->status ?? $oldPayload['status'] ?? ''));
             if ($saleStatus === 'cancelled') {
                 return response()->json(['message' => 'Hóa đơn đã hủy nên không thể sửa.'], 422);
             }
-            if ($saleStatus === 'completed' && !$this->isLocalAdmin($request)) {
-                return response()->json([
-                    'message' => 'Chỉ tài khoản admin mới được sửa hóa đơn đã hoàn tất.',
-                ], 403);
-            }
-            $refundStatus = strtolower((string) ($oldPayload['refundStatus'] ?? 'none'));
-            $activeRefundCount = (int) ($oldPayload['activeRefundCount'] ?? 0);
+            $refundStatus = strtolower((string) ($oldPayload['refundStatus'] ?? $oldPayload['refund_status'] ?? $record->refund_status ?? 'none'));
+            $activeRefundCount = (int) ($oldPayload['activeRefundCount'] ?? $oldPayload['active_refund_count'] ?? 0);
             if ($saleStatus === 'completed' && ($refundStatus === 'full' || $refundStatus === 'partial' || $activeRefundCount > 0)) {
                 return response()->json([
                     'message' => 'Hóa đơn đã phát sinh đổi trả nên không thể sửa.',
                 ], 422);
             }
-            $saleBranchId = trim((string) ($payload['branchId'] ?? $payload['warehouseId'] ?? $oldPayload['branchId'] ?? $oldPayload['warehouseId'] ?? ''));
-            $saleBranch = $this->branch($saleBranchId !== '' ? $saleBranchId : null);
-            if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $saleBranch, 'sửa hóa đơn bán hàng')) {
-                return $deny;
+
+            if ($saleStatus === 'completed') {
+                $originalBranchRef = null;
+                foreach ([
+                    $oldPayload['branchId'] ?? null,
+                    $oldPayload['warehouseId'] ?? null,
+                    $record->branch_id,
+                    $record->branch_mongo_id,
+                ] as $branchCandidate) {
+                    if (is_array($branchCandidate)) {
+                        $branchCandidate = $branchCandidate['_id'] ?? $branchCandidate['id'] ?? $branchCandidate['mongoId'] ?? null;
+                    }
+                    if ($branchCandidate !== null && trim((string) $branchCandidate) !== '') {
+                        $originalBranchRef = $branchCandidate;
+                        break;
+                    }
+                }
+                $saleStockBranch = $this->branch($originalBranchRef);
+                if (!$saleStockBranch) {
+                    return response()->json(['message' => 'Không xác định được kho gốc của hóa đơn đã hoàn tất.'], 422);
+                }
+
+                foreach (['branchId', 'warehouseId'] as $branchField) {
+                    if (!$request->exists($branchField)) {
+                        continue;
+                    }
+                    $submittedBranchRef = $request->input($branchField);
+                    if (is_array($submittedBranchRef)) {
+                        $submittedBranchRef = $submittedBranchRef['_id'] ?? $submittedBranchRef['id'] ?? $submittedBranchRef['mongoId'] ?? null;
+                    }
+                    $submittedBranch = $this->branch($submittedBranchRef);
+                    if (!$submittedBranch) {
+                        return response()->json(['message' => 'Kho hàng gửi lên không hợp lệ.'], 422);
+                    }
+                    if ((int) $submittedBranch->id !== (int) $saleStockBranch->id) {
+                        return response()->json([
+                            'message' => 'Không thể thay đổi kho của hóa đơn đã hoàn tất.',
+                        ], 422);
+                    }
+                }
+
+                if (!$this->isLocalAdmin($request)) {
+                    $saleType = strtolower(trim((string) ($record->type ?: ($oldPayload['type'] ?? ''))));
+                    if ($saleType !== 'retail') {
+                        return response()->json([
+                            'message' => 'Chỉ tài khoản admin mới được sửa hóa đơn ngoài bán lẻ đã hoàn tất.',
+                        ], 403);
+                    }
+                    if ($request->exists('status') && strtolower((string) $request->input('status')) !== 'completed') {
+                        return response()->json([
+                            'message' => 'Nhân viên không thể thay đổi trạng thái hóa đơn đã hoàn tất.',
+                        ], 422);
+                    }
+                    if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $saleStockBranch, 'sửa hóa đơn bán lẻ')) {
+                        return $deny;
+                    }
+                }
+            } else {
+                $saleBranchId = trim((string) ($payload['branchId'] ?? $payload['warehouseId'] ?? $oldPayload['branchId'] ?? $oldPayload['warehouseId'] ?? ''));
+                $saleBranch = $this->branch($saleBranchId !== '' ? $saleBranchId : null);
+                if ($deny = $this->denyWarehouseWriteIfUnauthorized($request, $saleBranch, 'sửa hóa đơn bán hàng')) {
+                    return $deny;
+                }
             }
         }
 
@@ -396,10 +451,10 @@ class LocalWriteController extends Controller
 
         $requestBody = $request->all();
         try {
-            DB::transaction(function () use ($record, $table, $payload, $resource, $requestBody, $oldPayload): void {
+            DB::transaction(function () use ($record, $table, $payload, $resource, $requestBody, $oldPayload, $saleStockBranch): void {
                 // Completed sale edit: apply stock delta (restore old lines, deduct new lines).
                 if ($resource === 'sale-payments' && strtolower((string) ($record->status ?? '')) === 'completed') {
-                    $this->applySaleStockDelta($oldPayload, $payload);
+                    $this->applySaleStockDelta($oldPayload, $payload, $saleStockBranch);
                 }
                 $record->forceFill($this->attributes($table, $payload, $resource, $record))->save();
                 // Sync product lines when client sends items/lines (create/edit audit form).
@@ -1923,14 +1978,15 @@ class LocalWriteController extends Controller
      * When editing a completed sale, adjust stock by line delta only:
      * sold more → decrease stock; sold less → restore stock.
      */
-    private function applySaleStockDelta(array $oldPayload, array $newPayload): void
+    private function applySaleStockDelta(array $oldPayload, array $newPayload, ?Branch $originalBranch = null): void
     {
-        $branchIdRaw = $newPayload['branchId']
-            ?? $newPayload['warehouseId']
-            ?? $oldPayload['branchId']
+        $branchIdRaw = $oldPayload['branchId']
             ?? $oldPayload['warehouseId']
             ?? null;
-        $branch = $this->branch($branchIdRaw);
+        if (is_array($branchIdRaw)) {
+            $branchIdRaw = $branchIdRaw['_id'] ?? $branchIdRaw['id'] ?? $branchIdRaw['mongoId'] ?? null;
+        }
+        $branch = $originalBranch ?? $this->branch($branchIdRaw);
         if (!$branch) {
             throw new \InvalidArgumentException('Không xác định được kho để điều chỉnh tồn khi sửa hóa đơn.');
         }
@@ -2486,7 +2542,7 @@ class LocalWriteController extends Controller
 
     /**
      * Admin gate: requires valid local-laravel-token-{id} for ADMIN or root owner.
-     * Used for inventory audit reconcile and sale cancel/delete/edit of completed invoices.
+     * Used for inventory audit reconcile and admin-only sale actions.
      * Does not use unauthenticated ADMIN fallback (unlike /auth/me).
      */
     private function isLocalAdmin(Request $request): bool
